@@ -26,4 +26,3 @@ jobs:
     - name: Build
       run: dotnet build DotNetMcp/DotNetMcp.csproj --no-restore --configuration Release
     
-
