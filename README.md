@@ -60,10 +60,9 @@ dotnet run
 
 To use this MCP server with GitHub Copilot in Visual Studio Code:
 
-1. Install the [GitHub Copilot Chat extension](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot-chat)
-2. Open the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P` on macOS)
-3. Run the command **"GitHub Copilot: Add MCP Server"**
-4. Enter the following configuration:
+1. Open the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P` on macOS)
+2. Run the command **"GitHub Copilot: Add MCP Server"**
+3. Enter the following configuration:
    - **Name**: `dotnet`
    - **Type**: `stdio`
    - **Command**: `dotnet`
@@ -90,10 +89,9 @@ For more information, see the [VS Code MCP documentation](https://code.visualstu
 To use this MCP server with GitHub Copilot in Visual Studio 2022:
 
 1. Ensure you have Visual Studio 2022 version 17.13 or later
-2. Install the [GitHub Copilot extension](https://marketplace.visualstudio.com/items?itemName=GitHub.copilotvs)
-3. Go to **Tools** > **Options** > **GitHub Copilot** > **MCP Servers**
-4. Click **Add** to add a new MCP server
-5. Enter the following configuration:
+2. Go to **Tools** > **Options** > **GitHub Copilot** > **MCP Servers**
+3. Click **Add** to add a new MCP server
+4. Enter the following configuration:
    - **Name**: `dotnet`
    - **Type**: `stdio`
    - **Command**: `dotnet`
