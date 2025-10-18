@@ -240,7 +240,6 @@ Focus on **evergreen documentation** that provides lasting value to users:
 
 - **README.md** - Project overview, features, installation, usage
 - **doc/sdk-integration.md** - Technical details about SDK integration
-- **doc/implementation-summary.md** - Architectural decisions and patterns
 - **This file** - Development guidelines and conventions
 
 ### What NOT to Document

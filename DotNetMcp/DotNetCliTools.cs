@@ -12,7 +12,7 @@ public sealed class DotNetCliTools
     [McpServerTool, Description("List all installed .NET templates with their metadata using the Template Engine. Provides structured information about available project templates.")]
     public async Task<string> DotnetTemplateList()
     {
-        return await DotNetMcp.TemplateEngineHelper.GetInstalledTemplatesAsync();
+        return await TemplateEngineHelper.GetInstalledTemplatesAsync();
     }
 
     [McpServerTool, Description("Search for .NET templates by name or description. Returns matching templates with their details.")]
@@ -20,7 +20,7 @@ public sealed class DotNetCliTools
         [Description("Search term to find templates (searches in name, short name, and description)")]
         string searchTerm)
     {
-        return await DotNetMcp.TemplateEngineHelper.SearchTemplatesAsync(searchTerm);
+        return await TemplateEngineHelper.SearchTemplatesAsync(searchTerm);
     }
 
     [McpServerTool, Description("Get detailed information about a specific template including available parameters and options.")]
@@ -28,7 +28,7 @@ public sealed class DotNetCliTools
         [Description("The template short name (e.g., 'console', 'webapi', 'classlib')")]
         string templateShortName)
     {
-        return await DotNetMcp.TemplateEngineHelper.GetTemplateDetailsAsync(templateShortName);
+        return await TemplateEngineHelper.GetTemplateDetailsAsync(templateShortName);
     }
 
     [McpServerTool, Description("Get information about .NET framework versions, including which are LTS releases. Useful for understanding framework compatibility.")]

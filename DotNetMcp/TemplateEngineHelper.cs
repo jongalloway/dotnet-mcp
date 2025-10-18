@@ -60,7 +60,7 @@ public class TemplateEngineHelper
         }
         catch (Exception ex)
         {
-            return $"Error accessing template engine: {ex.Message}\n\nFalling back to CLI command...";
+            return $"Error accessing template engine: {ex.Message}\n\nYou may try running 'dotnet new --list' from the command line for more information.";
         }
     }
     
@@ -83,7 +83,7 @@ public class TemplateEngineHelper
             
             if (template == null)
             {
-                return $"Template '{templateShortName}' not found.\n\nUse dotnet_list_templates to see all available templates.";
+                return $"Template '{templateShortName}' not found.\n\nUse DotnetTemplateList to see all available templates.";
             }
 
             var result = new StringBuilder();
@@ -192,8 +192,8 @@ public class TemplateEngineHelper
         }
         catch
         {
-            // If template engine fails, assume template might exist (fallback to CLI validation)
-            return true;
+            // If template engine fails, do not assume template exists; return false to avoid false positives
+            return false;
         }
     }
 }

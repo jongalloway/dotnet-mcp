@@ -1,4 +1,3 @@
-using Microsoft.Build.Utilities;
 
 namespace DotNetMcp;
 
