@@ -58,7 +58,19 @@ For detailed information about SDK integration, see [doc/sdk-integration.md](doc
 - .NET 9.0 SDK or later
 - The MCP server uses stdio transport for communication
 
-## Building
+## Installation
+
+### Option 1: Install via NuGet (Recommended)
+
+Install the DotNetMcp package globally as a .NET tool:
+
+```bash
+dotnet tool install --global DotNetMcp
+```
+
+Then use `dotnet-mcp` as the command in your MCP configuration.
+
+### Option 2: Build from Source
 
 ```bash
 cd DotNetMcp
@@ -77,6 +89,34 @@ dotnet run
 ## Using with Visual Studio Code
 
 To use this MCP server with GitHub Copilot in Visual Studio Code:
+
+### Using NuGet Package (Recommended)
+
+If you've installed the tool via NuGet:
+
+1. Open the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P` on macOS)
+2. Run the command **"GitHub Copilot: Add MCP Server"**
+3. Enter the following configuration:
+   - **Name**: `dotnet`
+   - **Type**: `stdio`
+   - **Command**: `dotnet-mcp`
+
+Or manually edit your VS Code settings and add:
+
+```json
+{
+  "github.copilot.chat.mcp.servers": {
+    "dotnet": {
+      "type": "stdio",
+      "command": "dotnet-mcp"
+    }
+  }
+}
+```
+
+### Using Source Build
+
+If you're running from source:
 
 1. Open the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P` on macOS)
 2. Run the command **"GitHub Copilot: Add MCP Server"**
@@ -106,6 +146,22 @@ For more information, see the [VS Code MCP documentation](https://code.visualstu
 
 To use this MCP server with GitHub Copilot in Visual Studio 2022:
 
+### Using NuGet Package (Recommended)
+
+If you've installed the tool via NuGet:
+
+1. Ensure you have Visual Studio 2022 version 17.13 or later
+2. Go to **Tools** > **Options** > **GitHub Copilot** > **MCP Servers**
+3. Click **Add** to add a new MCP server
+4. Enter the following configuration:
+   - **Name**: `dotnet`
+   - **Type**: `stdio`
+   - **Command**: `dotnet-mcp`
+
+### Using Source Build
+
+If you're running from source:
+
 1. Ensure you have Visual Studio 2022 version 17.13 or later
 2. Go to **Tools** > **Options** > **GitHub Copilot** > **MCP Servers**
 3. Click **Add** to add a new MCP server
@@ -119,9 +175,41 @@ For more information, see the [Visual Studio MCP documentation](https://learn.mi
 
 ## Using with Claude Desktop
 
-Add the following to your Claude Desktop configuration file:
+### Using NuGet Package (Recommended)
 
-### macOS
+If you've installed the tool via NuGet, add the following to your Claude Desktop configuration file:
+
+#### macOS
+Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "dotnet": {
+      "command": "dotnet-mcp"
+    }
+  }
+}
+```
+
+#### Windows
+Edit `%APPDATA%\Claude\claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "dotnet": {
+      "command": "dotnet-mcp"
+    }
+  }
+}
+```
+
+### Using Source Build
+
+If you're running from source, add the following to your Claude Desktop configuration file:
+
+#### macOS
 Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ```json
@@ -135,7 +223,7 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
 }
 ```
 
-### Windows
+#### Windows
 Edit `%APPDATA%\Claude\claude_desktop_config.json`:
 
 ```json
