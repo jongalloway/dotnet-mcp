@@ -14,6 +14,15 @@ An MCP (Model Context Protocol) server that provides tools for interacting with 
 
 This MCP server exposes the following .NET CLI commands as tools:
 
+### Interactive Support (Elicitation)
+
+The server supports **elicitation** - a powerful feature that allows interactive prompting for missing information. When using AI assistants that support elicitation (like GitHub Copilot in VS Code or Visual Studio), the server can request additional details when needed:
+
+- **dotnet_new** can prompt you for the template type if not specified
+- Provides a more natural conversational experience when working with .NET projects
+
+For more information about elicitation, see the [Model Context Protocol Elicitation Specification](https://modelcontextprotocol.io/specification/2025-06-18/client/elicitation).
+
 ### Project Management
 - **dotnet_new** - Create new .NET projects from templates (console, classlib, webapi, etc.)
 - **dotnet_restore** - Restore project dependencies
@@ -34,6 +43,9 @@ This MCP server exposes the following .NET CLI commands as tools:
 - **dotnet_info** - Get detailed SDK and runtime information
 - **dotnet_list_sdks** - List installed SDKs
 - **dotnet_list_runtimes** - List installed runtimes
+
+### Help and Documentation
+- **dotnet_help** - Get help for any dotnet command to discover available options
 
 ## Requirements
 
@@ -136,11 +148,13 @@ Edit `%APPDATA%\Claude\claude_desktop_config.json`:
 Once connected to your AI assistant (Visual Studio Code, Visual Studio, or Claude Desktop), you can ask questions like:
 
 - "Create a new console application called MyApp"
+- "Create a new project" (with elicitation support, you'll be prompted for the template type)
 - "Add the Newtonsoft.Json package to my project"
 - "Build my project in Release configuration"
 - "Run the tests in my solution"
 - "What version of .NET SDK is installed?"
 - "List all the .NET runtimes installed on my system"
+- "What options are available for dotnet build?" (uses the dotnet_help tool)
 
 ## Project Structure
 
