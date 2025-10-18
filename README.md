@@ -1,6 +1,7 @@
 # .NET MCP Server
 
 [![Build and Test](https://github.com/jongalloway/dotnet-mcp/actions/workflows/build.yml/badge.svg)](https://github.com/jongalloway/dotnet-mcp/actions/workflows/build.yml)
+[![Dependabot Updates](https://github.com/jongalloway/dotnet-mcp/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/jongalloway/dotnet-mcp/actions/workflows/dependabot/dependabot-updates)
 
 <a href="https://vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dotnet%22%2C%22args%22%3A%5B%22run%22%2C%22--project%22%2C%22%2Fpath%2Fto%2Fdotnet-mcp%2FDotNetMcp%2FDotNetMcp.csproj%22%5D%7D"><img src="https://img.shields.io/badge/VS_Code-Install_.NET_MCP-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white"></a>
 <a href="https://insiders.vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dotnet%22%2C%22args%22%3A%5B%22run%22%2C%22--project%22%2C%22%2Fpath%2Fto%2Fdotnet-mcp%2FDotNetMcp%2FDotNetMcp.csproj%22%5D%7D&quality=insiders"><img src="https://img.shields.io/badge/VS_Code_Insiders-Install_.NET_MCP-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white"></a>
