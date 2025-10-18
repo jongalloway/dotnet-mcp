@@ -6,7 +6,7 @@ This project is an MCP (Model Context Protocol) server that wraps the .NET SDK C
 
 ## Key Technologies
 
-- **.NET 9.0**: The latest LTS version of .NET
+- **.NET 9.0**: The latest version of .NET (STS - Standard Term Support)
 - **Model Context Protocol SDK**: Version 0.4.0-preview.2
 - **Stdio Transport**: Communication via standard input/output
 - **Microsoft.Extensions.Hosting**: For application lifecycle management
