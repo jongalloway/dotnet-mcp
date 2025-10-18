@@ -47,7 +47,13 @@ public sealed class DotNetCliTools
                 return "Template creation cancelled by user.";
             }
 
-            template = response.Content["template"].GetString();
+            // Safely extract the template value
+            if (!response.Content.TryGetValue("template", out var templateValue))
+            {
+                return "No template provided. Template creation cancelled.";
+            }
+
+            template = templateValue.ValueKind == JsonValueKind.String ? templateValue.GetString() : null;
             
             if (string.IsNullOrEmpty(template))
             {
