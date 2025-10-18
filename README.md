@@ -2,7 +2,11 @@
 
 [![Build and Test](https://github.com/jongalloway/dotnet-mcp/actions/workflows/build.yml/badge.svg)](https://github.com/jongalloway/dotnet-mcp/actions/workflows/build.yml)
 
-<a href="https://vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dotnet%22%2C%22args%22%3A%5B%22run%22%2C%22--project%22%2C%22%2Fpath%2Fto%2Fdotnet-mcp%2FDotNetMcp%2FDotNetMcp.csproj%22%5D%7D"><img src="https://img.shields.io/badge/VS_Code-Install_.NET_MCP-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white"></a> <a href="https://insiders.vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dotnet%22%2C%22args%22%3A%5B%22run%22%2C%22--project%22%2C%22%2Fpath%2Fto%2Fdotnet-mcp%2FDotNetMcp%2FDotNetMcp.csproj%22%5D%7D&quality=insiders"><img src="https://img.shields.io/badge/VS_Code_Insiders-Install_.NET_MCP-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white"></a> <a href="https://vs-open.link/mcp-install"><img src="https://img.shields.io/badge/Visual_Studio-Install_.NET_MCP-5C2D91?style=flat-square&logo=visualstudio&logoColor=white"></a>
+<a href="https://vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dotnet%22%2C%22args%22%3A%5B%22run%22%2C%22--project%22%2C%22%2Fpath%2Fto%2Fdotnet-mcp%2FDotNetMcp%2FDotNetMcp.csproj%22%5D%7D"><img src="https://img.shields.io/badge/VS_Code-Install_.NET_MCP-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white"></a>
+<a href="https://insiders.vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dotnet%22%2C%22args%22%3A%5B%22run%22%2C%22--project%22%2C%22%2Fpath%2Fto%2Fdotnet-mcp%2FDotNetMcp%2FDotNetMcp.csproj%22%5D%7D&quality=insiders"><img src="https://img.shields.io/badge/VS_Code_Insiders-Install_.NET_MCP-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white"></a>
+<a href="https://vs-open.link/mcp-install"><img src="https://img.shields.io/badge/Visual_Studio-Install_.NET_MCP-5C2D91?style=flat-square&logo=visualstudio&logoColor=white"></a>
+
+> **Note**: The install badges above will prompt you to configure the server. You'll need to update the project path to match your local installation location.
 
 An MCP (Model Context Protocol) server that provides tools for interacting with the .NET SDK CLI commands. This allows AI assistants to help with .NET development tasks through a standardized protocol.
 
