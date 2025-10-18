@@ -1,5 +1,9 @@
 # .NET MCP Server
 
+[![Build and Test](https://github.com/jongalloway/dotnet-mcp/actions/workflows/build.yml/badge.svg)](https://github.com/jongalloway/dotnet-mcp/actions/workflows/build.yml)
+
+<a href="https://vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dotnet%22%2C%22args%22%3A%5B%22run%22%2C%22--project%22%2C%22%2Fpath%2Fto%2Fdotnet-mcp%2FDotNetMcp%2FDotNetMcp.csproj%22%5D%7D"><img src="https://img.shields.io/badge/VS_Code-Install_.NET_MCP-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white"></a> <a href="https://insiders.vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dotnet%22%2C%22args%22%3A%5B%22run%22%2C%22--project%22%2C%22%2Fpath%2Fto%2Fdotnet-mcp%2FDotNetMcp%2FDotNetMcp.csproj%22%5D%7D&quality=insiders"><img src="https://img.shields.io/badge/VS_Code_Insiders-Install_.NET_MCP-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white"></a> <a href="https://vs-open.link/mcp-install"><img src="https://img.shields.io/badge/Visual_Studio-Install_.NET_MCP-5C2D91?style=flat-square&logo=visualstudio&logoColor=white"></a>
+
 An MCP (Model Context Protocol) server that provides tools for interacting with the .NET SDK CLI commands. This allows AI assistants to help with .NET development tasks through a standardized protocol.
 
 ## Features
@@ -48,6 +52,51 @@ cd DotNetMcp
 dotnet run
 ```
 
+## Using with Visual Studio Code
+
+To use this MCP server with GitHub Copilot in Visual Studio Code:
+
+1. Install the [GitHub Copilot Chat extension](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot-chat)
+2. Open the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P` on macOS)
+3. Run the command **"GitHub Copilot: Add MCP Server"**
+4. Enter the following configuration:
+   - **Name**: `dotnet`
+   - **Type**: `stdio`
+   - **Command**: `dotnet`
+   - **Arguments**: `run --project /path/to/dotnet-mcp/DotNetMcp/DotNetMcp.csproj`
+
+Alternatively, you can manually edit your VS Code settings by opening Settings (`Ctrl+,` or `Cmd+,`), searching for "mcp", and adding the server configuration to the `github.copilot.chat.mcp.servers` setting:
+
+```json
+{
+  "github.copilot.chat.mcp.servers": {
+    "dotnet": {
+      "type": "stdio",
+      "command": "dotnet",
+      "args": ["run", "--project", "/path/to/dotnet-mcp/DotNetMcp/DotNetMcp.csproj"]
+    }
+  }
+}
+```
+
+For more information, see the [VS Code MCP documentation](https://code.visualstudio.com/docs/copilot/customization/mcp-servers#_add-an-mcp-server).
+
+## Using with Visual Studio
+
+To use this MCP server with GitHub Copilot in Visual Studio 2022:
+
+1. Ensure you have Visual Studio 2022 version 17.13 or later
+2. Install the [GitHub Copilot extension](https://marketplace.visualstudio.com/items?itemName=GitHub.copilotvs)
+3. Go to **Tools** > **Options** > **GitHub Copilot** > **MCP Servers**
+4. Click **Add** to add a new MCP server
+5. Enter the following configuration:
+   - **Name**: `dotnet`
+   - **Type**: `stdio`
+   - **Command**: `dotnet`
+   - **Arguments**: `run --project C:\path\to\dotnet-mcp\DotNetMcp\DotNetMcp.csproj`
+
+For more information, see the [Visual Studio MCP documentation](https://learn.microsoft.com/en-us/visualstudio/ide/mcp-servers?view=vs-2022).
+
 ## Using with Claude Desktop
 
 Add the following to your Claude Desktop configuration file:
@@ -82,7 +131,7 @@ Edit `%APPDATA%\Claude\claude_desktop_config.json`:
 
 ## Example Usage
 
-Once connected to Claude Desktop, you can ask questions like:
+Once connected to your AI assistant (Visual Studio Code, Visual Studio, or Claude Desktop), you can ask questions like:
 
 - "Create a new console application called MyApp"
 - "Add the Newtonsoft.Json package to my project"
