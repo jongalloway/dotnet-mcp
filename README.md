@@ -8,44 +8,49 @@
 
 > **Note**: The install badges above will prompt you to configure the server. You'll need to update the project path to match your local installation location.
 
-An MCP (Model Context Protocol) server that provides tools for interacting with the .NET SDK CLI commands. This allows AI assistants to help with .NET development tasks through a standardized protocol.
+An MCP (Model Context Protocol) server that provides AI assistants with direct access to the .NET SDK. The server integrates with the .NET SDK through both official NuGet packages and CLI execution, enabling AI assistants to help with .NET development tasks.
 
 ## Features
 
-This MCP server exposes the following .NET CLI commands as tools:
+The server provides comprehensive .NET development capabilities through MCP tools:
 
-### Interactive Support (Elicitation)
-
-The server supports **elicitation** - a powerful feature that allows interactive prompting for missing information. When using AI assistants that support elicitation (like GitHub Copilot in VS Code or Visual Studio), the server can request additional details when needed:
-
-- **dotnet_new** can prompt you for the template type if not specified
-- Provides a more natural conversational experience when working with .NET projects
-
-For more information about elicitation, see the [Model Context Protocol Elicitation Specification](https://modelcontextprotocol.io/specification/2025-06-18/client/elicitation).
+### Template & Framework Information
+- **dotnet_template_list** - List all installed .NET templates with metadata
+- **dotnet_template_search** - Search for templates by name or description
+- **dotnet_template_info** - Get detailed template information and parameters
+- **dotnet_framework_info** - Get .NET framework version information and LTS status
 
 ### Project Management
-- **dotnet_new** - Create new .NET projects from templates (console, classlib, webapi, etc.)
-- **dotnet_restore** - Restore project dependencies
-- **dotnet_build** - Build .NET projects
-- **dotnet_run** - Build and run .NET projects
-- **dotnet_test** - Run unit tests
-- **dotnet_publish** - Publish projects for deployment
-- **dotnet_clean** - Clean build outputs
+- **dotnet_project_new** - Create new .NET projects from templates
+- **dotnet_project_restore** - Restore project dependencies
+- **dotnet_project_build** - Build .NET projects
+- **dotnet_project_run** - Build and run .NET projects
+- **dotnet_project_test** - Run unit tests
+- **dotnet_project_publish** - Publish projects for deployment
+- **dotnet_project_clean** - Clean build outputs
 
 ### Package Management
-- **dotnet_add_package** - Add NuGet package references
-- **dotnet_list_packages** - List package references (including outdated/deprecated)
-- **dotnet_add_reference** - Add project-to-project references
-- **dotnet_list_references** - List project references
+- **dotnet_package_add** - Add NuGet package references
+- **dotnet_package_list** - List package references (including outdated/deprecated)
+- **dotnet_reference_add** - Add project-to-project references
+- **dotnet_reference_list** - List project references
 
 ### SDK Information
-- **dotnet_version** - Get .NET SDK version
-- **dotnet_info** - Get detailed SDK and runtime information
-- **dotnet_list_sdks** - List installed SDKs
-- **dotnet_list_runtimes** - List installed runtimes
+- **dotnet_sdk_version** - Get .NET SDK version
+- **dotnet_sdk_info** - Get detailed SDK and runtime information
+- **dotnet_sdk_list** - List installed SDKs
+- **dotnet_runtime_list** - List installed runtimes
 
-### Help and Documentation
-- **dotnet_help** - Get help for any dotnet command to discover available options
+### Help
+- **dotnet_help** - Get help for any dotnet command
+
+## Architecture
+
+The server uses a hybrid approach:
+- **SDK Integration** - Uses official Microsoft NuGet packages (Template Engine, MSBuild) for metadata, discovery, and validation
+- **CLI Execution** - Executes actual dotnet commands for reliable, proven operations
+
+For detailed information about SDK integration, see [doc/sdk-integration.md](doc/sdk-integration.md).
 
 ## Requirements
 
@@ -145,35 +150,48 @@ Edit `%APPDATA%\Claude\claude_desktop_config.json`:
 
 ## Example Usage
 
-Once connected to your AI assistant (Visual Studio Code, Visual Studio, or Claude Desktop), you can ask questions like:
+Once connected to your AI assistant, you can ask questions like:
 
 - "Create a new console application called MyApp"
-- "Create a new project" (with elicitation support, you'll be prompted for the template type)
+- "What templates are available for web development?"
 - "Add the Newtonsoft.Json package to my project"
 - "Build my project in Release configuration"
 - "Run the tests in my solution"
 - "What version of .NET SDK is installed?"
-- "List all the .NET runtimes installed on my system"
-- "What options are available for dotnet build?" (uses the dotnet_help tool)
+- "Which .NET versions are LTS releases?"
+
+## Documentation
+
+- [SDK Integration Details](doc/sdk-integration.md) - How the server integrates with .NET SDK internals
 
 ## Project Structure
 
 ```
 dotnet-mcp/
 ├── DotNetMcp/
-│   ├── DotNetMcp.csproj       # Project file
-│   ├── Program.cs              # MCP server setup
-│   └── DotNetCliTools.cs       # Tool implementations
+│   ├── DotNetMcp.csproj           # Project file
+│   ├── Program.cs                  # MCP server setup
+│   ├── DotNetCliTools.cs           # MCP tool implementations
+│   ├── DotNetSdkConstants.cs       # Strongly-typed SDK constants
+│   ├── TemplateEngineHelper.cs     # Template Engine integration
+│   └── FrameworkHelper.cs          # Framework validation helpers
+├── doc/
+│   └── sdk-integration.md          # SDK integration documentation
 ├── .github/
+│   ├── copilot-instructions.md     # Copilot development guidelines
 │   └── workflows/
-│       └── build.yml           # CI/CD workflow
-└── README.md                   # This file
+│       └── build.yml               # CI/CD workflow
+└── README.md                       # This file
 ```
 
 ## Technology
 
 - Built with [Model Context Protocol SDK for .NET](https://github.com/modelcontextprotocol/csharp-sdk)
 - Uses .NET 9.0
+- Integrates with .NET SDK via official NuGet packages:
+  - Microsoft.TemplateEngine.Abstractions & Edge
+  - Microsoft.Build.Utilities.Core
+  - Microsoft.Build
 - Implements stdio transport for communication
 
 ## Contributing

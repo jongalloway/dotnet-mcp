@@ -9,8 +9,74 @@ using static ModelContextProtocol.Protocol.ElicitRequestParams;
 [McpServerToolType]
 public sealed class DotNetCliTools
 {
+    [McpServerTool, Description("List all installed .NET templates with their metadata using the Template Engine. Provides structured information about available project templates.")]
+    public async Task<string> DotnetTemplateList()
+    {
+        return await DotNetMcp.TemplateEngineHelper.GetInstalledTemplatesAsync();
+    }
+
+    [McpServerTool, Description("Search for .NET templates by name or description. Returns matching templates with their details.")]
+    public async Task<string> DotnetTemplateSearch(
+        [Description("Search term to find templates (searches in name, short name, and description)")]
+        string searchTerm)
+    {
+        return await DotNetMcp.TemplateEngineHelper.SearchTemplatesAsync(searchTerm);
+    }
+
+    [McpServerTool, Description("Get detailed information about a specific template including available parameters and options.")]
+    public async Task<string> DotnetTemplateInfo(
+        [Description("The template short name (e.g., 'console', 'webapi', 'classlib')")]
+        string templateShortName)
+    {
+        return await DotNetMcp.TemplateEngineHelper.GetTemplateDetailsAsync(templateShortName);
+    }
+
+    [McpServerTool, Description("Get information about .NET framework versions, including which are LTS releases. Useful for understanding framework compatibility.")]
+    public Task<string> DotnetFrameworkInfo(
+        [Description("Optional: specific framework to get info about (e.g., 'net8.0', 'net6.0')")]
+        string? framework = null)
+    {
+        var result = new StringBuilder();
+        
+        if (!string.IsNullOrEmpty(framework))
+        {
+            // Info about specific framework
+            result.AppendLine($"Framework: {framework}");
+            result.AppendLine($"Description: {DotNetMcp.FrameworkHelper.GetFrameworkDescription(framework)}");
+            result.AppendLine($"Is LTS: {DotNetMcp.FrameworkHelper.IsLtsFramework(framework)}");
+            result.AppendLine($"Is Modern .NET: {DotNetMcp.FrameworkHelper.IsModernNet(framework)}");
+            result.AppendLine($"Is .NET Core: {DotNetMcp.FrameworkHelper.IsNetCore(framework)}");
+            result.AppendLine($"Is .NET Framework: {DotNetMcp.FrameworkHelper.IsNetFramework(framework)}");
+            result.AppendLine($"Is .NET Standard: {DotNetMcp.FrameworkHelper.IsNetStandard(framework)}");
+        }
+        else
+        {
+            // General info
+            result.AppendLine("Modern .NET Frameworks (5.0+):");
+            foreach (var fw in DotNetMcp.FrameworkHelper.GetSupportedModernFrameworks())
+            {
+                var ltsMarker = DotNetMcp.FrameworkHelper.IsLtsFramework(fw) ? " (LTS)" : "";
+                result.AppendLine($"  {fw}{ltsMarker} - {DotNetMcp.FrameworkHelper.GetFrameworkDescription(fw)}");
+            }
+            
+            result.AppendLine();
+            result.AppendLine(".NET Core Frameworks:");
+            foreach (var fw in DotNetMcp.FrameworkHelper.GetSupportedNetCoreFrameworks())
+            {
+                var ltsMarker = DotNetMcp.FrameworkHelper.IsLtsFramework(fw) ? " (LTS)" : "";
+                result.AppendLine($"  {fw}{ltsMarker} - {DotNetMcp.FrameworkHelper.GetFrameworkDescription(fw)}");
+            }
+            
+            result.AppendLine();
+            result.AppendLine($"Latest Recommended: {DotNetMcp.FrameworkHelper.GetLatestRecommendedFramework()}");
+            result.AppendLine($"Latest LTS: {DotNetMcp.FrameworkHelper.GetLatestLtsFramework()}");
+        }
+        
+        return Task.FromResult(result.ToString());
+    }
+
     [McpServerTool, Description("Create a new .NET project or file from a template. Common templates: console, classlib, web, webapi, mvc, blazor, xunit, nunit, mstest. If template is not provided, will prompt the user interactively.")]
-    public async Task<string> DotnetNew(
+    public async Task<string> DotnetProjectNew(
         McpServer server,
         CancellationToken cancellationToken,
         [Description("The template to use (e.g., 'console', 'classlib', 'webapi'). If not provided, you will be prompted.")]
@@ -81,7 +147,7 @@ public sealed class DotNetCliTools
     }
 
     [McpServerTool, Description("Restore the dependencies and tools of a .NET project")]
-    public async Task<string> DotnetRestore(
+    public async Task<string> DotnetProjectRestore(
         [Description("The project file or solution file to restore")]
         string? project = null)
     {
@@ -93,7 +159,7 @@ public sealed class DotNetCliTools
     }
 
     [McpServerTool, Description("Build a .NET project and its dependencies")]
-    public async Task<string> DotnetBuild(
+    public async Task<string> DotnetProjectBuild(
         [Description("The project file or solution file to build")]
         string? project = null,
         [Description("The configuration to build (Debug or Release)")]
@@ -116,7 +182,7 @@ public sealed class DotNetCliTools
     }
 
     [McpServerTool, Description("Build and run a .NET project")]
-    public async Task<string> DotnetRun(
+    public async Task<string> DotnetProjectRun(
         [Description("The project file to run")]
         string? project = null,
         [Description("The configuration to use (Debug or Release)")]
@@ -139,7 +205,7 @@ public sealed class DotNetCliTools
     }
 
     [McpServerTool, Description("Run unit tests in a .NET project")]
-    public async Task<string> DotnetTest(
+    public async Task<string> DotnetProjectTest(
         [Description("The project file or solution file to test")]
         string? project = null,
         [Description("The configuration to test (Debug or Release)")]
@@ -162,7 +228,7 @@ public sealed class DotNetCliTools
     }
 
     [McpServerTool, Description("Publish a .NET project for deployment")]
-    public async Task<string> DotnetPublish(
+    public async Task<string> DotnetProjectPublish(
         [Description("The project file to publish")]
         string? project = null,
         [Description("The configuration to publish (Debug or Release)")]
@@ -190,7 +256,7 @@ public sealed class DotNetCliTools
     }
 
     [McpServerTool, Description("Clean the output of a .NET project")]
-    public async Task<string> DotnetClean(
+    public async Task<string> DotnetProjectClean(
         [Description("The project file or solution file to clean")]
         string? project = null,
         [Description("The configuration to clean (Debug or Release)")]
@@ -208,7 +274,7 @@ public sealed class DotNetCliTools
     }
 
     [McpServerTool, Description("Add a NuGet package reference to a .NET project")]
-    public async Task<string> DotnetAddPackage(
+    public async Task<string> DotnetPackageAdd(
         [Description("The name of the NuGet package to add")]
         string packageName,
         [Description("The project file to add the package to")]
@@ -234,7 +300,7 @@ public sealed class DotNetCliTools
     }
 
     [McpServerTool, Description("Add a project-to-project reference")]
-    public async Task<string> DotnetAddReference(
+    public async Task<string> DotnetReferenceAdd(
         [Description("The project file to add the reference from")]
         string project,
         [Description("The project file to reference")]
@@ -245,7 +311,7 @@ public sealed class DotNetCliTools
     }
 
     [McpServerTool, Description("List package references for a .NET project")]
-    public async Task<string> DotnetListPackages(
+    public async Task<string> DotnetPackageList(
         [Description("The project file or solution file")]
         string? project = null,
         [Description("Show outdated packages")]
@@ -270,7 +336,7 @@ public sealed class DotNetCliTools
     }
 
     [McpServerTool, Description("List project references")]
-    public async Task<string> DotnetListReferences(
+    public async Task<string> DotnetReferenceList(
         [Description("The project file")]
         string? project = null)
     {
@@ -285,25 +351,25 @@ public sealed class DotNetCliTools
     }
 
     [McpServerTool, Description("Get information about installed .NET SDKs and runtimes")]
-    public async Task<string> DotnetInfo()
+    public async Task<string> DotnetSdkInfo()
     {
         return await ExecuteDotNetCommand("--info");
     }
 
     [McpServerTool, Description("Get the version of the .NET SDK")]
-    public async Task<string> DotnetVersion()
+    public async Task<string> DotnetSdkVersion()
     {
         return await ExecuteDotNetCommand("--version");
     }
 
     [McpServerTool, Description("List installed .NET SDKs")]
-    public async Task<string> DotnetListSdks()
+    public async Task<string> DotnetSdkList()
     {
         return await ExecuteDotNetCommand("--list-sdks");
     }
 
     [McpServerTool, Description("List installed .NET runtimes")]
-    public async Task<string> DotnetListRuntimes()
+    public async Task<string> DotnetRuntimeList()
     {
         return await ExecuteDotNetCommand("--list-runtimes");
     }
