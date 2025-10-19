@@ -2,6 +2,7 @@
 
 [![Build and Test](https://github.com/jongalloway/dotnet-mcp/actions/workflows/build.yml/badge.svg)](https://github.com/jongalloway/dotnet-mcp/actions/workflows/build.yml)
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-blue.svg)](https://github.com/jongalloway/dotnet-mcp/blob/main/.github/dependabot.yml)
+[![NuGet](https://img.shields.io/nuget/v/Community.Mcp.DotNet.svg)](https://www.nuget.org/packages/Community.Mcp.DotNet/)
 
 <a href="https://vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dotnet%22%2C%22args%22%3A%5B%22run%22%2C%22--project%22%2C%22%2Fpath%2Fto%2Fdotnet-mcp%2FDotNetMcp%2FDotNetMcp.csproj%22%5D%7D"><img src="https://img.shields.io/badge/VS_Code-Install_.NET_MCP-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white"></a>
 <a href="https://insiders.vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dotnet%22%2C%22args%22%3A%5B%22run%22%2C%22--project%22%2C%22%2Fpath%2Fto%2Fdotnet-mcp%2FDotNetMcp%2FDotNetMcp.csproj%22%5D%7D&quality=insiders"><img src="https://img.shields.io/badge/VS_Code_Insiders-Install_.NET_MCP-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white"></a>
@@ -9,7 +10,7 @@
 
 > **Note**: The install badges above will prompt you to configure the server. You'll need to update the project path to match your local installation location.
 
-An MCP (Model Context Protocol) server that provides AI assistants with direct access to the .NET SDK. The server integrates with the .NET SDK through both official NuGet packages and CLI execution, enabling AI assistants to help with .NET development tasks.
+A community-maintained MCP (Model Context Protocol) server that provides AI assistants with direct access to the .NET SDK. The server integrates with the .NET SDK through both official NuGet packages and CLI execution, enabling AI assistants to help with .NET development tasks.
 
 ## Features
 
@@ -68,7 +69,7 @@ For detailed information about SDK integration, see [doc/sdk-integration.md](doc
 The MCP server can be executed directly using `dnx` (introduced in .NET 10 Preview 6):
 
 ```bash
-dnx dotnet.mcp@<latest-version> --yes
+dnx Community.Mcp.DotNet@<latest-version> --yes
 ```
 
 This will download the package from NuGet.org and execute it. Your MCP client will typically invoke this command automatically via MCP configuration.
@@ -101,7 +102,7 @@ To use this MCP server with GitHub Copilot in Visual Studio Code:
    - **Name**: `dotnet`
    - **Type**: `stdio`
    - **Command**: `dnx`
-   - **Arguments**: `dotnet.mcp@1.0.0 --yes`
+   - **Arguments**: `Community.Mcp.DotNet@1.0.0 --yes`
 
 Or manually edit your VS Code settings and add:
 
@@ -111,7 +112,7 @@ Or manually edit your VS Code settings and add:
     "dotnet": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["dotnet.mcp@1.0.0", "--yes"]
+      "args": ["Community.Mcp.DotNet@1.0.0", "--yes"]
     }
   }
 }
@@ -126,7 +127,7 @@ If you're running from source:
 3. Enter the following configuration:
    - **Name**: `dotnet`
    - **Type**: `stdio`
-   - **Command**: `dotnet`
+   - **Command**: `dotenv`
    - **Arguments**: `run --project /path/to/dotnet-mcp/DotNetMcp/DotNetMcp.csproj`
 
 Alternatively, you can manually edit your VS Code settings by opening Settings (`Ctrl+,` or `Cmd+,`), searching for "mcp", and adding the server configuration to the `github.copilot.chat.mcp.servers` setting:
@@ -136,7 +137,7 @@ Alternatively, you can manually edit your VS Code settings by opening Settings (
   "github.copilot.chat.mcp.servers": {
     "dotnet": {
       "type": "stdio",
-      "command": "dotnet",
+      "command": "dotenv",
       "args": ["run", "--project", "/path/to/dotnet-mcp/DotNetMcp/DotNetMcp.csproj"]
     }
   }
@@ -158,7 +159,7 @@ To use this MCP server with GitHub Copilot in Visual Studio 2022:
    - **Name**: `dotnet`
    - **Type**: `stdio`
    - **Command**: `dnx`
-   - **Arguments**: `dotnet.mcp@1.0.0 --yes`
+   - **Arguments**: `Community.Mcp.DotNet@1.0.0 --yes`
 
 ### Using Source Build
 
@@ -170,7 +171,7 @@ If you're running from source:
 4. Enter the following configuration:
    - **Name**: `dotnet`
    - **Type**: `stdio`
-   - **Command**: `dotnet`
+   - **Command**: `dotenv`
    - **Arguments**: `run --project C:\path\to\dotnet-mcp\DotNetMcp\DotNetMcp.csproj`
 
 For more information, see the [Visual Studio MCP documentation](https://learn.microsoft.com/en-us/visualstudio/ide/mcp-servers?view=vs-2022).
@@ -189,7 +190,7 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
   "mcpServers": {
     "dotnet": {
       "command": "dnx",
-      "args": ["dotnet.mcp@1.0.0", "--yes"]
+      "args": ["Community.Mcp.DotNet@1.0.0", "--yes"]
     }
   }
 }
@@ -203,7 +204,7 @@ Edit `%APPDATA%\Claude\claude_desktop_config.json`:
   "mcpServers": {
     "dotnet": {
       "command": "dnx",
-      "args": ["dotnet.mcp@1.0.0", "--yes"]
+      "args": ["Community.Mcp.DotNet@1.0.0", "--yes"]
     }
   }
 }

@@ -31,6 +31,16 @@ jobs:
       - name: Pack
         run: dotnet pack DotNetMcp/DotNetMcp.csproj --configuration Release --no-build --output ./artifacts
 
+      - name: Debug - Show package details
+        run: |
+          echo "?? Packages to be published:"
+          ls -lh ./artifacts/*.nupkg
+          echo ""
+          echo "?? Package metadata:"
+          for package in ./artifacts/*.nupkg; do
+            unzip -p "$package" *.nuspec | head -20 || true
+          done
+
       - name: Debug - Verify workflow context
         run: |
           echo "Repository: ${{ github.repository }}"
@@ -56,21 +66,67 @@ jobs:
             echo "? API key received successfully (length: ${#KEY} characters)"
           fi
 
+      - name: Check existing package on NuGet.org
+        continue-on-error: true
+        run: |
+          echo "?? Checking if package versions already exist on NuGet.org..."
+          for package in ./artifacts/*.nupkg; do
+            FILENAME=$(basename "$package")
+            PACKAGE_ID=$(echo "$FILENAME" | sed -E 's/\.[0-9]+\.[0-9]+\.[0-9]+.*\.nupkg$//')
+            VERSION=$(echo "$FILENAME" | sed -E "s/${PACKAGE_ID}\.([0-9]+\.[0-9]+\.[0-9]+.*?)\.nupkg$/\1/")
+            
+            echo "Package ID: $PACKAGE_ID"
+            echo "Version: $VERSION"
+            
+            # Check if package exists via NuGet API
+            API_URL="https://api.nuget.org/v3-flatcontainer/${PACKAGE_ID,,}/$VERSION/${PACKAGE_ID,,}.$VERSION.nupkg"
+            echo "Checking: $API_URL"
+            
+            if curl -s -f -I "$API_URL" > /dev/null 2>&1; then
+              echo "??  Version $VERSION already exists on NuGet.org"
+              echo "View at: https://www.nuget.org/packages/$PACKAGE_ID/$VERSION"
+            else
+              echo "? Version $VERSION not found - ready to publish"
+            fi
+            echo "---"
+          done
+
       - name: Push to NuGet
         run: |
+          SUCCESS=0
+          SKIPPED=0
+          FAILED=0
+          
           for package in ./artifacts/*.nupkg; do
-            echo "Pushing $package..."
-            dotnet nuget push "$package" \
+            echo "?? Pushing $(basename "$package")..."
+            
+            if dotnet nuget push "$package" \
               --source https://api.nuget.org/v3/index.json \
               --api-key ${{ steps.nuget_login.outputs.NUGET_API_KEY }} \
-              --skip-duplicate || {
-                EXIT_CODE=$?
-                if [ $EXIT_CODE -eq 1 ]; then
-                  echo "??  Package already exists (skipped)"
-                else
-                  echo "? Failed to push package (exit code: $EXIT_CODE)"
-                  exit $EXIT_CODE
-                fi
-              }
+              --skip-duplicate 2>&1 | tee push.log; then
+              echo "? Successfully pushed"
+              SUCCESS=$((SUCCESS + 1))
+            else
+              EXIT_CODE=$?
+              if grep -q "already exists" push.log || grep -q "Conflict" push.log; then
+                echo "??  Package already exists (skipped)"
+                echo "If you can't see it on NuGet.org, it may be:"
+                echo "  1. Unlisted - check https://www.nuget.org/account/Packages"
+                echo "  2. Still being validated (wait a few minutes)"
+                echo "  3. Use lowercase URL: https://www.nuget.org/packages/Community.Mcp.DotNet"
+                SKIPPED=$((SKIPPED + 1))
+              else
+                echo "? Failed to push package (exit code: $EXIT_CODE)"
+                FAILED=$((FAILED + 1))
+              fi
+            fi
+            echo ""
           done
+          
+          echo "?? Summary: $SUCCESS succeeded, $SKIPPED skipped, $FAILED failed"
+          
+          if [ $FAILED -gt 0 ]; then
+            exit 1
+          fi
+          
           echo "? NuGet push completed"
