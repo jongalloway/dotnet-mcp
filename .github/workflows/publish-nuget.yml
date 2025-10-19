@@ -1,0 +1,36 @@
+name: Publish NuGet Package
+
+on:
+  push:
+    tags:
+      - 'v*'  # Only runs on version tags like v1.0.0
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Extract version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore DotNetMcp/DotNetMcp.csproj
+
+      - name: Build
+        run: dotnet build DotNetMcp/DotNetMcp.csproj --configuration Release --no-restore /p:Version=${{ steps.get_version.outputs.VERSION }}
+
+      - name: Pack
+        run: dotnet pack DotNetMcp/DotNetMcp.csproj --configuration Release --no-build --output ./artifacts /p:Version=${{ steps.get_version.outputs.VERSION }}
+
+      - name: Push to NuGet
+        run: dotnet nuget push ./artifacts/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }} --skip-duplicate

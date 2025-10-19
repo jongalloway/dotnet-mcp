@@ -55,10 +55,23 @@ For detailed information about SDK integration, see [doc/sdk-integration.md](doc
 
 ## Requirements
 
-- .NET 9.0 SDK or later
+- .NET 9.0 SDK or later for building
+- .NET 10.0 SDK or later for DNX support (launching November 2025)
 - The MCP server uses stdio transport for communication
 
-## Building
+## Installation
+
+### Using DNX (Recommended - .NET 10 Required)
+
+> **Note**: DNX support requires .NET 10, which launches in November 2025. Until then, use the source build method below.
+
+The MCP server can be executed directly using `dnx` (introduced in .NET 10 Preview 6):
+
+```bash
+dnx DotNetMcp@<latest-version> --yes
+This will download the package from NuGet.org and execute it. Your MCP client will typically invoke this command automatically via MCP configuration.
+
+### Building from Source
 
 ```bash
 cd DotNetMcp
@@ -77,6 +90,34 @@ dotnet run
 ## Using with Visual Studio Code
 
 To use this MCP server with GitHub Copilot in Visual Studio Code:
+
+### Using DNX (Recommended - .NET 10 Required)
+
+1. Open the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P` on macOS)
+2. Run the command **"GitHub Copilot: Add MCP Server"**
+3. Enter the following configuration:
+   - **Name**: `dotnet`
+   - **Type**: `stdio`
+   - **Command**: `dnx`
+   - **Arguments**: `DotNetMcp@1.0.0 --yes`
+
+Or manually edit your VS Code settings and add:
+
+```json
+{
+  "github.copilot.chat.mcp.servers": {
+    "dotnet": {
+      "type": "stdio",
+      "command": "dnx",
+      "args": ["DotNetMcp@1.0.0", "--yes"]
+    }
+  }
+}
+```
+
+### Using Source Build
+
+If you're running from source:
 
 1. Open the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P` on macOS)
 2. Run the command **"GitHub Copilot: Add MCP Server"**
@@ -106,6 +147,21 @@ For more information, see the [VS Code MCP documentation](https://code.visualstu
 
 To use this MCP server with GitHub Copilot in Visual Studio 2022:
 
+### Using DNX (Recommended - .NET 10 Required)
+
+1. Ensure you have Visual Studio 2022 version 17.13 or later
+2. Go to **Tools** > **Options** > **GitHub Copilot** > **MCP Servers**
+3. Click **Add** to add a new MCP server
+4. Enter the following configuration:
+   - **Name**: `dotnet`
+   - **Type**: `stdio`
+   - **Command**: `dnx`
+   - **Arguments**: `DotNetMcp@1.0.0 --yes`
+
+### Using Source Build
+
+If you're running from source:
+
 1. Ensure you have Visual Studio 2022 version 17.13 or later
 2. Go to **Tools** > **Options** > **GitHub Copilot** > **MCP Servers**
 3. Click **Add** to add a new MCP server
@@ -119,9 +175,43 @@ For more information, see the [Visual Studio MCP documentation](https://learn.mi
 
 ## Using with Claude Desktop
 
+### Using DNX (Recommended - .NET 10 Required)
+
 Add the following to your Claude Desktop configuration file:
 
-### macOS
+#### macOS
+Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "dotnet": {
+      "command": "dnx",
+      "args": ["DotNetMcp@1.0.0", "--yes"]
+    }
+  }
+}
+```
+
+#### Windows
+Edit `%APPDATA%\Claude\claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "dotnet": {
+      "command": "dnx",
+      "args": ["DotNetMcp@1.0.0", "--yes"]
+    }
+  }
+}
+```
+
+### Using Source Build
+
+If you're running from source, add the following to your Claude Desktop configuration file:
+
+#### macOS
 Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ```json
@@ -135,7 +225,7 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
 }
 ```
 
-### Windows
+#### Windows
 Edit `%APPDATA%\Claude\claude_desktop_config.json`:
 
 ```json
