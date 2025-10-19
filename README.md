@@ -68,7 +68,9 @@ For detailed information about SDK integration, see [doc/sdk-integration.md](doc
 The MCP server can be executed directly using `dnx` (introduced in .NET 10 Preview 6):
 
 ```bash
-dnx DotNetMcp@<latest-version> --yes
+dnx dotnet.mcp@<latest-version> --yes
+```
+
 This will download the package from NuGet.org and execute it. Your MCP client will typically invoke this command automatically via MCP configuration.
 
 ### Building from Source
@@ -99,7 +101,7 @@ To use this MCP server with GitHub Copilot in Visual Studio Code:
    - **Name**: `dotnet`
    - **Type**: `stdio`
    - **Command**: `dnx`
-   - **Arguments**: `DotNetMcp@1.0.0 --yes`
+   - **Arguments**: `dotnet.mcp@1.0.0 --yes`
 
 Or manually edit your VS Code settings and add:
 
@@ -109,7 +111,7 @@ Or manually edit your VS Code settings and add:
     "dotnet": {
       "type": "stdio",
       "command": "dnx",
-      "args": ["DotNetMcp@1.0.0", "--yes"]
+      "args": ["dotnet.mcp@1.0.0", "--yes"]
     }
   }
 }
@@ -156,7 +158,7 @@ To use this MCP server with GitHub Copilot in Visual Studio 2022:
    - **Name**: `dotnet`
    - **Type**: `stdio`
    - **Command**: `dnx`
-   - **Arguments**: `DotNetMcp@1.0.0 --yes`
+   - **Arguments**: `dotnet.mcp@1.0.0 --yes`
 
 ### Using Source Build
 
@@ -187,7 +189,7 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
   "mcpServers": {
     "dotnet": {
       "command": "dnx",
-      "args": ["DotNetMcp@1.0.0", "--yes"]
+      "args": ["dotnet.mcp@1.0.0", "--yes"]
     }
   }
 }
@@ -201,7 +203,7 @@ Edit `%APPDATA%\Claude\claude_desktop_config.json`:
   "mcpServers": {
     "dotnet": {
       "command": "dnx",
-      "args": ["DotNetMcp@1.0.0", "--yes"]
+      "args": ["dotnet.mcp@1.0.0", "--yes"]
     }
   }
 }
