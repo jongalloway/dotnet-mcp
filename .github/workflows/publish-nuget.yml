@@ -57,4 +57,20 @@ jobs:
           fi
 
       - name: Push to NuGet
-        run: dotnet nuget push ./artifacts/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ steps.nuget_login.outputs.NUGET_API_KEY }} --skip-duplicate
+        run: |
+          for package in ./artifacts/*.nupkg; do
+            echo "Pushing $package..."
+            dotnet nuget push "$package" \
+              --source https://api.nuget.org/v3/index.json \
+              --api-key ${{ steps.nuget_login.outputs.NUGET_API_KEY }} \
+              --skip-duplicate || {
+                EXIT_CODE=$?
+                if [ $EXIT_CODE -eq 1 ]; then
+                  echo "??  Package already exists (skipped)"
+                else
+                  echo "? Failed to push package (exit code: $EXIT_CODE)"
+                  exit $EXIT_CODE
+                fi
+              }
+          done
+          echo "? NuGet push completed"
