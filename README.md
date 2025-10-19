@@ -68,9 +68,7 @@ For detailed information about SDK integration, see [doc/sdk-integration.md](doc
 The MCP server can be executed directly using `dnx` (introduced in .NET 10 Preview 6):
 
 ```bash
-dnx DotNetMcp@1.0.0 --yes
-```
-
+dnx DotNetMcp@<latest-version> --yes
 This will download the package from NuGet.org and execute it. Your MCP client will typically invoke this command automatically via MCP configuration.
 
 ### Building from Source

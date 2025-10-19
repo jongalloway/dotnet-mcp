@@ -8,7 +8,6 @@
 
     <!-- NuGet Package Metadata -->
     <PackageId>DotNetMcp</PackageId>
-    <Version>1.0.0</Version>
     <Authors>Jon Galloway</Authors>
     <Company>Jon Galloway</Company>
     <Description>An MCP (Model Context Protocol) server that provides AI assistants with direct access to the .NET SDK through both official NuGet packages and CLI execution. Execute with dnx for MCP server functionality.</Description>
