@@ -1,0 +1,38 @@
+{
+  "name": "dotnet",
+  "description": "A community-maintained MCP server that provides AI assistants with direct access to the .NET SDK",
+  "version": "1.0.0",
+  "author": "Jon Galloway",
+  "homepage": "https://github.com/jongalloway/dotnet-mcp",
+  "license": "MIT",
+  "runtime": {
+    "type": "stdio",
+    "command": "dotnet",
+    "args": []
+  },
+  "capabilities": {
+    "tools": [
+      {"name": "dotnet_template_list", "description": "List all installed .NET templates with their metadata"},
+      {"name": "dotnet_template_search", "description": "Search for .NET templates by name or description"},
+      {"name": "dotnet_template_info", "description": "Get detailed information about a specific template"},
+      {"name": "dotnet_framework_info", "description": "Get information about .NET framework versions and LTS status"},
+      {"name": "dotnet_project_new", "description": "Create a new .NET project from a template"},
+      {"name": "dotnet_project_restore", "description": "Restore project dependencies"},
+      {"name": "dotnet_project_build", "description": "Build a .NET project"},
+      {"name": "dotnet_project_run", "description": "Build and run a .NET project"},
+      {"name": "dotnet_project_test", "description": "Run unit tests"},
+      {"name": "dotnet_project_publish", "description": "Publish a project for deployment"},
+      {"name": "dotnet_project_clean", "description": "Clean build outputs"},
+      {"name": "dotnet_package_add", "description": "Add a NuGet package reference"},
+      {"name": "dotnet_package_list", "description": "List package references"},
+      {"name": "dotnet_reference_add", "description": "Add a project-to-project reference"},
+      {"name": "dotnet_reference_list", "description": "List project references"},
+      {"name": "dotnet_sdk_version", "description": "Get .NET SDK version"},
+      {"name": "dotnet_sdk_info", "description": "Get detailed SDK and runtime information"},
+      {"name": "dotnet_sdk_list", "description": "List installed SDKs"},
+      {"name": "dotnet_runtime_list", "description": "List installed runtimes"},
+      {"name": "dotnet_help", "description": "Get help for any dotnet command"}
+    ]
+  },
+  "tags": ["dotnet", "sdk", "development", "build", "nuget", "templates", "community"]
+}
