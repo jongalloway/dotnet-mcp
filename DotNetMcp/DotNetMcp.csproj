@@ -21,6 +21,7 @@
     
     <!-- Package Types - MCP Server requires DotnetTool -->
     <PackAsTool>true</PackAsTool>
+		<PackageType>McpServer</PackageType>
     <ToolCommandName>dotnet-mcp</ToolCommandName>
     
     <!-- MinVer: Automatic versioning from Git tags -->
