@@ -8,7 +8,6 @@
 
     <!-- NuGet Package Metadata -->
     <PackageId>Community.Mcp.DotNet</PackageId>
-    <PackageType>McpServer</PackageType>
     <Authors>Jon Galloway</Authors>
     <Company>Jon Galloway</Company>
     <Description>An MCP (Model Context Protocol) server that provides AI assistants with direct access to the .NET SDK through both official NuGet packages and CLI execution. Execute with dnx for MCP server functionality.</Description>
@@ -19,6 +18,10 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    
+    <!-- Package Types - MCP Server requires DotnetTool -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>dotnet-mcp</ToolCommandName>
     
     <!-- MinVer: Automatic versioning from Git tags -->
     <MinVerTagPrefix>v</MinVerTagPrefix>
