@@ -3,7 +3,7 @@ name: Publish NuGet Package
 on:
   push:
     tags:
-      - 'v*'  # Only runs on version tags like v1.0.0
+      - 'v*'  # Only runs on version tags like v1.0.0, v0.1.0-alpha.1
 
 jobs:
   publish:
@@ -13,10 +13,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
-
-      - name: Extract version from tag
-        id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        with:
+          fetch-depth: 0  # Required for MinVer to access Git history and tags
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -27,10 +25,10 @@ jobs:
         run: dotnet restore DotNetMcp/DotNetMcp.csproj
 
       - name: Build
-        run: dotnet build DotNetMcp/DotNetMcp.csproj --configuration Release --no-restore /p:Version=${{ steps.get_version.outputs.VERSION }}
+        run: dotnet build DotNetMcp/DotNetMcp.csproj --configuration Release --no-restore
 
       - name: Pack
-        run: dotnet pack DotNetMcp/DotNetMcp.csproj --configuration Release --no-build --output ./artifacts /p:Version=${{ steps.get_version.outputs.VERSION }}
+        run: dotnet pack DotNetMcp/DotNetMcp.csproj --configuration Release --no-build --output ./artifacts
 
       - name: Push to NuGet
         run: dotnet nuget push ./artifacts/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }} --skip-duplicate
