@@ -3,24 +3,24 @@ name: Publish NuGet Package
 on:
   push:
     tags:
-      - 'v*'  # Only runs on version tags like v1.0.0, v0.1.0-alpha.1
+      - "v*" # Only runs on version tags like v1.0.0, v0.1.0-alpha.1
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write  # Required for OIDC token issuance (Trusted Publishing)
+      id-token: write # Required for OIDC token issuance (Trusted Publishing)
 
     steps:
       - uses: actions/checkout@v5
         with:
-          fetch-depth: 0  # Required for MinVer to access Git history and tags
+          fetch-depth: 0 # Required for MinVer to access Git history and tags
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: "10.0.x"
 
       - name: Restore dependencies
         run: dotnet restore DotNetMcp/DotNetMcp.csproj
@@ -96,7 +96,7 @@ jobs:
           SUCCESS=0
           SKIPPED=0
           FAILED=0
-          
+
           for package in ./artifacts/*.nupkg; do
             echo "?? Pushing $(basename "$package")..."
             
@@ -122,11 +122,11 @@ jobs:
             fi
             echo ""
           done
-          
+
           echo "?? Summary: $SUCCESS succeeded, $SKIPPED skipped, $FAILED failed"
-          
+
           if [ $FAILED -gt 0 ]; then
             exit 1
           fi
-          
+
           echo "? NuGet push completed"
