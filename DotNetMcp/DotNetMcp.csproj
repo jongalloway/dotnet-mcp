@@ -53,8 +53,8 @@
     <PropertyGroup>
       <ServerJsonPath>$(MSBuildProjectDirectory)\.mcp\server.json</ServerJsonPath>
       <ServerJsonContent>$([System.IO.File]::ReadAllText('$(ServerJsonPath)'))</ServerJsonContent>
-      <!-- Replace the version placeholder with actual MinVer version -->
-      <UpdatedServerJsonContent>$(ServerJsonContent.Replace('"version": "0.1.0-alpha.7"', '"version": "$(Version)"'))</UpdatedServerJsonContent>
+      <!-- Replace both version occurrences with actual MinVer version -->
+      <UpdatedServerJsonContent>$(ServerJsonContent.Replace('"version": "0.0.0-placeholder"', '"version": "$(Version)"'))</UpdatedServerJsonContent>
     </PropertyGroup>
     <WriteLinesToFile File="$(ServerJsonPath)" Lines="$(UpdatedServerJsonContent)" Overwrite="true" />
     <Message Importance="high" Text="Updated .mcp/server.json with version $(Version)" />

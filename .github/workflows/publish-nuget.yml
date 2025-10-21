@@ -31,6 +31,15 @@ jobs:
       - name: Pack
         run: dotnet pack DotNetMcp/DotNetMcp.csproj --configuration Release --no-build --output ./artifacts
 
+      - name: Verify server.json version update
+        run: |
+          echo "📋 Checking server.json in package..."
+          for package in ./artifacts/*.nupkg; do
+            echo "Package: $(basename "$package")"
+            unzip -p "$package" ".mcp/server.json" | jq '.'
+            echo ""
+          done
+
       - name: Debug - Show package details
         run: |
           echo "?? Packages to be published:"

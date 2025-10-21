@@ -3,13 +3,14 @@
   "description": "A community-maintained MCP server that provides AI assistants with direct access to the .NET SDK",
   "name": "io.github.jongalloway/dotnet-mcp",
   "status": "active",
-  "version": "1.0.0",
+  "version": "0.0.0-placeholder",
   "packages": [
     {
       "registryType": "nuget",
       "registryBaseUrl": "https://api.nuget.org",
       "identifier": "Community.Mcp.DotNet",
-      "version": "0.1.0-alpha.7",
+      "version": "0.0.0-placeholder",
+      "runtimeHint": "dnx",
       "transport": {
         "type": "stdio"
       },
