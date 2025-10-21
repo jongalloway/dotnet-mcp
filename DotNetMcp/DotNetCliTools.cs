@@ -69,7 +69,8 @@ public sealed class DotNetCliTools
         [Description("The template to use (e.g., 'console', 'classlib', 'webapi')")] string? template = null,
         [Description("The name for the project")] string? name = null,
         [Description("The output directory")] string? output = null,
-        [Description("The target framework (e.g., 'net9.0', 'net8.0')")] string? framework = null)
+        [Description("The target framework (e.g., 'net9.0', 'net8.0')")] string? framework = null,
+        [Description("Additional template-specific options (e.g., '--format slnx', '--use-program-main', '--aot')")] string? additionalOptions = null)
     {
         if (string.IsNullOrWhiteSpace(template))
             return "Error: template parameter is required.";
@@ -78,6 +79,7 @@ public sealed class DotNetCliTools
         if (!string.IsNullOrEmpty(name)) args.Append($" -n \"{name}\"");
         if (!string.IsNullOrEmpty(output)) args.Append($" -o \"{output}\"");
         if (!string.IsNullOrEmpty(framework)) args.Append($" -f {framework}");
+        if (!string.IsNullOrEmpty(additionalOptions)) args.Append($" {additionalOptions}");
         return await ExecuteDotNetCommand(args.ToString());
     }
 
