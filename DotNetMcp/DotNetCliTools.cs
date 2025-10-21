@@ -69,15 +69,24 @@ public sealed class DotNetCliTools
         [Description("The template to use (e.g., 'console', 'classlib', 'webapi')")] string? template = null,
         [Description("The name for the project")] string? name = null,
         [Description("The output directory")] string? output = null,
-        [Description("The target framework (e.g., 'net9.0', 'net8.0')")] string? framework = null)
+        [Description("The target framework (e.g., 'net9.0', 'net8.0')")] string? framework = null,
+        [Description("Additional template-specific options (e.g., '--format slnx', '--use-program-main', '--aot')")] string? additionalOptions = null)
     {
         if (string.IsNullOrWhiteSpace(template))
             return "Error: template parameter is required.";
+
+        // Validate additionalOptions to prevent injection attempts
+        if (!string.IsNullOrEmpty(additionalOptions))
+        {
+            if (!IsValidAdditionalOptions(additionalOptions))
+                return "Error: additionalOptions contains invalid characters. Only alphanumeric characters, hyphens, underscores, dots, and spaces are allowed.";
+        }
 
         var args = new StringBuilder($"new {template}");
         if (!string.IsNullOrEmpty(name)) args.Append($" -n \"{name}\"");
         if (!string.IsNullOrEmpty(output)) args.Append($" -o \"{output}\"");
         if (!string.IsNullOrEmpty(framework)) args.Append($" -f {framework}");
+        if (!string.IsNullOrEmpty(additionalOptions)) args.Append($" {additionalOptions}");
         return await ExecuteDotNetCommand(args.ToString());
     }
 
@@ -248,5 +257,20 @@ public sealed class DotNetCliTools
         }
         result.AppendLine($"Exit Code: {process.ExitCode}");
         return result.ToString();
+    }
+
+    private static bool IsValidAdditionalOptions(string options)
+    {
+        // Allow alphanumeric characters, hyphens, underscores, dots, spaces, and equals signs
+        // This covers standard CLI option patterns like: --option-name value --flag --key=value
+        // Reject shell metacharacters that could be used for injection: &, |, ;, <, >, `, $, (, ), {, }, [, ], \, ", '
+        foreach (char c in options)
+        {
+            if (!char.IsLetterOrDigit(c) && c != '-' && c != '_' && c != '.' && c != ' ' && c != '=')
+            {
+                return false;
+            }
+        }
+        return true;
     }
 }
