@@ -75,6 +75,13 @@ public sealed class DotNetCliTools
         if (string.IsNullOrWhiteSpace(template))
             return "Error: template parameter is required.";
 
+        // Validate additionalOptions to prevent injection attempts
+        if (!string.IsNullOrEmpty(additionalOptions))
+        {
+            if (!IsValidAdditionalOptions(additionalOptions))
+                return "Error: additionalOptions contains invalid characters. Only alphanumeric characters, hyphens, underscores, dots, and spaces are allowed.";
+        }
+
         var args = new StringBuilder($"new {template}");
         if (!string.IsNullOrEmpty(name)) args.Append($" -n \"{name}\"");
         if (!string.IsNullOrEmpty(output)) args.Append($" -o \"{output}\"");
@@ -250,5 +257,20 @@ public sealed class DotNetCliTools
         }
         result.AppendLine($"Exit Code: {process.ExitCode}");
         return result.ToString();
+    }
+
+    private static bool IsValidAdditionalOptions(string options)
+    {
+        // Allow alphanumeric characters, hyphens, underscores, dots, spaces, and equals signs
+        // This covers standard CLI option patterns like: --option-name value --flag --key=value
+        // Reject shell metacharacters that could be used for injection: &, |, ;, <, >, `, $, (, ), {, }, [, ], \, ", '
+        foreach (char c in options)
+        {
+            if (!char.IsLetterOrDigit(c) && c != '-' && c != '_' && c != '.' && c != ' ' && c != '=')
+            {
+                return false;
+            }
+        }
+        return true;
     }
 }
