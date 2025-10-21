@@ -4,9 +4,9 @@
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-blue.svg)](https://github.com/jongalloway/dotnet-mcp/blob/main/.github/dependabot.yml)
 [![NuGet](https://img.shields.io/nuget/v/Community.Mcp.DotNet.svg)](https://www.nuget.org/packages/Community.Mcp.DotNet/)
 
-<a href="https://vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dotnet%22%2C%22args%22%3A%5B%22run%22%2C%22--project%22%2C%22%2Fpath%2Fto%2Fdotnet-mcp%2FDotNetMcp%2FDotNetMcp.csproj%22%5D%7D"><img src="https://img.shields.io/badge/VS_Code-Install_.NET_MCP-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white"></a>
-<a href="https://insiders.vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dotnet%22%2C%22args%22%3A%5B%22run%22%2C%22--project%22%2C%22%2Fpath%2Fto%2Fdotnet-mcp%2FDotNetMcp%2FDotNetMcp.csproj%22%5D%7D&quality=insiders"><img src="https://img.shields.io/badge/VS_Code_Insiders-Install_.NET_MCP-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white"></a>
-<a href="https://vs-open.link/mcp-install"><img src="https://img.shields.io/badge/Visual_Studio-Install_.NET_MCP-5C2D91?style=flat-square&logo=visualstudio&logoColor=white"></a>
+[![VS Code - Install .NET MCP](https://img.shields.io/badge/VS_Code-Install_.NET_MCP-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dotnet%22%2C%22args%22%3A%5B%22run%22%2C%22--project%22%2C%22%2Fpath%2Fto%2Fdotnet-mcp%2FDotNetMcp%2FDotNetMcp.csproj%22%5D%7D)
+[![VS Code Insiders - Install .NET MCP](https://img.shields.io/badge/VS_Code_Insiders-Install_.NET_MCP-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dotnet%22%2C%22args%22%3A%5B%22run%22%2C%22--project%22%2C%22%2Fpath%2Fto%2Fdotnet-mcp%2FDotNetMcp%2FDotNetMcp.csproj%22%5D%7D&quality=insiders)
+[![Visual Studio - Install .NET MCP](https://img.shields.io/badge/Visual_Studio-Install_.NET_MCP-5C2D91?style=flat-square&logo=visualstudio&logoColor=white)](https://vs-open.link/mcp-install)
 
 > **Note**: The install badges above will prompt you to configure the server. You'll need to update the project path to match your local installation location.
 
@@ -17,12 +17,14 @@ A community-maintained MCP (Model Context Protocol) server that provides AI assi
 The server provides comprehensive .NET development capabilities through MCP tools:
 
 ### Template & Framework Information
+
 - **dotnet_template_list** - List all installed .NET templates with metadata
 - **dotnet_template_search** - Search for templates by name or description
 - **dotnet_template_info** - Get detailed template information and parameters
 - **dotnet_framework_info** - Get .NET framework version information and LTS status
 
 ### Project Management
+
 - **dotnet_project_new** - Create new .NET projects from templates
 - **dotnet_project_restore** - Restore project dependencies
 - **dotnet_project_build** - Build .NET projects
@@ -32,23 +34,27 @@ The server provides comprehensive .NET development capabilities through MCP tool
 - **dotnet_project_clean** - Clean build outputs
 
 ### Package Management
+
 - **dotnet_package_add** - Add NuGet package references
 - **dotnet_package_list** - List package references (including outdated/deprecated)
 - **dotnet_reference_add** - Add project-to-project references
 - **dotnet_reference_list** - List project references
 
 ### SDK Information
+
 - **dotnet_sdk_version** - Get .NET SDK version
 - **dotnet_sdk_info** - Get detailed SDK and runtime information
 - **dotnet_sdk_list** - List installed SDKs
 - **dotnet_runtime_list** - List installed runtimes
 
 ### Help
+
 - **dotnet_help** - Get help for any dotnet command
 
 ## Architecture
 
 The server uses a hybrid approach:
+
 - **SDK Integration** - Uses official Microsoft NuGet packages (Template Engine, MSBuild) for metadata, discovery, and validation
 - **CLI Execution** - Executes actual dotnet commands for reliable, proven operations
 
@@ -94,7 +100,7 @@ dotnet run
 
 To use this MCP server with GitHub Copilot in Visual Studio Code:
 
-### Using DNX (Recommended - .NET 10 Required)
+### VS Code: Using DNX (Recommended - .NET 10 Required)
 
 1. Open the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P` on macOS)
 2. Run the command **"GitHub Copilot: Add MCP Server"**
@@ -118,7 +124,7 @@ Or manually edit your VS Code settings and add:
 }
 ```
 
-### Using Source Build
+### VS Code: Using Source Build
 
 If you're running from source:
 
@@ -150,7 +156,7 @@ For more information, see the [VS Code MCP documentation](https://code.visualstu
 
 To use this MCP server with GitHub Copilot in Visual Studio 2022:
 
-### Using DNX (Recommended - .NET 10 Required)
+### Visual Studio: Using DNX (Recommended - .NET 10 Required)
 
 1. Ensure you have Visual Studio 2022 version 17.13 or later
 2. Go to **Tools** > **Options** > **GitHub Copilot** > **MCP Servers**
@@ -161,7 +167,7 @@ To use this MCP server with GitHub Copilot in Visual Studio 2022:
    - **Command**: `dnx`
    - **Arguments**: `Community.Mcp.DotNet@1.0.0 --yes`
 
-### Using Source Build
+### Visual Studio: Using Source Build
 
 If you're running from source:
 
@@ -178,11 +184,12 @@ For more information, see the [Visual Studio MCP documentation](https://learn.mi
 
 ## Using with Claude Desktop
 
-### Using DNX (Recommended - .NET 10 Required)
+### Claude Desktop: Using DNX (Recommended - .NET 10 Required)
 
 Add the following to your Claude Desktop configuration file:
 
-#### macOS
+#### macOS (DNX)
+
 Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ```json
@@ -196,7 +203,8 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
 }
 ```
 
-#### Windows
+#### Windows (DNX)
+
 Edit `%APPDATA%\Claude\claude_desktop_config.json`:
 
 ```json
@@ -210,11 +218,12 @@ Edit `%APPDATA%\Claude\claude_desktop_config.json`:
 }
 ```
 
-### Using Source Build
+### Claude Desktop: Using Source Build
 
 If you're running from source, add the following to your Claude Desktop configuration file:
 
-#### macOS
+#### macOS (Source Build)
+
 Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ```json
@@ -228,7 +237,8 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
 }
 ```
 
-#### Windows
+#### Windows (Source Build)
+
 Edit `%APPDATA%\Claude\claude_desktop_config.json`:
 
 ```json
@@ -260,7 +270,7 @@ Once connected to your AI assistant, you can ask questions like:
 
 ## Project Structure
 
-```
+```text
 dotnet-mcp/
 ├── DotNetMcp/
 │   ├── DotNetMcp.csproj           # Project file
