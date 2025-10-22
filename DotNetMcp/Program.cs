@@ -12,6 +12,7 @@ builder.Logging.AddConsole(options =>
 
 builder.Services.AddMcpServer()
     .WithStdioServerTransport()
-    .WithTools<DotNetCliTools>();
+    .WithTools<DotNetCliTools>()
+    .WithResources<DotNetResources>();
 
 await builder.Build().RunAsync();
