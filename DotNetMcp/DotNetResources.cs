@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
@@ -29,7 +28,7 @@ public sealed class DotNetResources
         _logger.LogDebug("Reading SDK information");
         try
         {
-            var result = await ExecuteDotNetCommandAsync("--list-sdks");
+            var result = await DotNetCommandExecutor.ExecuteCommandForResourceAsync("--list-sdks", _logger);
             
             // Parse the SDK list output
             var sdks = new List<object>();
@@ -72,7 +71,7 @@ public sealed class DotNetResources
         _logger.LogDebug("Reading runtime information");
         try
         {
-            var result = await ExecuteDotNetCommandAsync("--list-runtimes");
+            var result = await DotNetCommandExecutor.ExecuteCommandForResourceAsync("--list-runtimes", _logger);
             
             // Parse the runtime list output
             var runtimes = new List<object>();
@@ -198,38 +197,5 @@ public sealed class DotNetResources
             _logger.LogError(ex, "Error getting framework information");
             return Task.FromResult(JsonSerializer.Serialize(new { error = ex.Message }));
         }
-    }
-
-    /// <summary>
-    /// Execute a dotnet command and return the output.
-    /// </summary>
-    private async Task<string> ExecuteDotNetCommandAsync(string args)
-    {
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = "dotnet",
-            Arguments = args,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        using var process = Process.Start(startInfo);
-        if (process == null)
-        {
-            throw new InvalidOperationException("Failed to start dotnet process");
-        }
-
-        var output = await process.StandardOutput.ReadToEndAsync();
-        var error = await process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
-
-        if (process.ExitCode != 0 && !string.IsNullOrEmpty(error))
-        {
-            throw new InvalidOperationException($"dotnet command failed: {error}");
-        }
-
-        return output;
     }
 }
