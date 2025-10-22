@@ -23,6 +23,13 @@ public sealed class DotNetCliTools
         [Description("The template short name (e.g., 'console', 'webapi', 'classlib')")] string templateShortName)
         => await TemplateEngineHelper.GetTemplateDetailsAsync(templateShortName);
 
+    [McpServerTool, Description("Clear the template cache to force reload from disk. Use this after installing or uninstalling templates.")]
+    public Task<string> DotnetTemplateClearCache()
+    {
+        TemplateEngineHelper.ClearCache();
+        return Task.FromResult("Template cache cleared successfully. Next template query will reload from disk.");
+    }
+
     [McpServerTool, Description("Get information about .NET framework versions, including which are LTS releases. Useful for understanding framework compatibility.")]
     public Task<string> DotnetFrameworkInfo(
         [Description("Optional: specific framework to get info about (e.g., 'net8.0', 'net6.0')")] string? framework = null)
@@ -433,6 +440,8 @@ public sealed class DotNetCliTools
         return await ExecuteDotNetCommand(args);
     }
 
+    private const int MaxOutputLength = 1_000_000; // 1MB max output
+
     private async Task<string> ExecuteDotNetCommand(string arguments)
     {
         var psi = new ProcessStartInfo
@@ -448,8 +457,41 @@ public sealed class DotNetCliTools
         using var process = new Process { StartInfo = psi };
         var output = new StringBuilder();
         var error = new StringBuilder();
-        process.OutputDataReceived += (_, e) => { if (e.Data != null) output.AppendLine(e.Data); };
-        process.ErrorDataReceived += (_, e) => { if (e.Data != null) error.AppendLine(e.Data); };
+        var outputTruncated = false;
+        var errorTruncated = false;
+
+        process.OutputDataReceived += (_, e) =>
+        {
+            if (e.Data != null)
+            {
+                if (output.Length < MaxOutputLength)
+                {
+                    output.AppendLine(e.Data);
+                }
+                else if (!outputTruncated)
+                {
+                    output.AppendLine("[Output truncated - exceeded maximum size of 1MB]");
+                    outputTruncated = true;
+                }
+            }
+        };
+
+        process.ErrorDataReceived += (_, e) =>
+        {
+            if (e.Data != null)
+            {
+                if (error.Length < MaxOutputLength)
+                {
+                    error.AppendLine(e.Data);
+                }
+                else if (!errorTruncated)
+                {
+                    error.AppendLine("[Error output truncated - exceeded maximum size of 1MB]");
+                    errorTruncated = true;
+                }
+            }
+        };
+
         process.Start();
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
