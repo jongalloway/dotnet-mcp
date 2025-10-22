@@ -15,6 +15,9 @@ namespace DotNetMcp;
 /// This class uses SemaphoreSlim for thread-safe async caching, following .NET 9+ best practices.
 /// The cache expires after 5 minutes to allow for template installations/updates.
 /// All public methods are thread-safe and may be called concurrently.
+/// 
+/// The SemaphoreSlim instance is static and lives for the application lifetime (singleton pattern).
+/// It does not require disposal as it will be cleaned up when the process exits.
 /// </remarks>
 public class TemplateEngineHelper
 {
@@ -51,33 +54,11 @@ public class TemplateEngineHelper
     }
 
     /// <summary>
-    /// Clear the template cache. Useful after installing or uninstalling templates.
-    /// </summary>
-    /// <remarks>
-    /// This synchronous method uses Wait() for compatibility with synchronous callers.
-    /// For async contexts, consider using async/await patterns in calling code.
-    /// </remarks>
-    public static void ClearCache()
-    {
-        // Using Wait() here for synchronous API compatibility.
-        // This is acceptable for cache management operations that are not on hot paths.
-        _cacheLock.Wait();
-        try
-        {
-            _templatesCache = null;
-            _cacheExpiry = DateTime.MinValue;
-        }
-        finally
-        {
-            _cacheLock.Release();
-        }
-    }
-
-    /// <summary>
     /// Clear the template cache asynchronously. Useful after installing or uninstalling templates.
     /// </summary>
     /// <remarks>
-    /// Preferred async version of ClearCache() for modern async/await code.
+    /// This method properly uses async/await to prevent potential deadlocks that could occur
+    /// with synchronous Wait() calls on SemaphoreSlim.
     /// </remarks>
     public static async Task ClearCacheAsync()
     {

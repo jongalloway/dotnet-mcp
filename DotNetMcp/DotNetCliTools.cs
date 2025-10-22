@@ -24,10 +24,10 @@ public sealed class DotNetCliTools
         => await TemplateEngineHelper.GetTemplateDetailsAsync(templateShortName);
 
     [McpServerTool, Description("Clear the template cache to force reload from disk. Use this after installing or uninstalling templates.")]
-    public Task<string> DotnetTemplateClearCache()
+    public async Task<string> DotnetTemplateClearCache()
     {
-        TemplateEngineHelper.ClearCache();
-        return Task.FromResult("Template cache cleared successfully. Next template query will reload from disk.");
+        await TemplateEngineHelper.ClearCacheAsync();
+        return "Template cache cleared successfully. Next template query will reload from disk.";
     }
 
     [McpServerTool, Description("Get information about .NET framework versions, including which are LTS releases. Useful for understanding framework compatibility.")]
@@ -440,7 +440,8 @@ public sealed class DotNetCliTools
         return await ExecuteDotNetCommand(args);
     }
 
-    private const int MaxOutputLength = 1_000_000; // 1MB max output
+    // Limit output to 1 million characters (~1-4MB depending on encoding)
+    private const int MaxOutputCharacters = 1_000_000;
 
     private async Task<string> ExecuteDotNetCommand(string arguments)
     {
@@ -464,13 +465,13 @@ public sealed class DotNetCliTools
         {
             if (e.Data != null)
             {
-                if (output.Length < MaxOutputLength)
+                if (output.Length < MaxOutputCharacters)
                 {
                     output.AppendLine(e.Data);
                 }
                 else if (!outputTruncated)
                 {
-                    output.AppendLine("[Output truncated - exceeded maximum size of 1MB]");
+                    output.AppendLine("[Output truncated - exceeded maximum character limit]");
                     outputTruncated = true;
                 }
             }
@@ -480,13 +481,13 @@ public sealed class DotNetCliTools
         {
             if (e.Data != null)
             {
-                if (error.Length < MaxOutputLength)
+                if (error.Length < MaxOutputCharacters)
                 {
                     error.AppendLine(e.Data);
                 }
                 else if (!errorTruncated)
                 {
-                    error.AppendLine("[Error output truncated - exceeded maximum size of 1MB]");
+                    error.AppendLine("[Error output truncated - exceeded maximum character limit]");
                     errorTruncated = true;
                 }
             }
