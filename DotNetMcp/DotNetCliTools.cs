@@ -14,7 +14,8 @@ public sealed class DotNetCliTools
 
     public DotNetCliTools(ILogger<DotNetCliTools> logger)
     {
-        _logger = logger;
+        // DI guarantees logger is never null
+        _logger = logger!;
     }
     [McpServerTool, Description("List all installed .NET templates with their metadata using the Template Engine. Provides structured information about available project templates.")]
     public async Task<string> DotnetTemplateList()
