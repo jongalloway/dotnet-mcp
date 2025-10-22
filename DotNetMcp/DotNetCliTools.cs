@@ -465,7 +465,9 @@ public sealed class DotNetCliTools
         {
             if (e.Data != null)
             {
-                if (output.Length < MaxOutputCharacters)
+                // Check if adding this line would exceed the limit
+                int projectedLength = output.Length + e.Data.Length + Environment.NewLine.Length;
+                if (projectedLength < MaxOutputCharacters)
                 {
                     output.AppendLine(e.Data);
                 }
@@ -481,7 +483,9 @@ public sealed class DotNetCliTools
         {
             if (e.Data != null)
             {
-                if (error.Length < MaxOutputCharacters)
+                // Check if adding this line would exceed the limit
+                int projectedLength = error.Length + e.Data.Length + Environment.NewLine.Length;
+                if (projectedLength < MaxOutputCharacters)
                 {
                     error.AppendLine(e.Data);
                 }

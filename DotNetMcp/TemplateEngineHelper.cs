@@ -16,8 +16,10 @@ namespace DotNetMcp;
 /// The cache expires after 5 minutes to allow for template installations/updates.
 /// All public methods are thread-safe and may be called concurrently.
 /// 
-/// The SemaphoreSlim instance is static and lives for the application lifetime (singleton pattern).
-/// It does not require disposal as it will be cleaned up when the process exits.
+/// The SemaphoreSlim instance is static and follows a singleton pattern for the application lifetime.
+/// While this is appropriate for typical MCP server scenarios where the process runs until termination,
+/// proper cleanup can be performed by calling <see cref="DisposeAsync"/> in testing or hosting scenarios
+/// where the application may be stopped and restarted without process termination.
 /// </remarks>
 public class TemplateEngineHelper
 {
@@ -72,6 +74,20 @@ public class TemplateEngineHelper
         {
             _cacheLock.Release();
         }
+    }
+
+    /// <summary>
+    /// Dispose of the SemaphoreSlim resource. This should be called when the helper is no longer needed,
+    /// particularly in testing or hosting scenarios where the application may be stopped/restarted.
+    /// </summary>
+    /// <remarks>
+    /// This method is provided to follow IDisposable best practices. In typical MCP server scenarios
+    /// where the process runs until termination, calling this method is not necessary.
+    /// This method is NOT thread-safe and should only be called when all other operations have completed.
+    /// </remarks>
+    public static void Dispose()
+    {
+        _cacheLock.Dispose();
     }
 
     /// <summary>
