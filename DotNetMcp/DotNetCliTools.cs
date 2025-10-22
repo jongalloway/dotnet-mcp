@@ -290,7 +290,7 @@ public sealed class DotNetCliTools
         return await ExecuteDotNetCommand(args.ToString());
     }
 
-    [McpServerTool, Description("Update a NuGet package reference to a newer version in a .NET project")]
+    [McpServerTool, Description("Update a NuGet package reference to a newer version in a .NET project. Note: This uses 'dotnet add package' which updates the package when a newer version is specified.")]
     public async Task<string> DotnetPackageUpdate(
         [Description("The name of the NuGet package to update")] string packageName,
         [Description("The project file to update the package in")] string? project = null,
@@ -423,10 +423,11 @@ public sealed class DotNetCliTools
             return "Error: Cannot specify both 'list' and 'clear'.";
 
         var validLocations = new[] { "all", "http-cache", "global-packages", "temp", "plugins-cache" };
-        if (!validLocations.Contains(cacheLocation.ToLowerInvariant()))
+        var normalizedCacheLocation = cacheLocation.ToLowerInvariant();
+        if (!validLocations.Contains(normalizedCacheLocation))
             return $"Error: Invalid cache location. Must be one of: {string.Join(", ", validLocations)}";
 
-        var args = $"nuget locals {cacheLocation}";
+        var args = $"nuget locals {normalizedCacheLocation}";
         if (list) args += " --list";
         if (clear) args += " --clear";
         return await ExecuteDotNetCommand(args);
