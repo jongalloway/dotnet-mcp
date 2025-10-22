@@ -126,7 +126,7 @@ public static class DotNetCommandExecutor
         using var process = Process.Start(startInfo);
         if (process == null)
         {
-            throw new InvalidOperationException("Failed to start dotnet process");
+            throw new InvalidOperationException($"Failed to start dotnet process with arguments: {arguments}");
         }
 
         var output = await process.StandardOutput.ReadToEndAsync();

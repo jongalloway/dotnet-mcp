@@ -1,4 +1,3 @@
-using System.IO;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
@@ -57,10 +56,15 @@ public sealed class DotNetResources
                 }
             }
 
+            // Sort SDKs by version to ensure we always return the latest, regardless of CLI output order
+            var sortedSdks = sdks
+                .OrderBy(sdk => Version.TryParse(sdk.Version, out var v) ? v : new Version(0, 0))
+                .ToList();
+
             var response = new
             {
-                sdks,
-                latestSdk = sdks.LastOrDefault()?.Version
+                sdks = sortedSdks,
+                latestSdk = sortedSdks.LastOrDefault()?.Version
             };
 
             return JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true });
