@@ -14,7 +14,18 @@ A community-maintained MCP (Model Context Protocol) server that provides AI assi
 
 ## Features
 
-The server provides comprehensive .NET development capabilities through MCP tools:
+The server provides comprehensive .NET development capabilities through MCP tools and resources:
+
+### MCP Resources (Read-Only Context)
+
+The server exposes read-only resources that provide efficient access to .NET environment metadata:
+
+- **dotnet://sdk-info** - Information about installed .NET SDKs (versions and paths)
+- **dotnet://runtime-info** - Information about installed .NET runtimes (versions and types)
+- **dotnet://templates** - Complete catalog of installed .NET templates with metadata
+- **dotnet://frameworks** - Information about supported .NET frameworks (TFMs) including LTS status
+
+Resources provide structured JSON data and are more efficient than tool calls for frequently accessed read-only information.
 
 ### Template & Framework Information
 
@@ -301,6 +312,7 @@ dotnet-mcp/
 │   ├── DotNetMcp.csproj           # Project file
 │   ├── Program.cs                  # MCP server setup
 │   ├── DotNetCliTools.cs           # MCP tool implementations
+│   ├── DotNetResources.cs          # MCP resource implementations
 │   ├── DotNetSdkConstants.cs       # Strongly-typed SDK constants
 │   ├── TemplateEngineHelper.cs     # Template Engine integration
 │   └── FrameworkHelper.cs          # Framework validation helpers

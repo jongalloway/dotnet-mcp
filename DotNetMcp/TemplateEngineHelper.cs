@@ -64,6 +64,13 @@ public class TemplateEngineHelper
     }
 
     /// <summary>
+    /// Get templates from cache or load them if cache is expired (internal access for resources).
+    /// This is intended for use by DotNetResources class to provide template data.
+    /// </summary>
+    internal static Task<IEnumerable<ITemplateInfo>> GetTemplatesCachedInternalAsync(ILogger? logger = null)
+        => GetTemplatesCachedAsync(logger);
+
+    /// <summary>
     /// Clear the template cache asynchronously. Useful after installing or uninstalling templates.
     /// </summary>
     /// <remarks>
