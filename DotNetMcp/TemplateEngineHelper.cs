@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Microsoft.TemplateEngine.Abstractions;
 using Microsoft.TemplateEngine.Edge;
 using Microsoft.TemplateEngine.Edge.Settings;
@@ -32,13 +33,14 @@ public class TemplateEngineHelper
     /// Get templates from cache or load them if cache is expired.
     /// Cache expires after 5 minutes to allow for template installations/updates.
     /// </summary>
-    private static async Task<IEnumerable<ITemplateInfo>> GetTemplatesCachedAsync()
+    private static async Task<IEnumerable<ITemplateInfo>> GetTemplatesCachedAsync(ILogger? logger = null)
     {
         await _cacheLock.WaitAsync();
         try
         {
             if (_templatesCache == null || DateTime.UtcNow > _cacheExpiry)
             {
+                logger?.LogDebug("Template cache miss - loading templates from template engine");
                 var engineEnvironmentSettings = new EngineEnvironmentSettings(
                     new DefaultTemplateEngineHost("dotnet-mcp", "1.0.0"),
                     virtualizeSettings: true);
@@ -46,6 +48,12 @@ public class TemplateEngineHelper
                 var templatePackageManager = new TemplatePackageManager(engineEnvironmentSettings);
                 _templatesCache = await templatePackageManager.GetTemplatesAsync(default);
                 _cacheExpiry = DateTime.UtcNow.Add(CacheDuration);
+                logger?.LogInformation("Loaded {TemplateCount} templates into cache (expires in {CacheDuration})",
+                    _templatesCache.Count(), CacheDuration);
+            }
+            else
+            {
+                logger?.LogDebug("Template cache hit - returning cached templates");
             }
             return _templatesCache;
         }
@@ -62,13 +70,14 @@ public class TemplateEngineHelper
     /// This method properly uses async/await to prevent potential deadlocks that could occur
     /// with synchronous Wait() calls on SemaphoreSlim.
     /// </remarks>
-    public static async Task ClearCacheAsync()
+    public static async Task ClearCacheAsync(ILogger? logger = null)
     {
         await _cacheLock.WaitAsync();
         try
         {
             _templatesCache = null;
             _cacheExpiry = DateTime.MinValue;
+            logger?.LogInformation("Template cache cleared");
         }
         finally
         {
@@ -93,12 +102,12 @@ public class TemplateEngineHelper
     /// <summary>
     /// Get a list of all installed templates with their metadata.
     /// </summary>
-    public static async Task<string> GetInstalledTemplatesAsync()
+    public static async Task<string> GetInstalledTemplatesAsync(ILogger? logger = null)
     {
         try
         {
             // Get all installed templates from cache
-            var templates = await GetTemplatesCachedAsync();
+            var templates = await GetTemplatesCachedAsync(logger);
 
             if (!templates.Any())
             {
@@ -139,11 +148,11 @@ public class TemplateEngineHelper
     /// <summary>
     /// Get detailed information about a specific template.
     /// </summary>
-    public static async Task<string> GetTemplateDetailsAsync(string templateShortName)
+    public static async Task<string> GetTemplateDetailsAsync(string templateShortName, ILogger? logger = null)
     {
         try
         {
-            var templates = await GetTemplatesCachedAsync();
+            var templates = await GetTemplatesCachedAsync(logger);
             var template = templates.FirstOrDefault(t =>
                 t.ShortNameList.Any(sn => sn.Equals(templateShortName, StringComparison.OrdinalIgnoreCase)));
 
@@ -188,11 +197,11 @@ public class TemplateEngineHelper
     /// <summary>
     /// Search for templates by name or description.
     /// </summary>
-    public static async Task<string> SearchTemplatesAsync(string searchTerm)
+    public static async Task<string> SearchTemplatesAsync(string searchTerm, ILogger? logger = null)
     {
         try
         {
-            var templates = await GetTemplatesCachedAsync();
+            var templates = await GetTemplatesCachedAsync(logger);
             var matches = templates.Where(t =>
                 t.ShortNameList.Any(sn => sn.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
                 (t.Name?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
@@ -236,11 +245,11 @@ public class TemplateEngineHelper
     /// <summary>
     /// Validate if a template short name exists.
     /// </summary>
-    public static async Task<bool> ValidateTemplateExistsAsync(string templateShortName)
+    public static async Task<bool> ValidateTemplateExistsAsync(string templateShortName, ILogger? logger = null)
     {
         try
         {
-            var templates = await GetTemplatesCachedAsync();
+            var templates = await GetTemplatesCachedAsync(logger);
             return templates.Any(t =>
                 t.ShortNameList.Any(sn => sn.Equals(templateShortName, StringComparison.OrdinalIgnoreCase)));
         }
