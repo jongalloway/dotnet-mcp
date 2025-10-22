@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -9,24 +10,30 @@ namespace DotNetMcp;
 [McpServerToolType]
 public sealed class DotNetCliTools
 {
+    private readonly ILogger<DotNetCliTools> _logger;
+
+    public DotNetCliTools(ILogger<DotNetCliTools> logger)
+    {
+        _logger = logger;
+    }
     [McpServerTool, Description("List all installed .NET templates with their metadata using the Template Engine. Provides structured information about available project templates.")]
     public async Task<string> DotnetTemplateList()
-        => await TemplateEngineHelper.GetInstalledTemplatesAsync();
+        => await TemplateEngineHelper.GetInstalledTemplatesAsync(_logger);
 
     [McpServerTool, Description("Search for .NET templates by name or description. Returns matching templates with their details.")]
     public async Task<string> DotnetTemplateSearch(
         [Description("Search term to find templates (searches in name, short name, and description)")] string searchTerm)
-        => await TemplateEngineHelper.SearchTemplatesAsync(searchTerm);
+        => await TemplateEngineHelper.SearchTemplatesAsync(searchTerm, _logger);
 
     [McpServerTool, Description("Get detailed information about a specific template including available parameters and options.")]
     public async Task<string> DotnetTemplateInfo(
         [Description("The template short name (e.g., 'console', 'webapi', 'classlib')")] string templateShortName)
-        => await TemplateEngineHelper.GetTemplateDetailsAsync(templateShortName);
+        => await TemplateEngineHelper.GetTemplateDetailsAsync(templateShortName, _logger);
 
     [McpServerTool, Description("Clear the template cache to force reload from disk. Use this after installing or uninstalling templates.")]
     public async Task<string> DotnetTemplateClearCache()
     {
-        await TemplateEngineHelper.ClearCacheAsync();
+        await TemplateEngineHelper.ClearCacheAsync(_logger);
         return "Template cache cleared successfully. Next template query will reload from disk.";
     }
 
@@ -445,6 +452,8 @@ public sealed class DotNetCliTools
 
     private async Task<string> ExecuteDotNetCommand(string arguments)
     {
+        _logger.LogDebug("Executing: dotnet {Arguments}", arguments);
+
         var psi = new ProcessStartInfo
         {
             FileName = "dotnet",
@@ -501,6 +510,16 @@ public sealed class DotNetCliTools
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
         await process.WaitForExitAsync();
+
+        _logger.LogDebug("Command completed with exit code: {ExitCode}", process.ExitCode);
+        if (outputTruncated)
+        {
+            _logger.LogWarning("Output was truncated due to size limit");
+        }
+        if (errorTruncated)
+        {
+            _logger.LogWarning("Error output was truncated due to size limit");
+        }
 
         var result = new StringBuilder();
         if (output.Length > 0) result.AppendLine(output.ToString());
