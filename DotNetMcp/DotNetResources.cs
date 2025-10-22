@@ -46,10 +46,11 @@ public sealed class DotNetResources
                 }
             }
 
+            var lastSdk = sdks.Count > 0 ? sdks[sdks.Count - 1] : null;
             var response = new
             {
                 sdks,
-                latestSdk = sdks.LastOrDefault() != null ? ((dynamic)sdks.Last()).version : null
+                latestSdk = lastSdk?.GetType().GetProperty("version")?.GetValue(lastSdk) as string
             };
 
             return JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true });

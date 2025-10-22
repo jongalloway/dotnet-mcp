@@ -132,10 +132,13 @@ public static class DotNetCommandExecutor
         var error = await process.StandardError.ReadToEndAsync();
         await process.WaitForExitAsync();
 
-        if (process.ExitCode != 0 && !string.IsNullOrEmpty(error))
+        if (process.ExitCode != 0)
         {
             logger?.LogError("Command failed with exit code {ExitCode}: {Error}", process.ExitCode, error);
-            throw new InvalidOperationException($"dotnet command failed: {error}");
+            var errorMessage = !string.IsNullOrEmpty(error)
+                ? $"dotnet command failed: {error}"
+                : $"dotnet command failed with exit code {process.ExitCode} and no error output.";
+            throw new InvalidOperationException(errorMessage);
         }
 
         logger?.LogDebug("Command completed successfully");
