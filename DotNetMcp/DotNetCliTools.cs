@@ -23,6 +23,13 @@ public sealed class DotNetCliTools
         [Description("The template short name (e.g., 'console', 'webapi', 'classlib')")] string templateShortName)
         => await TemplateEngineHelper.GetTemplateDetailsAsync(templateShortName);
 
+    [McpServerTool, Description("Clear the template cache to force reload from disk. Use this after installing or uninstalling templates.")]
+    public async Task<string> DotnetTemplateClearCache()
+    {
+        await TemplateEngineHelper.ClearCacheAsync();
+        return "Template cache cleared successfully. Next template query will reload from disk.";
+    }
+
     [McpServerTool, Description("Get information about .NET framework versions, including which are LTS releases. Useful for understanding framework compatibility.")]
     public Task<string> DotnetFrameworkInfo(
         [Description("Optional: specific framework to get info about (e.g., 'net8.0', 'net6.0')")] string? framework = null)
@@ -433,6 +440,9 @@ public sealed class DotNetCliTools
         return await ExecuteDotNetCommand(args);
     }
 
+    // Limit output to 1 million characters (~1-4MB depending on encoding)
+    private const int MaxOutputCharacters = 1_000_000;
+
     private async Task<string> ExecuteDotNetCommand(string arguments)
     {
         var psi = new ProcessStartInfo
@@ -448,8 +458,45 @@ public sealed class DotNetCliTools
         using var process = new Process { StartInfo = psi };
         var output = new StringBuilder();
         var error = new StringBuilder();
-        process.OutputDataReceived += (_, e) => { if (e.Data != null) output.AppendLine(e.Data); };
-        process.ErrorDataReceived += (_, e) => { if (e.Data != null) error.AppendLine(e.Data); };
+        var outputTruncated = false;
+        var errorTruncated = false;
+
+        process.OutputDataReceived += (_, e) =>
+        {
+            if (e.Data != null)
+            {
+                // Check if adding this line would exceed the limit
+                int projectedLength = output.Length + e.Data.Length + Environment.NewLine.Length;
+                if (projectedLength < MaxOutputCharacters)
+                {
+                    output.AppendLine(e.Data);
+                }
+                else if (!outputTruncated)
+                {
+                    output.AppendLine("[Output truncated - exceeded maximum character limit]");
+                    outputTruncated = true;
+                }
+            }
+        };
+
+        process.ErrorDataReceived += (_, e) =>
+        {
+            if (e.Data != null)
+            {
+                // Check if adding this line would exceed the limit
+                int projectedLength = error.Length + e.Data.Length + Environment.NewLine.Length;
+                if (projectedLength < MaxOutputCharacters)
+                {
+                    error.AppendLine(e.Data);
+                }
+                else if (!errorTruncated)
+                {
+                    error.AppendLine("[Error output truncated - exceeded maximum character limit]");
+                    errorTruncated = true;
+                }
+            }
+        };
+
         process.Start();
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();

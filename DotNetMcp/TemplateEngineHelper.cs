@@ -9,9 +9,87 @@ namespace DotNetMcp;
 /// <summary>
 /// Helper class for interacting with the .NET Template Engine.
 /// Provides programmatic access to installed templates and their metadata.
+/// Implements caching to improve performance for repeated template queries.
 /// </summary>
+/// <remarks>
+/// This class uses SemaphoreSlim for thread-safe async caching, following .NET 9+ best practices.
+/// The cache expires after 5 minutes to allow for template installations/updates.
+/// All public methods are thread-safe and may be called concurrently.
+/// 
+/// The SemaphoreSlim instance is static and follows a singleton pattern for the application lifetime.
+/// While this is appropriate for typical MCP server scenarios where the process runs until termination,
+/// proper cleanup can be performed by calling <see cref="DisposeAsync"/> in testing or hosting scenarios
+/// where the application may be stopped and restarted without process termination.
+/// </remarks>
 public class TemplateEngineHelper
 {
+    private static readonly SemaphoreSlim _cacheLock = new(1, 1);
+    private static IEnumerable<ITemplateInfo>? _templatesCache;
+    private static DateTime _cacheExpiry = DateTime.MinValue;
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// Get templates from cache or load them if cache is expired.
+    /// Cache expires after 5 minutes to allow for template installations/updates.
+    /// </summary>
+    private static async Task<IEnumerable<ITemplateInfo>> GetTemplatesCachedAsync()
+    {
+        await _cacheLock.WaitAsync();
+        try
+        {
+            if (_templatesCache == null || DateTime.UtcNow > _cacheExpiry)
+            {
+                var engineEnvironmentSettings = new EngineEnvironmentSettings(
+                    new DefaultTemplateEngineHost("dotnet-mcp", "1.0.0"),
+                    virtualizeSettings: true);
+
+                var templatePackageManager = new TemplatePackageManager(engineEnvironmentSettings);
+                _templatesCache = await templatePackageManager.GetTemplatesAsync(default);
+                _cacheExpiry = DateTime.UtcNow.Add(CacheDuration);
+            }
+            return _templatesCache;
+        }
+        finally
+        {
+            _cacheLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Clear the template cache asynchronously. Useful after installing or uninstalling templates.
+    /// </summary>
+    /// <remarks>
+    /// This method properly uses async/await to prevent potential deadlocks that could occur
+    /// with synchronous Wait() calls on SemaphoreSlim.
+    /// </remarks>
+    public static async Task ClearCacheAsync()
+    {
+        await _cacheLock.WaitAsync();
+        try
+        {
+            _templatesCache = null;
+            _cacheExpiry = DateTime.MinValue;
+        }
+        finally
+        {
+            _cacheLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Dispose of the SemaphoreSlim resource. This should be called when the helper is no longer needed,
+    /// particularly in testing or hosting scenarios where the application may be stopped/restarted.
+    /// </summary>
+    /// <remarks>
+    /// This method is provided to follow IDisposable best practices. In typical MCP server scenarios
+    /// where the process runs until termination, calling this method is not necessary.
+    /// This method is NOT thread-safe and should only be called when all other operations have completed.
+    /// </remarks>
+    public static void Dispose()
+    {
+        _cacheLock.Dispose();
+    }
+
     /// <summary>
     /// Get a list of all installed templates with their metadata.
     /// </summary>
@@ -19,15 +97,9 @@ public class TemplateEngineHelper
     {
         try
         {
-            var engineEnvironmentSettings = new EngineEnvironmentSettings(
-                new DefaultTemplateEngineHost("dotnet-mcp", "1.0.0"),
-                virtualizeSettings: true);
+            // Get all installed templates from cache
+            var templates = await GetTemplatesCachedAsync();
 
-            var templatePackageManager = new TemplatePackageManager(engineEnvironmentSettings);
-            
-            // Get all installed templates
-            var templates = await templatePackageManager.GetTemplatesAsync(default);
-            
             if (!templates.Any())
             {
                 return "No templates found. This might indicate an issue accessing the template engine.";
@@ -38,24 +110,24 @@ public class TemplateEngineHelper
             result.AppendLine();
             result.AppendLine($"{"Short Name",-25} {"Language",-10} {"Type",-15} {"Description"}");
             result.AppendLine(new string('-', 100));
-            
+
             foreach (var template in templates.OrderBy(t => t.ShortNameList.FirstOrDefault() ?? ""))
             {
                 var shortName = template.ShortNameList.FirstOrDefault() ?? "N/A";
                 var language = template.GetLanguage() ?? "Multiple";
                 var type = template.GetTemplateType() ?? "Unknown";
                 var description = template.Description ?? "";
-                
+
                 // Truncate long descriptions
                 if (description.Length > 40)
                     description = description.Substring(0, 37) + "...";
-                
+
                 result.AppendLine($"{shortName,-25} {language,-10} {type,-15} {description}");
             }
-            
+
             result.AppendLine();
             result.AppendLine($"Total templates: {templates.Count()}");
-            
+
             return result.ToString();
         }
         catch (Exception ex)
@@ -63,7 +135,7 @@ public class TemplateEngineHelper
             return $"Error accessing template engine: {ex.Message}\n\nYou may try running 'dotnet new --list' from the command line for more information.";
         }
     }
-    
+
     /// <summary>
     /// Get detailed information about a specific template.
     /// </summary>
@@ -71,16 +143,10 @@ public class TemplateEngineHelper
     {
         try
         {
-            var engineEnvironmentSettings = new EngineEnvironmentSettings(
-                new DefaultTemplateEngineHost("dotnet-mcp", "1.0.0"),
-                virtualizeSettings: true);
-
-            var templatePackageManager = new TemplatePackageManager(engineEnvironmentSettings);
-            
-            var templates = await templatePackageManager.GetTemplatesAsync(default);
-            var template = templates.FirstOrDefault(t => 
+            var templates = await GetTemplatesCachedAsync();
+            var template = templates.FirstOrDefault(t =>
                 t.ShortNameList.Any(sn => sn.Equals(templateShortName, StringComparison.OrdinalIgnoreCase)));
-            
+
             if (template == null)
             {
                 return $"Template '{templateShortName}' not found.\n\nUse DotnetTemplateList to see all available templates.";
@@ -94,7 +160,7 @@ public class TemplateEngineHelper
             result.AppendLine($"Type: {template.GetTemplateType() ?? "Unknown"}");
             result.AppendLine($"Description: {template.Description ?? "N/A"}");
             result.AppendLine();
-            
+
             // Get parameters/options
             var parameters = template.ParameterDefinitions;
             if (parameters.Any())
@@ -110,7 +176,7 @@ public class TemplateEngineHelper
                     result.AppendLine();
                 }
             }
-            
+
             return result.ToString();
         }
         catch (Exception ex)
@@ -118,7 +184,7 @@ public class TemplateEngineHelper
             return $"Error getting template details: {ex.Message}";
         }
     }
-    
+
     /// <summary>
     /// Search for templates by name or description.
     /// </summary>
@@ -126,19 +192,13 @@ public class TemplateEngineHelper
     {
         try
         {
-            var engineEnvironmentSettings = new EngineEnvironmentSettings(
-                new DefaultTemplateEngineHost("dotnet-mcp", "1.0.0"),
-                virtualizeSettings: true);
-
-            var templatePackageManager = new TemplatePackageManager(engineEnvironmentSettings);
-            
-            var templates = await templatePackageManager.GetTemplatesAsync(default);
-            var matches = templates.Where(t => 
+            var templates = await GetTemplatesCachedAsync();
+            var matches = templates.Where(t =>
                 t.ShortNameList.Any(sn => sn.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
                 (t.Name?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
                 (t.Description?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
             ).ToList();
-            
+
             if (!matches.Any())
             {
                 return $"No templates found matching '{searchTerm}'.";
@@ -149,22 +209,22 @@ public class TemplateEngineHelper
             result.AppendLine();
             result.AppendLine($"{"Short Name",-25} {"Language",-10} {"Description"}");
             result.AppendLine(new string('-', 80));
-            
+
             foreach (var template in matches.OrderBy(t => t.ShortNameList.FirstOrDefault() ?? ""))
             {
                 var shortName = template.ShortNameList.FirstOrDefault() ?? "N/A";
                 var language = template.GetLanguage() ?? "Multiple";
                 var description = template.Description ?? "";
-                
+
                 if (description.Length > 35)
                     description = description.Substring(0, 32) + "...";
-                
+
                 result.AppendLine($"{shortName,-25} {language,-10} {description}");
             }
-            
+
             result.AppendLine();
             result.AppendLine($"Found {matches.Count} matching template(s).");
-            
+
             return result.ToString();
         }
         catch (Exception ex)
@@ -172,7 +232,7 @@ public class TemplateEngineHelper
             return $"Error searching templates: {ex.Message}";
         }
     }
-    
+
     /// <summary>
     /// Validate if a template short name exists.
     /// </summary>
@@ -180,14 +240,8 @@ public class TemplateEngineHelper
     {
         try
         {
-            var engineEnvironmentSettings = new EngineEnvironmentSettings(
-                new DefaultTemplateEngineHost("dotnet-mcp", "1.0.0"),
-                virtualizeSettings: true);
-
-            var templatePackageManager = new TemplatePackageManager(engineEnvironmentSettings);
-            
-            var templates = await templatePackageManager.GetTemplatesAsync(default);
-            return templates.Any(t => 
+            var templates = await GetTemplatesCachedAsync();
+            return templates.Any(t =>
                 t.ShortNameList.Any(sn => sn.Equals(templateShortName, StringComparison.OrdinalIgnoreCase)));
         }
         catch
@@ -209,7 +263,7 @@ public static class TemplateInfoExtensions
             return language;
         return null;
     }
-    
+
     public static string? GetTemplateType(this ITemplateInfo template)
     {
         if (template.TagsCollection.TryGetValue("type", out var type))
