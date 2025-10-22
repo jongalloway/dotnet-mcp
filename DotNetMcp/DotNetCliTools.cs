@@ -209,6 +209,61 @@ public sealed class DotNetCliTools
         return await ExecuteDotNetCommand(args);
     }
 
+    [McpServerTool, Description("Create a new .NET solution file. A solution file organizes multiple related projects.")]
+    public async Task<string> DotnetSolutionCreate(
+        [Description("The name for the solution file")] string name,
+        [Description("The output directory for the solution file")] string? output = null,
+        [Description("The solution file format: 'sln' (classic) or 'slnx' (XML-based). Default is 'sln'.")] string? format = null)
+    {
+        var args = new StringBuilder("new sln");
+        args.Append($" -n \"{name}\"");
+        if (!string.IsNullOrEmpty(output)) args.Append($" -o \"{output}\"");
+        if (!string.IsNullOrEmpty(format))
+        {
+            if (format != "sln" && format != "slnx")
+                return "Error: format must be either 'sln' or 'slnx'.";
+            args.Append($" --format {format}");
+        }
+        return await ExecuteDotNetCommand(args.ToString());
+    }
+
+    [McpServerTool, Description("Add one or more projects to a .NET solution file")]
+    public async Task<string> DotnetSolutionAdd(
+        [Description("The solution file to add projects to")] string solution,
+        [Description("Array of project file paths to add to the solution")] string[] projects)
+    {
+        if (projects == null || projects.Length == 0)
+            return "Error: at least one project path is required.";
+
+        var args = new StringBuilder($"solution \"{solution}\" add");
+        foreach (var project in projects)
+        {
+            args.Append($" \"{project}\"");
+        }
+        return await ExecuteDotNetCommand(args.ToString());
+    }
+
+    [McpServerTool, Description("List all projects in a .NET solution file")]
+    public async Task<string> DotnetSolutionList(
+        [Description("The solution file to list projects from")] string solution)
+        => await ExecuteDotNetCommand($"solution \"{solution}\" list");
+
+    [McpServerTool, Description("Remove one or more projects from a .NET solution file")]
+    public async Task<string> DotnetSolutionRemove(
+        [Description("The solution file to remove projects from")] string solution,
+        [Description("Array of project file paths to remove from the solution")] string[] projects)
+    {
+        if (projects == null || projects.Length == 0)
+            return "Error: at least one project path is required.";
+
+        var args = new StringBuilder($"solution \"{solution}\" remove");
+        foreach (var project in projects)
+        {
+            args.Append($" \"{project}\"");
+        }
+        return await ExecuteDotNetCommand(args.ToString());
+    }
+
     [McpServerTool, Description("Get information about installed .NET SDKs and runtimes")]
     public async Task<string> DotnetSdkInfo() => await ExecuteDotNetCommand("--info");
 

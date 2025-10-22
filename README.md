@@ -40,6 +40,13 @@ The server provides comprehensive .NET development capabilities through MCP tool
 - **dotnet_reference_add** - Add project-to-project references
 - **dotnet_reference_list** - List project references
 
+### Solution Management
+
+- **dotnet_solution_create** - Create new solution files (.sln or .slnx format)
+- **dotnet_solution_add** - Add projects to a solution
+- **dotnet_solution_list** - List projects in a solution
+- **dotnet_solution_remove** - Remove projects from a solution
+
 ### SDK Information
 
 - **dotnet_sdk_version** - Get .NET SDK version
@@ -263,6 +270,8 @@ Once connected to your AI assistant, you can ask questions like:
 - "Run the tests in my solution"
 - "What version of .NET SDK is installed?"
 - "Which .NET versions are LTS releases?"
+- "Create a solution and add my projects to it"
+- "List all projects in my solution"
 
 ## Documentation
 
