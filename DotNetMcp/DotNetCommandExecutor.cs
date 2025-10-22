@@ -11,6 +11,7 @@ namespace DotNetMcp;
 public static class DotNetCommandExecutor
 {
     private const int MaxOutputCharacters = 1_000_000;
+    private static readonly int NewLineLength = Environment.NewLine.Length;
 
     /// <summary>
     /// Execute a dotnet command with full output handling, logging, and truncation support.
@@ -43,7 +44,7 @@ public static class DotNetCommandExecutor
             if (e.Data != null)
             {
                 // Check if adding this line would exceed the limit
-                int projectedLength = output.Length + e.Data.Length + Environment.NewLine.Length;
+                int projectedLength = output.Length + e.Data.Length + NewLineLength;
                 if (projectedLength < MaxOutputCharacters)
                 {
                     output.AppendLine(e.Data);
@@ -61,7 +62,7 @@ public static class DotNetCommandExecutor
             if (e.Data != null)
             {
                 // Check if adding this line would exceed the limit
-                int projectedLength = error.Length + e.Data.Length + Environment.NewLine.Length;
+                int projectedLength = error.Length + e.Data.Length + NewLineLength;
                 if (projectedLength < MaxOutputCharacters)
                 {
                     error.AppendLine(e.Data);

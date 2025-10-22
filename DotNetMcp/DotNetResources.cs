@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
@@ -52,14 +53,14 @@ public sealed class DotNetResources
                 {
                     var version = parts[0].Trim();
                     var path = parts[1].TrimEnd(']').Trim();
-                    sdks.Add(new SdkInfo(version, System.IO.Path.Combine(path, version)));
+                    sdks.Add(new SdkInfo(version, Path.Combine(path, version)));
                 }
             }
 
             var response = new
             {
                 sdks,
-                latestSdk = sdks.Count > 0 ? sdks[sdks.Count - 1].Version : null
+                latestSdk = sdks.LastOrDefault()?.Version
             };
 
             return JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true });
@@ -99,7 +100,7 @@ public sealed class DotNetResources
                         var name = nameAndVersion[0];
                         var version = nameAndVersion[1];
                         var path = parts[1].TrimEnd(']').Trim();
-                        runtimes.Add(new RuntimeInfo(name, version, System.IO.Path.Combine(path, version)));
+                        runtimes.Add(new RuntimeInfo(name, version, Path.Combine(path, version)));
                     }
                 }
             }
