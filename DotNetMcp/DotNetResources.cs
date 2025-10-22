@@ -5,6 +5,16 @@ using ModelContextProtocol.Server;
 namespace DotNetMcp;
 
 /// <summary>
+/// Represents SDK information.
+/// </summary>
+internal record SdkInfo(string Version, string Path);
+
+/// <summary>
+/// Represents runtime information.
+/// </summary>
+internal record RuntimeInfo(string Name, string Version, string Path);
+
+/// <summary>
 /// MCP Resources for .NET environment information.
 /// Provides read-only access to .NET SDK, runtime, template, and framework metadata.
 /// </summary>
@@ -31,7 +41,7 @@ public sealed class DotNetResources
             var result = await DotNetCommandExecutor.ExecuteCommandForResourceAsync("--list-sdks", _logger);
             
             // Parse the SDK list output
-            var sdks = new List<object>();
+            var sdks = new List<SdkInfo>();
             var lines = result.Split('\n', StringSplitOptions.RemoveEmptyEntries);
             
             foreach (var line in lines)
@@ -42,15 +52,14 @@ public sealed class DotNetResources
                 {
                     var version = parts[0].Trim();
                     var path = parts[1].TrimEnd(']').Trim();
-                    sdks.Add(new { version, path = System.IO.Path.Combine(path, version) });
+                    sdks.Add(new SdkInfo(version, System.IO.Path.Combine(path, version)));
                 }
             }
 
-            var lastSdk = sdks.Count > 0 ? sdks[sdks.Count - 1] : null;
             var response = new
             {
                 sdks,
-                latestSdk = lastSdk?.GetType().GetProperty("version")?.GetValue(lastSdk) as string
+                latestSdk = sdks.Count > 0 ? sdks[sdks.Count - 1].Version : null
             };
 
             return JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true });
@@ -75,7 +84,7 @@ public sealed class DotNetResources
             var result = await DotNetCommandExecutor.ExecuteCommandForResourceAsync("--list-runtimes", _logger);
             
             // Parse the runtime list output
-            var runtimes = new List<object>();
+            var runtimes = new List<RuntimeInfo>();
             var lines = result.Split('\n', StringSplitOptions.RemoveEmptyEntries);
             
             foreach (var line in lines)
@@ -90,7 +99,7 @@ public sealed class DotNetResources
                         var name = nameAndVersion[0];
                         var version = nameAndVersion[1];
                         var path = parts[1].TrimEnd(']').Trim();
-                        runtimes.Add(new { name, version, path = System.IO.Path.Combine(path, version) });
+                        runtimes.Add(new RuntimeInfo(name, version, System.IO.Path.Combine(path, version)));
                     }
                 }
             }
