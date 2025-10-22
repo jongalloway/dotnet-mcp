@@ -32,12 +32,20 @@ The server provides comprehensive .NET development capabilities through MCP tool
 - **dotnet_project_test** - Run unit tests
 - **dotnet_project_publish** - Publish projects for deployment
 - **dotnet_project_clean** - Clean build outputs
+- **dotnet_pack_create** - Create NuGet packages from projects
+- **dotnet_watch_run** - Run with file watching and hot reload
+- **dotnet_watch_test** - Run tests with auto-restart on file changes
+- **dotnet_watch_build** - Build with auto-rebuild on file changes
 
 ### Package Management
 
 - **dotnet_package_add** - Add NuGet package references
+- **dotnet_package_remove** - Remove NuGet package references
+- **dotnet_package_search** - Search for NuGet packages on nuget.org
+- **dotnet_package_update** - Update NuGet packages to newer versions
 - **dotnet_package_list** - List package references (including outdated/deprecated)
 - **dotnet_reference_add** - Add project-to-project references
+- **dotnet_reference_remove** - Remove project-to-project references
 - **dotnet_reference_list** - List project references
 
 ### Solution Management
@@ -46,6 +54,14 @@ The server provides comprehensive .NET development capabilities through MCP tool
 - **dotnet_solution_add** - Add projects to a solution
 - **dotnet_solution_list** - List projects in a solution
 - **dotnet_solution_remove** - Remove projects from a solution
+
+### Code Quality
+
+- **dotnet_format** - Format code according to .editorconfig and style rules
+
+### Utilities
+
+- **dotnet_nuget_locals** - Manage NuGet local caches (list, clear)
 
 ### SDK Information
 

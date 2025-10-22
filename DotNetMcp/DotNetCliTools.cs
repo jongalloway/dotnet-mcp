@@ -153,6 +153,23 @@ public sealed class DotNetCliTools
         return await ExecuteDotNetCommand(args.ToString());
     }
 
+    [McpServerTool, Description("Create a NuGet package from a .NET project. Use this to pack projects for distribution on NuGet.org or private feeds.")]
+    public async Task<string> DotnetPackCreate(
+        [Description("The project file to pack")] string? project = null,
+        [Description("The configuration to pack (Debug or Release)")] string? configuration = null,
+        [Description("The output directory for the package")] string? output = null,
+        [Description("Include symbols package")] bool includeSymbols = false,
+        [Description("Include source files in the package")] bool includeSource = false)
+    {
+        var args = new StringBuilder("pack");
+        if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
+        if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
+        if (!string.IsNullOrEmpty(output)) args.Append($" -o \"{output}\"");
+        if (includeSymbols) args.Append(" --include-symbols");
+        if (includeSource) args.Append(" --include-source");
+        return await ExecuteDotNetCommand(args.ToString());
+    }
+
     [McpServerTool, Description("Clean the output of a .NET project")]
     public async Task<string> DotnetProjectClean(
         [Description("The project file or solution file to clean")] string? project = null,
@@ -162,6 +179,53 @@ public sealed class DotNetCliTools
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
         return await ExecuteDotNetCommand(args.ToString());
+    }
+
+    [McpServerTool, Description("Run a .NET project with file watching and hot reload. Note: This is a long-running command that watches for file changes and automatically restarts the application. It should be terminated by the user when no longer needed.")]
+    public Task<string> DotnetWatchRun(
+        [Description("The project file to run")] string? project = null,
+        [Description("Arguments to pass to the application")] string? appArgs = null,
+        [Description("Disable hot reload")] bool noHotReload = false)
+    {
+        var args = new StringBuilder("watch");
+        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
+        args.Append(" run");
+        if (noHotReload) args.Append(" --no-hot-reload");
+        if (!string.IsNullOrEmpty(appArgs)) args.Append($" -- {appArgs}");
+        return Task.FromResult("Warning: 'dotnet watch run' is a long-running command that requires interactive terminal support. " +
+               "It will watch for file changes and automatically restart the application. " +
+               "This command is best run directly in a terminal. " +
+               $"Command that would be executed: dotnet {args}");
+    }
+
+    [McpServerTool, Description("Run unit tests with file watching and automatic test re-runs. Note: This is a long-running command that watches for file changes. It should be terminated by the user when no longer needed.")]
+    public Task<string> DotnetWatchTest(
+        [Description("The project file or solution file to test")] string? project = null,
+        [Description("Filter to run specific tests")] string? filter = null)
+    {
+        var args = new StringBuilder("watch");
+        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
+        args.Append(" test");
+        if (!string.IsNullOrEmpty(filter)) args.Append($" --filter \"{filter}\"");
+        return Task.FromResult("Warning: 'dotnet watch test' is a long-running command that requires interactive terminal support. " +
+               "It will watch for file changes and automatically re-run tests. " +
+               "This command is best run directly in a terminal. " +
+               $"Command that would be executed: dotnet {args}");
+    }
+
+    [McpServerTool, Description("Build a .NET project with file watching and automatic rebuild. Note: This is a long-running command that watches for file changes. It should be terminated by the user when no longer needed.")]
+    public Task<string> DotnetWatchBuild(
+        [Description("The project file or solution file to build")] string? project = null,
+        [Description("The configuration to build (Debug or Release)")] string? configuration = null)
+    {
+        var args = new StringBuilder("watch");
+        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
+        args.Append(" build");
+        if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
+        return Task.FromResult("Warning: 'dotnet watch build' is a long-running command that requires interactive terminal support. " +
+               "It will watch for file changes and automatically rebuild. " +
+               "This command is best run directly in a terminal. " +
+               $"Command that would be executed: dotnet {args}");
     }
 
     [McpServerTool, Description("Add a NuGet package reference to a .NET project")]
@@ -199,6 +263,48 @@ public sealed class DotNetCliTools
         return await ExecuteDotNetCommand(args.ToString());
     }
 
+    [McpServerTool, Description("Remove a NuGet package reference from a .NET project")]
+    public async Task<string> DotnetPackageRemove(
+        [Description("The name of the NuGet package to remove")] string packageName,
+        [Description("The project file to remove the package from")] string? project = null)
+    {
+        var args = new StringBuilder("remove");
+        if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
+        args.Append($" package {packageName}");
+        return await ExecuteDotNetCommand(args.ToString());
+    }
+
+    [McpServerTool, Description("Search for NuGet packages on nuget.org. Returns matching packages with descriptions and download counts.")]
+    public async Task<string> DotnetPackageSearch(
+        [Description("Search term to find packages")] string searchTerm,
+        [Description("Maximum number of results to return (1-100)")] int? take = null,
+        [Description("Skip the first N results")] int? skip = null,
+        [Description("Include prerelease packages")] bool prerelease = false,
+        [Description("Show exact matches only")] bool exactMatch = false)
+    {
+        var args = new StringBuilder($"package search {searchTerm}");
+        if (take.HasValue) args.Append($" --take {take.Value}");
+        if (skip.HasValue) args.Append($" --skip {skip.Value}");
+        if (prerelease) args.Append(" --prerelease");
+        if (exactMatch) args.Append(" --exact-match");
+        return await ExecuteDotNetCommand(args.ToString());
+    }
+
+    [McpServerTool, Description("Update a NuGet package reference to a newer version in a .NET project. Note: This uses 'dotnet add package' which updates the package when a newer version is specified.")]
+    public async Task<string> DotnetPackageUpdate(
+        [Description("The name of the NuGet package to update")] string packageName,
+        [Description("The project file to update the package in")] string? project = null,
+        [Description("The version to update to")] string? version = null,
+        [Description("Update to the latest prerelease version")] bool prerelease = false)
+    {
+        var args = new StringBuilder("add");
+        if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
+        args.Append($" package {packageName}");
+        if (!string.IsNullOrEmpty(version)) args.Append($" --version {version}");
+        else if (prerelease) args.Append(" --prerelease");
+        return await ExecuteDotNetCommand(args.ToString());
+    }
+
     [McpServerTool, Description("List project references")]
     public async Task<string> DotnetReferenceList(
         [Description("The project file")] string? project = null)
@@ -208,6 +314,12 @@ public sealed class DotNetCliTools
         args += " reference";
         return await ExecuteDotNetCommand(args);
     }
+
+    [McpServerTool, Description("Remove a project-to-project reference")]
+    public async Task<string> DotnetReferenceRemove(
+        [Description("The project file to remove the reference from")] string project,
+        [Description("The project file to unreference")] string reference)
+        => await ExecuteDotNetCommand($"remove \"{project}\" reference \"{reference}\"");
 
     [McpServerTool, Description("Create a new .NET solution file. A solution file organizes multiple related projects.")]
     public async Task<string> DotnetSolutionCreate(
@@ -280,6 +392,46 @@ public sealed class DotNetCliTools
     public async Task<string> DotnetHelp(
         [Description("The dotnet command to get help for (e.g., 'build', 'new', 'run'). If not specified, shows general dotnet help.")] string? command = null)
         => await ExecuteDotNetCommand(command != null ? $"{command} --help" : "--help");
+
+    [McpServerTool, Description("Format code according to .editorconfig and style rules. Available since .NET 6 SDK. Useful for enforcing consistent code style across projects.")]
+    public async Task<string> DotnetFormat(
+        [Description("The project or solution file to format")] string? project = null,
+        [Description("Verify formatting without making changes")] bool verify = false,
+        [Description("Include generated code files")] bool includeGenerated = false,
+        [Description("Comma-separated list of diagnostic IDs to fix")] string? diagnostics = null,
+        [Description("Severity level to fix (info, warn, error)")] string? severity = null)
+    {
+        var args = new StringBuilder("format");
+        if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
+        if (verify) args.Append(" --verify-no-changes");
+        if (includeGenerated) args.Append(" --include-generated");
+        if (!string.IsNullOrEmpty(diagnostics)) args.Append($" --diagnostics {diagnostics}");
+        if (!string.IsNullOrEmpty(severity)) args.Append($" --severity {severity}");
+        return await ExecuteDotNetCommand(args.ToString());
+    }
+
+    [McpServerTool, Description("Manage NuGet local caches. List or clear the global-packages, http-cache, temp, and plugins-cache folders. Useful for troubleshooting NuGet issues.")]
+    public async Task<string> DotnetNugetLocals(
+        [Description("The cache location to manage: all, http-cache, global-packages, temp, or plugins-cache")] string cacheLocation,
+        [Description("List the cache location path")] bool list = false,
+        [Description("Clear the specified cache location")] bool clear = false)
+    {
+        if (!list && !clear)
+            return "Error: Either 'list' or 'clear' must be true.";
+
+        if (list && clear)
+            return "Error: Cannot specify both 'list' and 'clear'.";
+
+        var validLocations = new[] { "all", "http-cache", "global-packages", "temp", "plugins-cache" };
+        var normalizedCacheLocation = cacheLocation.ToLowerInvariant();
+        if (!validLocations.Contains(normalizedCacheLocation))
+            return $"Error: Invalid cache location. Must be one of: {string.Join(", ", validLocations)}";
+
+        var args = $"nuget locals {normalizedCacheLocation}";
+        if (list) args += " --list";
+        if (clear) args += " --clear";
+        return await ExecuteDotNetCommand(args);
+    }
 
     private async Task<string> ExecuteDotNetCommand(string arguments)
     {
