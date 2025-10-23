@@ -186,125 +186,9 @@ Use the install badges at the top of this page to automatically configure the MC
 
 ### Option 2: Manual Configuration
 
-### Template & Framework Information
+Follow the instructions below for your specific development environment:
 
-- **dotnet_template_list** - List all installed .NET templates with metadata
-- **dotnet_template_search** - Search for templates by name or description
-- **dotnet_template_info** - Get detailed template information and parameters
-- **dotnet_framework_info** - Get .NET framework version information and LTS status
-
-### Project Management
-
-- **dotnet_project_new** - Create new .NET projects from templates
-- **dotnet_project_restore** - Restore project dependencies
-- **dotnet_project_build** - Build .NET projects
-- **dotnet_project_run** - Build and run .NET projects
-- **dotnet_project_test** - Run unit tests
-- **dotnet_project_publish** - Publish projects for deployment
-- **dotnet_project_clean** - Clean build outputs
-- **dotnet_pack_create** - Create NuGet packages from projects
-- **dotnet_watch_run** - Run with file watching and hot reload
-- **dotnet_watch_test** - Run tests with auto-restart on file changes
-- **dotnet_watch_build** - Build with auto-rebuild on file changes
-
-### Package Management
-
-- **dotnet_package_add** - Add NuGet package references
-- **dotnet_package_remove** - Remove NuGet package references
-- **dotnet_package_search** - Search for NuGet packages on nuget.org
-- **dotnet_package_update** - Update NuGet packages to newer versions
-- **dotnet_package_list** - List package references (including outdated/deprecated)
-- **dotnet_reference_add** - Add project-to-project references
-- **dotnet_reference_remove** - Remove project-to-project references
-- **dotnet_reference_list** - List project references
-
-### Solution Management
-
-- **dotnet_solution_create** - Create new solution files (.sln or .slnx format)
-- **dotnet_solution_add** - Add projects to a solution
-- **dotnet_solution_list** - List projects in a solution
-- **dotnet_solution_remove** - Remove projects from a solution
-
-### Code Quality
-
-- **dotnet_format** - Format code according to .editorconfig and style rules
-
-### Utilities
-
-- **dotnet_nuget_locals** - Manage NuGet local caches (list, clear)
-
-### SDK Information
-
-- **dotnet_sdk_version** - Get .NET SDK version
-- **dotnet_sdk_info** - Get detailed SDK and runtime information
-- **dotnet_sdk_list** - List installed SDKs
-- **dotnet_runtime_list** - List installed runtimes
-
-### Help
-
-- **dotnet_help** - Get help for any dotnet command
-
-## How It Works Under the Hood
-
-```mermaid
-graph TD
-    A[MCP Tool Request] --> B{Request Type}
-    B -->|Metadata Query| C[Template Engine<br/>NuGet Packages]
-    B -->|Operation| D[.NET CLI<br/>Execution]
-    C --> E[Cached Response]
-    D --> F[Command Output]
-    E --> G[Structured Result]
-    F --> G
-    G --> H[AI Assistant]
-    
-    style C fill:#e8f5e9
-    style D fill:#e1f5ff
-    style E fill:#fff9c4
-    style F fill:#fff9c4
-```
-
-The .NET MCP Server uses a **hybrid architecture** for optimal performance and reliability:
-
-### SDK Integration (Fast, Cached)
-
-Uses official Microsoft NuGet packages for metadata operations:
-
-- **Template Engine** - Queries installed templates, parameters, and metadata
-- **MSBuild APIs** - Validates frameworks, reads project files
-- **Caching** - Template data cached for 5 minutes to improve performance
-
-### CLI Execution (Reliable, Proven)
-
-Executes actual `dotnet` commands for operations:
-
-- **Project creation** - `dotnet new`
-- **Package management** - `dotnet add package`
-- **Build operations** - `dotnet build`, `dotnet test`, `dotnet run`
-- **Solution management** - `dotnet sln add`
-
-This hybrid approach ensures both **speed** (for queries) and **reliability** (for operations).
-
-📖 [Full SDK integration details](doc/sdk-integration.md)
-
-## Building from Source
-
-For development or contributing:
-
-```bash
-git clone https://github.com/jongalloway/dotnet-mcp.git
-cd dotnet-mcp/DotNetMcp
-dotnet build
-```
-
-**Run the server**:
-
-```bash
-dotnet run
-```
-
-The server communicates via stdio transport and is designed to be invoked by MCP clients.
-
-#### Visual Studio Code
+### Visual Studio Code
 
 **Using Quick Install** (recommended - .NET 10 required):
 
@@ -336,7 +220,7 @@ Edit your VS Code settings (`Ctrl+,` or `Cmd+,`, search for "mcp"):
 
 📖 [Full VS Code MCP documentation](https://code.visualstudio.com/docs/copilot/customization/mcp-servers#_add-an-mcp-server)
 
-#### Visual Studio 2022
+### Visual Studio 2022
 
 **Requirements**: Visual Studio 2022 version 17.13 or later
 
@@ -364,7 +248,7 @@ Edit your VS Code settings (`Ctrl+,` or `Cmd+,`, search for "mcp"):
 
 📖 [Full Visual Studio MCP documentation](https://learn.microsoft.com/en-us/visualstudio/ide/mcp-servers?view=vs-2022)
 
-#### Claude Desktop
+### Claude Desktop
 
 **Using DNX** (recommended - .NET 10 required):
 
@@ -491,14 +375,14 @@ The server exposes read-only resources that provide efficient access to .NET env
 
 Resources provide structured JSON data and are more efficient than tool calls for frequently accessed read-only information.
 
-### Template & Framework Information
+### Tools - Templates & Frameworks
 
 - **dotnet_template_list** - List all installed .NET templates with metadata
 - **dotnet_template_search** - Search for templates by name or description
 - **dotnet_template_info** - Get detailed template information and parameters
 - **dotnet_framework_info** - Get .NET framework version information and LTS status
 
-### Project Management
+### Tools - Project Management
 
 - **dotnet_project_new** - Create new .NET projects from templates
 - **dotnet_project_restore** - Restore project dependencies
@@ -512,7 +396,7 @@ Resources provide structured JSON data and are more efficient than tool calls fo
 - **dotnet_watch_test** - Run tests with auto-restart on file changes
 - **dotnet_watch_build** - Build with auto-rebuild on file changes
 
-### Package Management
+### Tools - Package Management
 
 - **dotnet_package_add** - Add NuGet package references
 - **dotnet_package_remove** - Remove NuGet package references
@@ -523,77 +407,72 @@ Resources provide structured JSON data and are more efficient than tool calls fo
 - **dotnet_reference_remove** - Remove project-to-project references
 - **dotnet_reference_list** - List project references
 
-### Solution Management
+### Tools - Solution Management
 
 - **dotnet_solution_create** - Create new solution files (.sln or .slnx format)
 - **dotnet_solution_add** - Add projects to a solution
 - **dotnet_solution_list** - List projects in a solution
 - **dotnet_solution_remove** - Remove projects from a solution
 
-### Code Quality
+### Tools - Code Quality
 
 - **dotnet_format** - Format code according to .editorconfig and style rules
 
-### Utilities
+### Tools - Utilities
 
 - **dotnet_nuget_locals** - Manage NuGet local caches (list, clear)
 
-### SDK Information
+### Tools - SDK Information
 
 - **dotnet_sdk_version** - Get .NET SDK version
 - **dotnet_sdk_info** - Get detailed SDK and runtime information
 - **dotnet_sdk_list** - List installed SDKs
 - **dotnet_runtime_list** - List installed runtimes
 
-### Help
+### Tools - Help
 
 - **dotnet_help** - Get help for any dotnet command
 
-## Advanced Topics
+## Building from Source
 
-### Performance Optimization
+For development or contributing:
 
-The server implements several performance optimizations:
+```bash
+git clone https://github.com/jongalloway/dotnet-mcp.git
+cd dotnet-mcp/DotNetMcp
+dotnet build
+```
 
-- **Template caching** - Template Engine data cached for 5 minutes
-- **Output limiting** - Command output limited to 1 million characters to prevent memory issues
-- **Async operations** - All I/O operations use async/await patterns
+**Run the server**:
 
-### Logging
+```bash
+dotnet run
+```
 
-The server implements MCP-compliant logging:
-
-- Logs are sent to the MCP client via the logging protocol
-- Log levels: Debug, Information, Warning, Error
-- Configurable logging level set by the client
-
-### Security
-
-The MCP server follows security best practices:
-
-- **Local execution only** - All operations run on your local machine
-- **No external communication** - No data sent to external servers
-- **Standard permissions** - Uses your .NET SDK permissions
-- **Input validation** - All parameters validated before execution
-- **Path sanitization** - File paths validated to prevent directory traversal
+The server communicates via stdio transport and is designed to be invoked by MCP clients.
 
 ## Project Structure
 
 ```text
 dotnet-mcp/
-├── DotNetMcp/
-│   ├── DotNetMcp.csproj           # Project file
-│   ├── Program.cs                  # MCP server setup
-│   ├── DotNetCliTools.cs           # MCP tool implementations
-│   ├── DotNetSdkConstants.cs       # Strongly-typed SDK constants
-│   ├── TemplateEngineHelper.cs     # Template Engine integration
-│   └── FrameworkHelper.cs          # Framework validation helpers
+├── DotNetMcp/                      # Main MCP server project
+│   ├── DotNetMcp.csproj            # Project file with NuGet dependencies
+│   ├── Program.cs                  # MCP server setup and hosting
+│   ├── DotNetCliTools.cs           # MCP tool implementations (40+ tools)
+│   ├── DotNetResources.cs          # MCP resource implementations (SDK, runtime, templates, frameworks)
+│   ├── DotNetCommandExecutor.cs    # Command execution helper with logging
+│   ├── DotNetSdkConstants.cs       # Strongly-typed SDK constants (TFMs, configurations, runtimes)
+│   ├── TemplateEngineHelper.cs     # Template Engine integration with caching
+│   └── FrameworkHelper.cs          # Framework validation and metadata helpers
 ├── doc/
-│   └── sdk-integration.md          # SDK integration documentation
+│   └── sdk-integration.md          # SDK integration architecture documentation
 ├── .github/
-│   ├── copilot-instructions.md     # Copilot development guidelines
+│   ├── copilot-instructions.md     # Development guidelines for GitHub Copilot
+│   ├── dependabot.yml              # Automated dependency updates
 │   └── workflows/
-│       └── build.yml               # CI/CD workflow
+│       └── build.yml               # CI/CD build and test workflow
+├── DotNetMcp.slnx                  # Solution file (XML-based .slnx format)
+├── LICENSE                         # MIT License
 └── README.md                       # This file
 ```
 
@@ -610,6 +489,7 @@ dotnet-mcp/
 ## Documentation
 
 - 📖 [SDK Integration Details](doc/sdk-integration.md) - Technical architecture and SDK usage
+- 📖 [Advanced Topics](doc/advanced-topics.md) - Performance, logging, and security details
 - 📖 [Model Context Protocol](https://modelcontextprotocol.io/) - Official MCP specification
 - 📖 [MCP C# SDK Docs](https://modelcontextprotocol.github.io/csharp-sdk/) - SDK documentation
 
