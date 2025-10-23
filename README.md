@@ -310,7 +310,7 @@ Edit your VS Code settings (`Ctrl+,` or `Cmd+,`, search for "mcp"):
 
 Once configured, you can use natural language with your AI assistant:
 
-### Getting Started
+### Quick Start - Single Project
 
 **User**: *"Create a new web API project called WeatherService"*
 
@@ -322,43 +322,128 @@ dotnet new webapi -n WeatherService
 
 *The project has been created successfully in the WeatherService directory.*
 
-### Managing Packages
+### Complex Application - Microservices with Aspire
 
-**User**: *"Add Entity Framework Core and the SQL Server provider to my project"*
+**User**: *"Create a server-side web app and minimal API, orchestrated by .NET Aspire, with unit tests for the API using xunit. Use slnx format for the solution."*
 
-**AI**: *I'll add both packages...*
+**AI**: *I'll create a complete microservices solution with .NET Aspire orchestration...*
 
 ```bash
+# Create solution with new XML format
+dotnet new sln -n MyMicroservices --use-slnx
+
+# Create .NET Aspire AppHost for orchestration
+dotnet new aspire-apphost -n MyMicroservices.AppHost
+
+# Create web app
+dotnet new webapp -n MyMicroservices.Web
+
+# Create minimal API
+dotnet new webapi -n MyMicroservices.Api --use-minimal-apis
+
+# Create test project
+dotnet new xunit -n MyMicroservices.Api.Tests
+
+# Add projects to solution
+dotnet sln add MyMicroservices.AppHost/MyMicroservices.AppHost.csproj
+dotnet sln add MyMicroservices.Web/MyMicroservices.Web.csproj
+dotnet sln add MyMicroservices.Api/MyMicroservices.Api.csproj
+dotnet sln add MyMicroservices.Api.Tests/MyMicroservices.Api.Tests.csproj
+
+# Add project references for tests
+dotnet add MyMicroservices.Api.Tests/MyMicroservices.Api.Tests.csproj reference MyMicroservices.Api/MyMicroservices.Api.csproj
+```
+
+*Solution created with 4 projects: AppHost for orchestration, Web app, API, and unit tests. Ready to run with `dotnet run --project MyMicroservices.AppHost`.*
+
+### Database-Driven Application
+
+**User**: *"Add Entity Framework Core with SQL Server to my API project, and create a NuGet package for my data models"*
+
+**AI**: *I'll add EF Core with SQL Server and configure package creation...*
+
+```bash
+# Add Entity Framework packages
 dotnet add package Microsoft.EntityFrameworkCore
 dotnet add package Microsoft.EntityFrameworkCore.SqlServer
+dotnet add package Microsoft.EntityFrameworkCore.Design
+
+# Create a data models class library
+dotnet new classlib -n MyMicroservices.Models
+
+# Configure for NuGet packaging
+dotnet pack MyMicroservices.Models/MyMicroservices.Models.csproj -c Release
 ```
 
-*Both packages have been added successfully.*
+*Entity Framework Core with SQL Server provider added. Created a separate Models project that can be packaged and shared.*
 
-### Building and Testing
+### Multi-Target Testing Strategy
 
-**User**: *"Build my solution in Release mode and run all tests"*
+**User**: *"Add integration tests using NUnit that target both .NET 8 and .NET 9, and configure them to run with code coverage"*
 
-**AI**: *I'll build and test your solution...*
+**AI**: *I'll set up multi-targeted integration tests with coverage...*
 
 ```bash
-dotnet build -c Release
-dotnet test
+# Create NUnit test project
+dotnet new nunit -n MyMicroservices.IntegrationTests
+
+# Update project to multi-target (edit .csproj)
+# <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+
+# Add integration test packages
+dotnet add MyMicroservices.IntegrationTests package Microsoft.AspNetCore.Mvc.Testing
+dotnet add MyMicroservices.IntegrationTests package coverlet.collector
+
+# Run tests with coverage for both frameworks
+dotnet test --collect:"XPlat Code Coverage"
 ```
 
-*Build succeeded. All 47 tests passed.*
+*Integration test project created with multi-targeting. Tests will run on both .NET 8 and .NET 9 with code coverage enabled.*
 
-### Exploring Options
+### Exploring and Discovering
 
-**User**: *"What Blazor templates are available?"*
+**User**: *"What templates are available for creating cloud-native applications?"*
 
-**AI**: *Here are the available Blazor templates:*
+**AI**: *Let me search for cloud-native related templates...*
 
-- `blazor` - Blazor Web App
-- `blazorwasm` - Blazor WebAssembly App
-- `blazorserver` - Blazor Server App
+```bash
+dotnet new search aspire
+dotnet new search dapr
+dotnet new search azure
+```
 
-*Each template supports different hosting models and configurations.*
+*Found templates:*
+
+- `aspire` - .NET Aspire Application
+- `aspire-apphost` - .NET Aspire App Host
+- `aspire-servicedefaults` - .NET Aspire Service Defaults
+- `dapr` - Dapr application templates
+- Various Azure Functions and Container Apps templates
+
+*Each template is designed for cloud-native microservices and distributed applications.*
+
+### Modernization Workflow
+
+**User**: *"Update all packages to latest versions, format all code to match our editorconfig rules, then build and run tests"*
+
+**AI**: *I'll update packages, format code, build, and test...*
+
+```bash
+# Update all packages to latest compatible versions
+dotnet package update
+
+# Format all code according to .editorconfig
+dotnet format
+
+# Clean and rebuild
+dotnet clean
+dotnet build -c Release
+
+# Run all tests
+dotnet test --logger "console;verbosity=detailed"
+```
+
+*All packages updated to latest versions. Code formatted consistently across solution. Build succeeded with 0 warnings. All 156 tests passed.*
 
 ## Available Tools
 
