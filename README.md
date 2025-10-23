@@ -85,20 +85,20 @@ The .NET MCP Server provides **context and intelligence** that raw CLI execution
 - **With MCP**: Errors are parsed and returned in structured format the AI can understand
 - **Without MCP**: AI gets raw stderr output and may misinterpret errors
 
-#### **7. MCP Resources** (Coming Soon)
+#### **7. MCP Resources**
 
 MCP Resources provide read-only access to structured metadata about your .NET environment:
 
-- **SDK Information** - Available SDKs, runtimes, and their versions as queryable resources
-- **Template Catalog** - Browse all templates without executing commands
-- **Framework Metadata** - LTS status, support lifecycle, and compatibility information
-- **Project Context** - Access to project files, solution structure, and NuGet configuration
+- **dotnet://sdk-info** - Information about installed .NET SDKs (versions and paths)
+- **dotnet://runtime-info** - Information about installed .NET runtimes (versions and types)
+- **dotnet://templates** - Complete catalog of installed .NET templates with metadata
+- **dotnet://frameworks** - Information about supported .NET frameworks (TFMs) including LTS status
 
 This enables AI assistants to:
 
 - Answer questions without executing commands ("What .NET versions do I have installed?")
 - Provide context-aware suggestions based on your actual environment
-- Understand your project structure before making changes
+- Access structured JSON data more efficiently than parsing CLI output
 - Reference official .NET metadata for accurate recommendations
 
 **Example**: Using resources for context-aware assistance
@@ -478,7 +478,76 @@ dotnet test
 
 ## Available Tools
 
-The server provides 40+ tools organized by category:
+The server provides comprehensive .NET development capabilities through MCP tools and resources:
+
+### MCP Resources (Read-Only Context)
+
+The server exposes read-only resources that provide efficient access to .NET environment metadata:
+
+- **dotnet://sdk-info** - Information about installed .NET SDKs (versions and paths)
+- **dotnet://runtime-info** - Information about installed .NET runtimes (versions and types)
+- **dotnet://templates** - Complete catalog of installed .NET templates with metadata
+- **dotnet://frameworks** - Information about supported .NET frameworks (TFMs) including LTS status
+
+Resources provide structured JSON data and are more efficient than tool calls for frequently accessed read-only information.
+
+### Template & Framework Information
+
+- **dotnet_template_list** - List all installed .NET templates with metadata
+- **dotnet_template_search** - Search for templates by name or description
+- **dotnet_template_info** - Get detailed template information and parameters
+- **dotnet_framework_info** - Get .NET framework version information and LTS status
+
+### Project Management
+
+- **dotnet_project_new** - Create new .NET projects from templates
+- **dotnet_project_restore** - Restore project dependencies
+- **dotnet_project_build** - Build .NET projects
+- **dotnet_project_run** - Build and run .NET projects
+- **dotnet_project_test** - Run unit tests
+- **dotnet_project_publish** - Publish projects for deployment
+- **dotnet_project_clean** - Clean build outputs
+- **dotnet_pack_create** - Create NuGet packages from projects
+- **dotnet_watch_run** - Run with file watching and hot reload
+- **dotnet_watch_test** - Run tests with auto-restart on file changes
+- **dotnet_watch_build** - Build with auto-rebuild on file changes
+
+### Package Management
+
+- **dotnet_package_add** - Add NuGet package references
+- **dotnet_package_remove** - Remove NuGet package references
+- **dotnet_package_search** - Search for NuGet packages on nuget.org
+- **dotnet_package_update** - Update NuGet packages to newer versions
+- **dotnet_package_list** - List package references (including outdated/deprecated)
+- **dotnet_reference_add** - Add project-to-project references
+- **dotnet_reference_remove** - Remove project-to-project references
+- **dotnet_reference_list** - List project references
+
+### Solution Management
+
+- **dotnet_solution_create** - Create new solution files (.sln or .slnx format)
+- **dotnet_solution_add** - Add projects to a solution
+- **dotnet_solution_list** - List projects in a solution
+- **dotnet_solution_remove** - Remove projects from a solution
+
+### Code Quality
+
+- **dotnet_format** - Format code according to .editorconfig and style rules
+
+### Utilities
+
+- **dotnet_nuget_locals** - Manage NuGet local caches (list, clear)
+
+### SDK Information
+
+- **dotnet_sdk_version** - Get .NET SDK version
+- **dotnet_sdk_info** - Get detailed SDK and runtime information
+- **dotnet_sdk_list** - List installed SDKs
+- **dotnet_runtime_list** - List installed runtimes
+
+### Help
+
+- **dotnet_help** - Get help for any dotnet command
 
 ## Advanced Topics
 
