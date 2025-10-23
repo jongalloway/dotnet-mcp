@@ -12,7 +12,7 @@ Click to install in your preferred environment:
 
 [![VS Code - Install .NET MCP](https://img.shields.io/badge/VS_Code-Install_.NET_MCP-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dnx%22%2C%22args%22%3A%5B%22Community.Mcp.DotNet%400.1.0-%2A%22%2C%22--yes%22%5D%7D)
 [![VS Code Insiders - Install .NET MCP](https://img.shields.io/badge/VS_Code_Insiders-Install_.NET_MCP-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dnx%22%2C%22args%22%3A%5B%22Community.Mcp.DotNet%400.1.0-%2A%22%2C%22--yes%22%5D%7D&quality=insiders)
-[![Visual Studio - Install .NET MCP](https://img.shields.io/badge/Visual_Studio-Install_.NET_MCP-5C2D91?style=flat-square&logo=visualstudio&logoColor=white)](https://vs-open.link/mcp-install?%7B%22name%22%3A%22Community.Mcp.DotNet%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22dnx%22%2C%22args%22%3A%5B%22Community.Mcp.Dotnet%400.1.0-%22%2C%22--yes%22%5D%7D)
+[![Visual Studio - Install .NET MCP](https://img.shields.io/badge/Visual_Studio-Install_.NET_MCP-5C2D91?style=flat-square&logo=visualstudio&logoColor=white)](https://vs-open.link/mcp-install?%7B%22name%22%3A%22Community.Mcp.DotNet%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22dnx%22%2C%22args%22%3A%5B%22Community.Mcp.DotNet%400.1.0-%22%2C%22--yes%22%5D%7D)
 
 > **Note**: Quick install requires .NET 10 SDK (launching November 2025). See [manual installation](#installation) for .NET 9 support.
 
@@ -200,7 +200,7 @@ Follow the instructions below for your specific development environment:
      - **Name**: `dotnet`
      - **Type**: `stdio`
      - **Command**: `dnx`
-     - **Arguments**: `Community.Mcp.DotNet@1.0.0 --yes`
+     - **Arguments**: `Community.Mcp.DotNet@0.1.0 --yes`
 
 **Manual Configuration** (for .NET 9 or source builds):
 
@@ -234,7 +234,7 @@ Edit your VS Code settings (`Ctrl+,` or `Cmd+,`, search for "mcp"):
      - **Name**: `dotnet`
      - **Type**: `stdio`
      - **Command**: `dnx`
-     - **Arguments**: `Community.Mcp.DotNet@1.0.0 --yes`
+     - **Arguments**: `Community.Mcp.DotNet@0.1.0 --yes`
 
 **Manual Configuration** (for .NET 9 or source builds):
 
