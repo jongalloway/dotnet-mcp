@@ -144,12 +144,30 @@ public sealed class DotNetCliTools
     public async Task<string> DotnetProjectTest(
         [Description("The project file or solution file to test")] string? project = null,
         [Description("The configuration to test (Debug or Release)")] string? configuration = null,
-        [Description("Filter to run specific tests")] string? filter = null)
+        [Description("Filter to run specific tests")] string? filter = null,
+        [Description("The friendly name of the data collector (e.g., 'XPlat Code Coverage')")] string? collect = null,
+        [Description("The directory where test results will be placed")] string? resultsDirectory = null,
+        [Description("The logger to use for test results (e.g., 'trx', 'console;verbosity=detailed')")] string? logger = null,
+        [Description("Do not build the project before testing")] bool noBuild = false,
+        [Description("Do not restore the project before building")] bool noRestore = false,
+        [Description("Set the MSBuild verbosity level (quiet, minimal, normal, detailed, diagnostic)")] string? verbosity = null,
+        [Description("The target framework to test for")] string? framework = null,
+        [Description("Run tests in blame mode to isolate problematic tests")] bool blame = false,
+        [Description("List discovered tests without running them")] bool listTests = false)
     {
         var args = new StringBuilder("test");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
         if (!string.IsNullOrEmpty(filter)) args.Append($" --filter \"{filter}\"");
+        if (!string.IsNullOrEmpty(collect)) args.Append($" --collect \"{collect}\"");
+        if (!string.IsNullOrEmpty(resultsDirectory)) args.Append($" --results-directory \"{resultsDirectory}\"");
+        if (!string.IsNullOrEmpty(logger)) args.Append($" --logger \"{logger}\"");
+        if (noBuild) args.Append(" --no-build");
+        if (noRestore) args.Append(" --no-restore");
+        if (!string.IsNullOrEmpty(verbosity)) args.Append($" --verbosity {verbosity}");
+        if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
+        if (blame) args.Append(" --blame");
+        if (listTests) args.Append(" --list-tests");
         return await ExecuteDotNetCommand(args.ToString());
     }
 
