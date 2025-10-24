@@ -200,7 +200,7 @@ Follow the instructions below for your specific development environment:
      - **Name**: `dotnet`
      - **Type**: `stdio`
      - **Command**: `dnx`
-     - **Arguments**: `Community.Mcp.DotNet@0.1.0 --yes`
+     - **Arguments**: `Community.Mcp.DotNet@0.1.0-* --yes`
 
 **Manual Configuration** (for .NET 9 or source builds):
 
@@ -234,7 +234,7 @@ Edit your VS Code settings (`Ctrl+,` or `Cmd+,`, search for "mcp"):
      - **Name**: `dotnet`
      - **Type**: `stdio`
      - **Command**: `dnx`
-     - **Arguments**: `Community.Mcp.DotNet@0.1.0 --yes`
+     - **Arguments**: `Community.Mcp.DotNet@0.1.0-* --yes`
 
 **Manual Configuration** (for .NET 9 or source builds):
 
