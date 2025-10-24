@@ -465,6 +465,7 @@ Resources provide structured JSON data and are more efficient than tool calls fo
 - **dotnet_template_list** - List all installed .NET templates with metadata
 - **dotnet_template_search** - Search for templates by name or description
 - **dotnet_template_info** - Get detailed template information and parameters
+- **dotnet_template_clear_cache** - Clear template cache to force reload from disk
 - **dotnet_framework_info** - Get .NET framework version information and LTS status
 
 ### Tools - Project Management
@@ -543,12 +544,16 @@ dotnet-mcp/
 ├── DotNetMcp/                      # Main MCP server project
 │   ├── DotNetMcp.csproj            # Project file with NuGet dependencies
 │   ├── Program.cs                  # MCP server setup and hosting
-│   ├── DotNetCliTools.cs           # MCP tool implementations (40+ tools)
+│   ├── DotNetCliTools.cs           # MCP tool implementations (44 tools)
 │   ├── DotNetResources.cs          # MCP resource implementations (SDK, runtime, templates, frameworks)
 │   ├── DotNetCommandExecutor.cs    # Command execution helper with logging
 │   ├── DotNetSdkConstants.cs       # Strongly-typed SDK constants (TFMs, configurations, runtimes)
 │   ├── TemplateEngineHelper.cs     # Template Engine integration with caching
 │   └── FrameworkHelper.cs          # Framework validation and metadata helpers
+├── DotNetMcp.Tests/                # Unit test project
+│   ├── DotNetMcp.Tests.csproj      # Test project file (xUnit, FluentAssertions, Moq)
+│   ├── FrameworkHelperTests.cs     # Tests for framework validation and metadata
+│   └── DotNetSdkConstantsTests.cs  # Tests for SDK constants validation
 ├── doc/
 │   └── sdk-integration.md          # SDK integration architecture documentation
 ├── .github/
