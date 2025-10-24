@@ -43,7 +43,7 @@ public class TemplateEngineHelper
                 logger?.LogDebug("Template cache miss - loading templates from template engine");
                 var engineEnvironmentSettings = new EngineEnvironmentSettings(
                     new DefaultTemplateEngineHost("dotnet-mcp", "1.0.0"),
-                    virtualizeSettings: true);
+                    virtualizeSettings: false);
 
                 var templatePackageManager = new TemplatePackageManager(engineEnvironmentSettings);
                 _templatesCache = await templatePackageManager.GetTemplatesAsync(default);
