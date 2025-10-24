@@ -159,7 +159,7 @@ public sealed class DotNetCliTools
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
         if (!string.IsNullOrEmpty(filter)) args.Append($" --filter \"{filter}\"");
-        if (!string.IsNullOrEmpty(collect)) args.Append($" --collect:\"{collect}\"");
+        if (!string.IsNullOrEmpty(collect)) args.Append($" --collect \"{collect}\"");
         if (!string.IsNullOrEmpty(resultsDirectory)) args.Append($" --results-directory \"{resultsDirectory}\"");
         if (!string.IsNullOrEmpty(logger)) args.Append($" --logger \"{logger}\"");
         if (noBuild) args.Append(" --no-build");
