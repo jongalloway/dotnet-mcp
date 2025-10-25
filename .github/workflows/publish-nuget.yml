@@ -150,5 +150,13 @@ jobs:
       - name: Login to MCP Registry
         run: ./mcp-publisher login github-oidc
 
+      - name: Debug - Verify server.json location
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Listing DotNetMcp/.mcp/:"
+          ls -la DotNetMcp/.mcp/ || echo "Directory not found"
+          echo "Checking file:"
+          cat DotNetMcp/.mcp/server.json || echo "File not found"
+
       - name: Publish to MCP Registry
         run: ./mcp-publisher publish --file=DotNetMcp/.mcp/server.json
