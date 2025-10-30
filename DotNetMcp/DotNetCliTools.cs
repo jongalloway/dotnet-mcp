@@ -105,11 +105,8 @@ public sealed class DotNetCliTools
             return "Error: template parameter is required.";
 
         // Validate additionalOptions to prevent injection attempts
-        if (!string.IsNullOrEmpty(additionalOptions))
-        {
-            if (!IsValidAdditionalOptions(additionalOptions))
-                return "Error: additionalOptions contains invalid characters. Only alphanumeric characters, hyphens, underscores, dots, and spaces are allowed.";
-        }
+        if (!string.IsNullOrEmpty(additionalOptions) && !IsValidAdditionalOptions(additionalOptions))
+            return "Error: additionalOptions contains invalid characters. Only alphanumeric characters, hyphens, underscores, dots, and spaces are allowed.";
 
         var args = new StringBuilder($"new {template}");
         if (!string.IsNullOrEmpty(name)) args.Append($" -n \"{name}\"");
