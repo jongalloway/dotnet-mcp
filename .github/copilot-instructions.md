@@ -34,6 +34,13 @@ The server uses a **hybrid architecture**:
 - Mark tool methods with `[McpServerTool]` and `[Description("...")]`
 - Mark parameters with `[Description("...")]`
 - Keep descriptions clear and concise
+- **Use `[McpMeta]` attributes** to provide additional metadata for AI assistants:
+  - **Category tags**: `[McpMeta("category", "template")]` - Groups related tools (template, project, package, solution, sdk, etc.)
+  - **Priority hints**: `[McpMeta("priority", 10.0)]` - Suggests relative importance (1.0-10.0 scale)
+  - **Boolean flags**: `[McpMeta("commonlyUsed", true)]` - Indicates frequently used tools
+  - **Capability markers**: `[McpMeta("isLongRunning", true)]` - Warns about long-running operations
+  - **Version requirements**: `[McpMeta("minimumSdkVersion", "6.0")]` - Documents SDK version dependencies
+  - **JSON values**: `[McpMeta("tags", JsonValue = """["a","b"]""")]` - Complex metadata as JSON
 
 ### Code Organization
 - Each tool method should handle a single .NET CLI command
