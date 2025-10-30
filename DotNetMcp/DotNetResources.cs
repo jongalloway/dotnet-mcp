@@ -42,11 +42,11 @@ public sealed class DotNetResources
         try
         {
             var result = await DotNetCommandExecutor.ExecuteCommandForResourceAsync("--list-sdks", _logger);
-            
+
             // Parse the SDK list output
             var sdks = new List<SdkInfo>();
             var lines = result.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            
+
             foreach (var line in lines)
             {
                 // Format: "9.0.100 [C:\Program Files\dotnet\sdk]"
@@ -93,11 +93,11 @@ public sealed class DotNetResources
         try
         {
             var result = await DotNetCommandExecutor.ExecuteCommandForResourceAsync("--list-runtimes", _logger);
-            
+
             // Parse the runtime list output
             var runtimes = new List<RuntimeInfo>();
             var lines = result.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            
+
             foreach (var line in lines)
             {
                 // Format: "Microsoft.NETCore.App 9.0.0 [C:\Program Files\dotnet\shared\Microsoft.NETCore.App]"
@@ -140,7 +140,7 @@ public sealed class DotNetResources
         try
         {
             var templates = await TemplateEngineHelper.GetTemplatesCachedInternalAsync(_logger);
-            
+
             var templateList = templates.Select(t => new
             {
                 name = t.Name,
