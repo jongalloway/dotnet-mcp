@@ -583,6 +583,13 @@ public sealed class DotNetCliTools
                 return "Error: format must be either 'pfx' or 'pem' (case-insensitive).";
         }
 
+        // Security Note: The password must be passed as a command-line argument to dotnet dev-certs,
+        // which is the standard .NET CLI behavior. While this stores the password temporarily in memory
+        // (CodeQL alert cs/cleartext-storage-of-sensitive-information), this is:
+        // 1. Required by the .NET CLI interface - there's no alternative secure input method
+        // 2. Mitigated by sanitizing the password from logs (passing logger: null below)
+        // 3. Not persisted to disk or stored long-term
+        // 4. Consistent with how developers manually use the dotnet dev-certs command
         var args = new StringBuilder("dev-certs https");
         args.Append($" --export-path \"{path}\"");
         
@@ -592,7 +599,15 @@ public sealed class DotNetCliTools
         if (!string.IsNullOrEmpty(password))
             args.Append($" --password \"{password}\"");
 
-        return await ExecuteDotNetCommand(args.ToString());
+        // Log a sanitized version for debugging (with password masked)
+        if (!string.IsNullOrEmpty(password))
+        {
+            var sanitizedCommand = args.ToString().Replace($"--password \"{password}\"", "--password \"***\"");
+            _logger.LogDebug("Executing: dotnet {Arguments}", sanitizedCommand);
+        }
+
+        // Pass logger: null to prevent DotNetCommandExecutor from logging the actual password
+        return await DotNetCommandExecutor.ExecuteCommandAsync(args.ToString(), logger: null);
     }
 
     private async Task<string> ExecuteDotNetCommand(string arguments)
