@@ -447,6 +447,33 @@ dotnet test --logger "console;verbosity=detailed"
 
 *All packages updated to latest versions. Code formatted consistently across solution. Build succeeded with 0 warnings. All 156 tests passed.*
 
+### HTTPS Development Setup
+
+**User**: *"I'm getting HTTPS certificate errors when running my web app"*
+
+**AI**: *Let me check your HTTPS development certificate...*
+
+```bash
+# Check certificate status
+dotnet dev-certs https --check --trust
+```
+
+*Your certificate isn't trusted. Let me fix that...*
+
+```bash
+# Trust the certificate (may require elevation)
+dotnet dev-certs https --trust
+```
+
+*Certificate is now trusted. Try running your app again. If you're using Docker, you can export the certificate:*
+
+```bash
+# Export for Docker containers
+dotnet dev-certs https --export-path ./certs/aspnetapp.pfx --password "SecurePassword123!"
+```
+
+*Certificate exported to ./certs/aspnetapp.pfx. You can now mount it in your Docker container.*
+
 ## Available Tools
 
 The server provides comprehensive .NET development capabilities through MCP tools and resources:
@@ -505,6 +532,13 @@ Resources provide structured JSON data and are more efficient than tool calls fo
 ### Tools - Code Quality
 
 - **dotnet_format** - Format code according to .editorconfig and style rules
+
+### Tools - Security & Certificates
+
+- **dotnet_devcerts_https_trust** - Trust the HTTPS development certificate (may require elevation)
+- **dotnet_devcerts_https_check** - Check if HTTPS certificate exists and is trusted
+- **dotnet_devcerts_https_clean** - Remove all HTTPS development certificates
+- **dotnet_devcerts_https_export** - Export HTTPS certificate to a file (supports PFX and PEM formats)
 
 ### Tools - Utilities
 
