@@ -14,13 +14,13 @@ public static class FrameworkHelper
     {
         if (string.IsNullOrWhiteSpace(framework))
             return false;
-        
+
         // Check if it matches known patterns
         return framework.StartsWith("net", StringComparison.OrdinalIgnoreCase) ||
                framework.StartsWith("netcoreapp", StringComparison.OrdinalIgnoreCase) ||
                framework.StartsWith("netstandard", StringComparison.OrdinalIgnoreCase);
     }
-    
+
     /// <summary>
     /// Get a descriptive name for a framework version.
     /// </summary>
@@ -28,7 +28,7 @@ public static class FrameworkHelper
     {
         if (string.IsNullOrWhiteSpace(framework))
             return "Unknown";
-        
+
         return framework.ToLowerInvariant() switch
         {
             "net9.0" => ".NET 9.0",
@@ -59,7 +59,7 @@ public static class FrameworkHelper
             _ => framework
         };
     }
-    
+
     /// <summary>
     /// Check if a framework is a Long-Term Support (LTS) version.
     /// </summary>
@@ -67,7 +67,7 @@ public static class FrameworkHelper
     {
         if (string.IsNullOrWhiteSpace(framework))
             return false;
-        
+
         return framework.ToLowerInvariant() switch
         {
             "net8.0" => true,
@@ -77,7 +77,7 @@ public static class FrameworkHelper
             _ => false
         };
     }
-    
+
     /// <summary>
     /// Get the latest recommended framework version.
     /// </summary>
@@ -85,7 +85,7 @@ public static class FrameworkHelper
     {
         return DotNetSdkConstants.TargetFrameworks.Net90;
     }
-    
+
     /// <summary>
     /// Get the latest LTS framework version.
     /// </summary>
@@ -93,7 +93,7 @@ public static class FrameworkHelper
     {
         return DotNetSdkConstants.TargetFrameworks.Net80;
     }
-    
+
     /// <summary>
     /// Get all supported .NET (modern) framework versions.
     /// </summary>
@@ -108,7 +108,7 @@ public static class FrameworkHelper
             DotNetSdkConstants.TargetFrameworks.Net50
         };
     }
-    
+
     /// <summary>
     /// Get all supported .NET Core framework versions.
     /// </summary>
@@ -123,7 +123,7 @@ public static class FrameworkHelper
             DotNetSdkConstants.TargetFrameworks.NetCoreApp20
         };
     }
-    
+
     /// <summary>
     /// Get all supported .NET Standard versions.
     /// </summary>
@@ -142,7 +142,7 @@ public static class FrameworkHelper
             DotNetSdkConstants.TargetFrameworks.NetStandard10
         };
     }
-    
+
     /// <summary>
     /// Parse framework string to extract version number.
     /// </summary>
@@ -150,9 +150,9 @@ public static class FrameworkHelper
     {
         if (string.IsNullOrWhiteSpace(framework))
             return null;
-        
+
         var normalized = framework.ToLowerInvariant();
-        
+
         if (normalized.StartsWith("net"))
         {
             // Extract version part (e.g., "net8.0" -> "8.0")
@@ -161,10 +161,10 @@ public static class FrameworkHelper
                                        .Replace("standard", "");
             return versionPart;
         }
-        
+
         return null;
     }
-    
+
     /// <summary>
     /// Determine if a framework is .NET Framework (not .NET Core or modern .NET).
     /// </summary>
@@ -172,9 +172,9 @@ public static class FrameworkHelper
     {
         if (string.IsNullOrWhiteSpace(framework))
             return false;
-        
+
         var normalized = framework.ToLowerInvariant();
-        
+
         // .NET Framework uses "net" followed by version without decimal
         // e.g., net481, net48, net472, etc.
         return normalized.StartsWith("net") &&
@@ -182,7 +182,7 @@ public static class FrameworkHelper
                !normalized.StartsWith("netstandard") &&
                !normalized.Contains(".");
     }
-    
+
     /// <summary>
     /// Determine if a framework is .NET Core.
     /// </summary>
@@ -190,10 +190,10 @@ public static class FrameworkHelper
     {
         if (string.IsNullOrWhiteSpace(framework))
             return false;
-        
+
         return framework.StartsWith("netcoreapp", StringComparison.OrdinalIgnoreCase);
     }
-    
+
     /// <summary>
     /// Determine if a framework is modern .NET (5.0+).
     /// </summary>
@@ -201,16 +201,16 @@ public static class FrameworkHelper
     {
         if (string.IsNullOrWhiteSpace(framework))
             return false;
-        
+
         var normalized = framework.ToLowerInvariant();
-        
+
         return normalized.StartsWith("net") &&
                !normalized.StartsWith("netcoreapp") &&
                !normalized.StartsWith("netstandard") &&
                !normalized.StartsWith("netframework") &&
                normalized.Contains(".");
     }
-    
+
     /// <summary>
     /// Determine if a framework is .NET Standard.
     /// </summary>
@@ -218,7 +218,7 @@ public static class FrameworkHelper
     {
         if (string.IsNullOrWhiteSpace(framework))
             return false;
-        
+
         return framework.StartsWith("netstandard", StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -33,17 +33,20 @@ public sealed class DotNetResources
         Name = ".NET SDK Information",
         Title = "Information about installed .NET SDKs including versions and paths",
         MimeType = "application/json")]
+    [McpMeta("category", "sdk")]
+    [McpMeta("dataFormat", "json")]
+    [McpMeta("refreshable", true)]
     public async Task<string> GetSdkInfo()
     {
         _logger.LogDebug("Reading SDK information");
         try
         {
             var result = await DotNetCommandExecutor.ExecuteCommandForResourceAsync("--list-sdks", _logger);
-            
+
             // Parse the SDK list output
             var sdks = new List<SdkInfo>();
             var lines = result.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            
+
             foreach (var line in lines)
             {
                 // Format: "9.0.100 [C:\Program Files\dotnet\sdk]"
@@ -81,17 +84,20 @@ public sealed class DotNetResources
         Name = ".NET Runtime Information",
         Title = "Information about installed .NET runtimes including versions and types",
         MimeType = "application/json")]
+    [McpMeta("category", "runtime")]
+    [McpMeta("dataFormat", "json")]
+    [McpMeta("refreshable", true)]
     public async Task<string> GetRuntimeInfo()
     {
         _logger.LogDebug("Reading runtime information");
         try
         {
             var result = await DotNetCommandExecutor.ExecuteCommandForResourceAsync("--list-runtimes", _logger);
-            
+
             // Parse the runtime list output
             var runtimes = new List<RuntimeInfo>();
             var lines = result.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            
+
             foreach (var line in lines)
             {
                 // Format: "Microsoft.NETCore.App 9.0.0 [C:\Program Files\dotnet\shared\Microsoft.NETCore.App]"
@@ -124,13 +130,17 @@ public sealed class DotNetResources
         Name = "Template Catalog",
         Title = "Complete catalog of installed .NET templates with metadata",
         MimeType = "application/json")]
+    [McpMeta("category", "template")]
+    [McpMeta("dataFormat", "json")]
+    [McpMeta("cached", true)]
+    [McpMeta("usesTemplateEngine", true)]
     public async Task<string> GetTemplates()
     {
         _logger.LogDebug("Reading template catalog");
         try
         {
             var templates = await TemplateEngineHelper.GetTemplatesCachedInternalAsync(_logger);
-            
+
             var templateList = templates.Select(t => new
             {
                 name = t.Name,
@@ -162,6 +172,9 @@ public sealed class DotNetResources
         Name = "Framework Information",
         Title = "Information about supported .NET frameworks (TFMs) including LTS status",
         MimeType = "application/json")]
+    [McpMeta("category", "framework")]
+    [McpMeta("dataFormat", "json")]
+    [McpMeta("usesFrameworkHelper", true)]
     public Task<string> GetFrameworks()
     {
         _logger.LogDebug("Reading framework information");
