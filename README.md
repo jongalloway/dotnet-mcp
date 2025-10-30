@@ -535,10 +535,10 @@ Resources provide structured JSON data and are more efficient than tool calls fo
 
 ### Tools - Security & Certificates
 
-- **dotnet_devcerts_https_trust** - Trust the HTTPS development certificate (may require elevation)
-- **dotnet_devcerts_https_check** - Check if HTTPS certificate exists and is trusted
-- **dotnet_devcerts_https_clean** - Remove all HTTPS development certificates
-- **dotnet_devcerts_https_export** - Export HTTPS certificate to a file (supports PFX and PEM formats)
+- **dotnet_certificate_trust** - Trust the HTTPS development certificate (may require elevation)
+- **dotnet_certificate_check** - Check if HTTPS certificate exists and is trusted
+- **dotnet_certificate_clean** - Remove all HTTPS development certificates
+- **dotnet_certificate_export** - Export HTTPS certificate to a file (supports PFX and PEM formats)
 
 ### Tools - Utilities
 

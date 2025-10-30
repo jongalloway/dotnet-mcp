@@ -548,28 +548,28 @@ public sealed class DotNetCliTools
     [McpMeta("category", "security")]
     [McpMeta("priority", 7.0)]
     [McpMeta("requiresElevation", true)]
-    public async Task<string> DotnetDevCertsHttpsTrust()
+    public async Task<string> DotnetCertificateTrust()
         => await ExecuteDotNetCommand("dev-certs https --trust");
 
     [McpServerTool, Description("Check if the HTTPS development certificate exists and is trusted. Returns certificate status and validity information.")]
     [McpMeta("category", "security")]
     [McpMeta("priority", 7.0)]
-    public async Task<string> DotnetDevCertsHttpsCheck()
+    public async Task<string> DotnetCertificateCheck()
         => await ExecuteDotNetCommand("dev-certs https --check --trust");
 
     [McpServerTool, Description("Remove all HTTPS development certificates. Use this to clean up old or invalid certificates before creating new ones.")]
     [McpMeta("category", "security")]
     [McpMeta("priority", 6.0)]
-    public async Task<string> DotnetDevCertsHttpsClean()
+    public async Task<string> DotnetCertificateClean()
         => await ExecuteDotNetCommand("dev-certs https --clean");
 
     [McpServerTool, Description("Export the HTTPS development certificate to a file. Useful for Docker containers or sharing certificates across environments. Supports PFX and PEM formats with optional password protection.")]
     [McpMeta("category", "security")]
     [McpMeta("priority", 6.0)]
-    public async Task<string> DotnetDevCertsHttpsExport(
+    public async Task<string> DotnetCertificateExport(
         [Description("Path to export the certificate file")] string path,
         [Description("Certificate password for protection (optional, but recommended for PFX format)")] string? password = null,
-        [Description("Export format: Pfx or Pem (default: Pfx)")] string? format = null)
+        [Description("Export format: Pfx or Pem (defaults to Pfx if not specified)")] string? format = null)
     {
         if (string.IsNullOrWhiteSpace(path))
             return "Error: path parameter is required.";
