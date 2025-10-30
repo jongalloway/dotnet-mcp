@@ -544,6 +544,56 @@ public sealed class DotNetCliTools
         return await ExecuteDotNetCommand(args);
     }
 
+    [McpServerTool, Description("Trust the HTTPS development certificate. Installs the certificate to the trusted root store. May require elevation on Windows/macOS. Essential for local ASP.NET Core HTTPS development.")]
+    [McpMeta("category", "security")]
+    [McpMeta("priority", 7.0)]
+    [McpMeta("requiresElevation", true)]
+    public async Task<string> DotnetDevCertsHttpsTrust()
+        => await ExecuteDotNetCommand("dev-certs https --trust");
+
+    [McpServerTool, Description("Check if the HTTPS development certificate exists and is trusted. Returns certificate status and validity information.")]
+    [McpMeta("category", "security")]
+    [McpMeta("priority", 7.0)]
+    public async Task<string> DotnetDevCertsHttpsCheck()
+        => await ExecuteDotNetCommand("dev-certs https --check --trust");
+
+    [McpServerTool, Description("Remove all HTTPS development certificates. Use this to clean up old or invalid certificates before creating new ones.")]
+    [McpMeta("category", "security")]
+    [McpMeta("priority", 6.0)]
+    public async Task<string> DotnetDevCertsHttpsClean()
+        => await ExecuteDotNetCommand("dev-certs https --clean");
+
+    [McpServerTool, Description("Export the HTTPS development certificate to a file. Useful for Docker containers or sharing certificates across environments. Supports PFX and PEM formats with optional password protection.")]
+    [McpMeta("category", "security")]
+    [McpMeta("priority", 6.0)]
+    public async Task<string> DotnetDevCertsHttpsExport(
+        [Description("Path to export the certificate file")] string path,
+        [Description("Certificate password for protection (optional, but recommended for PFX format)")] string? password = null,
+        [Description("Export format: Pfx or Pem (default: Pfx)")] string? format = null)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return "Error: path parameter is required.";
+
+        // Validate format if provided
+        if (!string.IsNullOrEmpty(format))
+        {
+            var normalizedFormat = format.ToLowerInvariant();
+            if (normalizedFormat != "pfx" && normalizedFormat != "pem")
+                return "Error: format must be either 'Pfx' or 'Pem'.";
+        }
+
+        var args = new StringBuilder("dev-certs https");
+        args.Append($" --export-path \"{path}\"");
+        
+        if (!string.IsNullOrEmpty(format))
+            args.Append($" --format {format}");
+        
+        if (!string.IsNullOrEmpty(password))
+            args.Append($" --password \"{password}\"");
+
+        return await ExecuteDotNetCommand(args.ToString());
+    }
+
     private async Task<string> ExecuteDotNetCommand(string arguments)
         => await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger);
 

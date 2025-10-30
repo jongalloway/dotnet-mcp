@@ -141,4 +141,110 @@ public class DotNetCliToolsTests
 
         result.Should().NotBeNull();
     }
+
+    [Fact]
+    public async Task DotnetDevCertsHttpsTrust_ExecutesCommand()
+    {
+        // Validates that the trust command can be executed
+        var result = await _tools.DotnetDevCertsHttpsTrust();
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetDevCertsHttpsCheck_ExecutesCommand()
+    {
+        // Validates that the check command can be executed
+        var result = await _tools.DotnetDevCertsHttpsCheck();
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetDevCertsHttpsClean_ExecutesCommand()
+    {
+        // Validates that the clean command can be executed
+        var result = await _tools.DotnetDevCertsHttpsClean();
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetDevCertsHttpsExport_WithPathOnly_ExecutesCommand()
+    {
+        // Validates that the export command with just a path works
+        var result = await _tools.DotnetDevCertsHttpsExport(
+            path: "/tmp/cert.pfx");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetDevCertsHttpsExport_WithPathAndPassword_ExecutesCommand()
+    {
+        // Validates that the export command with path and password works
+        var result = await _tools.DotnetDevCertsHttpsExport(
+            path: "/tmp/cert.pfx",
+            password: "testPassword123");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetDevCertsHttpsExport_WithPfxFormat_ExecutesCommand()
+    {
+        // Validates that the export command with PFX format works
+        var result = await _tools.DotnetDevCertsHttpsExport(
+            path: "/tmp/cert.pfx",
+            format: "Pfx",
+            password: "testPassword123");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetDevCertsHttpsExport_WithPemFormat_ExecutesCommand()
+    {
+        // Validates that the export command with PEM format works
+        var result = await _tools.DotnetDevCertsHttpsExport(
+            path: "/tmp/cert.pem",
+            format: "Pem");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetDevCertsHttpsExport_WithInvalidFormat_ReturnsError()
+    {
+        // Validates that invalid format returns error
+        var result = await _tools.DotnetDevCertsHttpsExport(
+            path: "/tmp/cert.pfx",
+            format: "invalid");
+
+        result.Should().Contain("Error");
+        result.Should().Contain("format must be either 'Pfx' or 'Pem'");
+    }
+
+    [Fact]
+    public async Task DotnetDevCertsHttpsExport_WithEmptyPath_ReturnsError()
+    {
+        // Validates that empty path returns error
+        var result = await _tools.DotnetDevCertsHttpsExport(
+            path: "");
+
+        result.Should().Contain("Error");
+        result.Should().Contain("path parameter is required");
+    }
+
+    [Fact]
+    public async Task DotnetDevCertsHttpsExport_WithAllParameters_ExecutesCommand()
+    {
+        // Validates that all parameters work together
+        var result = await _tools.DotnetDevCertsHttpsExport(
+            path: "/tmp/cert.pfx",
+            password: "strongPassword123!",
+            format: "Pfx");
+
+        result.Should().NotBeNull();
+    }
 }
