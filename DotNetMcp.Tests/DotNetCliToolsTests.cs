@@ -222,7 +222,7 @@ public class DotNetCliToolsTests
             format: "invalid");
 
         result.Should().Contain("Error");
-        result.Should().Contain("format must be either 'Pfx' or 'Pem'");
+        result.Should().Contain("format must be either 'pfx' or 'pem'");
     }
 
     [Fact]

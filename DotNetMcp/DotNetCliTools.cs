@@ -574,19 +574,20 @@ public sealed class DotNetCliTools
         if (string.IsNullOrWhiteSpace(path))
             return "Error: path parameter is required.";
 
-        // Validate format if provided
+        // Validate and normalize format if provided
+        string? normalizedFormat = null;
         if (!string.IsNullOrEmpty(format))
         {
-            var normalizedFormat = format.ToLowerInvariant();
+            normalizedFormat = format.ToLowerInvariant();
             if (normalizedFormat != "pfx" && normalizedFormat != "pem")
-                return "Error: format must be either 'Pfx' or 'Pem'.";
+                return "Error: format must be either 'pfx' or 'pem' (case-insensitive).";
         }
 
         var args = new StringBuilder("dev-certs https");
         args.Append($" --export-path \"{path}\"");
         
-        if (!string.IsNullOrEmpty(format))
-            args.Append($" --format {format}");
+        if (!string.IsNullOrEmpty(normalizedFormat))
+            args.Append($" --format {normalizedFormat}");
         
         if (!string.IsNullOrEmpty(password))
             args.Append($" --password \"{password}\"");
