@@ -221,7 +221,8 @@ Program.cs(15,10): error CS1001: Identifier expected";
         // Assert
         result.Should().BeOfType<ErrorResponse>();
         var errorResponse = (ErrorResponse)result;
-        var genericError = errorResponse.Errors.Should().ContainSingle().Subject;
+        errorResponse.Errors.Should().HaveCount(1);
+        var genericError = errorResponse.Errors[0];
         genericError.RawOutput.Should().NotContain("ghp_abc123def456");
         genericError.RawOutput.Should().Contain("***REDACTED***");
     }

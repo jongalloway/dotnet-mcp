@@ -27,8 +27,8 @@ public static partial class ErrorResultFactory
     };
 
     // Regex for masking sensitive values - compiled once and reused
-    // Captures: (1) keyword, (2) separator (= or :), (3) optional whitespace, (4) value
-    [GeneratedRegex(@"(password|secret|token|apikey|api-key|api_key|connectionstring|connection-string|connection_string|credentials|authorization|bearer)([\s]*[=:]\s*)[""']?([^\s""']+)[""']?", RegexOptions.IgnoreCase)]
+    // Captures: (1) keyword, (2) separator (= or :), (3) value (stops at whitespace, semicolon, or quotes)
+    [GeneratedRegex(@"(password|secret|token|apikey|api-key|api_key|connectionstring|connection-string|connection_string|credentials|authorization|bearer)([\s]*[=:]\s*)[""']?([^\s;""']+)[""']?", RegexOptions.IgnoreCase)]
     private static partial Regex SensitiveValueRegex();
 
     /// <summary>
@@ -64,10 +64,15 @@ public static partial class ErrorResultFactory
         // If no specific errors were parsed, create a generic error
         if (errors.Count == 0)
         {
+            // Truncate long error messages to avoid verbose fallback errors
+            var errorMessage = string.IsNullOrWhiteSpace(error) 
+                ? "Command failed with no error output" 
+                : error.Length > 500 ? error.Substring(0, 500) + "..." : error.Trim();
+            
             errors.Add(new ErrorResult
             {
                 Code = $"EXIT_{exitCode}",
-                Message = string.IsNullOrWhiteSpace(error) ? "Command failed with no error output" : error.Trim(),
+                Message = errorMessage,
                 Category = "Unknown",
                 Hint = "Check the command syntax and arguments",
                 RawOutput = SanitizeOutput(combinedOutput)

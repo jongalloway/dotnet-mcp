@@ -101,6 +101,7 @@ public static class DotNetCommandExecutor
         }
 
         // Otherwise, return plain text format (backwards compatible)
+        // TrimEnd() is used to remove trailing newlines from StringBuilder content for consistent formatting
         var textResult = new StringBuilder();
         if (output.Length > 0) textResult.AppendLine(output.ToString().TrimEnd());
         if (error.Length > 0)
