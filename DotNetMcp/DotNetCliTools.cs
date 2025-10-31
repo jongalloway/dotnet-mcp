@@ -569,44 +569,37 @@ public sealed class DotNetCliTools
     public async Task<string> DotnetCertificateExport(
         [Description("Path to export the certificate file")] string path,
         [Description("Certificate password for protection (optional, but recommended for PFX format)")] string? password = null,
-        [Description("Export format: Pfx or Pem (defaults to Pfx if not specified)")] string? format = null)
+     [Description("Export format: Pfx or Pem (defaults to Pfx if not specified)")] string? format = null)
     {
         if (string.IsNullOrWhiteSpace(path))
-            return "Error: path parameter is required.";
+        return "Error: path parameter is required.";
 
         // Validate and normalize format if provided
         string? normalizedFormat = null;
-        if (!string.IsNullOrEmpty(format))
+  if (!string.IsNullOrEmpty(format))
         {
-            normalizedFormat = format.ToLowerInvariant();
-            if (normalizedFormat != "pfx" && normalizedFormat != "pem")
-                return "Error: format must be either 'pfx' or 'pem' (case-insensitive).";
-        }
+       normalizedFormat = format.ToLowerInvariant();
+        if (normalizedFormat != "pfx" && normalizedFormat != "pem")
+           return "Error: format must be either 'pfx' or 'pem' (case-insensitive).";
+    }
 
-        // Security Note: The password must be passed as a command-line argument to dotnet dev-certs,
+      // Security Note: The password must be passed as a command-line argument to dotnet dev-certs,
         // which is the standard .NET CLI behavior. While this stores the password temporarily in memory
         // (CodeQL alert cs/cleartext-storage-of-sensitive-information), this is:
         // 1. Required by the .NET CLI interface - there's no alternative secure input method
-        // 2. Mitigated by sanitizing the password from logs (passing logger: null below)
-        // 3. Not persisted to disk or stored long-term
+        // 2. Mitigated by passing logger: null below, which prevents logging of the password
+      // 3. Not persisted to disk or stored long-term
         // 4. Consistent with how developers manually use the dotnet dev-certs command
-        var args = new StringBuilder("dev-certs https");
+   var args = new StringBuilder("dev-certs https");
         args.Append($" --export-path \"{path}\"");
         
         if (!string.IsNullOrEmpty(normalizedFormat))
-            args.Append($" --format {normalizedFormat}");
-        
-        if (!string.IsNullOrEmpty(password))
+     args.Append($" --format {normalizedFormat}");
+    
+     if (!string.IsNullOrEmpty(password))
             args.Append($" --password \"{password}\"");
 
-        // Log a sanitized version for debugging (with password masked)
-        if (!string.IsNullOrEmpty(password))
-        {
-            var sanitizedCommand = args.ToString().Replace($"--password \"{password}\"", "--password \"***\"");
-            _logger.LogDebug("Executing: dotnet {Arguments}", sanitizedCommand);
-        }
-
-        // Pass logger: null to prevent DotNetCommandExecutor from logging the actual password
+  // Pass logger: null to prevent DotNetCommandExecutor from logging the password
         return await DotNetCommandExecutor.ExecuteCommandAsync(args.ToString(), logger: null);
     }
 
