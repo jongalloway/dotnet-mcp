@@ -9,13 +9,13 @@ namespace DotNetMcp;
 public static partial class ErrorResultFactory
 {
     // Regular expressions for parsing common error patterns
-    [GeneratedRegex(@"(?<file>[^(]+)\((?<line>\d+),(?<col>\d+)\):\s+(?<severity>error|warning)\s+(?<code>[A-Z]+\d+):\s+(?<message>.+)", RegexOptions.Compiled)]
+    [GeneratedRegex(@"(?<file>[^(]+)\((?<line>\d+),(?<col>\d+)\):\s+(?<severity>error|warning)\s+(?<code>[A-Z]+\d+):\s+(?<message>.+)")]
     private static partial Regex CompilerErrorRegex();
 
-    [GeneratedRegex(@"(?<severity>error|warning)\s+(?<code>[A-Z]+\d+):\s+(?<message>.+)", RegexOptions.Compiled)]
+    [GeneratedRegex(@"(?<severity>error|warning)\s+(?<code>[A-Z]+\d+):\s+(?<message>.+)")]
     private static partial Regex GenericErrorRegex();
 
-    [GeneratedRegex(@"(?<code>NU\d+):\s+(?<message>.+)", RegexOptions.Compiled)]
+    [GeneratedRegex(@"(?<code>NU\d+):\s+(?<message>.+)")]
     private static partial Regex NuGetErrorRegex();
 
     // Patterns to detect and filter sensitive data
@@ -27,7 +27,8 @@ public static partial class ErrorResultFactory
     };
 
     // Regex for masking sensitive values - compiled once and reused
-    [GeneratedRegex(@"(password|secret|token|apikey|api-key|api_key|connectionstring|connection-string|connection_string|credentials|authorization|bearer)[\s]*[=:]\s*[""']?([^\s""']+)[""']?", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    // Captures: (1) keyword, (2) separator (= or :), (3) optional whitespace, (4) value
+    [GeneratedRegex(@"(password|secret|token|apikey|api-key|api_key|connectionstring|connection-string|connection_string|credentials|authorization|bearer)([\s]*[=:]\s*)[""']?([^\s""']+)[""']?", RegexOptions.IgnoreCase)]
     private static partial Regex SensitiveValueRegex();
 
     /// <summary>
@@ -55,14 +56,10 @@ public static partial class ErrorResultFactory
         var combinedOutput = $"{output}\n{error}";
         var lines = combinedOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries);
 
-        foreach (var line in lines)
-        {
-            var errorResult = ParseErrorLine(line);
-            if (errorResult != null)
-            {
-                errors.Add(errorResult);
-            }
-        }
+        // Parse errors from each line using LINQ
+        errors.AddRange(lines
+            .Select(ParseErrorLine)
+            .Where(errorResult => errorResult != null)!);
 
         // If no specific errors were parsed, create a generic error
         if (errors.Count == 0)
@@ -201,16 +198,9 @@ public static partial class ErrorResultFactory
 
         var sanitized = output;
 
-        // Check if output contains any sensitive patterns
-        var containsSensitiveData = false;
-        foreach (var pattern in SensitivePatterns)
-        {
-            if (sanitized.Contains(pattern, StringComparison.OrdinalIgnoreCase))
-            {
-                containsSensitiveData = true;
-                break;
-            }
-        }
+        // Check if output contains any sensitive patterns using LINQ
+        var containsSensitiveData = SensitivePatterns
+            .Any(pattern => sanitized.Contains(pattern, StringComparison.OrdinalIgnoreCase));
 
         if (!containsSensitiveData)
             return sanitized;
@@ -218,9 +208,10 @@ public static partial class ErrorResultFactory
         // Use pre-compiled regex to mask values after sensitive keywords
         sanitized = SensitiveValueRegex().Replace(sanitized, m =>
         {
-            // Replace the captured value with redacted text
+            // Replace the captured value with redacted text, preserving the original separator
             var keyword = m.Groups[1].Value;
-            return $"{keyword}=***REDACTED***";
+            var separator = m.Groups[2].Value;
+            return $"{keyword}{separator}***REDACTED***";
         });
 
         return sanitized;
