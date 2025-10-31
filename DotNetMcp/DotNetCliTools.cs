@@ -11,7 +11,6 @@ namespace DotNetMcp;
 public sealed class DotNetCliTools
 {
     private readonly ILogger<DotNetCliTools> _logger;
-    private static readonly HashSet<char> AllowedSpecialChars = new(new[] { '-', '_', '.', ' ', '=' });
 
     public DotNetCliTools(ILogger<DotNetCliTools> logger)
     {
@@ -609,9 +608,21 @@ public sealed class DotNetCliTools
 
     private static bool IsValidAdditionalOptions(string options)
     {
-        // Allow alphanumeric characters, hyphens, underscores, dots, spaces, and equals signs
-        // This covers standard CLI option patterns like: --option-name value --flag --key=value
-        // Reject shell metacharacters that could be used for injection: &, |, ;, <, >, `, $, (, ), {, }, [, ], \, ", '
-        return options.All(c => char.IsLetterOrDigit(c) || AllowedSpecialChars.Contains(c));
+        // Validation rationale (see PR #42 and follow-up refinement in PR #60):
+        // We intentionally use a simple foreach + pattern match instead of LINQ (All) or a HashSet/FrozenSet.
+        // Reasons:
+        //1. Readability: The allowlist is tiny (5 chars); the loop is explicit and easy to audit for security.
+        //2. Performance: Differences among foreach, LINQ, HashSet, or FrozenSet for short CLI option strings are negligible.
+        // Avoiding LINQ prevents enumerator/delegate allocations; HashSet/FrozenSet adds unnecessary static initialization.
+        //3. Security clarity: A positive allowlist (alphanumeric + specific safe punctuation) makes the policy obvious.
+        //4. Modern C# pattern matching (c is '-' or '_' ...) is concise and self-documenting.
+        // If additional safe characters are ever required, extend the pattern below and update the comment.
+        // Rejected shell/metacharacters: &, |, ;, <, >, `, $, (, ), {, }, [, ], \, ", '
+        foreach (var c in options)
+        {
+            if (!(char.IsLetterOrDigit(c) || c is '-' or '_' or '.' or ' ' or '='))
+                return false;
+        }
+        return true;
     }
 }
