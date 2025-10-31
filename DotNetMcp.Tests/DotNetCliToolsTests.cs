@@ -248,6 +248,109 @@ public class DotNetCliToolsTests
         result.Should().NotBeNull();
     }
 
+    // Security validation tests for IsValidAdditionalOptions (tested via DotnetProjectNew)
+    
+    [Fact]
+    public async Task DotnetProjectNew_WithValidAdditionalOptions_AcceptsCommand()
+    {
+        // Valid options with allowed characters: alphanumeric, hyphens, underscores, dots, spaces, equals
+        var result = await _tools.DotnetProjectNew(
+            template: "console",
+            additionalOptions: "--use-program-main --framework net8.0");
+
+        result.Should().NotBeNull();
+        result.Should().NotContain("Error: additionalOptions contains invalid characters");
+    }
+
+    [Fact]
+    public async Task DotnetProjectNew_WithValidAdditionalOptionsWithEquals_AcceptsCommand()
+    {
+        // Valid options with equals sign (key=value format)
+        var result = await _tools.DotnetProjectNew(
+            template: "console",
+            additionalOptions: "--langVersion=latest --nullable=enable");
+
+        result.Should().NotBeNull();
+        result.Should().NotContain("Error: additionalOptions contains invalid characters");
+    }
+
+    [Fact]
+    public async Task DotnetProjectNew_WithInvalidAdditionalOptions_Semicolon_RejectsCommand()
+    {
+        // Semicolon is a shell metacharacter and should be rejected
+        var result = await _tools.DotnetProjectNew(
+            template: "console",
+            additionalOptions: "--option; malicious-command");
+
+        result.Should().Contain("Error: additionalOptions contains invalid characters");
+    }
+
+    [Fact]
+    public async Task DotnetProjectNew_WithInvalidAdditionalOptions_Pipe_RejectsCommand()
+    {
+        // Pipe is a shell metacharacter and should be rejected
+        var result = await _tools.DotnetProjectNew(
+            template: "console",
+            additionalOptions: "--option | malicious-command");
+
+        result.Should().Contain("Error: additionalOptions contains invalid characters");
+    }
+
+    [Fact]
+    public async Task DotnetProjectNew_WithInvalidAdditionalOptions_Ampersand_RejectsCommand()
+    {
+        // Ampersand is a shell metacharacter and should be rejected
+        var result = await _tools.DotnetProjectNew(
+            template: "console",
+            additionalOptions: "--option && malicious-command");
+
+        result.Should().Contain("Error: additionalOptions contains invalid characters");
+    }
+
+    [Fact]
+    public async Task DotnetProjectNew_WithInvalidAdditionalOptions_Backtick_RejectsCommand()
+    {
+        // Backtick is a shell metacharacter and should be rejected
+        var result = await _tools.DotnetProjectNew(
+            template: "console",
+            additionalOptions: "--option `malicious-command`");
+
+        result.Should().Contain("Error: additionalOptions contains invalid characters");
+    }
+
+    [Fact]
+    public async Task DotnetProjectNew_WithInvalidAdditionalOptions_DollarSign_RejectsCommand()
+    {
+        // Dollar sign is used for variable expansion and should be rejected
+        var result = await _tools.DotnetProjectNew(
+            template: "console",
+            additionalOptions: "--option $MALICIOUS_VAR");
+
+        result.Should().Contain("Error: additionalOptions contains invalid characters");
+    }
+
+    [Fact]
+    public async Task DotnetProjectNew_WithInvalidAdditionalOptions_Parentheses_RejectsCommand()
+    {
+        // Parentheses are shell metacharacters and should be rejected
+        var result = await _tools.DotnetProjectNew(
+            template: "console",
+            additionalOptions: "--option (malicious)");
+
+        result.Should().Contain("Error: additionalOptions contains invalid characters");
+    }
+
+    [Fact]
+    public async Task DotnetProjectNew_WithInvalidAdditionalOptions_AngleBrackets_RejectsCommand()
+    {
+        // Angle brackets are used for redirection and should be rejected
+        var result = await _tools.DotnetProjectNew(
+            template: "console",
+            additionalOptions: "--option < input.txt");
+
+        result.Should().Contain("Error: additionalOptions contains invalid characters");
+    }
+
     // Tool Management Tests
 
     [Fact]
