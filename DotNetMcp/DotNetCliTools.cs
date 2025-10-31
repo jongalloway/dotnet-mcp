@@ -596,7 +596,8 @@ public sealed class DotNetCliTools
     public async Task<string> DotnetCertificateExport(
         [Description("Path to export the certificate file")] string path,
         [Description("Certificate password for protection (optional, but recommended for PFX format)")] string? password = null,
-     [Description("Export format: Pfx or Pem (defaults to Pfx if not specified)")] string? format = null)
+     [Description("Export format: Pfx or Pem (defaults to Pfx if not specified)")] string? format = null,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
     {
         if (string.IsNullOrWhiteSpace(path))
         return "Error: path parameter is required.";
@@ -627,7 +628,7 @@ public sealed class DotNetCliTools
             args.Append($" --password \"{password}\"");
 
   // Pass logger: null to prevent DotNetCommandExecutor from logging the password
-        return await DotNetCommandExecutor.ExecuteCommandAsync(args.ToString(), logger: null);
+        return await DotNetCommandExecutor.ExecuteCommandAsync(args.ToString(), logger: null, machineReadable);
     }
 
     [McpServerTool, Description("Install a .NET tool globally or locally to a tool manifest. Global tools are available system-wide, local tools are project-specific and tracked in .config/dotnet-tools.json.")]

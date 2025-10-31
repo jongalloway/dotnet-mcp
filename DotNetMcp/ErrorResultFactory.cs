@@ -26,6 +26,10 @@ public static partial class ErrorResultFactory
         "credentials", "authorization", "bearer"
     };
 
+    // Regex for masking sensitive values - compiled once and reused
+    [GeneratedRegex(@"(password|secret|token|apikey|api-key|api_key|connectionstring|connection-string|connection_string|credentials|authorization|bearer)[\s]*[=:]\s*[""']?([^\s""']+)[""']?", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    private static partial Regex SensitiveValueRegex();
+
     /// <summary>
     /// Parse CLI output and create structured error response.
     /// </summary>
@@ -197,24 +201,27 @@ public static partial class ErrorResultFactory
 
         var sanitized = output;
 
-        // Check if output contains sensitive patterns
+        // Check if output contains any sensitive patterns
+        var containsSensitiveData = false;
         foreach (var pattern in SensitivePatterns)
         {
             if (sanitized.Contains(pattern, StringComparison.OrdinalIgnoreCase))
             {
-                // Use regex to mask values after sensitive keywords
-                // Pattern: keyword=value or keyword="value" or keyword 'value'
-                var maskRegex = new Regex(
-                    $@"{pattern}[\s]*[=:]\s*[""']?([^\s""']+)[""']?",
-                    RegexOptions.IgnoreCase | RegexOptions.Compiled
-                );
-
-                sanitized = maskRegex.Replace(sanitized, m =>
-                {
-                    return $"{m.Groups[0].Value.Substring(0, m.Groups[0].Length - m.Groups[1].Length)}***REDACTED***";
-                });
+                containsSensitiveData = true;
+                break;
             }
         }
+
+        if (!containsSensitiveData)
+            return sanitized;
+
+        // Use pre-compiled regex to mask values after sensitive keywords
+        sanitized = SensitiveValueRegex().Replace(sanitized, m =>
+        {
+            // Replace the captured value with redacted text
+            var keyword = m.Groups[1].Value;
+            return $"{keyword}=***REDACTED***";
+        });
 
         return sanitized;
     }
