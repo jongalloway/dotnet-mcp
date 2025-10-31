@@ -159,11 +159,33 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
         return JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true });
     }
 
+    private bool _disposed = false;
+
     /// <summary>
-    /// Disposes the SemaphoreSlim resource.
+    /// Disposes the resources used by the cache manager.
     /// </summary>
     public void Dispose()
     {
-        _cacheLock.Dispose();
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Protected implementation of Dispose pattern.
+    /// </summary>
+    /// <param name="disposing">True if called from Dispose; false if called from finalizer.</param>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+            return;
+
+        if (disposing)
+        {
+            // Dispose managed resources
+            _cacheLock.Dispose();
+        }
+
+        // No unmanaged resources to release
+        _disposed = true;
     }
 }

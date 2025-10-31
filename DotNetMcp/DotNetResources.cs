@@ -141,7 +141,7 @@ public sealed class DotNetResources
                             var name = nameAndVersion[0];
                             var version = nameAndVersion[1];
                             var path = parts[1].TrimEnd(']').Trim();
-                            return (RuntimeInfo?)new RuntimeInfo(name, version, path);
+                            return new RuntimeInfo(name, version, Path.Combine(path, version));
                         }
                         return null;
                     })
