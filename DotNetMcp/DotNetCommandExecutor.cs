@@ -18,8 +18,9 @@ public static class DotNetCommandExecutor
     /// </summary>
     /// <param name="arguments">The command-line arguments to pass to dotnet.exe</param>
     /// <param name="logger">Optional logger for debug/warning messages</param>
-    /// <returns>Combined output, error, and exit code information</returns>
-    public static async Task<string> ExecuteCommandAsync(string arguments, ILogger? logger = null)
+    /// <param name="machineReadable">When true, returns JSON format with structured errors; when false, returns plain text</param>
+    /// <returns>Combined output, error, and exit code information (plain text or JSON based on machineReadable)</returns>
+    public static async Task<string> ExecuteCommandAsync(string arguments, ILogger? logger = null, bool machineReadable = false)
     {
         logger?.LogDebug("Executing: dotnet {Arguments}", arguments);
 
@@ -90,15 +91,25 @@ public static class DotNetCommandExecutor
             logger?.LogWarning("Error output was truncated due to size limit");
         }
 
-        var result = new StringBuilder();
-        if (output.Length > 0) result.AppendLine(output.ToString());
+        // If machine-readable format is requested, return structured JSON
+        if (machineReadable)
+        {
+            var outputStr = output.ToString().TrimEnd();
+            var errorStr = error.ToString().TrimEnd();
+            var result = ErrorResultFactory.CreateResult(outputStr, errorStr, process.ExitCode);
+            return ErrorResultFactory.ToJson(result);
+        }
+
+        // Otherwise, return plain text format (backwards compatible)
+        var textResult = new StringBuilder();
+        if (output.Length > 0) textResult.AppendLine(output.ToString());
         if (error.Length > 0)
         {
-            result.AppendLine("Errors:");
-            result.AppendLine(error.ToString());
+            textResult.AppendLine("Errors:");
+            textResult.AppendLine(error.ToString());
         }
-        result.AppendLine($"Exit Code: {process.ExitCode}");
-        return result.ToString();
+        textResult.AppendLine($"Exit Code: {process.ExitCode}");
+        return textResult.ToString();
     }
 
     /// <summary>

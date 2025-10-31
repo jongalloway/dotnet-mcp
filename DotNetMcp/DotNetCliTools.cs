@@ -99,7 +99,8 @@ public sealed class DotNetCliTools
         [Description("The name for the project")] string? name = null,
         [Description("The output directory")] string? output = null,
         [Description("The target framework (e.g., 'net9.0', 'net8.0')")] string? framework = null,
-        [Description("Additional template-specific options (e.g., '--format slnx', '--use-program-main', '--aot')")] string? additionalOptions = null)
+        [Description("Additional template-specific options (e.g., '--format slnx', '--use-program-main', '--aot')")] string? additionalOptions = null,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
     {
         if (string.IsNullOrWhiteSpace(template))
             return "Error: template parameter is required.";
@@ -113,18 +114,19 @@ public sealed class DotNetCliTools
         if (!string.IsNullOrEmpty(output)) args.Append($" -o \"{output}\"");
         if (!string.IsNullOrEmpty(framework)) args.Append($" -f {framework}");
         if (!string.IsNullOrEmpty(additionalOptions)) args.Append($" {additionalOptions}");
-        return await ExecuteDotNetCommand(args.ToString());
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("Restore the dependencies and tools of a .NET project")]
     [McpMeta("category", "project")]
     [McpMeta("priority", 8.0)]
     public async Task<string> DotnetProjectRestore(
-        [Description("The project file or solution file to restore")] string? project = null)
+        [Description("The project file or solution file to restore")] string? project = null,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
     {
         var args = "restore";
         if (!string.IsNullOrEmpty(project)) args += $" \"{project}\"";
-        return await ExecuteDotNetCommand(args);
+        return await ExecuteDotNetCommand(args, machineReadable);
     }
 
     [McpServerTool, Description("Build a .NET project and its dependencies")]
@@ -134,13 +136,14 @@ public sealed class DotNetCliTools
     public async Task<string> DotnetProjectBuild(
         [Description("The project file or solution file to build")] string? project = null,
         [Description("The configuration to build (Debug or Release)")] string? configuration = null,
-        [Description("Build for a specific framework")] string? framework = null)
+        [Description("Build for a specific framework")] string? framework = null,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
     {
         var args = new StringBuilder("build");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
         if (!string.IsNullOrEmpty(framework)) args.Append($" -f {framework}");
-        return await ExecuteDotNetCommand(args.ToString());
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("Build and run a .NET project")]
@@ -150,13 +153,14 @@ public sealed class DotNetCliTools
     public async Task<string> DotnetProjectRun(
       [Description("The project file to run")] string? project = null,
            [Description("The configuration to use (Debug or Release)")] string? configuration = null,
-           [Description("Arguments to pass to the application")] string? appArgs = null)
+           [Description("Arguments to pass to the application")] string? appArgs = null,
+           [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
     {
         var args = new StringBuilder("run");
         if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
         if (!string.IsNullOrEmpty(appArgs)) args.Append($" -- {appArgs}");
-        return await ExecuteDotNetCommand(args.ToString());
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("Run unit tests in a .NET project")]
@@ -175,7 +179,8 @@ public sealed class DotNetCliTools
         [Description("Set the MSBuild verbosity level (quiet, minimal, normal, detailed, diagnostic)")] string? verbosity = null,
    [Description("The target framework to test for")] string? framework = null,
         [Description("Run tests in blame mode to isolate problematic tests")] bool blame = false,
-        [Description("List discovered tests without running them")] bool listTests = false)
+        [Description("List discovered tests without running them")] bool listTests = false,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
     {
         var args = new StringBuilder("test");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
@@ -190,7 +195,7 @@ public sealed class DotNetCliTools
         if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
         if (blame) args.Append(" --blame");
         if (listTests) args.Append(" --list-tests");
-        return await ExecuteDotNetCommand(args.ToString());
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("Publish a .NET project for deployment")]
@@ -200,14 +205,15 @@ public sealed class DotNetCliTools
      [Description("The project file to publish")] string? project = null,
         [Description("The configuration to publish (Debug or Release)")] string? configuration = null,
       [Description("The output directory for published files")] string? output = null,
-        [Description("The target runtime identifier (e.g., 'linux-x64', 'win-x64')")] string? runtime = null)
+        [Description("The target runtime identifier (e.g., 'linux-x64', 'win-x64')")] string? runtime = null,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
     {
         var args = new StringBuilder("publish");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
         if (!string.IsNullOrEmpty(output)) args.Append($" -o \"{output}\"");
         if (!string.IsNullOrEmpty(runtime)) args.Append($" -r {runtime}");
-        return await ExecuteDotNetCommand(args.ToString());
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("Create a NuGet package from a .NET project. Use this to pack projects for distribution on NuGet.org or private feeds.")]
@@ -218,7 +224,8 @@ public sealed class DotNetCliTools
       [Description("The configuration to pack (Debug or Release)")] string? configuration = null,
         [Description("The output directory for the package")] string? output = null,
         [Description("Include symbols package")] bool includeSymbols = false,
-[Description("Include source files in the package")] bool includeSource = false)
+[Description("Include source files in the package")] bool includeSource = false,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
     {
         var args = new StringBuilder("pack");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
@@ -226,7 +233,7 @@ public sealed class DotNetCliTools
         if (!string.IsNullOrEmpty(output)) args.Append($" -o \"{output}\"");
         if (includeSymbols) args.Append(" --include-symbols");
         if (includeSource) args.Append(" --include-source");
-        return await ExecuteDotNetCommand(args.ToString());
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("Clean the output of a .NET project")]
@@ -234,12 +241,13 @@ public sealed class DotNetCliTools
     [McpMeta("priority", 6.0)]
     public async Task<string> DotnetProjectClean(
      [Description("The project file or solution file to clean")] string? project = null,
-        [Description("The configuration to clean (Debug or Release)")] string? configuration = null)
+        [Description("The configuration to clean (Debug or Release)")] string? configuration = null,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
     {
         var args = new StringBuilder("clean");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
-        return await ExecuteDotNetCommand(args.ToString());
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("Run a .NET project with file watching and hot reload. Note: This is a long-running command that watches for file changes and automatically restarts the application. It should be terminated by the user when no longer needed.")]
@@ -306,14 +314,15 @@ public sealed class DotNetCliTools
  [Description("The name of the NuGet package to add")] string packageName,
     [Description("The project file to add the package to")] string? project = null,
         [Description("The version of the package")] string? version = null,
-        [Description("Include prerelease packages")] bool prerelease = false)
+        [Description("Include prerelease packages")] bool prerelease = false,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
     {
         var args = new StringBuilder("add");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         args.Append($" package {packageName}");
         if (!string.IsNullOrEmpty(version)) args.Append($" --version {version}");
         else if (prerelease) args.Append(" --prerelease");
-        return await ExecuteDotNetCommand(args.ToString());
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("Add a project-to-project reference")]
@@ -321,8 +330,9 @@ public sealed class DotNetCliTools
     [McpMeta("priority", 7.0)]
     public async Task<string> DotnetReferenceAdd(
         [Description("The project file to add the reference from")] string project,
-   [Description("The project file to reference")] string reference)
-        => await ExecuteDotNetCommand($"add \"{project}\" reference \"{reference}\"");
+   [Description("The project file to reference")] string reference,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
+        => await ExecuteDotNetCommand($"add \"{project}\" reference \"{reference}\"", machineReadable);
 
     [McpServerTool, Description("List package references for a .NET project")]
     [McpMeta("category", "package")]
@@ -330,14 +340,15 @@ public sealed class DotNetCliTools
     public async Task<string> DotnetPackageList(
 [Description("The project file or solution file")] string? project = null,
      [Description("Show outdated packages")] bool outdated = false,
-        [Description("Show deprecated packages")] bool deprecated = false)
+        [Description("Show deprecated packages")] bool deprecated = false,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
     {
         var args = new StringBuilder("list");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         args.Append(" package");
         if (outdated) args.Append(" --outdated");
         if (deprecated) args.Append(" --deprecated");
-        return await ExecuteDotNetCommand(args.ToString());
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("Remove a NuGet package reference from a .NET project")]
@@ -345,12 +356,13 @@ public sealed class DotNetCliTools
     [McpMeta("priority", 6.0)]
     public async Task<string> DotnetPackageRemove(
         [Description("The name of the NuGet package to remove")] string packageName,
-  [Description("The project file to remove the package from")] string? project = null)
+  [Description("The project file to remove the package from")] string? project = null,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
     {
         var args = new StringBuilder("remove");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         args.Append($" package {packageName}");
-        return await ExecuteDotNetCommand(args.ToString());
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("Search for NuGet packages on nuget.org. Returns matching packages with descriptions and download counts.")]
@@ -362,14 +374,15 @@ public sealed class DotNetCliTools
         [Description("Maximum number of results to return (1-100)")] int? take = null,
         [Description("Skip the first N results")] int? skip = null,
         [Description("Include prerelease packages")] bool prerelease = false,
-[Description("Show exact matches only")] bool exactMatch = false)
+[Description("Show exact matches only")] bool exactMatch = false,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
     {
         var args = new StringBuilder($"package search {searchTerm}");
         if (take.HasValue) args.Append($" --take {take.Value}");
         if (skip.HasValue) args.Append($" --skip {skip.Value}");
         if (prerelease) args.Append(" --prerelease");
         if (exactMatch) args.Append(" --exact-match");
-        return await ExecuteDotNetCommand(args.ToString());
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("Update a NuGet package reference to a newer version in a .NET project. Note: This uses 'dotnet add package' which updates the package when a newer version is specified.")]
@@ -379,26 +392,28 @@ public sealed class DotNetCliTools
         [Description("The name of the NuGet package to update")] string packageName,
         [Description("The project file to update the package in")] string? project = null,
         [Description("The version to update to")] string? version = null,
-        [Description("Update to the latest prerelease version")] bool prerelease = false)
+        [Description("Update to the latest prerelease version")] bool prerelease = false,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
     {
         var args = new StringBuilder("add");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         args.Append($" package {packageName}");
         if (!string.IsNullOrEmpty(version)) args.Append($" --version {version}");
         else if (prerelease) args.Append(" --prerelease");
-        return await ExecuteDotNetCommand(args.ToString());
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("List project references")]
     [McpMeta("category", "reference")]
     [McpMeta("priority", 5.0)]
     public async Task<string> DotnetReferenceList(
-     [Description("The project file")] string? project = null)
+     [Description("The project file")] string? project = null,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
     {
         var args = "list";
         if (!string.IsNullOrEmpty(project)) args += $" \"{project}\"";
         args += " reference";
-        return await ExecuteDotNetCommand(args);
+        return await ExecuteDotNetCommand(args, machineReadable);
     }
 
     [McpServerTool, Description("Remove a project-to-project reference")]
@@ -406,8 +421,9 @@ public sealed class DotNetCliTools
     [McpMeta("priority", 5.0)]
     public async Task<string> DotnetReferenceRemove(
             [Description("The project file to remove the reference from")] string project,
-            [Description("The project file to unreference")] string reference)
-            => await ExecuteDotNetCommand($"remove \"{project}\" reference \"{reference}\"");
+            [Description("The project file to unreference")] string reference,
+            [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
+            => await ExecuteDotNetCommand($"remove \"{project}\" reference \"{reference}\"", machineReadable);
 
     [McpServerTool, Description("Create a new .NET solution file. A solution file organizes multiple related projects.")]
     [McpMeta("category", "solution")]
@@ -415,7 +431,8 @@ public sealed class DotNetCliTools
     public async Task<string> DotnetSolutionCreate(
         [Description("The name for the solution file")] string name,
         [Description("The output directory for the solution file")] string? output = null,
-        [Description("The solution file format: 'sln' (classic) or 'slnx' (XML-based). Default is 'sln'.")] string? format = null)
+        [Description("The solution file format: 'sln' (classic) or 'slnx' (XML-based). Default is 'sln'.")] string? format = null,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
     {
         var args = new StringBuilder("new sln");
         args.Append($" -n \"{name}\"");
@@ -426,7 +443,7 @@ public sealed class DotNetCliTools
                 return "Error: format must be either 'sln' or 'slnx'.";
             args.Append($" --format {format}");
         }
-        return await ExecuteDotNetCommand(args.ToString());
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("Add one or more projects to a .NET solution file")]
@@ -434,7 +451,8 @@ public sealed class DotNetCliTools
     [McpMeta("priority", 7.0)]
     public async Task<string> DotnetSolutionAdd(
            [Description("The solution file to add projects to")] string solution,
-           [Description("Array of project file paths to add to the solution")] string[] projects)
+           [Description("Array of project file paths to add to the solution")] string[] projects,
+           [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
     {
         if (projects == null || projects.Length == 0)
             return "Error: at least one project path is required.";
@@ -444,22 +462,24 @@ public sealed class DotNetCliTools
         {
             args.Append($" \"{project}\"");
         }
-        return await ExecuteDotNetCommand(args.ToString());
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("List all projects in a .NET solution file")]
     [McpMeta("category", "solution")]
     [McpMeta("priority", 6.0)]
     public async Task<string> DotnetSolutionList(
-        [Description("The solution file to list projects from")] string solution)
-        => await ExecuteDotNetCommand($"solution \"{solution}\" list");
+        [Description("The solution file to list projects from")] string solution,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
+        => await ExecuteDotNetCommand($"solution \"{solution}\" list", machineReadable);
 
     [McpServerTool, Description("Remove one or more projects from a .NET solution file")]
     [McpMeta("category", "solution")]
     [McpMeta("priority", 5.0)]
     public async Task<string> DotnetSolutionRemove(
         [Description("The solution file to remove projects from")] string solution,
-  [Description("Array of project file paths to remove from the solution")] string[] projects)
+  [Description("Array of project file paths to remove from the solution")] string[] projects,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
     {
         if (projects == null || projects.Length == 0)
             return "Error: at least one project path is required.";
@@ -469,35 +489,40 @@ public sealed class DotNetCliTools
         {
             args.Append($" \"{project}\"");
         }
-        return await ExecuteDotNetCommand(args.ToString());
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("Get information about installed .NET SDKs and runtimes")]
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 6.0)]
-    public async Task<string> DotnetSdkInfo() => await ExecuteDotNetCommand("--info");
+    public async Task<string> DotnetSdkInfo([Description("Return structured JSON output instead of plain text")] bool machineReadable = false) 
+        => await ExecuteDotNetCommand("--info", machineReadable);
 
     [McpServerTool, Description("Get the version of the .NET SDK")]
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 6.0)]
-    public async Task<string> DotnetSdkVersion() => await ExecuteDotNetCommand("--version");
+    public async Task<string> DotnetSdkVersion([Description("Return structured JSON output instead of plain text")] bool machineReadable = false) 
+        => await ExecuteDotNetCommand("--version", machineReadable);
 
     [McpServerTool, Description("List installed .NET SDKs")]
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 6.0)]
-    public async Task<string> DotnetSdkList() => await ExecuteDotNetCommand("--list-sdks");
+    public async Task<string> DotnetSdkList([Description("Return structured JSON output instead of plain text")] bool machineReadable = false) 
+        => await ExecuteDotNetCommand("--list-sdks", machineReadable);
 
     [McpServerTool, Description("List installed .NET runtimes")]
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 6.0)]
-    public async Task<string> DotnetRuntimeList() => await ExecuteDotNetCommand("--list-runtimes");
+    public async Task<string> DotnetRuntimeList([Description("Return structured JSON output instead of plain text")] bool machineReadable = false) 
+        => await ExecuteDotNetCommand("--list-runtimes", machineReadable);
 
     [McpServerTool, Description("Get help for a specific dotnet command. Use this to discover available options for any dotnet command.")]
     [McpMeta("category", "help")]
     [McpMeta("priority", 5.0)]
     public async Task<string> DotnetHelp(
-        [Description("The dotnet command to get help for (e.g., 'build', 'new', 'run'). If not specified, shows general dotnet help.")] string? command = null)
-  => await ExecuteDotNetCommand(command != null ? $"{command} --help" : "--help");
+        [Description("The dotnet command to get help for (e.g., 'build', 'new', 'run'). If not specified, shows general dotnet help.")] string? command = null,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
+  => await ExecuteDotNetCommand(command != null ? $"{command} --help" : "--help", machineReadable);
 
     [McpServerTool, Description("Format code according to .editorconfig and style rules. Available since .NET 6 SDK. Useful for enforcing consistent code style across projects.")]
     [McpMeta("category", "format")]
@@ -508,7 +533,8 @@ public sealed class DotNetCliTools
   [Description("Verify formatting without making changes")] bool verify = false,
         [Description("Include generated code files")] bool includeGenerated = false,
         [Description("Comma-separated list of diagnostic IDs to fix")] string? diagnostics = null,
-        [Description("Severity level to fix (info, warn, error)")] string? severity = null)
+        [Description("Severity level to fix (info, warn, error)")] string? severity = null,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
     {
         var args = new StringBuilder("format");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
@@ -516,7 +542,7 @@ public sealed class DotNetCliTools
         if (includeGenerated) args.Append(" --include-generated");
         if (!string.IsNullOrEmpty(diagnostics)) args.Append($" --diagnostics {diagnostics}");
         if (!string.IsNullOrEmpty(severity)) args.Append($" --severity {severity}");
-        return await ExecuteDotNetCommand(args.ToString());
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("Manage NuGet local caches. List or clear the global-packages, http-cache, temp, and plugins-cache folders. Useful for troubleshooting NuGet issues.")]
@@ -525,7 +551,8 @@ public sealed class DotNetCliTools
     public async Task<string> DotnetNugetLocals(
         [Description("The cache location to manage: all, http-cache, global-packages, temp, or plugins-cache")] string cacheLocation,
         [Description("List the cache location path")] bool list = false,
-      [Description("Clear the specified cache location")] bool clear = false)
+      [Description("Clear the specified cache location")] bool clear = false,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
     {
         if (!list && !clear)
             return "Error: Either 'list' or 'clear' must be true.";
@@ -541,27 +568,27 @@ public sealed class DotNetCliTools
         var args = $"nuget locals {normalizedCacheLocation}";
         if (list) args += " --list";
         if (clear) args += " --clear";
-        return await ExecuteDotNetCommand(args);
+        return await ExecuteDotNetCommand(args, machineReadable);
     }
 
     [McpServerTool, Description("Trust the HTTPS development certificate. Installs the certificate to the trusted root store. May require elevation on Windows/macOS. Essential for local ASP.NET Core HTTPS development.")]
     [McpMeta("category", "security")]
     [McpMeta("priority", 7.0)]
     [McpMeta("requiresElevation", true)]
-    public async Task<string> DotnetCertificateTrust()
-        => await ExecuteDotNetCommand("dev-certs https --trust");
+    public async Task<string> DotnetCertificateTrust([Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
+        => await ExecuteDotNetCommand("dev-certs https --trust", machineReadable);
 
     [McpServerTool, Description("Check if the HTTPS development certificate exists and is trusted. Returns certificate status and validity information.")]
     [McpMeta("category", "security")]
     [McpMeta("priority", 7.0)]
-    public async Task<string> DotnetCertificateCheck()
-        => await ExecuteDotNetCommand("dev-certs https --check --trust");
+    public async Task<string> DotnetCertificateCheck([Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
+        => await ExecuteDotNetCommand("dev-certs https --check --trust", machineReadable);
 
     [McpServerTool, Description("Remove all HTTPS development certificates. Use this to clean up old or invalid certificates before creating new ones.")]
     [McpMeta("category", "security")]
     [McpMeta("priority", 6.0)]
-    public async Task<string> DotnetCertificateClean()
-        => await ExecuteDotNetCommand("dev-certs https --clean");
+    public async Task<string> DotnetCertificateClean([Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
+        => await ExecuteDotNetCommand("dev-certs https --clean", machineReadable);
 
     [McpServerTool, Description("Export the HTTPS development certificate to a file. Useful for Docker containers or sharing certificates across environments. Supports PFX and PEM formats with optional password protection.")]
     [McpMeta("category", "security")]
@@ -611,7 +638,8 @@ public sealed class DotNetCliTools
         [Description("Package name of the tool (e.g., 'dotnet-ef', 'dotnet-format')")] string packageName,
         [Description("Install globally (system-wide), otherwise installs locally to tool manifest")] bool global = false,
         [Description("Specific version to install")] string? version = null,
-        [Description("Target framework to install for")] string? framework = null)
+        [Description("Target framework to install for")] string? framework = null,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
     {
         if (string.IsNullOrWhiteSpace(packageName))
             return "Error: packageName parameter is required.";
@@ -620,18 +648,19 @@ public sealed class DotNetCliTools
         if (global) args.Append(" --global");
         if (!string.IsNullOrEmpty(version)) args.Append($" --version {version}");
         if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
-        return await ExecuteDotNetCommand(args.ToString());
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("List installed .NET tools. Shows global tools (system-wide) or local tools (from .config/dotnet-tools.json manifest) with their versions and commands.")]
     [McpMeta("category", "tool")]
     [McpMeta("priority", 7.0)]
     public async Task<string> DotnetToolList(
-        [Description("List global tools (system-wide), otherwise lists local tools from manifest")] bool global = false)
+        [Description("List global tools (system-wide), otherwise lists local tools from manifest")] bool global = false,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
     {
         var args = "tool list";
         if (global) args += " --global";
-        return await ExecuteDotNetCommand(args);
+        return await ExecuteDotNetCommand(args, machineReadable);
     }
 
     [McpServerTool, Description("Update a .NET tool to a newer version. Can update to latest, a specific version, or latest prerelease.")]
@@ -640,7 +669,8 @@ public sealed class DotNetCliTools
     public async Task<string> DotnetToolUpdate(
         [Description("Package name of the tool to update")] string packageName,
         [Description("Update global tool (system-wide), otherwise updates local tool")] bool global = false,
-        [Description("Update to specific version, otherwise updates to latest")] string? version = null)
+        [Description("Update to specific version, otherwise updates to latest")] string? version = null,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
     {
         if (string.IsNullOrWhiteSpace(packageName))
             return "Error: packageName parameter is required.";
@@ -648,7 +678,7 @@ public sealed class DotNetCliTools
         var args = new StringBuilder($"tool update \"{packageName}\"");
         if (global) args.Append(" --global");
         if (!string.IsNullOrEmpty(version)) args.Append($" --version {version}");
-        return await ExecuteDotNetCommand(args.ToString());
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("Uninstall a .NET tool. Removes a global tool (system-wide) or removes from local tool manifest.")]
@@ -656,21 +686,22 @@ public sealed class DotNetCliTools
     [McpMeta("priority", 6.0)]
     public async Task<string> DotnetToolUninstall(
         [Description("Package name of the tool to uninstall")] string packageName,
-        [Description("Uninstall global tool (system-wide), otherwise uninstalls from local manifest")] bool global = false)
+        [Description("Uninstall global tool (system-wide), otherwise uninstalls from local manifest")] bool global = false,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
     {
         if (string.IsNullOrWhiteSpace(packageName))
             return "Error: packageName parameter is required.";
 
         var args = new StringBuilder($"tool uninstall \"{packageName}\"");
         if (global) args.Append(" --global");
-        return await ExecuteDotNetCommand(args.ToString());
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("Restore tools from the tool manifest (.config/dotnet-tools.json). Installs all tools listed in the manifest, essential for project setup after cloning.")]
     [McpMeta("category", "tool")]
     [McpMeta("priority", 7.0)]
-    public async Task<string> DotnetToolRestore()
-        => await ExecuteDotNetCommand("tool restore");
+    public async Task<string> DotnetToolRestore([Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
+        => await ExecuteDotNetCommand("tool restore", machineReadable);
 
     [McpServerTool, Description("Search for .NET tools on NuGet.org. Finds available tools by name or description with download counts and package information.")]
     [McpMeta("category", "tool")]
@@ -680,7 +711,8 @@ public sealed class DotNetCliTools
         [Description("Show detailed information including description and versions")] bool detail = false,
         [Description("Maximum number of results to return (1-100)")] int? take = null,
         [Description("Skip the first N results for pagination")] int? skip = null,
-        [Description("Include prerelease tool versions in search")] bool prerelease = false)
+        [Description("Include prerelease tool versions in search")] bool prerelease = false,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
     {
         if (string.IsNullOrWhiteSpace(searchTerm))
             return "Error: searchTerm parameter is required.";
@@ -690,7 +722,7 @@ public sealed class DotNetCliTools
         if (take.HasValue) args.Append($" --take {take.Value}");
         if (skip.HasValue) args.Append($" --skip {skip.Value}");
         if (prerelease) args.Append(" --prerelease");
-        return await ExecuteDotNetCommand(args.ToString());
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("Run a .NET tool by its command name. Executes an installed local or global tool with optional arguments.")]
@@ -698,7 +730,8 @@ public sealed class DotNetCliTools
     [McpMeta("priority", 7.0)]
     public async Task<string> DotnetToolRun(
         [Description("Tool command name to run (e.g., 'dotnet-ef', 'dotnet-format')")] string toolName,
-        [Description("Arguments to pass to the tool (e.g., 'migrations add Initial')")] string? args = null)
+        [Description("Arguments to pass to the tool (e.g., 'migrations add Initial')")] string? args = null,
+        [Description("Return structured JSON output instead of plain text")] bool machineReadable = false)
     {
         if (string.IsNullOrWhiteSpace(toolName))
             return "Error: toolName parameter is required.";
@@ -708,11 +741,11 @@ public sealed class DotNetCliTools
 
         var commandArgs = new StringBuilder($"tool run \"{toolName}\"");
         if (!string.IsNullOrEmpty(args)) commandArgs.Append($" -- {args}");
-        return await ExecuteDotNetCommand(commandArgs.ToString());
+        return await ExecuteDotNetCommand(commandArgs.ToString(), machineReadable);
     }
 
-    private async Task<string> ExecuteDotNetCommand(string arguments)
-        => await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger);
+    private async Task<string> ExecuteDotNetCommand(string arguments, bool machineReadable = false)
+        => await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable);
 
     private static bool IsValidAdditionalOptions(string options)
     {
