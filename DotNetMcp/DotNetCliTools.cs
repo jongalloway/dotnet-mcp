@@ -603,6 +603,111 @@ public sealed class DotNetCliTools
         return await DotNetCommandExecutor.ExecuteCommandAsync(args.ToString(), logger: null);
     }
 
+    [McpServerTool, Description("Install a .NET tool globally or locally to a tool manifest. Global tools are available system-wide, local tools are project-specific and tracked in .config/dotnet-tools.json.")]
+    [McpMeta("category", "tool")]
+    [McpMeta("priority", 8.0)]
+    [McpMeta("commonlyUsed", true)]
+    public async Task<string> DotnetToolInstall(
+        [Description("Package name of the tool (e.g., 'dotnet-ef', 'dotnet-format')")] string packageName,
+        [Description("Install globally (system-wide), otherwise installs locally to tool manifest")] bool global = false,
+        [Description("Specific version to install")] string? version = null,
+        [Description("Target framework to install for")] string? framework = null)
+    {
+        if (string.IsNullOrWhiteSpace(packageName))
+            return "Error: packageName parameter is required.";
+
+        var args = new StringBuilder($"tool install {packageName}");
+        if (global) args.Append(" --global");
+        if (!string.IsNullOrEmpty(version)) args.Append($" --version {version}");
+        if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
+        return await ExecuteDotNetCommand(args.ToString());
+    }
+
+    [McpServerTool, Description("List installed .NET tools. Shows global tools (system-wide) or local tools (from .config/dotnet-tools.json manifest) with their versions and commands.")]
+    [McpMeta("category", "tool")]
+    [McpMeta("priority", 7.0)]
+    public async Task<string> DotnetToolList(
+        [Description("List global tools (system-wide), otherwise lists local tools from manifest")] bool global = false)
+    {
+        var args = "tool list";
+        if (global) args += " --global";
+        return await ExecuteDotNetCommand(args);
+    }
+
+    [McpServerTool, Description("Update a .NET tool to a newer version. Can update to latest, a specific version, or latest prerelease.")]
+    [McpMeta("category", "tool")]
+    [McpMeta("priority", 7.0)]
+    public async Task<string> DotnetToolUpdate(
+        [Description("Package name of the tool to update")] string packageName,
+        [Description("Update global tool (system-wide), otherwise updates local tool")] bool global = false,
+        [Description("Update to specific version, otherwise updates to latest")] string? version = null)
+    {
+        if (string.IsNullOrWhiteSpace(packageName))
+            return "Error: packageName parameter is required.";
+
+        var args = new StringBuilder($"tool update {packageName}");
+        if (global) args.Append(" --global");
+        if (!string.IsNullOrEmpty(version)) args.Append($" --version {version}");
+        return await ExecuteDotNetCommand(args.ToString());
+    }
+
+    [McpServerTool, Description("Uninstall a .NET tool. Removes a global tool (system-wide) or removes from local tool manifest.")]
+    [McpMeta("category", "tool")]
+    [McpMeta("priority", 6.0)]
+    public async Task<string> DotnetToolUninstall(
+        [Description("Package name of the tool to uninstall")] string packageName,
+        [Description("Uninstall global tool (system-wide), otherwise uninstalls from local manifest")] bool global = false)
+    {
+        if (string.IsNullOrWhiteSpace(packageName))
+            return "Error: packageName parameter is required.";
+
+        var args = new StringBuilder($"tool uninstall {packageName}");
+        if (global) args.Append(" --global");
+        return await ExecuteDotNetCommand(args.ToString());
+    }
+
+    [McpServerTool, Description("Restore tools from the tool manifest (.config/dotnet-tools.json). Installs all tools listed in the manifest, essential for project setup after cloning.")]
+    [McpMeta("category", "tool")]
+    [McpMeta("priority", 7.0)]
+    public async Task<string> DotnetToolRestore()
+        => await ExecuteDotNetCommand("tool restore");
+
+    [McpServerTool, Description("Search for .NET tools on NuGet.org. Finds available tools by name or description with download counts and package information.")]
+    [McpMeta("category", "tool")]
+    [McpMeta("priority", 6.0)]
+    public async Task<string> DotnetToolSearch(
+        [Description("Search term to find tools")] string searchTerm,
+        [Description("Show detailed information including description and versions")] bool detail = false,
+        [Description("Maximum number of results to return (1-100)")] int? take = null,
+        [Description("Skip the first N results for pagination")] int? skip = null,
+        [Description("Include prerelease tool versions in search")] bool prerelease = false)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+            return "Error: searchTerm parameter is required.";
+
+        var args = new StringBuilder($"tool search {searchTerm}");
+        if (detail) args.Append(" --detail");
+        if (take.HasValue) args.Append($" --take {take.Value}");
+        if (skip.HasValue) args.Append($" --skip {skip.Value}");
+        if (prerelease) args.Append(" --prerelease");
+        return await ExecuteDotNetCommand(args.ToString());
+    }
+
+    [McpServerTool, Description("Run a .NET tool by its command name. Executes an installed local or global tool with optional arguments.")]
+    [McpMeta("category", "tool")]
+    [McpMeta("priority", 7.0)]
+    public async Task<string> DotnetToolRun(
+        [Description("Tool command name to run (e.g., 'dotnet-ef', 'dotnet-format')")] string toolName,
+        [Description("Arguments to pass to the tool (e.g., 'migrations add Initial')")] string? args = null)
+    {
+        if (string.IsNullOrWhiteSpace(toolName))
+            return "Error: toolName parameter is required.";
+
+        var commandArgs = new StringBuilder($"tool run {toolName}");
+        if (!string.IsNullOrEmpty(args)) commandArgs.Append($" -- {args}");
+        return await ExecuteDotNetCommand(commandArgs.ToString());
+    }
+
     private async Task<string> ExecuteDotNetCommand(string arguments)
         => await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger);
 

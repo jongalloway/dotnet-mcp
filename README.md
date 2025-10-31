@@ -522,6 +522,16 @@ Resources provide structured JSON data and are more efficient than tool calls fo
 - **dotnet_reference_remove** - Remove project-to-project references
 - **dotnet_reference_list** - List project references
 
+### Tools - Tool Management
+
+- **dotnet_tool_install** - Install a .NET tool globally or locally to a tool manifest
+- **dotnet_tool_list** - List installed .NET tools (global or local from manifest)
+- **dotnet_tool_update** - Update a .NET tool to a newer version
+- **dotnet_tool_uninstall** - Uninstall a .NET tool
+- **dotnet_tool_restore** - Restore tools from the tool manifest (.config/dotnet-tools.json)
+- **dotnet_tool_search** - Search for .NET tools on NuGet.org
+- **dotnet_tool_run** - Run a .NET tool by its command name
+
 ### Tools - Solution Management
 
 - **dotnet_solution_create** - Create new solution files (.sln or .slnx format)
