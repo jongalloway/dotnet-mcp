@@ -18,14 +18,6 @@ public static partial class ErrorResultFactory
     [GeneratedRegex(@"(?<code>NU\d+):\s+(?<message>.+)")]
     private static partial Regex NuGetErrorRegex();
 
-    // Patterns to detect and filter sensitive data
-    private static readonly string[] SensitivePatterns = new[]
-    {
-        "password", "secret", "token", "apikey", "api-key", "api_key",
-        "connectionstring", "connection-string", "connection_string",
-        "credentials", "authorization", "bearer"
-    };
-
     // Regex for masking sensitive values - compiled once and reused
     // Captures: (1) keyword, (2) separator (= or :), (3) value (stops at whitespace, semicolon, or quotes)
     [GeneratedRegex(@"(password|secret|token|apikey|api-key|api_key|connectionstring|connection-string|connection_string|credentials|authorization|bearer)([\s]*[=:]\s*)[""']?([^\s;""']+)[""']?", RegexOptions.IgnoreCase)]
@@ -67,7 +59,7 @@ public static partial class ErrorResultFactory
             // Truncate long error messages to avoid verbose fallback errors
             var errorMessage = string.IsNullOrWhiteSpace(error) 
                 ? "Command failed with no error output" 
-                : error.Length > 500 ? error.Substring(0, 500) + "..." : error.Trim();
+                : error.Length > 500 ? error[..500] + "..." : error.Trim();
             
             errors.Add(new ErrorResult
             {
@@ -194,24 +186,15 @@ public static partial class ErrorResultFactory
     }
 
     /// <summary>
-    /// Sanitize output to remove sensitive data like passwords, tokens, etc.
+    /// Sanitize output to remove sensitive data like passwords, tokens, etc., from the output.
     /// </summary>
     private static string SanitizeOutput(string output)
     {
         if (string.IsNullOrWhiteSpace(output))
             return output;
 
-        var sanitized = output;
-
-        // Check if output contains any sensitive patterns using LINQ
-        var containsSensitiveData = SensitivePatterns
-            .Any(pattern => sanitized.Contains(pattern, StringComparison.OrdinalIgnoreCase));
-
-        if (!containsSensitiveData)
-            return sanitized;
-
         // Use pre-compiled regex to mask values after sensitive keywords
-        sanitized = SensitiveValueRegex().Replace(sanitized, m =>
+        var sanitized = SensitiveValueRegex().Replace(output, m =>
         {
             // Replace the captured value with redacted text, preserving the original separator
             var keyword = m.Groups[1].Value;

@@ -11,7 +11,7 @@ namespace DotNetMcp;
 public sealed class DotNetCliTools
 {
     private readonly ILogger<DotNetCliTools> _logger;
-    private const string MachineReadableDescription = "Return structured JSON output instead of plain text";
+    private const string MachineReadableDescription = "Return structured JSON output for both success and error responses instead of plain text";
 
     public DotNetCliTools(ILogger<DotNetCliTools> logger)
     {
