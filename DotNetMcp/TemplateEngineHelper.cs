@@ -13,108 +13,81 @@ namespace DotNetMcp;
 /// Implements caching to improve performance for repeated template queries.
 /// </summary>
 /// <remarks>
-/// This class uses SemaphoreSlim for thread-safe async caching, following .NET 9+ best practices.
-/// The cache expires after 5 minutes to allow for template installations/updates.
+/// This class uses CachedResourceManager for thread-safe async caching with metrics.
+/// The cache expires after 5 minutes (300 seconds) to allow for template installations/updates.
 /// All public methods are thread-safe and may be called concurrently.
-/// 
-/// The SemaphoreSlim instance is static and follows a singleton pattern for the application lifetime.
-/// While this is appropriate for typical MCP server scenarios where the process runs until termination,
-/// proper cleanup can be performed by calling <see cref="DisposeAsync"/> in testing or hosting scenarios
-/// where the application may be stopped and restarted without process termination.
 /// </remarks>
 public class TemplateEngineHelper
 {
-    private static readonly SemaphoreSlim _cacheLock = new(1, 1);
-    private static IEnumerable<ITemplateInfo>? _templatesCache;
-    private static DateTime _cacheExpiry = DateTime.MinValue;
-    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
+    private static readonly CachedResourceManager<IEnumerable<ITemplateInfo>> _cacheManager =
+        new("Templates", defaultTtlSeconds: 300);
+
+    /// <summary>
+    /// Gets cache metrics for template caching.
+    /// </summary>
+    public static CacheMetrics Metrics => _cacheManager.Metrics;
+
+    /// <summary>
+    /// Load templates from the Template Engine.
+    /// </summary>
+    private static async Task<IEnumerable<ITemplateInfo>> LoadTemplatesAsync()
+    {
+        var engineEnvironmentSettings = new EngineEnvironmentSettings(
+            new DefaultTemplateEngineHost("dotnet-mcp", "1.0.0"),
+            virtualizeSettings: false);
+
+        var templatePackageManager = new TemplatePackageManager(engineEnvironmentSettings);
+        return await templatePackageManager.GetTemplatesAsync(default);
+    }
 
     /// <summary>
     /// Get templates from cache or load them if cache is expired.
     /// Cache expires after 5 minutes to allow for template installations/updates.
     /// </summary>
-    private static async Task<IEnumerable<ITemplateInfo>> GetTemplatesCachedAsync(ILogger? logger = null)
+    private static async Task<IEnumerable<ITemplateInfo>> GetTemplatesCachedAsync(bool forceReload = false, ILogger? logger = null)
     {
-        await _cacheLock.WaitAsync();
-        try
-        {
-            if (_templatesCache == null || DateTime.UtcNow > _cacheExpiry)
-            {
-                logger?.LogDebug("Template cache miss - loading templates from template engine");
-                var engineEnvironmentSettings = new EngineEnvironmentSettings(
-                    new DefaultTemplateEngineHost("dotnet-mcp", "1.0.0"),
-                    virtualizeSettings: false);
-
-                var templatePackageManager = new TemplatePackageManager(engineEnvironmentSettings);
-                _templatesCache = await templatePackageManager.GetTemplatesAsync(default);
-                _cacheExpiry = DateTime.UtcNow.Add(CacheDuration);
-                logger?.LogInformation("Loaded {TemplateCount} templates into cache (expires in {CacheDuration})",
-                    _templatesCache.Count(), CacheDuration);
-            }
-            else
-            {
-                logger?.LogDebug("Template cache hit - returning cached templates");
-            }
-            return _templatesCache;
-        }
-        finally
-        {
-            _cacheLock.Release();
-        }
+        var entry = await _cacheManager.GetOrLoadAsync(LoadTemplatesAsync, forceReload);
+        return entry.Data;
     }
 
     /// <summary>
     /// Get templates from cache or load them if cache is expired (internal access for resources).
     /// This is intended for use by DotNetResources class to provide template data.
     /// </summary>
-    internal static Task<IEnumerable<ITemplateInfo>> GetTemplatesCachedInternalAsync(ILogger? logger = null)
-        => GetTemplatesCachedAsync(logger);
+    internal static Task<IEnumerable<ITemplateInfo>> GetTemplatesCachedInternalAsync(bool forceReload = false, ILogger? logger = null)
+        => GetTemplatesCachedAsync(forceReload, logger);
 
     /// <summary>
     /// Clear the template cache asynchronously. Useful after installing or uninstalling templates.
+    /// Also resets cache metrics.
     /// </summary>
-    /// <remarks>
-    /// This method properly uses async/await to prevent potential deadlocks that could occur
-    /// with synchronous Wait() calls on SemaphoreSlim.
-    /// </remarks>
     public static async Task ClearCacheAsync(ILogger? logger = null)
     {
-        await _cacheLock.WaitAsync();
-        try
-        {
-            _templatesCache = null;
-            _cacheExpiry = DateTime.MinValue;
-            logger?.LogInformation("Template cache cleared");
-        }
-        finally
-        {
-            _cacheLock.Release();
-        }
+        await _cacheManager.ClearAsync();
+        _cacheManager.ResetMetrics();
+        logger?.LogInformation("Template cache and metrics cleared");
     }
 
     /// <summary>
-    /// Dispose of the SemaphoreSlim resource. This should be called when the helper is no longer needed,
+    /// Dispose of resources. This should be called when the helper is no longer needed,
     /// particularly in testing or hosting scenarios where the application may be stopped/restarted.
     /// </summary>
-    /// <remarks>
-    /// This method is provided to follow IDisposable best practices. In typical MCP server scenarios
-    /// where the process runs until termination, calling this method is not necessary.
-    /// This method is NOT thread-safe and should only be called when all other operations have completed.
-    /// </remarks>
     public static void Dispose()
     {
-        _cacheLock.Dispose();
+        _cacheManager.Dispose();
     }
 
     /// <summary>
     /// Get a list of all installed templates with their metadata.
     /// </summary>
-    public static async Task<string> GetInstalledTemplatesAsync(ILogger? logger = null)
+    /// <param name="forceReload">If true, bypasses cache and reloads from disk.</param>
+    /// <param name="logger">Optional logger instance.</param>
+    public static async Task<string> GetInstalledTemplatesAsync(bool forceReload = false, ILogger? logger = null)
     {
         try
         {
             // Get all installed templates from cache
-            var templates = await GetTemplatesCachedAsync(logger);
+            var templates = await GetTemplatesCachedAsync(forceReload, logger);
 
             if (!templates.Any())
             {
@@ -155,11 +128,14 @@ public class TemplateEngineHelper
     /// <summary>
     /// Get detailed information about a specific template.
     /// </summary>
-    public static async Task<string> GetTemplateDetailsAsync(string templateShortName, ILogger? logger = null)
+    /// <param name="templateShortName">The template short name to query.</param>
+    /// <param name="forceReload">If true, bypasses cache and reloads from disk.</param>
+    /// <param name="logger">Optional logger instance.</param>
+    public static async Task<string> GetTemplateDetailsAsync(string templateShortName, bool forceReload = false, ILogger? logger = null)
     {
         try
         {
-            var templates = await GetTemplatesCachedAsync(logger);
+            var templates = await GetTemplatesCachedAsync(forceReload, logger);
             var template = templates.FirstOrDefault(t =>
                 t.ShortNameList.Any(sn => sn.Equals(templateShortName, StringComparison.OrdinalIgnoreCase)));
 
@@ -204,11 +180,14 @@ public class TemplateEngineHelper
     /// <summary>
     /// Search for templates by name or description.
     /// </summary>
-    public static async Task<string> SearchTemplatesAsync(string searchTerm, ILogger? logger = null)
+    /// <param name="searchTerm">Search term to filter templates.</param>
+    /// <param name="forceReload">If true, bypasses cache and reloads from disk.</param>
+    /// <param name="logger">Optional logger instance.</param>
+    public static async Task<string> SearchTemplatesAsync(string searchTerm, bool forceReload = false, ILogger? logger = null)
     {
         try
         {
-            var templates = await GetTemplatesCachedAsync(logger);
+            var templates = await GetTemplatesCachedAsync(forceReload, logger);
             var matches = templates.Where(t =>
                 t.ShortNameList.Any(sn => sn.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
                 (t.Name?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
@@ -252,11 +231,14 @@ public class TemplateEngineHelper
     /// <summary>
     /// Validate if a template short name exists.
     /// </summary>
-    public static async Task<bool> ValidateTemplateExistsAsync(string templateShortName, ILogger? logger = null)
+    /// <param name="templateShortName">The template short name to validate.</param>
+    /// <param name="forceReload">If true, bypasses cache and reloads from disk.</param>
+    /// <param name="logger">Optional logger instance.</param>
+    public static async Task<bool> ValidateTemplateExistsAsync(string templateShortName, bool forceReload = false, ILogger? logger = null)
     {
         try
         {
-            var templates = await GetTemplatesCachedAsync(logger);
+            var templates = await GetTemplatesCachedAsync(forceReload, logger);
             return templates.Any(t =>
                 t.ShortNameList.Any(sn => sn.Equals(templateShortName, StringComparison.OrdinalIgnoreCase)));
         }

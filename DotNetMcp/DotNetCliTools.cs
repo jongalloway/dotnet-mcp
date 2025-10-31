@@ -22,30 +22,47 @@ public sealed class DotNetCliTools
     [McpServerTool, Description("List all installed .NET templates with their metadata using the Template Engine. Provides structured information about available project templates.")]
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
-    public async Task<string> DotnetTemplateList()
-          => await TemplateEngineHelper.GetInstalledTemplatesAsync(_logger);
+    public async Task<string> DotnetTemplateList(
+        [Description("If true, bypasses cache and reloads templates from disk")] bool forceReload = false)
+          => await TemplateEngineHelper.GetInstalledTemplatesAsync(forceReload, _logger);
 
     [McpServerTool, Description("Search for .NET templates by name or description. Returns matching templates with their details.")]
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
     public async Task<string> DotnetTemplateSearch(
-        [Description("Search term to find templates (searches in name, short name, and description)")] string searchTerm)
-        => await TemplateEngineHelper.SearchTemplatesAsync(searchTerm, _logger);
+        [Description("Search term to find templates (searches in name, short name, and description)")] string searchTerm,
+        [Description("If true, bypasses cache and reloads templates from disk")] bool forceReload = false)
+        => await TemplateEngineHelper.SearchTemplatesAsync(searchTerm, forceReload, _logger);
 
     [McpServerTool, Description("Get detailed information about a specific template including available parameters and options.")]
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
     public async Task<string> DotnetTemplateInfo(
- [Description("The template short name (e.g., 'console', 'webapi', 'classlib')")] string templateShortName)
-        => await TemplateEngineHelper.GetTemplateDetailsAsync(templateShortName, _logger);
+ [Description("The template short name (e.g., 'console', 'webapi', 'classlib')")] string templateShortName,
+        [Description("If true, bypasses cache and reloads templates from disk")] bool forceReload = false)
+        => await TemplateEngineHelper.GetTemplateDetailsAsync(templateShortName, forceReload, _logger);
 
-    [McpServerTool, Description("Clear the template cache to force reload from disk. Use this after installing or uninstalling templates.")]
+    [McpServerTool, Description("Clear all caches (templates, SDK, runtime) to force reload from disk. Use this after installing or uninstalling templates or SDK versions. Also resets all cache metrics.")]
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
     public async Task<string> DotnetTemplateClearCache()
     {
-        await TemplateEngineHelper.ClearCacheAsync(_logger);
-        return "Template cache cleared successfully. Next template query will reload from disk.";
+        await DotNetResources.ClearAllCachesAsync();
+        return "All caches (templates, SDK, runtime) and metrics cleared successfully. Next query will reload from disk.";
+    }
+
+    [McpServerTool, Description("Get cache metrics showing hit/miss statistics for templates, SDK, and runtime information.")]
+    [McpMeta("category", "template")]
+    [McpMeta("usesTemplateEngine", true)]
+    public Task<string> DotnetCacheMetrics()
+    {
+        var result = new System.Text.StringBuilder();
+        result.AppendLine("Cache Metrics:");
+        result.AppendLine();
+        result.AppendLine($"Templates: {TemplateEngineHelper.Metrics}");
+        result.AppendLine($"SDK Info: {DotNetResources.GetSdkMetrics()}");
+        result.AppendLine($"Runtime Info: {DotNetResources.GetRuntimeMetrics()}");
+        return Task.FromResult(result.ToString());
     }
 
     [McpServerTool, Description("Get information about .NET framework versions, including which are LTS releases. Useful for understanding framework compatibility.")]
