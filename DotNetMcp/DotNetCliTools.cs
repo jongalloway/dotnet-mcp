@@ -542,6 +542,84 @@ public sealed class DotNetCliTools
         [Description(MachineReadableDescription)] bool machineReadable = false)
   => await ExecuteDotNetCommand(command != null ? $"{command} --help" : "--help", machineReadable);
 
+    [McpServerTool, Description("Get information about .NET MCP Server capabilities including supported features, concurrency safety, and available resources. Provides guidance for AI orchestrators on parallel execution.")]
+    [McpMeta("category", "help")]
+    [McpMeta("priority", 5.0)]
+    public Task<string> DotnetServerCapabilities()
+    {
+        var result = new StringBuilder();
+        result.AppendLine("=== .NET MCP Server Capabilities ===");
+        result.AppendLine();
+        result.AppendLine("Version: 1.0+");
+        result.AppendLine("Protocol: Model Context Protocol (MCP)");
+        result.AppendLine("Transport: stdio");
+        result.AppendLine();
+        
+        result.AppendLine("FEATURES:");
+        result.AppendLine("  • 49 MCP Tools across 13 categories");
+        result.AppendLine("  • 4 MCP Resources (SDK, Runtime, Templates, Frameworks)");
+        result.AppendLine("  • Direct .NET SDK integration via NuGet packages");
+        result.AppendLine("  • Template Engine integration with caching (5-min TTL)");
+        result.AppendLine("  • Framework validation and LTS identification");
+        result.AppendLine("  • Thread-safe caching with metrics tracking");
+        result.AppendLine();
+        
+        result.AppendLine("TOOL CATEGORIES:");
+        result.AppendLine("  • Template (5 tools): List, search, info, cache management");
+        result.AppendLine("  • Project (7 tools): New, build, run, test, publish, clean, restore");
+        result.AppendLine("  • Package (6 tools): Add, remove, update, list, search, pack");
+        result.AppendLine("  • Solution (4 tools): Create, add, remove, list");
+        result.AppendLine("  • Reference (3 tools): Add, remove, list");
+        result.AppendLine("  • Tool (7 tools): Install, uninstall, update, list, search, restore, run");
+        result.AppendLine("  • Watch (3 tools): Watch run, watch test, watch build");
+        result.AppendLine("  • SDK (4 tools): Version, info, list SDKs, list runtimes");
+        result.AppendLine("  • Security (4 tools): Certificate trust, check, clean, export");
+        result.AppendLine("  • Framework (1 tool): Framework information and LTS status");
+        result.AppendLine("  • Format (1 tool): Code formatting");
+        result.AppendLine("  • NuGet (1 tool): Cache management");
+        result.AppendLine("  • Help (2 tools): Command help, server capabilities");
+        result.AppendLine();
+        
+        result.AppendLine("CONCURRENCY SAFETY:");
+        result.AppendLine("  ✅ Read-only operations: Always safe for parallel execution");
+        result.AppendLine("     (Info, List, Search, Check, Help, Metrics tools)");
+        result.AppendLine("  ⚠️  Mutating operations: Safe on different targets only");
+        result.AppendLine("     (Build, Add, Remove operations on different projects)");
+        result.AppendLine("  ❌ Global/Long-running: Never run in parallel");
+        result.AppendLine("     (Watch commands, Run, Certificate operations, Cache clearing)");
+        result.AppendLine();
+        result.AppendLine("  📖 See documentation: doc/concurrency.md");
+        result.AppendLine("     Full concurrency safety matrix with detailed guidance");
+        result.AppendLine();
+        
+        result.AppendLine("CACHING:");
+        result.AppendLine("  • Templates: 5-minute TTL, thread-safe with metrics");
+        result.AppendLine("  • SDK Info: 5-minute TTL, thread-safe with metrics");
+        result.AppendLine("  • Runtime Info: 5-minute TTL, thread-safe with metrics");
+        result.AppendLine("  • Force reload available on template tools");
+        result.AppendLine("  • Use dotnet_cache_metrics for hit/miss statistics");
+        result.AppendLine();
+        
+        result.AppendLine("RESOURCES (Read-Only Access):");
+        result.AppendLine("  • dotnet://sdk-info - Installed SDKs with versions and paths");
+        result.AppendLine("  • dotnet://runtime-info - Installed runtimes with metadata");
+        result.AppendLine("  • dotnet://templates - Complete template catalog");
+        result.AppendLine("  • dotnet://frameworks - Framework information with LTS status");
+        result.AppendLine();
+        
+        result.AppendLine("DOCUMENTATION:");
+        result.AppendLine("  • README: https://github.com/jongalloway/dotnet-mcp");
+        result.AppendLine("  • SDK Integration: doc/sdk-integration.md");
+        result.AppendLine("  • Advanced Topics: doc/advanced-topics.md");
+        result.AppendLine("  • Concurrency Safety: doc/concurrency.md");
+        result.AppendLine();
+        
+        result.AppendLine("For detailed concurrency guidance and parallel execution patterns,");
+        result.AppendLine("see the Concurrency Safety Matrix at: doc/concurrency.md");
+        
+        return Task.FromResult(result.ToString());
+    }
+
     [McpServerTool, Description("Format code according to .editorconfig and style rules. Available since .NET 6 SDK. Useful for enforcing consistent code style across projects.")]
     [McpMeta("category", "format")]
     [McpMeta("priority", 6.0)]

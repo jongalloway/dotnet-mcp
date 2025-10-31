@@ -564,6 +564,7 @@ Resources provide structured JSON data and are more efficient than tool calls fo
 ### Tools - Help
 
 - **dotnet_help** - Get help for any dotnet command
+- **dotnet_server_capabilities** - Get MCP server capabilities and concurrency guidance
 
 ## Building from Source
 
@@ -626,6 +627,7 @@ dotnet-mcp/
 
 - 📖 [SDK Integration Details](doc/sdk-integration.md) - Technical architecture and SDK usage
 - 📖 [Advanced Topics](doc/advanced-topics.md) - Performance, logging, and security details
+- 📖 [Concurrency Safety](doc/concurrency.md) - Parallel execution guidance for AI orchestrators
 - 📖 [Model Context Protocol](https://modelcontextprotocol.io/) - Official MCP specification
 - 📖 [MCP C# SDK Docs](https://modelcontextprotocol.github.io/csharp-sdk/) - SDK documentation
 
