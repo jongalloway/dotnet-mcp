@@ -107,7 +107,7 @@ public sealed class DotNetCliTools
 
         // Validate additionalOptions to prevent injection attempts
         if (!string.IsNullOrEmpty(additionalOptions) && !IsValidAdditionalOptions(additionalOptions))
-            return "Error: additionalOptions contains invalid characters. Only alphanumeric characters, hyphens, underscores, dots, and spaces are allowed.";
+            return "Error: additionalOptions contains invalid characters. Only alphanumeric characters, hyphens, underscores, dots, spaces, and equals signs are allowed.";
 
         var args = new StringBuilder($"new {template}");
         if (!string.IsNullOrEmpty(name)) args.Append($" -n \"{name}\"");
