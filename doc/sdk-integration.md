@@ -34,6 +34,55 @@ Provides framework validation and metadata:
 
 ## Helper Classes
 
+### CachedResourceManager<T>
+
+Located in `DotNetMcp/CachedResourceManager.cs`
+
+Generic cache manager for readonly resources with configurable TTL and metrics tracking:
+
+**Features:**
+- Configurable TTL (default: 300 seconds)
+- Thread-safe async operations using `SemaphoreSlim`
+- Cache hit/miss metrics tracking
+- Force reload capability
+- Automatic cache expiration
+- JSON response generation with cache metadata
+
+**Usage Example:**
+```csharp
+var cache = new CachedResourceManager<string>("MyResource", defaultTtlSeconds: 300);
+
+// Load or get from cache
+var entry = await cache.GetOrLoadAsync(async () => {
+    return await LoadDataFromSource();
+});
+
+// Force reload
+var freshEntry = await cache.GetOrLoadAsync(LoadDataFromSource, forceReload: true);
+
+// Check metrics
+Console.WriteLine($"Cache metrics: {cache.Metrics}");
+
+// Clear cache
+await cache.ClearAsync();
+```
+
+### CacheMetrics
+
+Located in `DotNetMcp/CacheMetrics.cs`
+
+Thread-safe metrics tracker for monitoring cache performance:
+
+**Properties:**
+- `Hits` - Number of cache hits
+- `Misses` - Number of cache misses
+- `HitRatio` - Cache hit ratio (0.0 to 1.0)
+
+**Methods:**
+- `RecordHit()` - Increment hit counter
+- `RecordMiss()` - Increment miss counter
+- `Reset()` - Reset all metrics to zero
+
 ### DotNetSdkConstants
 
 Located in `DotNetMcp/DotNetSdkConstants.cs`
@@ -78,19 +127,36 @@ DotNetSdkConstants.CommonPackages.XUnit
 
 Located in `DotNetMcp/TemplateEngineHelper.cs`
 
-Integrates with the .NET Template Engine for template operations:
+Integrates with the .NET Template Engine for template operations with built-in caching:
 
 **Methods:**
-- `GetInstalledTemplatesAsync()` - Get all installed templates with metadata
-- `GetTemplateDetailsAsync(shortName)` - Get detailed template information
-- `SearchTemplatesAsync(searchTerm)` - Search templates by name/description
-- `ValidateTemplateExistsAsync(shortName)` - Check if a template exists
+- `GetInstalledTemplatesAsync(forceReload)` - Get all installed templates with metadata
+- `GetTemplateDetailsAsync(shortName, forceReload)` - Get detailed template information
+- `SearchTemplatesAsync(searchTerm, forceReload)` - Search templates by name/description
+- `ValidateTemplateExistsAsync(shortName, forceReload)` - Check if a template exists
+- `ClearCacheAsync()` - Clear template cache and reset metrics
+- `Metrics` - Property to access cache hit/miss statistics
+
+**Caching:**
+- Templates are cached for 5 minutes (300 seconds) by default
+- Cache can be bypassed with `forceReload: true` parameter
+- Cache is automatically invalidated after expiry or when cleared
+- Thread-safe implementation using `CachedResourceManager<T>`
 
 **Usage Example:**
 ```csharp
+// Normal usage (uses cache)
 var templates = await TemplateEngineHelper.GetInstalledTemplatesAsync();
-var details = await TemplateEngineHelper.GetTemplateDetailsAsync("webapi");
-var matches = await TemplateEngineHelper.SearchTemplatesAsync("web");
+
+// Force reload from disk
+var freshTemplates = await TemplateEngineHelper.GetInstalledTemplatesAsync(forceReload: true);
+
+// Check cache metrics
+var metrics = TemplateEngineHelper.Metrics;
+Console.WriteLine($"Cache hits: {metrics.Hits}, Misses: {metrics.Misses}");
+
+// Clear cache after installing new templates
+await TemplateEngineHelper.ClearCacheAsync();
 ```
 
 ### FrameworkHelper
@@ -126,19 +192,76 @@ if (FrameworkHelper.IsValidFramework("net8.0"))
 
 ### Template Tools
 
-**`dotnet_template_list`**
+**`dotnet_template_list(forceReload)`**
 Lists all installed templates using the Template Engine API. Returns structured data with template names, languages, types, and descriptions.
+- Cached for 5 minutes by default
+- Use `forceReload: true` to bypass cache
 
-**`dotnet_template_search`**
+**`dotnet_template_search(searchTerm, forceReload)`**
 Searches templates by name or description. More powerful than CLI text parsing.
+- Uses cached template data
+- Can force reload for fresh results
 
-**`dotnet_template_info`**
+**`dotnet_template_info(templateShortName, forceReload)`**
 Gets detailed template information including all available parameters and their types.
+- Uses cached template data
+- Can force reload for fresh results
+
+**`dotnet_template_clear_cache()`**
+Clears all caches (templates, SDK, runtime) and resets metrics. Use after installing/uninstalling templates or SDK versions.
+
+**`dotnet_cache_metrics()`**
+Returns cache hit/miss statistics for all cached resources (templates, SDK info, runtime info).
 
 ### Framework Tools
 
 **`dotnet_framework_info`**
 Provides framework version information, identifies LTS releases, and classifies frameworks (modern .NET, .NET Core, etc.).
+
+## MCP Resources with Caching
+
+### Resource Endpoints
+
+**`dotnet://sdk-info`**
+- Returns JSON with installed .NET SDK versions and paths
+- Cached for 5 minutes (300 seconds)
+- Includes cache metadata: timestamp, age, duration, metrics
+
+**`dotnet://runtime-info`**
+- Returns JSON with installed .NET runtime information
+- Cached for 5 minutes (300 seconds)
+- Includes cache metadata: timestamp, age, duration, metrics
+
+**`dotnet://templates`**
+- Returns JSON catalog of installed templates with full metadata
+- Cached for 5 minutes (300 seconds)
+- Uses TemplateEngineHelper cache
+
+**`dotnet://frameworks`**
+- Returns JSON with framework information (not cached)
+- Provides static metadata about .NET TFMs
+
+### Cache Response Format
+
+All cached resources include metadata:
+
+```json
+{
+  "data": {
+    // Actual resource data
+  },
+  "cache": {
+    "timestamp": "2025-10-31T05:50:00.000Z",
+    "cacheAgeSeconds": 15,
+    "cacheDurationSeconds": 300,
+    "metrics": {
+      "hits": 5,
+      "misses": 1,
+      "hitRatio": 0.8333
+    }
+  }
+}
+```
 
 ## Architecture
 

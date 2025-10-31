@@ -17,16 +17,46 @@ internal record RuntimeInfo(string Name, string Version, string Path);
 /// <summary>
 /// MCP Resources for .NET environment information.
 /// Provides read-only access to .NET SDK, runtime, template, and framework metadata.
+/// Implements caching with configurable TTL and metrics for performance.
 /// </summary>
 [McpServerResourceType]
 public sealed class DotNetResources
 {
     private readonly ILogger<DotNetResources> _logger;
 
+    // Static cache managers for SDK and Runtime info (300 second TTL by default)
+    private static readonly CachedResourceManager<List<SdkInfo>> _sdkCacheManager =
+        new("SDK", defaultTtlSeconds: 300);
+    private static readonly CachedResourceManager<List<RuntimeInfo>> _runtimeCacheManager =
+        new("Runtime", defaultTtlSeconds: 300);
+
     public DotNetResources(ILogger<DotNetResources> logger)
     {
         _logger = logger;
     }
+
+    /// <summary>
+    /// Clears all caches (SDK, Runtime, Templates) and resets metrics.
+    /// </summary>
+    public static async Task ClearAllCachesAsync()
+    {
+        await _sdkCacheManager.ClearAsync();
+        await _runtimeCacheManager.ClearAsync();
+        await TemplateEngineHelper.ClearCacheAsync();
+        
+        _sdkCacheManager.ResetMetrics();
+        _runtimeCacheManager.ResetMetrics();
+    }
+
+    /// <summary>
+    /// Gets SDK cache metrics.
+    /// </summary>
+    public static CacheMetrics GetSdkMetrics() => _sdkCacheManager.Metrics;
+
+    /// <summary>
+    /// Gets Runtime cache metrics.
+    /// </summary>
+    public static CacheMetrics GetRuntimeMetrics() => _runtimeCacheManager.Metrics;
 
     [McpServerResource(
         UriTemplate = "dotnet://sdk-info",
@@ -36,41 +66,41 @@ public sealed class DotNetResources
     [McpMeta("category", "sdk")]
     [McpMeta("dataFormat", "json")]
     [McpMeta("refreshable", true)]
+    [McpMeta("cached", true)]
     public async Task<string> GetSdkInfo()
     {
         _logger.LogDebug("Reading SDK information");
         try
         {
-            var result = await DotNetCommandExecutor.ExecuteCommandForResourceAsync("--list-sdks", _logger);
-
-            // Parse the SDK list output
-            var sdks = new List<SdkInfo>();
-            var lines = result.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-
-            foreach (var line in lines)
+            var entry = await _sdkCacheManager.GetOrLoadAsync(async () =>
             {
-                // Format: "9.0.100 [C:\Program Files\dotnet\sdk]"
-                var parts = line.Split('[', 2);
-                if (parts.Length == 2)
-                {
-                    var version = parts[0].Trim();
-                    var path = parts[1].TrimEnd(']').Trim();
-                    sdks.Add(new SdkInfo(version, Path.Combine(path, version)));
-                }
-            }
+                var result = await DotNetCommandExecutor.ExecuteCommandForResourceAsync("--list-sdks", _logger);
 
-            // Sort SDKs by version to ensure we always return the latest, regardless of CLI output order
-            var sortedSdks = sdks
-                .OrderBy(sdk => Version.TryParse(sdk.Version, out var v) ? v : new Version(0, 0))
-                .ToList();
+                // Parse the SDK list output and sort by version
+                var lines = result.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                
+                var sdks = lines
+                    .Select(line => line.Split('[', 2))
+                    .Where(parts => parts.Length == 2)
+                    .Select(parts => 
+                    {
+                        var version = parts[0].Trim();
+                        var path = parts[1].TrimEnd(']').Trim();
+                        return new SdkInfo(version, Path.Combine(path, version));
+                    })
+                    .OrderBy(sdk => Version.TryParse(sdk.Version, out var v) ? v : new Version(0, 0))
+                    .ToList();
 
-            var response = new
+                return sdks;
+            });
+
+            var responseData = new
             {
-                sdks = sortedSdks,
-                latestSdk = sortedSdks.LastOrDefault()?.Version
+                sdks = entry.Data,
+                latestSdk = entry.Data.LastOrDefault()?.Version
             };
 
-            return JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true });
+            return _sdkCacheManager.GetJsonResponse(entry, responseData, DateTime.UtcNow);
         }
         catch (Exception ex)
         {
@@ -87,36 +117,42 @@ public sealed class DotNetResources
     [McpMeta("category", "runtime")]
     [McpMeta("dataFormat", "json")]
     [McpMeta("refreshable", true)]
+    [McpMeta("cached", true)]
     public async Task<string> GetRuntimeInfo()
     {
         _logger.LogDebug("Reading runtime information");
         try
         {
-            var result = await DotNetCommandExecutor.ExecuteCommandForResourceAsync("--list-runtimes", _logger);
-
-            // Parse the runtime list output
-            var runtimes = new List<RuntimeInfo>();
-            var lines = result.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-
-            foreach (var line in lines)
+            var entry = await _runtimeCacheManager.GetOrLoadAsync(async () =>
             {
-                // Format: "Microsoft.NETCore.App 9.0.0 [C:\Program Files\dotnet\shared\Microsoft.NETCore.App]"
-                var parts = line.Split('[', 2);
-                if (parts.Length == 2)
-                {
-                    var nameAndVersion = parts[0].Trim().Split(' ', 2);
-                    if (nameAndVersion.Length == 2)
-                    {
-                        var name = nameAndVersion[0];
-                        var version = nameAndVersion[1];
-                        var path = parts[1].TrimEnd(']').Trim();
-                        runtimes.Add(new RuntimeInfo(name, version, Path.Combine(path, version)));
-                    }
-                }
-            }
+                var result = await DotNetCommandExecutor.ExecuteCommandForResourceAsync("--list-runtimes", _logger);
 
-            var response = new { runtimes };
-            return JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true });
+                // Parse the runtime list output
+                var lines = result.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                
+                var runtimes = lines
+                    .Select(line => line.Split('[', 2))
+                    .Where(parts => parts.Length == 2)
+                    .Select(parts =>
+                    {
+                        var nameAndVersion = parts[0].Trim().Split(' ', 2);
+                        if (nameAndVersion.Length == 2)
+                        {
+                            var name = nameAndVersion[0];
+                            var version = nameAndVersion[1];
+                            var path = parts[1].TrimEnd(']').Trim();
+                            return new RuntimeInfo(name, version, Path.Combine(path, version));
+                        }
+                        return null;
+                    })
+                    .OfType<RuntimeInfo>()
+                    .ToList();
+
+                return runtimes;
+            });
+
+            var responseData = new { runtimes = entry.Data };
+            return _runtimeCacheManager.GetJsonResponse(entry, responseData, DateTime.UtcNow);
         }
         catch (Exception ex)
         {
@@ -139,7 +175,7 @@ public sealed class DotNetResources
         _logger.LogDebug("Reading template catalog");
         try
         {
-            var templates = await TemplateEngineHelper.GetTemplatesCachedInternalAsync(_logger);
+            var templates = await TemplateEngineHelper.GetTemplatesCachedInternalAsync(forceReload: false, logger: _logger);
 
             var templateList = templates.Select(t => new
             {
