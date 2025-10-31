@@ -100,7 +100,7 @@ public sealed class DotNetResources
                 latestSdk = entry.Data.LastOrDefault()?.Version
             };
 
-            return _sdkCacheManager.GetJsonResponse(entry, responseData);
+            return _sdkCacheManager.GetJsonResponse(entry, responseData, DateTime.UtcNow);
         }
         catch (Exception ex)
         {
@@ -141,19 +141,18 @@ public sealed class DotNetResources
                             var name = nameAndVersion[0];
                             var version = nameAndVersion[1];
                             var path = parts[1].TrimEnd(']').Trim();
-                            return new RuntimeInfo(name, version, Path.Combine(path, version));
+                            return (RuntimeInfo?)new RuntimeInfo(name, version, path);
                         }
                         return null;
                     })
-                    .Where(r => r != null)
-                    .Cast<RuntimeInfo>()
+                    .OfType<RuntimeInfo>()
                     .ToList();
 
                 return runtimes;
             });
 
             var responseData = new { runtimes = entry.Data };
-            return _runtimeCacheManager.GetJsonResponse(entry, responseData);
+            return _runtimeCacheManager.GetJsonResponse(entry, responseData, DateTime.UtcNow);
         }
         catch (Exception ex)
         {

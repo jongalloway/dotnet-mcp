@@ -10,7 +10,7 @@ public class CachedResourceManagerTests
     public async Task GetOrLoadAsync_LoadsDataOnFirstCall()
     {
         // Arrange
-        var manager = new CachedResourceManager<string>("TestResource");
+        using var manager = new CachedResourceManager<string>("TestResource");
         var loadCount = 0;
 
         // Act
@@ -32,7 +32,7 @@ public class CachedResourceManagerTests
     public async Task GetOrLoadAsync_UsesCache_OnSubsequentCalls()
     {
         // Arrange
-        var manager = new CachedResourceManager<string>("TestResource");
+        using var manager = new CachedResourceManager<string>("TestResource");
         var loadCount = 0;
 
         // Act
@@ -62,7 +62,7 @@ public class CachedResourceManagerTests
     public async Task GetOrLoadAsync_ReloadsData_WhenForceReloadIsTrue()
     {
         // Arrange
-        var manager = new CachedResourceManager<string>("TestResource");
+        using var manager = new CachedResourceManager<string>("TestResource");
         var loadCount = 0;
 
         // Act
@@ -90,7 +90,7 @@ public class CachedResourceManagerTests
     public async Task GetOrLoadAsync_ReloadsData_AfterCacheExpires()
     {
         // Arrange - Cache with 1 second TTL
-        var manager = new CachedResourceManager<string>("TestResource", defaultTtlSeconds: 1);
+        using var manager = new CachedResourceManager<string>("TestResource", defaultTtlSeconds: 1);
         var loadCount = 0;
 
         // Act - Load once
@@ -122,7 +122,7 @@ public class CachedResourceManagerTests
     public async Task ClearAsync_ClearsCache()
     {
         // Arrange
-        var manager = new CachedResourceManager<string>("TestResource");
+        using var manager = new CachedResourceManager<string>("TestResource");
         var loadCount = 0;
 
         await manager.GetOrLoadAsync(async () =>
@@ -150,7 +150,7 @@ public class CachedResourceManagerTests
     public void ResetMetrics_ClearsMetrics()
     {
         // Arrange
-        var manager = new CachedResourceManager<string>("TestResource");
+        using var manager = new CachedResourceManager<string>("TestResource");
         manager.Metrics.RecordHit();
         manager.Metrics.RecordHit();
         manager.Metrics.RecordMiss();
@@ -167,11 +167,11 @@ public class CachedResourceManagerTests
     public async Task GetJsonResponse_IncludesCacheMetadata()
     {
         // Arrange
-        var manager = new CachedResourceManager<string>("TestResource");
+        using var manager = new CachedResourceManager<string>("TestResource");
         var entry = await manager.GetOrLoadAsync(async () => "test data");
 
         // Act
-        var json = manager.GetJsonResponse(entry, new { value = "test" });
+        var json = manager.GetJsonResponse(entry, new { value = "test" }, DateTime.UtcNow);
 
         // Assert
         json.Should().Contain("\"data\"");

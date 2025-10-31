@@ -134,9 +134,11 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
     /// <summary>
     /// Gets a JSON response with cache metadata included.
     /// </summary>
-    public string GetJsonResponse(CachedEntry<T> entry, object additionalData)
+    /// <param name="entry">The cached entry containing data and metadata.</param>
+    /// <param name="additionalData">Additional data to include in the response.</param>
+    /// <param name="now">The timestamp representing when the cache entry was accessed.</param>
+    public string GetJsonResponse(CachedEntry<T> entry, object additionalData, DateTime now)
     {
-        var now = DateTime.UtcNow;
         var response = new
         {
             data = additionalData,
