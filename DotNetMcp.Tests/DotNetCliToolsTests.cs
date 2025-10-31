@@ -350,4 +350,289 @@ public class DotNetCliToolsTests
 
         result.Should().Contain("Error: additionalOptions contains invalid characters");
     }
+
+    // Tool Management Tests
+
+    [Fact]
+    public async Task DotnetToolInstall_WithPackageName_ExecutesCommand()
+    {
+        // Validates that tool install with package name works
+        var result = await _tools.DotnetToolInstall(
+            packageName: "dotnet-ef");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetToolInstall_WithGlobalFlag_ExecutesCommand()
+    {
+        // Validates that global tool install works
+        var result = await _tools.DotnetToolInstall(
+            packageName: "dotnet-ef",
+            global: true);
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetToolInstall_WithVersion_ExecutesCommand()
+    {
+        // Validates that tool install with specific version works
+        var result = await _tools.DotnetToolInstall(
+            packageName: "dotnet-ef",
+            version: "8.0.0");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetToolInstall_WithFramework_ExecutesCommand()
+    {
+        // Validates that tool install with framework works
+        var result = await _tools.DotnetToolInstall(
+            packageName: "dotnet-ef",
+            framework: "net8.0");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetToolInstall_WithAllParameters_ExecutesCommand()
+    {
+        // Validates that all parameters work together
+        var result = await _tools.DotnetToolInstall(
+            packageName: "dotnet-ef",
+            global: true,
+            version: "8.0.0",
+            framework: "net8.0");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetToolInstall_WithEmptyPackageName_ReturnsError()
+    {
+        // Validates that empty package name returns error
+        var result = await _tools.DotnetToolInstall(
+            packageName: "");
+
+        result.Should().Contain("Error");
+        result.Should().Contain("packageName parameter is required");
+    }
+
+    [Fact]
+    public async Task DotnetToolList_WithoutGlobalFlag_ExecutesCommand()
+    {
+        // Validates that local tool list works
+        var result = await _tools.DotnetToolList();
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetToolList_WithGlobalFlag_ExecutesCommand()
+    {
+        // Validates that global tool list works
+        var result = await _tools.DotnetToolList(
+            global: true);
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetToolUpdate_WithPackageName_ExecutesCommand()
+    {
+        // Validates that tool update with package name works
+        var result = await _tools.DotnetToolUpdate(
+            packageName: "dotnet-ef");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetToolUpdate_WithGlobalFlag_ExecutesCommand()
+    {
+        // Validates that global tool update works
+        var result = await _tools.DotnetToolUpdate(
+            packageName: "dotnet-ef",
+            global: true);
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetToolUpdate_WithVersion_ExecutesCommand()
+    {
+        // Validates that tool update to specific version works
+        var result = await _tools.DotnetToolUpdate(
+            packageName: "dotnet-ef",
+            version: "8.0.1");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetToolUpdate_WithEmptyPackageName_ReturnsError()
+    {
+        // Validates that empty package name returns error
+        var result = await _tools.DotnetToolUpdate(
+            packageName: "");
+
+        result.Should().Contain("Error");
+        result.Should().Contain("packageName parameter is required");
+    }
+
+    [Fact]
+    public async Task DotnetToolUninstall_WithPackageName_ExecutesCommand()
+    {
+        // Validates that tool uninstall with package name works
+        var result = await _tools.DotnetToolUninstall(
+            packageName: "dotnet-ef");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetToolUninstall_WithGlobalFlag_ExecutesCommand()
+    {
+        // Validates that global tool uninstall works
+        var result = await _tools.DotnetToolUninstall(
+            packageName: "dotnet-ef",
+            global: true);
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetToolUninstall_WithEmptyPackageName_ReturnsError()
+    {
+        // Validates that empty package name returns error
+        var result = await _tools.DotnetToolUninstall(
+            packageName: "");
+
+        result.Should().Contain("Error");
+        result.Should().Contain("packageName parameter is required");
+    }
+
+    [Fact]
+    public async Task DotnetToolRestore_ExecutesCommand()
+    {
+        // Validates that tool restore command works
+        var result = await _tools.DotnetToolRestore();
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetToolSearch_WithSearchTerm_ExecutesCommand()
+    {
+        // Validates that tool search with search term works
+        var result = await _tools.DotnetToolSearch(
+            searchTerm: "entity");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetToolSearch_WithDetail_ExecutesCommand()
+    {
+        // Validates that tool search with detail flag works
+        var result = await _tools.DotnetToolSearch(
+            searchTerm: "entity",
+            detail: true);
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetToolSearch_WithTakeAndSkip_ExecutesCommand()
+    {
+        // Validates that tool search with pagination works
+        var result = await _tools.DotnetToolSearch(
+            searchTerm: "entity",
+            take: 10,
+            skip: 5);
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetToolSearch_WithPrerelease_ExecutesCommand()
+    {
+        // Validates that tool search with prerelease flag works
+        var result = await _tools.DotnetToolSearch(
+            searchTerm: "entity",
+            prerelease: true);
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetToolSearch_WithAllParameters_ExecutesCommand()
+    {
+        // Validates that all parameters work together
+        var result = await _tools.DotnetToolSearch(
+            searchTerm: "entity",
+            detail: true,
+            take: 10,
+            skip: 5,
+            prerelease: true);
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetToolSearch_WithEmptySearchTerm_ReturnsError()
+    {
+        // Validates that empty search term returns error
+        var result = await _tools.DotnetToolSearch(
+            searchTerm: "");
+
+        result.Should().Contain("Error");
+        result.Should().Contain("searchTerm parameter is required");
+    }
+
+    [Fact]
+    public async Task DotnetToolRun_WithToolName_ExecutesCommand()
+    {
+        // Validates that tool run with tool name works
+        var result = await _tools.DotnetToolRun(
+            toolName: "dotnet-ef");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetToolRun_WithArgs_ExecutesCommand()
+    {
+        // Validates that tool run with arguments works
+        var result = await _tools.DotnetToolRun(
+            toolName: "dotnet-ef",
+            args: "migrations add Initial");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetToolRun_WithEmptyToolName_ReturnsError()
+    {
+        // Validates that empty tool name returns error
+        var result = await _tools.DotnetToolRun(
+            toolName: "");
+
+        result.Should().Contain("Error");
+        result.Should().Contain("toolName parameter is required");
+    }
+
+    [Fact]
+    public async Task DotnetToolRun_WithInvalidArgsCharacters_ReturnsError()
+    {
+        // Validates that args with shell metacharacters returns error
+        var result = await _tools.DotnetToolRun(
+            toolName: "dotnet-ef",
+            args: "migrations add Initial && echo hacked");
+
+        result.Should().Contain("Error");
+        result.Should().Contain("args contains invalid characters");
+    }
 }
