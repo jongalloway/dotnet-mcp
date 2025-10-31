@@ -7,9 +7,9 @@ namespace DotNetMcp;
 /// Represents a cached resource entry with metadata.
 /// </summary>
 /// <typeparam name="T">The type of data being cached.</typeparam>
-public class CachedEntry<T>
+public class CachedEntry<T> where T : notnull
 {
-    public T Data { get; set; } = default!;
+    public required T Data { get; set; }
     public DateTime CachedAt { get; set; }
     public TimeSpan CacheDuration { get; set; }
 
@@ -23,7 +23,7 @@ public class CachedEntry<T>
 /// Thread-safe implementation using SemaphoreSlim for async operations.
 /// </summary>
 /// <typeparam name="T">The type of data being cached.</typeparam>
-public class CachedResourceManager<T>
+public class CachedResourceManager<T> : IDisposable where T : notnull
 {
     private readonly SemaphoreSlim _cacheLock = new(1, 1);
     private CachedEntry<T>? _cache;

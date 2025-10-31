@@ -69,15 +69,6 @@ public class TemplateEngineHelper
     }
 
     /// <summary>
-    /// Dispose of resources. This should be called when the helper is no longer needed,
-    /// particularly in testing or hosting scenarios where the application may be stopped/restarted.
-    /// </summary>
-    public static void Dispose()
-    {
-        _cacheManager.Dispose();
-    }
-
-    /// <summary>
     /// Get a list of all installed templates with their metadata.
     /// </summary>
     /// <param name="forceReload">If true, bypasses cache and reloads from disk.</param>
