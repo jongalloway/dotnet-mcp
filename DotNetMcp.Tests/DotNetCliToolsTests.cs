@@ -520,4 +520,16 @@ public class DotNetCliToolsTests
         result.Should().Contain("Error");
         result.Should().Contain("toolName parameter is required");
     }
+
+    [Fact]
+    public async Task DotnetToolRun_WithInvalidArgsCharacters_ReturnsError()
+    {
+        // Validates that args with shell metacharacters returns error
+        var result = await _tools.DotnetToolRun(
+            toolName: "dotnet-ef",
+            args: "migrations add Initial && echo hacked");
+
+        result.Should().Contain("Error");
+        result.Should().Contain("args contains invalid characters");
+    }
 }

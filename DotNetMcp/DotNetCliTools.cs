@@ -616,7 +616,7 @@ public sealed class DotNetCliTools
         if (string.IsNullOrWhiteSpace(packageName))
             return "Error: packageName parameter is required.";
 
-        var args = new StringBuilder($"tool install {packageName}");
+        var args = new StringBuilder($"tool install \"{packageName}\"");
         if (global) args.Append(" --global");
         if (!string.IsNullOrEmpty(version)) args.Append($" --version {version}");
         if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
@@ -645,7 +645,7 @@ public sealed class DotNetCliTools
         if (string.IsNullOrWhiteSpace(packageName))
             return "Error: packageName parameter is required.";
 
-        var args = new StringBuilder($"tool update {packageName}");
+        var args = new StringBuilder($"tool update \"{packageName}\"");
         if (global) args.Append(" --global");
         if (!string.IsNullOrEmpty(version)) args.Append($" --version {version}");
         return await ExecuteDotNetCommand(args.ToString());
@@ -661,7 +661,7 @@ public sealed class DotNetCliTools
         if (string.IsNullOrWhiteSpace(packageName))
             return "Error: packageName parameter is required.";
 
-        var args = new StringBuilder($"tool uninstall {packageName}");
+        var args = new StringBuilder($"tool uninstall \"{packageName}\"");
         if (global) args.Append(" --global");
         return await ExecuteDotNetCommand(args.ToString());
     }
@@ -685,7 +685,7 @@ public sealed class DotNetCliTools
         if (string.IsNullOrWhiteSpace(searchTerm))
             return "Error: searchTerm parameter is required.";
 
-        var args = new StringBuilder($"tool search {searchTerm}");
+        var args = new StringBuilder($"tool search \"{searchTerm}\"");
         if (detail) args.Append(" --detail");
         if (take.HasValue) args.Append($" --take {take.Value}");
         if (skip.HasValue) args.Append($" --skip {skip.Value}");
@@ -703,7 +703,10 @@ public sealed class DotNetCliTools
         if (string.IsNullOrWhiteSpace(toolName))
             return "Error: toolName parameter is required.";
 
-        var commandArgs = new StringBuilder($"tool run {toolName}");
+        if (!string.IsNullOrEmpty(args) && !IsValidAdditionalOptions(args))
+            return "Error: args contains invalid characters. Only alphanumeric characters, hyphens, underscores, dots, spaces, and equals signs are allowed.";
+
+        var commandArgs = new StringBuilder($"tool run \"{toolName}\"");
         if (!string.IsNullOrEmpty(args)) commandArgs.Append($" -- {args}");
         return await ExecuteDotNetCommand(commandArgs.ToString());
     }
