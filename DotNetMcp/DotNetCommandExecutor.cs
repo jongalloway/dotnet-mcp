@@ -102,11 +102,11 @@ public static class DotNetCommandExecutor
 
         // Otherwise, return plain text format (backwards compatible)
         var textResult = new StringBuilder();
-        if (output.Length > 0) textResult.Append(output).AppendLine();
+        if (output.Length > 0) textResult.AppendLine(output.ToString().TrimEnd());
         if (error.Length > 0)
         {
             textResult.AppendLine("Errors:");
-            textResult.Append(error).AppendLine();
+            textResult.AppendLine(error.ToString().TrimEnd());
         }
         textResult.AppendLine($"Exit Code: {process.ExitCode}");
         return textResult.ToString();

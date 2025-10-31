@@ -59,7 +59,7 @@ public static partial class ErrorResultFactory
         // Parse errors from each line using LINQ
         errors.AddRange(lines
             .Select(ParseErrorLine)
-            .Where(errorResult => errorResult != null)!);
+            .OfType<ErrorResult>());
 
         // If no specific errors were parsed, create a generic error
         if (errors.Count == 0)
