@@ -7,7 +7,9 @@ namespace DotNetMcp.Tests;
 
 /// <summary>
 /// Integration tests for the caching layer across template and resource operations.
+/// Tests in this collection run sequentially to avoid cache state interference.
 /// </summary>
+[Collection("CachingIntegrationTests")]
 public class CachingIntegrationTests
 {
     [Fact]
