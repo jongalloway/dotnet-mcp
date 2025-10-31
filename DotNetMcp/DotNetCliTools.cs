@@ -556,7 +556,7 @@ public sealed class DotNetCliTools
         result.AppendLine();
         
         result.AppendLine("FEATURES:");
-        result.AppendLine("  • 48 MCP Tools across 13 categories");
+        result.AppendLine("  • 49 MCP Tools across 13 categories");
         result.AppendLine("  • 4 MCP Resources (SDK, Runtime, Templates, Frameworks)");
         result.AppendLine("  • Direct .NET SDK integration via NuGet packages");
         result.AppendLine("  • Template Engine integration with caching (5-min TTL)");

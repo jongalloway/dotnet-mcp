@@ -4,7 +4,7 @@ This document provides guidance for AI orchestrators and MCP clients on which .N
 
 ## Overview
 
-The .NET MCP Server provides 48 tools across 13 categories. Understanding which tools can run concurrently is essential for:
+The .NET MCP Server provides 49 tools across 13 categories. Understanding which tools can run concurrently is essential for:
 
 - **AI orchestrators** that execute multiple operations simultaneously
 - **MCP clients** that batch or parallelize requests
