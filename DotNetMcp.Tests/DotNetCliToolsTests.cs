@@ -141,4 +141,110 @@ public class DotNetCliToolsTests
 
         result.Should().NotBeNull();
     }
+
+    [Fact]
+    public async Task DotnetCertificateTrust_ExecutesCommand()
+    {
+        // Validates that the trust command can be executed
+        var result = await _tools.DotnetCertificateTrust();
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetCertificateCheck_ExecutesCommand()
+    {
+        // Validates that the check command can be executed
+        var result = await _tools.DotnetCertificateCheck();
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetCertificateClean_ExecutesCommand()
+    {
+        // Validates that the clean command can be executed
+        var result = await _tools.DotnetCertificateClean();
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetCertificateExport_WithPathOnly_ExecutesCommand()
+    {
+        // Validates that the export command with just a path works
+        var result = await _tools.DotnetCertificateExport(
+            path: "/tmp/cert.pfx");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetCertificateExport_WithPathAndPassword_ExecutesCommand()
+    {
+        // Validates that the export command with path and password works
+        var result = await _tools.DotnetCertificateExport(
+            path: "/tmp/cert.pfx",
+            password: "testPassword123");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetCertificateExport_WithPfxFormat_ExecutesCommand()
+    {
+        // Validates that the export command with PFX format works
+        var result = await _tools.DotnetCertificateExport(
+            path: "/tmp/cert.pfx",
+            format: "Pfx",
+            password: "testPassword123");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetCertificateExport_WithPemFormat_ExecutesCommand()
+    {
+        // Validates that the export command with PEM format works
+        var result = await _tools.DotnetCertificateExport(
+            path: "/tmp/cert.pem",
+            format: "Pem");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetCertificateExport_WithInvalidFormat_ReturnsError()
+    {
+        // Validates that invalid format returns error
+        var result = await _tools.DotnetCertificateExport(
+            path: "/tmp/cert.pfx",
+            format: "invalid");
+
+        result.Should().Contain("Error");
+        result.Should().Contain("format must be either 'pfx' or 'pem'");
+    }
+
+    [Fact]
+    public async Task DotnetCertificateExport_WithEmptyPath_ReturnsError()
+    {
+        // Validates that empty path returns error
+        var result = await _tools.DotnetCertificateExport(
+            path: "");
+
+        result.Should().Contain("Error");
+        result.Should().Contain("path parameter is required");
+    }
+
+    [Fact]
+    public async Task DotnetCertificateExport_WithAllParameters_ExecutesCommand()
+    {
+        // Validates that all parameters work together
+        var result = await _tools.DotnetCertificateExport(
+            path: "/tmp/cert.pfx",
+            password: "strongPassword123!",
+            format: "Pfx");
+
+        result.Should().NotBeNull();
+    }
 }

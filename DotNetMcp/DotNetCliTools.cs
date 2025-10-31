@@ -544,6 +544,65 @@ public sealed class DotNetCliTools
         return await ExecuteDotNetCommand(args);
     }
 
+    [McpServerTool, Description("Trust the HTTPS development certificate. Installs the certificate to the trusted root store. May require elevation on Windows/macOS. Essential for local ASP.NET Core HTTPS development.")]
+    [McpMeta("category", "security")]
+    [McpMeta("priority", 7.0)]
+    [McpMeta("requiresElevation", true)]
+    public async Task<string> DotnetCertificateTrust()
+        => await ExecuteDotNetCommand("dev-certs https --trust");
+
+    [McpServerTool, Description("Check if the HTTPS development certificate exists and is trusted. Returns certificate status and validity information.")]
+    [McpMeta("category", "security")]
+    [McpMeta("priority", 7.0)]
+    public async Task<string> DotnetCertificateCheck()
+        => await ExecuteDotNetCommand("dev-certs https --check --trust");
+
+    [McpServerTool, Description("Remove all HTTPS development certificates. Use this to clean up old or invalid certificates before creating new ones.")]
+    [McpMeta("category", "security")]
+    [McpMeta("priority", 6.0)]
+    public async Task<string> DotnetCertificateClean()
+        => await ExecuteDotNetCommand("dev-certs https --clean");
+
+    [McpServerTool, Description("Export the HTTPS development certificate to a file. Useful for Docker containers or sharing certificates across environments. Supports PFX and PEM formats with optional password protection.")]
+    [McpMeta("category", "security")]
+    [McpMeta("priority", 6.0)]
+    public async Task<string> DotnetCertificateExport(
+        [Description("Path to export the certificate file")] string path,
+        [Description("Certificate password for protection (optional, but recommended for PFX format)")] string? password = null,
+     [Description("Export format: Pfx or Pem (defaults to Pfx if not specified)")] string? format = null)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        return "Error: path parameter is required.";
+
+        // Validate and normalize format if provided
+        string? normalizedFormat = null;
+  if (!string.IsNullOrEmpty(format))
+        {
+       normalizedFormat = format.ToLowerInvariant();
+        if (normalizedFormat != "pfx" && normalizedFormat != "pem")
+           return "Error: format must be either 'pfx' or 'pem' (case-insensitive).";
+    }
+
+      // Security Note: The password must be passed as a command-line argument to dotnet dev-certs,
+        // which is the standard .NET CLI behavior. While this stores the password temporarily in memory
+        // (CodeQL alert cs/cleartext-storage-of-sensitive-information), this is:
+        // 1. Required by the .NET CLI interface - there's no alternative secure input method
+        // 2. Mitigated by passing logger: null below, which prevents logging of the password
+      // 3. Not persisted to disk or stored long-term
+        // 4. Consistent with how developers manually use the dotnet dev-certs command
+   var args = new StringBuilder("dev-certs https");
+        args.Append($" --export-path \"{path}\"");
+        
+        if (!string.IsNullOrEmpty(normalizedFormat))
+     args.Append($" --format {normalizedFormat}");
+    
+     if (!string.IsNullOrEmpty(password))
+            args.Append($" --password \"{password}\"");
+
+  // Pass logger: null to prevent DotNetCommandExecutor from logging the password
+        return await DotNetCommandExecutor.ExecuteCommandAsync(args.ToString(), logger: null);
+    }
+
     private async Task<string> ExecuteDotNetCommand(string arguments)
         => await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger);
 
