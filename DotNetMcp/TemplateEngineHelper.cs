@@ -32,11 +32,12 @@ public class TemplateEngineHelper
     /// </summary>
     private static async Task<IEnumerable<ITemplateInfo>> LoadTemplatesAsync()
     {
-        var engineEnvironmentSettings = new EngineEnvironmentSettings(
-            new DefaultTemplateEngineHost("dotnet-mcp", "1.0.0"),
+        var host = new DefaultTemplateEngineHost("dotnet-mcp", "1.0.0");
+        using var engineEnvironmentSettings = new EngineEnvironmentSettings(
+            host,
             virtualizeSettings: false);
 
-        var templatePackageManager = new TemplatePackageManager(engineEnvironmentSettings);
+        using var templatePackageManager = new TemplatePackageManager(engineEnvironmentSettings);
         return await templatePackageManager.GetTemplatesAsync(default);
     }
 

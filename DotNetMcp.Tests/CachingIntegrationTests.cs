@@ -42,10 +42,10 @@ public class CachingIntegrationTests
         await TemplateEngineHelper.ClearCacheAsync();
 
         // Act - Load templates
-        var result1 = await TemplateEngineHelper.GetInstalledTemplatesAsync(forceReload: false);
+        await TemplateEngineHelper.GetInstalledTemplatesAsync(forceReload: false);
         
         // Act - Force reload should bypass cache
-        var result2 = await TemplateEngineHelper.GetInstalledTemplatesAsync(forceReload: true);
+        await TemplateEngineHelper.GetInstalledTemplatesAsync(forceReload: true);
 
         // Assert - Both calls should be cache misses
         TemplateEngineHelper.Metrics.Misses.Should().Be(2);

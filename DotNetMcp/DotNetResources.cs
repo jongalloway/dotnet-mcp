@@ -76,26 +76,22 @@ public sealed class DotNetResources
             {
                 var result = await DotNetCommandExecutor.ExecuteCommandForResourceAsync("--list-sdks", _logger);
 
-                // Parse the SDK list output
-                var sdks = new List<SdkInfo>();
+                // Parse the SDK list output and sort by version
                 var lines = result.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-
-                foreach (var line in lines)
-                {
-                    // Format: "9.0.100 [C:\Program Files\dotnet\sdk]"
-                    var parts = line.Split('[', 2);
-                    if (parts.Length == 2)
+                
+                var sdks = lines
+                    .Select(line => line.Split('[', 2))
+                    .Where(parts => parts.Length == 2)
+                    .Select(parts => 
                     {
                         var version = parts[0].Trim();
                         var path = parts[1].TrimEnd(']').Trim();
-                        sdks.Add(new SdkInfo(version, Path.Combine(path, version)));
-                    }
-                }
-
-                // Sort SDKs by version to ensure we always return the latest, regardless of CLI output order
-                return sdks
+                        return new SdkInfo(version, Path.Combine(path, version));
+                    })
                     .OrderBy(sdk => Version.TryParse(sdk.Version, out var v) ? v : new Version(0, 0))
                     .ToList();
+
+                return sdks;
             });
 
             var responseData = new
@@ -132,14 +128,12 @@ public sealed class DotNetResources
                 var result = await DotNetCommandExecutor.ExecuteCommandForResourceAsync("--list-runtimes", _logger);
 
                 // Parse the runtime list output
-                var runtimes = new List<RuntimeInfo>();
                 var lines = result.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-
-                foreach (var line in lines)
-                {
-                    // Format: "Microsoft.NETCore.App 9.0.0 [C:\Program Files\dotnet\shared\Microsoft.NETCore.App]"
-                    var parts = line.Split('[', 2);
-                    if (parts.Length == 2)
+                
+                var runtimes = lines
+                    .Select(line => line.Split('[', 2))
+                    .Where(parts => parts.Length == 2)
+                    .Select(parts =>
                     {
                         var nameAndVersion = parts[0].Trim().Split(' ', 2);
                         if (nameAndVersion.Length == 2)
@@ -147,10 +141,13 @@ public sealed class DotNetResources
                             var name = nameAndVersion[0];
                             var version = nameAndVersion[1];
                             var path = parts[1].TrimEnd(']').Trim();
-                            runtimes.Add(new RuntimeInfo(name, version, Path.Combine(path, version)));
+                            return new RuntimeInfo(name, version, Path.Combine(path, version));
                         }
-                    }
-                }
+                        return null;
+                    })
+                    .Where(r => r != null)
+                    .Cast<RuntimeInfo>()
+                    .ToList();
 
                 return runtimes;
             });

@@ -20,13 +20,17 @@ public class CacheMetrics
 
     /// <summary>
     /// Gets the cache hit ratio (0.0 to 1.0).
+    /// Reads both values atomically for a consistent snapshot.
     /// </summary>
     public double HitRatio
     {
         get
         {
-            var total = Hits + Misses;
-            return total == 0 ? 0.0 : (double)Hits / total;
+            // Read both values together for a consistent snapshot
+            long hits = Interlocked.Read(ref _hits);
+            long misses = Interlocked.Read(ref _misses);
+            long total = hits + misses;
+            return total == 0 ? 0.0 : (double)hits / total;
         }
     }
 

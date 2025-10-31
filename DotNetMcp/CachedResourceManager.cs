@@ -22,6 +22,11 @@ public class CachedEntry<T> where T : notnull
 /// Generic cache manager for readonly resources with configurable TTL and metrics.
 /// Thread-safe implementation using SemaphoreSlim for async operations.
 /// </summary>
+/// <remarks>
+/// When used as a static instance (e.g., in DotNetResources or TemplateEngineHelper),
+/// this class is intended to live for the application lifetime and disposal is handled
+/// by the runtime during application shutdown. For non-static usage, ensure Dispose() is called.
+/// </remarks>
 /// <typeparam name="T">The type of data being cached.</typeparam>
 public class CachedResourceManager<T> : IDisposable where T : notnull
 {
