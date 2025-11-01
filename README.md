@@ -632,6 +632,75 @@ dotnet-mcp/
 - 📖 [Model Context Protocol](https://modelcontextprotocol.io/) - Official MCP specification
 - 📖 [MCP C# SDK Docs](https://modelcontextprotocol.github.io/csharp-sdk/) - SDK documentation
 
+## Interoperability
+
+The .NET MCP Server follows the Model Context Protocol specification and provides rich metadata for tool discovery and AI orchestration:
+
+### Server Metadata
+
+The server includes a comprehensive `server.json` configuration file (`.mcp/server.json`) that provides:
+
+- **Environment Variables**: Optimized .NET CLI settings for MCP usage
+  - `DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1` - Skips first-time setup
+  - `DOTNET_NOLOGO=1` - Suppresses startup messages
+  
+- **Package Information**: NuGet package details for easy installation via `dnx` (requires .NET 10)
+  - Package: `Community.Mcp.DotNet`
+  - Registry: NuGet.org
+  - Transport: stdio
+
+- **Tool Descriptors**: Comprehensive tool metadata including:
+  - Tool IDs using `dotnet_` prefix to avoid namespace collisions
+  - Category tags (template, project, package, solution, etc.)
+  - Discovery tags for semantic search (e.g., "build", "compile", "test")
+  - `commonlyUsed` flag marking the top 10 most frequently used tools
+  
+- **Resource Descriptors**: Read-only resources for efficient metadata access
+  - `dotnet://sdk-info` - SDK version and path information
+  - `dotnet://runtime-info` - Runtime installation details
+  - `dotnet://templates` - Template catalog with parameters
+  - `dotnet://frameworks` - Framework versions with LTS status
+
+### Tool Namespacing
+
+All tools use the `dotnet_` prefix in their external IDs to prevent naming collisions with other MCP servers. This follows best practices for MCP server interoperability:
+
+**Examples:**
+- `dotnet_project_new` - Create new projects
+- `dotnet_project_build` - Build projects
+- `dotnet_package_add` - Add NuGet packages
+- `dotnet_solution_create` - Create solution files
+
+### Discovery Tags
+
+The top 10 commonly used tools include semantic tags to improve discoverability:
+
+1. **dotnet_template_list** - `["template", "list", "discovery", "project-creation"]`
+2. **dotnet_project_new** - `["project", "create", "new", "template", "initialization"]`
+3. **dotnet_project_restore** - `["project", "restore", "dependencies", "packages", "setup"]`
+4. **dotnet_project_build** - `["project", "build", "compile", "compilation"]`
+5. **dotnet_project_run** - `["project", "run", "execute", "launch", "development"]`
+6. **dotnet_project_test** - `["project", "test", "testing", "unit-test", "validation"]`
+7. **dotnet_package_add** - `["package", "add", "nuget", "dependency", "install"]`
+8. **dotnet_package_search** - `["package", "search", "nuget", "discovery", "find"]`
+9. **dotnet_solution_create** - `["solution", "create", "new", "organization", "multi-project"]`
+10. **dotnet_tool_install** - `["tool", "install", "global", "local", "cli"]`
+
+These tags enable AI assistants to:
+- Find relevant tools based on semantic intent
+- Group related operations for workflow suggestions
+- Prioritize commonly used tools in recommendations
+
+### Metadata Access
+
+AI orchestrators can access server metadata through:
+
+1. **MCP Protocol**: Standard tool/resource listing via MCP SDK
+2. **server.json**: Static metadata file for registration and discovery
+3. **Tool Attributes**: Runtime metadata via `McpMeta` attributes in code
+
+For detailed integration examples, see the [MCP specification](https://modelcontextprotocol.io/) and our [SDK integration documentation](doc/sdk-integration.md).
+
 ## Contributing
 
 Contributions are welcome! This is a community-maintained project.

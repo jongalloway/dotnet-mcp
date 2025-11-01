@@ -22,6 +22,9 @@ public sealed class DotNetCliTools
     [McpServerTool, Description("List all installed .NET templates with their metadata using the Template Engine. Provides structured information about available project templates.")]
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
+    [McpMeta("commonlyUsed", true)]
+    [McpMeta("priority", 10.0)]
+    [McpMeta("tags", JsonValue = """["template","list","discovery","project-creation"]""")]
     public async Task<string> DotnetTemplateList(
         [Description("If true, bypasses cache and reloads templates from disk")] bool forceReload = false)
           => await TemplateEngineHelper.GetInstalledTemplatesAsync(forceReload, _logger);
@@ -112,6 +115,7 @@ public sealed class DotNetCliTools
     [McpMeta("category", "project")]
     [McpMeta("priority", 10.0)]
     [McpMeta("commonlyUsed", true)]
+    [McpMeta("tags", JsonValue = """["project","create","new","template","initialization"]""")]
     public async Task<string> DotnetProjectNew(
   [Description("The template to use (e.g., 'console', 'classlib', 'webapi')")] string? template = null,
         [Description("The name for the project")] string? name = null,
@@ -138,6 +142,8 @@ public sealed class DotNetCliTools
     [McpServerTool, Description("Restore the dependencies and tools of a .NET project")]
     [McpMeta("category", "project")]
     [McpMeta("priority", 8.0)]
+    [McpMeta("commonlyUsed", true)]
+    [McpMeta("tags", JsonValue = """["project","restore","dependencies","packages","setup"]""")]
     public async Task<string> DotnetProjectRestore(
         [Description("The project file or solution file to restore")] string? project = null,
         [Description(MachineReadableDescription)] bool machineReadable = false)
@@ -151,6 +157,7 @@ public sealed class DotNetCliTools
     [McpMeta("category", "project")]
     [McpMeta("priority", 10.0)]
     [McpMeta("commonlyUsed", true)]
+    [McpMeta("tags", JsonValue = """["project","build","compile","compilation"]""")]
     public async Task<string> DotnetProjectBuild(
         [Description("The project file or solution file to build")] string? project = null,
         [Description("The configuration to build (Debug or Release)")] string? configuration = null,
@@ -168,6 +175,7 @@ public sealed class DotNetCliTools
     [McpMeta("category", "project")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]
+    [McpMeta("tags", JsonValue = """["project","run","execute","launch","development"]""")]
     public async Task<string> DotnetProjectRun(
       [Description("The project file to run")] string? project = null,
            [Description("The configuration to use (Debug or Release)")] string? configuration = null,
@@ -185,6 +193,7 @@ public sealed class DotNetCliTools
     [McpMeta("category", "project")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]
+    [McpMeta("tags", JsonValue = """["project","test","testing","unit-test","validation"]""")]
     public async Task<string> DotnetProjectTest(
         [Description("The project file or solution file to test")] string? project = null,
         [Description("The configuration to test (Debug or Release)")] string? configuration = null,
@@ -328,6 +337,7 @@ public sealed class DotNetCliTools
     [McpMeta("category", "package")]
     [McpMeta("priority", 8.0)]
     [McpMeta("commonlyUsed", true)]
+    [McpMeta("tags", JsonValue = """["package","add","nuget","dependency","install"]""")]
     public async Task<string> DotnetPackageAdd(
  [Description("The name of the NuGet package to add")] string packageName,
     [Description("The project file to add the package to")] string? project = null,
@@ -387,6 +397,7 @@ public sealed class DotNetCliTools
     [McpMeta("category", "package")]
     [McpMeta("priority", 7.0)]
     [McpMeta("commonlyUsed", true)]
+    [McpMeta("tags", JsonValue = """["package","search","nuget","discovery","find"]""")]
     public async Task<string> DotnetPackageSearch(
         [Description("Search term to find packages")] string searchTerm,
         [Description("Maximum number of results to return (1-100)")] int? take = null,
@@ -446,6 +457,8 @@ public sealed class DotNetCliTools
     [McpServerTool, Description("Create a new .NET solution file. A solution file organizes multiple related projects.")]
     [McpMeta("category", "solution")]
     [McpMeta("priority", 8.0)]
+    [McpMeta("commonlyUsed", true)]
+    [McpMeta("tags", JsonValue = """["solution","create","new","organization","multi-project"]""")]
     public async Task<string> DotnetSolutionCreate(
         [Description("The name for the solution file")] string name,
         [Description("The output directory for the solution file")] string? output = null,
@@ -731,6 +744,7 @@ public sealed class DotNetCliTools
     [McpMeta("category", "tool")]
     [McpMeta("priority", 8.0)]
     [McpMeta("commonlyUsed", true)]
+    [McpMeta("tags", JsonValue = """["tool","install","global","local","cli"]""")]
     public async Task<string> DotnetToolInstall(
         [Description("Package name of the tool (e.g., 'dotnet-ef', 'dotnet-format')")] string packageName,
         [Description("Install globally (system-wide), otherwise installs locally to tool manifest")] bool global = false,
