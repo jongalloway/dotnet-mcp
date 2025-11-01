@@ -14,6 +14,10 @@ public sealed class DotNetCliTools
     private readonly ILogger<DotNetCliTools> _logger;
     private readonly ConcurrencyManager _concurrencyManager;
     private const string MachineReadableDescription = "Return structured JSON output for both success and error responses instead of plain text";
+    
+    // Constants for server capability discovery
+    private const string DefaultServerVersion = "1.0.0";
+    private const string ProtocolVersion = "0.4.0-preview.3";
 
     public DotNetCliTools(ILogger<DotNetCliTools> logger, ConcurrencyManager concurrencyManager)
     {
@@ -577,7 +581,7 @@ public sealed class DotNetCliTools
         var assembly = typeof(DotNetCliTools).Assembly;
         var version = assembly.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()?.InformationalVersion 
             ?? assembly.GetName().Version?.ToString() 
-            ?? "1.0.0";
+            ?? DefaultServerVersion;
 
         // Parse installed SDKs from dotnet --list-sdks
         var sdksOutput = await ExecuteDotNetCommand("--list-sdks", machineReadable: false);
@@ -587,7 +591,7 @@ public sealed class DotNetCliTools
         var capabilities = new ServerCapabilities
         {
             ServerVersion = version,
-            ProtocolVersion = "0.4.0-preview.3",
+            ProtocolVersion = ProtocolVersion,
             SupportedCategories = new[]
             {
                 "template",
@@ -1364,7 +1368,7 @@ public sealed class DotNetCliTools
             if (parts.Length > 0)
             {
                 var version = parts[0].Trim();
-                // Skip lines that don't look like version numbers or error messages
+                // Skip empty lines, error messages, and exit code lines - only keep lines starting with a digit (SDK versions)
                 if (!string.IsNullOrEmpty(version) && 
                     !version.StartsWith("Exit", StringComparison.OrdinalIgnoreCase) &&
                     !version.StartsWith("Error", StringComparison.OrdinalIgnoreCase) &&
