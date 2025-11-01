@@ -23,7 +23,7 @@ public sealed class DotNetCliTools
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
     [McpMeta("commonlyUsed", true)]
-    [McpMeta("priority", 8.0)]
+    [McpMeta("priority", 10.0)]
     [McpMeta("tags", JsonValue = """["template","list","discovery","project-creation"]""")]
     public async Task<string> DotnetTemplateList(
         [Description("If true, bypasses cache and reloads templates from disk")] bool forceReload = false)

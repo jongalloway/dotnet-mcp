@@ -641,7 +641,6 @@ The .NET MCP Server follows the Model Context Protocol specification and provide
 The server includes a comprehensive `server.json` configuration file (`.mcp/server.json`) that provides:
 
 - **Environment Variables**: Optimized .NET CLI settings for MCP usage
-  - `DOTNET_CLI_TELEMETRY_OPTOUT=1` - Disables telemetry for improved performance
   - `DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1` - Skips first-time setup
   - `DOTNET_NOLOGO=1` - Suppresses startup messages
   
@@ -651,7 +650,7 @@ The server includes a comprehensive `server.json` configuration file (`.mcp/serv
   - Transport: stdio
 
 - **Tool Descriptors**: Comprehensive tool metadata including:
-  - Internal tool IDs using `dotnet_` prefix to avoid namespace collisions
+  - Tool IDs using `dotnet_` prefix to avoid namespace collisions
   - Category tags (template, project, package, solution, etc.)
   - Discovery tags for semantic search (e.g., "build", "compile", "test")
   - `commonlyUsed` flag marking the top 10 most frequently used tools
