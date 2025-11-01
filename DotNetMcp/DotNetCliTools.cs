@@ -809,7 +809,7 @@ public sealed class DotNetCliTools
             args.Append($" --password \"{password}\"");
 
   // Pass logger: null to prevent DotNetCommandExecutor from logging the password
-        return await DotNetCommandExecutor.ExecuteCommandAsync(args.ToString(), logger: null, machineReadable);
+        return await DotNetCommandExecutor.ExecuteCommandAsync(args.ToString(), logger: null, machineReadable, unsafeOutput: false);
     }
 
     [McpServerTool, Description("Initialize user secrets for a project. Creates a unique secrets ID and enables secret storage. This is the first step to using user secrets in your project.")]
@@ -853,7 +853,7 @@ public sealed class DotNetCliTools
         if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
         
         // Pass logger: null to prevent DotNetCommandExecutor from logging the secret value
-        return await DotNetCommandExecutor.ExecuteCommandAsync(args.ToString(), logger: null, machineReadable);
+        return await DotNetCommandExecutor.ExecuteCommandAsync(args.ToString(), logger: null, machineReadable, unsafeOutput: false);
     }
 
     [McpServerTool, Description("List all user secrets for a project. Displays secret keys and values. Useful for debugging configuration.")]
@@ -1288,7 +1288,7 @@ public sealed class DotNetCliTools
     }
 
     private async Task<string> ExecuteDotNetCommand(string arguments, bool machineReadable = false, CancellationToken cancellationToken = default)
-        => await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable, cancellationToken);
+        => await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable, unsafeOutput: false, cancellationToken);
 
     /// <summary>
     /// Execute a command with concurrency control. Returns error if there's a conflict.
@@ -1313,7 +1313,7 @@ public sealed class DotNetCliTools
         try
         {
             // Execute the command
-            return await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable, cancellationToken);
+            return await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable, unsafeOutput: false, cancellationToken);
         }
         finally
         {
