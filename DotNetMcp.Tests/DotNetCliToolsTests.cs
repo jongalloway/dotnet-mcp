@@ -524,6 +524,46 @@ public class DotNetCliToolsTests
     }
 
     [Fact]
+    public async Task DotnetToolManifestCreate_WithoutParameters_ExecutesCommand()
+    {
+        // Validates that tool manifest create without parameters works
+        var result = await _tools.DotnetToolManifestCreate();
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetToolManifestCreate_WithOutput_ExecutesCommand()
+    {
+        // Validates that tool manifest create with output directory works
+        var result = await _tools.DotnetToolManifestCreate(
+            output: "./test-dir");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetToolManifestCreate_WithForce_ExecutesCommand()
+    {
+        // Validates that tool manifest create with force flag works
+        var result = await _tools.DotnetToolManifestCreate(
+            force: true);
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetToolManifestCreate_WithAllParameters_ExecutesCommand()
+    {
+        // Validates that all parameters work together
+        var result = await _tools.DotnetToolManifestCreate(
+            output: "./test-dir",
+            force: true);
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
     public async Task DotnetToolSearch_WithSearchTerm_ExecutesCommand()
     {
         // Validates that tool search with search term works
