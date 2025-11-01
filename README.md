@@ -366,6 +366,7 @@ dotnet add MyMicroservices.Api.Tests/MyMicroservices.Api.Tests.csproj reference 
 
 ```bash
 # Add Entity Framework packages
+dotnet add package Microsoft.EntityFrameworkCore
 dotnet add package Microsoft.EntityFrameworkCore.SqlServer
 dotnet add package Microsoft.EntityFrameworkCore.Design
 
