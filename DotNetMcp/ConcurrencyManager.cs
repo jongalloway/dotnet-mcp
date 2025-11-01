@@ -122,12 +122,14 @@ public sealed class ConcurrencyManager
         // Normalize path separators and make absolute
         try
         {
-            return Path.GetFullPath(target).Replace('\\', '/').ToLowerInvariant();
+            var fullPath = Path.GetFullPath(target);
+            // Normalize to lowercase for case-insensitive comparison, but preserve OS-specific separators
+            return fullPath.ToLowerInvariant();
         }
         catch
         {
-            // If path normalization fails, use the original target
-            return target.Replace('\\', '/').ToLowerInvariant();
+            // If path normalization fails, use the original target (lowercase)
+            return target.ToLowerInvariant();
         }
     }
 

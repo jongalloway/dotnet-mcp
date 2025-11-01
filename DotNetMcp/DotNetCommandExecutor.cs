@@ -92,6 +92,11 @@ public static class DotNetCommandExecutor
                     process.Kill(entireProcessTree: true);
                 }
             }
+            catch (InvalidOperationException)
+            {
+                // Process already exited - expected race condition
+                logger?.LogDebug("Process already exited during cancellation");
+            }
             catch (Exception ex)
             {
                 logger?.LogError(ex, "Error while cancelling process");
@@ -202,14 +207,25 @@ public static class DotNetCommandExecutor
                     process.Kill(entireProcessTree: true);
                 }
             }
+            catch (InvalidOperationException)
+            {
+                // Process already exited - expected race condition
+                logger?.LogDebug("Process already exited during cancellation");
+            }
             catch (Exception ex)
             {
                 logger?.LogError(ex, "Error while cancelling process");
             }
         });
 
-        var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
-        var error = await process.StandardError.ReadToEndAsync(cancellationToken);
+        // Read both streams concurrently to avoid deadlock
+        var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+        var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
+        
+        await Task.WhenAll(outputTask, errorTask);
+        var output = await outputTask;
+        var error = await errorTask;
+        
         await process.WaitForExitAsync(cancellationToken);
 
         if (cancellationToken.IsCancellationRequested)

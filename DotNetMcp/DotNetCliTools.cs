@@ -172,8 +172,7 @@ public sealed class DotNetCliTools
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
         if (!string.IsNullOrEmpty(framework)) args.Append($" -f {framework}");
         
-        var target = project ?? Directory.GetCurrentDirectory();
-        return await ExecuteWithConcurrencyCheck("build", target, args.ToString(), machineReadable);
+        return await ExecuteWithConcurrencyCheck("build", GetOperationTarget(project), args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("Build and run a .NET project")]
@@ -193,8 +192,7 @@ public sealed class DotNetCliTools
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
         if (!string.IsNullOrEmpty(appArgs)) args.Append($" -- {appArgs}");
         
-        var target = project ?? Directory.GetCurrentDirectory();
-        return await ExecuteWithConcurrencyCheck("run", target, args.ToString(), machineReadable);
+        return await ExecuteWithConcurrencyCheck("run", GetOperationTarget(project), args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("Run unit tests in a .NET project")]
@@ -232,8 +230,7 @@ public sealed class DotNetCliTools
         if (blame) args.Append(" --blame");
         if (listTests) args.Append(" --list-tests");
         
-        var target = project ?? Directory.GetCurrentDirectory();
-        return await ExecuteWithConcurrencyCheck("test", target, args.ToString(), machineReadable);
+        return await ExecuteWithConcurrencyCheck("test", GetOperationTarget(project), args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("Publish a .NET project for deployment")]
@@ -253,8 +250,7 @@ public sealed class DotNetCliTools
         if (!string.IsNullOrEmpty(output)) args.Append($" -o \"{output}\"");
         if (!string.IsNullOrEmpty(runtime)) args.Append($" -r {runtime}");
         
-        var target = project ?? Directory.GetCurrentDirectory();
-        return await ExecuteWithConcurrencyCheck("publish", target, args.ToString(), machineReadable);
+        return await ExecuteWithConcurrencyCheck("publish", GetOperationTarget(project), args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("Create a NuGet package from a .NET project. Use this to pack projects for distribution on NuGet.org or private feeds.")]
@@ -1265,6 +1261,13 @@ public sealed class DotNetCliTools
             _concurrencyManager.ReleaseOperation(operationType, target);
         }
     }
+
+    /// <summary>
+    /// Gets the operation target for concurrency control. Returns the project path if specified, 
+    /// otherwise returns the current directory.
+    /// </summary>
+    private static string GetOperationTarget(string? project)
+        => project ?? Directory.GetCurrentDirectory();
 
     private static bool IsValidAdditionalOptions(string options)
     {
