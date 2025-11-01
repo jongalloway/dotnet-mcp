@@ -1238,10 +1238,8 @@ public sealed class DotNetCliTools
         bool machineReadable = false,
         CancellationToken cancellationToken = default)
     {
-        var operationId = Guid.NewGuid().ToString();
-        
         // Try to acquire the operation
-        if (!_concurrencyManager.TryAcquireOperation(operationType, target, operationId, out var conflictingOperation))
+        if (!_concurrencyManager.TryAcquireOperation(operationType, target, out var conflictingOperation))
         {
             // Conflict detected - return error
             var errorResponse = ErrorResultFactory.CreateConcurrencyConflict(operationType, target, conflictingOperation!);

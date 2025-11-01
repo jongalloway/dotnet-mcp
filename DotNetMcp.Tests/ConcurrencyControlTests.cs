@@ -58,14 +58,14 @@ public class ConcurrencyControlTests
         results[1].Should().NotContain("CONCURRENCY_CONFLICT");
     }
 
-    [Fact(Skip = "Integration test - requires actual dotnet CLI")]
+    [Fact(Skip = "Integration test - requires actual dotnet CLI and valid project")]
     public async Task DotnetProjectTest_AfterBuildCompletes_ShouldSucceed()
     {
         // Arrange
         var projectPath = "TestProject.csproj";
         
         // First operation
-        var buildResult = await _tools.DotnetProjectBuild(project: projectPath, machineReadable: false);
+        await _tools.DotnetProjectBuild(project: projectPath, machineReadable: false);
         
         // Second operation on same target should work after first completes
         var testResult = await _tools.DotnetProjectTest(project: projectPath, machineReadable: false);
@@ -81,7 +81,7 @@ public class ConcurrencyControlTests
         var projectPath = "TestProject.csproj";
         
         // Manually acquire lock to simulate ongoing operation
-        _concurrencyManager.TryAcquireOperation("build", Path.GetFullPath(projectPath), Guid.NewGuid().ToString(), out _);
+        _concurrencyManager.TryAcquireOperation("build", Path.GetFullPath(projectPath), out _);
 
         // Act
         var result = await _tools.DotnetProjectBuild(project: projectPath, machineReadable: true);
@@ -103,7 +103,7 @@ public class ConcurrencyControlTests
         var projectPath = "TestProject.csproj";
         
         // Manually acquire lock to simulate ongoing operation
-        _concurrencyManager.TryAcquireOperation("run", Path.GetFullPath(projectPath), Guid.NewGuid().ToString(), out _);
+        _concurrencyManager.TryAcquireOperation("run", Path.GetFullPath(projectPath), out _);
 
         // Act
         var result = await _tools.DotnetProjectRun(project: projectPath, machineReadable: false);
@@ -124,7 +124,7 @@ public class ConcurrencyControlTests
         var projectPath = "TestProject.csproj";
         
         // Manually acquire lock
-        _concurrencyManager.TryAcquireOperation("publish", Path.GetFullPath(projectPath), Guid.NewGuid().ToString(), out _);
+        _concurrencyManager.TryAcquireOperation("publish", Path.GetFullPath(projectPath), out _);
 
         // Act
         var result = await _tools.DotnetProjectPublish(project: projectPath, machineReadable: false);
@@ -145,7 +145,7 @@ public class ConcurrencyControlTests
         var projectPath = "TestProject.csproj";
         
         // Manually acquire lock
-        _concurrencyManager.TryAcquireOperation("test", Path.GetFullPath(projectPath), Guid.NewGuid().ToString(), out _);
+        _concurrencyManager.TryAcquireOperation("test", Path.GetFullPath(projectPath), out _);
 
         // Act
         var result = await _tools.DotnetProjectTest(project: projectPath, machineReadable: false);
@@ -169,9 +169,9 @@ public class ConcurrencyControlTests
         var id2 = Guid.NewGuid().ToString();
 
         // Act
-        var firstAcquire = _concurrencyManager.TryAcquireOperation(operationType, target, id1, out _);
+        var firstAcquire = _concurrencyManager.TryAcquireOperation(operationType, target, out _);
         _concurrencyManager.ReleaseOperation(operationType, target);
-        var secondAcquire = _concurrencyManager.TryAcquireOperation(operationType, target, id2, out _);
+        var secondAcquire = _concurrencyManager.TryAcquireOperation(operationType, target, out _);
 
         // Assert
         firstAcquire.Should().BeTrue();

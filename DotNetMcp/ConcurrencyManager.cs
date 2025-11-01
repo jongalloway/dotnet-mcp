@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+using System.Collections.Generic;
 
 namespace DotNetMcp;
 
@@ -8,7 +8,7 @@ namespace DotNetMcp;
 /// </summary>
 public sealed class ConcurrencyManager
 {
-    private readonly ConcurrentDictionary<string, ActiveOperation> _activeOperations = new();
+    private readonly Dictionary<string, ActiveOperation> _activeOperations = new();
     private readonly object _lockObject = new();
 
     /// <summary>
@@ -17,10 +17,9 @@ public sealed class ConcurrencyManager
     /// </summary>
     /// <param name="operationType">Type of operation (e.g., "build", "restore", "test")</param>
     /// <param name="target">Target resource (project path, solution path, or empty for global)</param>
-    /// <param name="operationId">Unique identifier for this operation</param>
     /// <param name="conflictingOperation">Details of the conflicting operation if a conflict exists</param>
     /// <returns>True if operation can proceed, false if there's a conflict</returns>
-    public bool TryAcquireOperation(string operationType, string target, string operationId, out string? conflictingOperation)
+    public bool TryAcquireOperation(string operationType, string target, out string? conflictingOperation)
     {
         conflictingOperation = null;
         
@@ -71,7 +70,6 @@ public sealed class ConcurrencyManager
             {
                 OperationType = operationType,
                 Target = normalizedTarget,
-                OperationId = operationId,
                 StartTime = DateTime.UtcNow
             };
 
@@ -91,14 +89,23 @@ public sealed class ConcurrencyManager
 
         lock (_lockObject)
         {
-            _activeOperations.TryRemove(key, out _);
+            _activeOperations.Remove(key);
         }
     }
 
     /// <summary>
     /// Gets the count of currently active operations.
     /// </summary>
-    public int ActiveOperationCount => _activeOperations.Count;
+    public int ActiveOperationCount
+    {
+        get
+        {
+            lock (_lockObject)
+            {
+                return _activeOperations.Count;
+            }
+        }
+    }
 
     /// <summary>
     /// Clears all active operations. Used for testing.
@@ -126,7 +133,7 @@ public sealed class ConcurrencyManager
             // Normalize to lowercase for case-insensitive comparison, but preserve OS-specific separators
             return fullPath.ToLowerInvariant();
         }
-        catch
+        catch (ArgumentException)
         {
             // If path normalization fails, use the original target (lowercase)
             return target.ToLowerInvariant();
@@ -172,7 +179,6 @@ public sealed class ConcurrencyManager
     {
         public required string OperationType { get; init; }
         public required string Target { get; init; }
-        public required string OperationId { get; init; }
         public required DateTime StartTime { get; init; }
     }
 }

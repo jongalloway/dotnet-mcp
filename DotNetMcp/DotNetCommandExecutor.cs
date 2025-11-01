@@ -97,16 +97,13 @@ public static class DotNetCommandExecutor
                 // Process already exited - expected race condition
                 logger?.LogDebug("Process already exited during cancellation");
             }
-            catch (Exception ex)
-            {
-                logger?.LogError(ex, "Error while cancelling process");
-            }
         });
 
-        await process.WaitForExitAsync(cancellationToken);
-
-        // Check if cancelled
-        if (cancellationToken.IsCancellationRequested)
+        try
+        {
+            await process.WaitForExitAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
         {
             logger?.LogWarning("Command was cancelled");
             
@@ -212,25 +209,25 @@ public static class DotNetCommandExecutor
                 // Process already exited - expected race condition
                 logger?.LogDebug("Process already exited during cancellation");
             }
-            catch (Exception ex)
-            {
-                logger?.LogError(ex, "Error while cancelling process");
-            }
         });
 
         // Read both streams concurrently to avoid deadlock
         var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
         var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
         
-        await Task.WhenAll(outputTask, errorTask);
-        var output = await outputTask;
-        var error = await errorTask;
+        string output;
+        string error;
         
-        await process.WaitForExitAsync(cancellationToken);
-
-        if (cancellationToken.IsCancellationRequested)
+        try
         {
-            throw new OperationCanceledException("Command execution was cancelled", cancellationToken);
+            await Task.WhenAll(outputTask, errorTask);
+            output = await outputTask;
+            error = await errorTask;
+            await process.WaitForExitAsync(cancellationToken);
+        }
+        catch (OperationCanceledException ex)
+        {
+            throw new OperationCanceledException("Command execution was cancelled", ex, cancellationToken);
         }
 
         if (process.ExitCode != 0)

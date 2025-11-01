@@ -360,17 +360,58 @@ When you receive a `CONCURRENCY_CONFLICT` error:
 3. **Cancel if needed** - Use cancellation tokens to terminate long-running operations
 4. **Use different targets** - Operate on different projects/solutions to avoid conflicts
 
-Example retry logic:
+Example retry logic (plain text mode):
 ```csharp
 var maxRetries = 3;
 var retryDelay = TimeSpan.FromSeconds(2);
 
 for (int i = 0; i < maxRetries; i++)
 {
-    var result = await dotnetProjectBuild(project: "MyProject.csproj");
+    var result = await dotnetProjectBuild(project: "MyProject.csproj", machineReadable: false);
     
     if (!result.Contains("CONCURRENCY_CONFLICT"))
         break; // Success or different error
+    
+    if (i < maxRetries - 1)
+        await Task.Delay(retryDelay);
+}
+```
+
+Example retry logic (machine-readable mode):
+```csharp
+using System.Text.Json;
+
+var maxRetries = 3;
+var retryDelay = TimeSpan.FromSeconds(2);
+
+for (int i = 0; i < maxRetries; i++)
+{
+    var result = await dotnetProjectBuild(project: "MyProject.csproj", machineReadable: true);
+    
+    // Parse the JSON result and check for CONCURRENCY_CONFLICT error code
+    try
+    {
+        using var doc = JsonDocument.Parse(result);
+        var root = doc.RootElement;
+        
+        // Check if it's a success response
+        if (root.TryGetProperty("success", out var success) && success.GetBoolean())
+            break; // Success
+        
+        // Check for CONCURRENCY_CONFLICT error code
+        if (root.TryGetProperty("errors", out var errors) && errors.GetArrayLength() > 0)
+        {
+            var firstError = errors[0];
+            if (firstError.TryGetProperty("code", out var code) && 
+                code.GetString() != "CONCURRENCY_CONFLICT")
+                break; // Different error, don't retry
+        }
+    }
+    catch (JsonException)
+    {
+        // Not valid JSON, treat as different error
+        break;
+    }
     
     if (i < maxRetries - 1)
         await Task.Delay(retryDelay);

@@ -19,7 +19,7 @@ public class CancellationTests
     public async Task ExecuteCommandAsync_WhenCancelled_ShouldTerminateProcess()
     {
         // Arrange
-        var cts = new CancellationTokenSource();
+        using var cts = new CancellationTokenSource();
         var arguments = "run --project NonExistentProject.csproj"; // A command that would take time
 
         // Act
@@ -40,7 +40,7 @@ public class CancellationTests
     public async Task ExecuteCommandAsync_WhenCancelledWithMachineReadable_ShouldReturnStructuredError()
     {
         // Arrange
-        var cts = new CancellationTokenSource();
+        using var cts = new CancellationTokenSource();
         var arguments = "run --project NonExistentProject.csproj";
 
         // Act
@@ -62,7 +62,7 @@ public class CancellationTests
     public async Task ExecuteCommandForResourceAsync_WhenCancelled_ShouldThrowOperationCanceledException()
     {
         // Arrange
-        var cts = new CancellationTokenSource();
+        using var cts = new CancellationTokenSource();
         var arguments = "--version"; // Quick command
 
         // Act
@@ -79,7 +79,7 @@ public class CancellationTests
     public async Task ExecuteCommandAsync_WithValidCancellationToken_ShouldAcceptIt()
     {
         // Arrange
-        var cts = new CancellationTokenSource();
+        using var cts = new CancellationTokenSource();
         var arguments = "--version"; // Quick command that should succeed
 
         // Act - should complete without cancellation

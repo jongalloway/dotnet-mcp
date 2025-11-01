@@ -22,7 +22,7 @@ public class ConcurrencyManagerTests
         var operationId = Guid.NewGuid().ToString();
 
         // Act
-        var result = _manager.TryAcquireOperation(operationType, target, operationId, out var conflictingOperation);
+        var result = _manager.TryAcquireOperation(operationType, target, out var conflictingOperation);
 
         // Assert
         result.Should().BeTrue();
@@ -39,10 +39,10 @@ public class ConcurrencyManagerTests
         var operationId1 = Guid.NewGuid().ToString();
         var operationId2 = Guid.NewGuid().ToString();
 
-        _manager.TryAcquireOperation(operationType, target, operationId1, out _);
+        _manager.TryAcquireOperation(operationType, target, out _);
 
         // Act
-        var result = _manager.TryAcquireOperation(operationType, target, operationId2, out var conflictingOperation);
+        var result = _manager.TryAcquireOperation(operationType, target, out var conflictingOperation);
 
         // Assert
         result.Should().BeFalse();
@@ -62,10 +62,10 @@ public class ConcurrencyManagerTests
         var operationId1 = Guid.NewGuid().ToString();
         var operationId2 = Guid.NewGuid().ToString();
 
-        _manager.TryAcquireOperation(operationType, target1, operationId1, out _);
+        _manager.TryAcquireOperation(operationType, target1, out _);
 
         // Act
-        var result = _manager.TryAcquireOperation(operationType, target2, operationId2, out var conflictingOperation);
+        var result = _manager.TryAcquireOperation(operationType, target2, out var conflictingOperation);
 
         // Assert
         result.Should().BeTrue();
@@ -81,10 +81,10 @@ public class ConcurrencyManagerTests
         var operationId1 = Guid.NewGuid().ToString();
         var operationId2 = Guid.NewGuid().ToString();
 
-        _manager.TryAcquireOperation("build", target, operationId1, out _);
+        _manager.TryAcquireOperation("build", target, out _);
 
         // Act - try a different mutating operation on the same target
-        var result = _manager.TryAcquireOperation("restore", target, operationId2, out var conflictingOperation);
+        var result = _manager.TryAcquireOperation("restore", target, out var conflictingOperation);
 
         // Assert
         result.Should().BeFalse();
@@ -101,11 +101,11 @@ public class ConcurrencyManagerTests
         var operationId1 = Guid.NewGuid().ToString();
         var operationId2 = Guid.NewGuid().ToString();
 
-        _manager.TryAcquireOperation(operationType, target, operationId1, out _);
+        _manager.TryAcquireOperation(operationType, target, out _);
 
         // Act
         _manager.ReleaseOperation(operationType, target);
-        var result = _manager.TryAcquireOperation(operationType, target, operationId2, out var conflictingOperation);
+        var result = _manager.TryAcquireOperation(operationType, target, out var conflictingOperation);
 
         // Assert
         result.Should().BeTrue();
@@ -120,10 +120,10 @@ public class ConcurrencyManagerTests
         var operationId1 = Guid.NewGuid().ToString();
         var operationId2 = Guid.NewGuid().ToString();
 
-        _manager.TryAcquireOperation("template_clear_cache", "", operationId1, out _);
+        _manager.TryAcquireOperation("template_clear_cache", "", out _);
 
         // Act
-        var result = _manager.TryAcquireOperation("template_clear_cache", "", operationId2, out var conflictingOperation);
+        var result = _manager.TryAcquireOperation("template_clear_cache", "", out var conflictingOperation);
 
         // Assert
         result.Should().BeFalse();
@@ -140,10 +140,10 @@ public class ConcurrencyManagerTests
         var operationId1 = Guid.NewGuid().ToString();
         var operationId2 = Guid.NewGuid().ToString();
 
-        _manager.TryAcquireOperation("build", target1, operationId1, out _);
+        _manager.TryAcquireOperation("build", target1, out _);
 
         // Act - should detect as same target due to normalization
-        var result = _manager.TryAcquireOperation("build", target2, operationId2, out var conflictingOperation);
+        var result = _manager.TryAcquireOperation("build", target2, out var conflictingOperation);
 
         // Assert
         result.Should().BeFalse("paths should be normalized to lowercase");
@@ -154,8 +154,8 @@ public class ConcurrencyManagerTests
     public void Clear_ShouldRemoveAllOperations()
     {
         // Arrange
-        _manager.TryAcquireOperation("build", "/path1", Guid.NewGuid().ToString(), out _);
-        _manager.TryAcquireOperation("test", "/path2", Guid.NewGuid().ToString(), out _);
+        _manager.TryAcquireOperation("build", "/path1", out _);
+        _manager.TryAcquireOperation("test", "/path2", out _);
         _manager.ActiveOperationCount.Should().Be(2);
 
         // Act
@@ -174,7 +174,7 @@ public class ConcurrencyManagerTests
         var operationId = Guid.NewGuid().ToString();
 
         // Act
-        var result = _manager.TryAcquireOperation(operationType, target, operationId, out var conflictingOperation);
+        var result = _manager.TryAcquireOperation(operationType, target, out var conflictingOperation);
 
         // Assert
         result.Should().BeTrue();
@@ -193,7 +193,7 @@ public class ConcurrencyManagerTests
         for (int i = 0; i < 5; i++)
         {
             var operationId = Guid.NewGuid().ToString();
-            var acquireResult = _manager.TryAcquireOperation(operationType, target, operationId, out _);
+            var acquireResult = _manager.TryAcquireOperation(operationType, target, out _);
             acquireResult.Should().BeTrue($"iteration {i} should succeed");
             _manager.ActiveOperationCount.Should().Be(1);
 
@@ -213,14 +213,14 @@ public class ConcurrencyManagerTests
         foreach (var firstOp in operations)
         {
             _manager.Clear();
-            _manager.TryAcquireOperation(firstOp, target, Guid.NewGuid().ToString(), out _);
+            _manager.TryAcquireOperation(firstOp, target, out _);
 
             foreach (var secondOp in operations)
             {
                 if (firstOp == secondOp)
                     continue;
 
-                var result = _manager.TryAcquireOperation(secondOp, target, Guid.NewGuid().ToString(), out var conflict);
+                var result = _manager.TryAcquireOperation(secondOp, target, out var conflict);
                 result.Should().BeFalse($"{secondOp} should conflict with {firstOp}");
                 conflict.Should().NotBeNull();
                 conflict.Should().Contain(firstOp);
