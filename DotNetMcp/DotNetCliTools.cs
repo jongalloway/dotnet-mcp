@@ -1196,7 +1196,7 @@ public sealed class DotNetCliTools
         {
             foreach (var table in tables.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             {
-                args.Append($" --table {table}");
+                args.Append($" --table \"{table}\"");
             }
         }
         
@@ -1205,7 +1205,7 @@ public sealed class DotNetCliTools
         {
             foreach (var schema in schemas.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             {
-                args.Append($" --schema {schema}");
+                args.Append($" --schema \"{schema}\"");
             }
         }
         
