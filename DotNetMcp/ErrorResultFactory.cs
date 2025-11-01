@@ -206,6 +206,33 @@ public static partial class ErrorResultFactory
     }
 
     /// <summary>
+    /// Create a concurrency conflict error result.
+    /// </summary>
+    /// <param name="operationType">The type of operation that was attempted</param>
+    /// <param name="target">The target resource</param>
+    /// <param name="conflictingOperation">Description of the conflicting operation</param>
+    /// <returns>ErrorResponse with CONCURRENCY_CONFLICT error</returns>
+    public static ErrorResponse CreateConcurrencyConflict(string operationType, string target, string conflictingOperation)
+    {
+        return new ErrorResponse
+        {
+            Success = false,
+            Errors = new List<ErrorResult>
+            {
+                new ErrorResult
+                {
+                    Code = "CONCURRENCY_CONFLICT",
+                    Message = $"Cannot execute '{operationType}' on '{target}' because a conflicting operation is already in progress: {conflictingOperation}",
+                    Category = "Concurrency",
+                    Hint = "Wait for the conflicting operation to complete, or cancel it before retrying this operation.",
+                    RawOutput = string.Empty
+                }
+            },
+            ExitCode = -1
+        };
+    }
+
+    /// <summary>
     /// Format result as JSON string.
     /// </summary>
     public static string ToJson(object result)
