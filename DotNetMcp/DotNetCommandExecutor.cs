@@ -19,8 +19,9 @@ public static class DotNetCommandExecutor
     /// <param name="arguments">The command-line arguments to pass to dotnet.exe</param>
     /// <param name="logger">Optional logger for debug/warning messages</param>
     /// <param name="machineReadable">When true, returns JSON format with structured errors; when false, returns plain text</param>
+    /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
     /// <returns>Combined output, error, and exit code information (plain text or JSON based on machineReadable)</returns>
-    public static async Task<string> ExecuteCommandAsync(string arguments, ILogger? logger = null, bool machineReadable = false)
+    public static async Task<string> ExecuteCommandAsync(string arguments, ILogger? logger = null, bool machineReadable = false, CancellationToken cancellationToken = default)
     {
         logger?.LogDebug("Executing: dotnet {Arguments}", arguments);
 
@@ -79,7 +80,56 @@ public static class DotNetCommandExecutor
         process.Start();
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
-        await process.WaitForExitAsync();
+
+        // Register cancellation callback to kill the process
+        using var registration = cancellationToken.Register(() =>
+        {
+            try
+            {
+                if (!process.HasExited)
+                {
+                    logger?.LogWarning("Cancellation requested - terminating process");
+                    process.Kill(entireProcessTree: true);
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                // Process already exited - expected race condition
+                logger?.LogDebug("Process already exited during cancellation");
+            }
+        });
+
+        try
+        {
+            await process.WaitForExitAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            logger?.LogWarning("Command was cancelled");
+            
+            if (machineReadable)
+            {
+                var cancelResult = new ErrorResponse
+                {
+                    Success = false,
+                    Errors = new List<ErrorResult>
+                    {
+                        new ErrorResult
+                        {
+                            Code = "OPERATION_CANCELLED",
+                            Message = "The operation was cancelled by the user",
+                            Category = "Cancellation",
+                            Hint = "The command was terminated before completion",
+                            RawOutput = output.ToString().TrimEnd()
+                        }
+                    },
+                    ExitCode = -1
+                };
+                return ErrorResultFactory.ToJson(cancelResult);
+            }
+
+            return $"Operation cancelled\nPartial output:\n{output}\nExit Code: -1";
+        }
 
         logger?.LogDebug("Command completed with exit code: {ExitCode}", process.ExitCode);
         if (outputTruncated)
@@ -119,9 +169,11 @@ public static class DotNetCommandExecutor
     /// </summary>
     /// <param name="arguments">The command-line arguments to pass to dotnet.exe</param>
     /// <param name="logger">Optional logger for debug messages</param>
+    /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
     /// <returns>Standard output only (no error or exit code information)</returns>
     /// <exception cref="InvalidOperationException">Thrown if the command fails</exception>
-    public static async Task<string> ExecuteCommandForResourceAsync(string arguments, ILogger? logger = null)
+    /// <exception cref="OperationCanceledException">Thrown if the operation is cancelled</exception>
+    public static async Task<string> ExecuteCommandForResourceAsync(string arguments, ILogger? logger = null, CancellationToken cancellationToken = default)
     {
         logger?.LogDebug("Executing: dotnet {Arguments}", arguments);
 
@@ -141,9 +193,42 @@ public static class DotNetCommandExecutor
             throw new InvalidOperationException($"Failed to start dotnet process with arguments: {arguments}");
         }
 
-        var output = await process.StandardOutput.ReadToEndAsync();
-        var error = await process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
+        // Register cancellation callback
+        using var registration = cancellationToken.Register(() =>
+        {
+            try
+            {
+                if (!process.HasExited)
+                {
+                    logger?.LogWarning("Cancellation requested - terminating process");
+                    process.Kill(entireProcessTree: true);
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                // Process already exited - expected race condition
+                logger?.LogDebug("Process already exited during cancellation");
+            }
+        });
+
+        // Read both streams concurrently to avoid deadlock
+        var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+        var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
+        
+        string output;
+        string error;
+        
+        try
+        {
+            await Task.WhenAll(outputTask, errorTask);
+            output = await outputTask;
+            error = await errorTask;
+            await process.WaitForExitAsync(cancellationToken);
+        }
+        catch (OperationCanceledException ex)
+        {
+            throw new OperationCanceledException("Command execution was cancelled", ex, cancellationToken);
+        }
 
         if (process.ExitCode != 0)
         {

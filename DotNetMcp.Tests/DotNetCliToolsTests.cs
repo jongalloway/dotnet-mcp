@@ -10,11 +10,13 @@ public class DotNetCliToolsTests
 {
     private readonly DotNetCliTools _tools;
     private readonly Mock<ILogger<DotNetCliTools>> _loggerMock;
+    private readonly ConcurrencyManager _concurrencyManager;
 
     public DotNetCliToolsTests()
     {
         _loggerMock = new Mock<ILogger<DotNetCliTools>>();
-        _tools = new DotNetCliTools(_loggerMock.Object);
+        _concurrencyManager = new ConcurrencyManager();
+        _tools = new DotNetCliTools(_loggerMock.Object, _concurrencyManager);
     }
 
     [Fact]

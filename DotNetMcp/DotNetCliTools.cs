@@ -11,12 +11,14 @@ namespace DotNetMcp;
 public sealed class DotNetCliTools
 {
     private readonly ILogger<DotNetCliTools> _logger;
+    private readonly ConcurrencyManager _concurrencyManager;
     private const string MachineReadableDescription = "Return structured JSON output for both success and error responses instead of plain text";
 
-    public DotNetCliTools(ILogger<DotNetCliTools> logger)
+    public DotNetCliTools(ILogger<DotNetCliTools> logger, ConcurrencyManager concurrencyManager)
     {
         // DI guarantees logger is never null
         _logger = logger!;
+        _concurrencyManager = concurrencyManager!;
     }
 
     [McpServerTool, Description("List all installed .NET templates with their metadata using the Template Engine. Provides structured information about available project templates.")]
@@ -157,6 +159,7 @@ public sealed class DotNetCliTools
     [McpMeta("category", "project")]
     [McpMeta("priority", 10.0)]
     [McpMeta("commonlyUsed", true)]
+    [McpMeta("isLongRunning", true)]
     [McpMeta("tags", JsonValue = """["project","build","compile","compilation"]""")]
     public async Task<string> DotnetProjectBuild(
         [Description("The project file or solution file to build")] string? project = null,
@@ -168,13 +171,15 @@ public sealed class DotNetCliTools
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
         if (!string.IsNullOrEmpty(framework)) args.Append($" -f {framework}");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        
+        return await ExecuteWithConcurrencyCheck("build", GetOperationTarget(project), args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("Build and run a .NET project")]
     [McpMeta("category", "project")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]
+    [McpMeta("isLongRunning", true)]
     [McpMeta("tags", JsonValue = """["project","run","execute","launch","development"]""")]
     public async Task<string> DotnetProjectRun(
       [Description("The project file to run")] string? project = null,
@@ -186,13 +191,15 @@ public sealed class DotNetCliTools
         if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
         if (!string.IsNullOrEmpty(appArgs)) args.Append($" -- {appArgs}");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        
+        return await ExecuteWithConcurrencyCheck("run", GetOperationTarget(project), args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("Run unit tests in a .NET project")]
     [McpMeta("category", "project")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]
+    [McpMeta("isLongRunning", true)]
     [McpMeta("tags", JsonValue = """["project","test","testing","unit-test","validation"]""")]
     public async Task<string> DotnetProjectTest(
         [Description("The project file or solution file to test")] string? project = null,
@@ -222,12 +229,14 @@ public sealed class DotNetCliTools
         if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
         if (blame) args.Append(" --blame");
         if (listTests) args.Append(" --list-tests");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        
+        return await ExecuteWithConcurrencyCheck("test", GetOperationTarget(project), args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("Publish a .NET project for deployment")]
     [McpMeta("category", "project")]
     [McpMeta("priority", 7.0)]
+    [McpMeta("isLongRunning", true)]
     public async Task<string> DotnetProjectPublish(
      [Description("The project file to publish")] string? project = null,
         [Description("The configuration to publish (Debug or Release)")] string? configuration = null,
@@ -240,7 +249,8 @@ public sealed class DotNetCliTools
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
         if (!string.IsNullOrEmpty(output)) args.Append($" -o \"{output}\"");
         if (!string.IsNullOrEmpty(runtime)) args.Append($" -r {runtime}");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        
+        return await ExecuteWithConcurrencyCheck("publish", GetOperationTarget(project), args.ToString(), machineReadable);
     }
 
     [McpServerTool, Description("Create a NuGet package from a .NET project. Use this to pack projects for distribution on NuGet.org or private feeds.")]
@@ -1215,8 +1225,47 @@ public sealed class DotNetCliTools
         return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 
-    private async Task<string> ExecuteDotNetCommand(string arguments, bool machineReadable = false)
-        => await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable);
+    private async Task<string> ExecuteDotNetCommand(string arguments, bool machineReadable = false, CancellationToken cancellationToken = default)
+        => await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable, cancellationToken);
+
+    /// <summary>
+    /// Execute a command with concurrency control. Returns error if there's a conflict.
+    /// </summary>
+    private async Task<string> ExecuteWithConcurrencyCheck(
+        string operationType, 
+        string target, 
+        string arguments, 
+        bool machineReadable = false,
+        CancellationToken cancellationToken = default)
+    {
+        // Try to acquire the operation
+        if (!_concurrencyManager.TryAcquireOperation(operationType, target, out var conflictingOperation))
+        {
+            // Conflict detected - return error
+            var errorResponse = ErrorResultFactory.CreateConcurrencyConflict(operationType, target, conflictingOperation!);
+            return machineReadable 
+                ? ErrorResultFactory.ToJson(errorResponse)
+                : $"Error: {errorResponse.Errors[0].Message}\nHint: {errorResponse.Errors[0].Hint}";
+        }
+
+        try
+        {
+            // Execute the command
+            return await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable, cancellationToken);
+        }
+        finally
+        {
+            // Always release the operation lock
+            _concurrencyManager.ReleaseOperation(operationType, target);
+        }
+    }
+
+    /// <summary>
+    /// Gets the operation target for concurrency control. Returns the project path if specified, 
+    /// otherwise returns the current directory.
+    /// </summary>
+    private static string GetOperationTarget(string? project)
+        => project ?? Directory.GetCurrentDirectory();
 
     private static bool IsValidAdditionalOptions(string options)
     {

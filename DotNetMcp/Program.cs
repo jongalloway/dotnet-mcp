@@ -10,6 +10,9 @@ builder.Logging.AddConsole(options =>
     options.LogToStandardErrorThreshold = LogLevel.Trace;
 });
 
+// Register ConcurrencyManager as a singleton
+builder.Services.AddSingleton<ConcurrencyManager>();
+
 builder.Services.AddMcpServer()
     .WithStdioServerTransport()
     .WithTools<DotNetCliTools>()
