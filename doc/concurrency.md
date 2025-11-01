@@ -10,13 +10,37 @@ The .NET MCP Server provides 49 tools across 13 categories. Understanding which 
 - **MCP clients** that batch or parallelize requests
 - **Performance optimization** when working with large solutions or multiple projects
 
+**As of v1.1+**, the server implements automatic concurrency control for long-running and mutating operations. Conflicting operations are automatically rejected with a `CONCURRENCY_CONFLICT` error code.
+
 ## Quick Reference
 
-| Can Run in Parallel | Tool Categories |
-|---------------------|-----------------|
-| ✅ **Yes - Safe** | Read-only operations (Info, List, Search, Check) |
-| ⚠️ **Conditional** | Mutating operations on different files/projects |
-| ❌ **No - Unsafe** | Mutating operations on same file/project, long-running operations |
+| Can Run in Parallel | Tool Categories | Implementation |
+|---------------------|-----------------|----------------|
+| ✅ **Yes - Safe** | Read-only operations (Info, List, Search, Check) | No locking needed |
+| ⚠️ **Conditional** | Mutating operations on different files/projects | Automatic conflict detection |
+| ❌ **No - Unsafe** | Mutating operations on same file/project, long-running operations | Returns CONCURRENCY_CONFLICT error |
+
+## Automatic Concurrency Control (v1.1+)
+
+The .NET MCP Server automatically prevents conflicting operations from running simultaneously. When a conflict is detected, the server returns a structured error:
+
+```json
+{
+  "success": false,
+  "errors": [{
+    "code": "CONCURRENCY_CONFLICT",
+    "message": "Cannot execute 'build' on '/path/to/project.csproj' because a conflicting operation is already in progress: build on /path/to/project.csproj (started at 2025-11-01 12:34:56)",
+    "category": "Concurrency",
+    "hint": "Wait for the conflicting operation to complete, or cancel it before retrying this operation."
+  }],
+  "exitCode": -1
+}
+```
+
+This applies to:
+- **Long-running operations**: `build`, `run`, `test`, `publish`, `watch_*`
+- **Mutating operations**: `package_add`, `package_remove`, `reference_add`, `solution_add`, etc.
+- **Global operations**: `template_clear_cache`, `certificate_trust`, `certificate_clean`
 
 ## Concurrency Safety Matrix
 
@@ -320,10 +344,38 @@ When parallel operations fail, consider these common causes:
 
 | Error Pattern | Likely Cause | Solution |
 |---------------|--------------|----------|
-| "File is being used by another process" | Concurrent writes to same file | Serialize operations on same file |
-| "Port already in use" | Multiple run commands | Use different ports or serialize |
-| "Project file could not be loaded" | Simultaneous solution modifications | Serialize solution operations |
+| **CONCURRENCY_CONFLICT** | Attempting to run conflicting operations simultaneously | Wait for the first operation to complete before starting the second |
+| "File is being used by another process" | Concurrent writes to same file (rare with v1.1+ automatic control) | Should not occur with automatic concurrency control |
+| "Port already in use" | Multiple run commands | Use different ports or wait for first to complete |
+| "Project file could not be loaded" | Simultaneous solution modifications | Automatic conflict detection prevents this |
 | "Unable to acquire lock" | NuGet package restore conflicts | Retry or serialize restore operations |
+| **OPERATION_CANCELLED** | Operation was cancelled via CancellationToken | Normal cancellation - no action needed |
+
+### Handling CONCURRENCY_CONFLICT Errors
+
+When you receive a `CONCURRENCY_CONFLICT` error:
+
+1. **Check the conflicting operation** - The error message identifies what's blocking your operation
+2. **Wait for completion** - Most operations complete quickly; retry after a short delay
+3. **Cancel if needed** - Use cancellation tokens to terminate long-running operations
+4. **Use different targets** - Operate on different projects/solutions to avoid conflicts
+
+Example retry logic:
+```csharp
+var maxRetries = 3;
+var retryDelay = TimeSpan.FromSeconds(2);
+
+for (int i = 0; i < maxRetries; i++)
+{
+    var result = await dotnetProjectBuild(project: "MyProject.csproj");
+    
+    if (!result.Contains("CONCURRENCY_CONFLICT"))
+        break; // Success or different error
+    
+    if (i < maxRetries - 1)
+        await Task.Delay(retryDelay);
+}
+```
 
 ## Testing Concurrency
 
@@ -342,8 +394,74 @@ To test concurrent tool execution:
 
 ## Version History
 
+- **v1.1** (2025-11-01) - Added automatic concurrency control and cancellation support
+  - Introduced `ConcurrencyManager` for conflict detection
+  - Added `CONCURRENCY_CONFLICT` error code
+  - Implemented `CancellationToken` support throughout execution chain
+  - Added `isLongRunning` metadata to appropriate tools
 - **v1.0** (2025-10-31) - Initial concurrency safety documentation
 
 ---
 
-**Note**: This documentation applies to .NET MCP Server v1.0+. Concurrency characteristics may change in future versions based on .NET SDK updates and MCP protocol enhancements.
+## Cancellation Support (v1.1+)
+
+The .NET MCP Server supports graceful cancellation of long-running operations via `CancellationToken`. When a cancellation is requested:
+
+1. **Process termination** - The underlying dotnet process is killed (with entire process tree)
+2. **Partial results** - Any output captured before cancellation is included in the response
+3. **Structured error** - Returns `OPERATION_CANCELLED` error code in machine-readable mode
+
+### Cancellation Example
+
+```csharp
+// Start a long-running test operation
+var cts = new CancellationTokenSource();
+var testTask = DotNetCommandExecutor.ExecuteCommandAsync(
+    "test MyProject.Tests.csproj", 
+    logger, 
+    machineReadable: true,
+    cts.Token
+);
+
+// Cancel after 30 seconds if not complete
+cts.CancelAfter(TimeSpan.FromSeconds(30));
+
+try
+{
+    var result = await testTask;
+    // Process result
+}
+catch (OperationCanceledException)
+{
+    // Operation was cancelled
+}
+```
+
+### Machine-Readable Cancellation Response
+
+```json
+{
+  "success": false,
+  "errors": [{
+    "code": "OPERATION_CANCELLED",
+    "message": "The operation was cancelled by the user",
+    "category": "Cancellation",
+    "hint": "The command was terminated before completion",
+    "rawOutput": "Partial test output..."
+  }],
+  "exitCode": -1
+}
+```
+
+### Operations Supporting Cancellation
+
+All operations support cancellation, but it's most useful for:
+- **Long-running tests** - Large test suites that take minutes to complete
+- **Build operations** - Complex solutions with many projects
+- **Run operations** - Applications that would otherwise run indefinitely
+- **Watch operations** - File watchers that run until cancelled
+- **Publish operations** - Deployment tasks with long durations
+
+---
+
+**Note**: This documentation applies to .NET MCP Server v1.1+. Concurrency characteristics may change in future versions based on .NET SDK updates and MCP protocol enhancements.
