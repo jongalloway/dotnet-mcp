@@ -556,67 +556,68 @@ public sealed class DotNetCliTools
         result.AppendLine();
         
         result.AppendLine("FEATURES:");
-        result.AppendLine("  • 49 MCP Tools across 13 categories");
+    result.AppendLine("  • 56 MCP Tools across 14 categories");
         result.AppendLine("  • 4 MCP Resources (SDK, Runtime, Templates, Frameworks)");
         result.AppendLine("  • Direct .NET SDK integration via NuGet packages");
-        result.AppendLine("  • Template Engine integration with caching (5-min TTL)");
+    result.AppendLine("  • Template Engine integration with caching (5-min TTL)");
         result.AppendLine("  • Framework validation and LTS identification");
-        result.AppendLine("  • Thread-safe caching with metrics tracking");
+  result.AppendLine("  • Thread-safe caching with metrics tracking");
         result.AppendLine();
         
         result.AppendLine("TOOL CATEGORIES:");
         result.AppendLine("  • Template (5 tools): List, search, info, cache management");
         result.AppendLine("  • Project (7 tools): New, build, run, test, publish, clean, restore");
-        result.AppendLine("  • Package (6 tools): Add, remove, update, list, search, pack");
-        result.AppendLine("  • Solution (4 tools): Create, add, remove, list");
+     result.AppendLine("  • Package (6 tools): Add, remove, update, list, search, pack");
+  result.AppendLine("  • Solution (4 tools): Create, add, remove, list");
         result.AppendLine("  • Reference (3 tools): Add, remove, list");
-        result.AppendLine("  • Tool (7 tools): Install, uninstall, update, list, search, restore, run");
+        result.AppendLine("  • Tool (8 tools): Install, list, update, uninstall, restore, search, run, manifest create");
         result.AppendLine("  • Watch (3 tools): Watch run, watch test, watch build");
         result.AppendLine("  • SDK (4 tools): Version, info, list SDKs, list runtimes");
         result.AppendLine("  • Security (4 tools): Certificate trust, check, clean, export");
         result.AppendLine("  • Framework (1 tool): Framework information and LTS status");
         result.AppendLine("  • Format (1 tool): Code formatting");
-        result.AppendLine("  • NuGet (1 tool): Cache management");
+     result.AppendLine("  • NuGet (1 tool): Cache management");
         result.AppendLine("  • Help (2 tools): Command help, server capabilities");
+        result.AppendLine("  • Cache (1 tool): Clear all caches and metrics");
         result.AppendLine();
         
-        result.AppendLine("CONCURRENCY SAFETY:");
+  result.AppendLine("CONCURRENCY SAFETY:");
         result.AppendLine("  ✅ Read-only operations: Always safe for parallel execution");
         result.AppendLine("     (Info, List, Search, Check, Help, Metrics tools)");
         result.AppendLine("  ⚠️  Mutating operations: Safe on different targets only");
         result.AppendLine("     (Build, Add, Remove operations on different projects)");
-        result.AppendLine("  ❌ Global/Long-running: Never run in parallel");
-        result.AppendLine("     (Watch commands, Run, Certificate operations, Cache clearing)");
-        result.AppendLine();
+    result.AppendLine("  ❌ Global/Long-running: Never run in parallel");
+   result.AppendLine("  (Watch commands, Run, Certificate operations, Cache clearing)");
+  result.AppendLine();
         result.AppendLine("  📖 See documentation: doc/concurrency.md");
         result.AppendLine("     Full concurrency safety matrix with detailed guidance");
         result.AppendLine();
-        
-        result.AppendLine("CACHING:");
+      
+    result.AppendLine("CACHING:");
         result.AppendLine("  • Templates: 5-minute TTL, thread-safe with metrics");
-        result.AppendLine("  • SDK Info: 5-minute TTL, thread-safe with metrics");
+     result.AppendLine("  • SDK Info: 5-minute TTL, thread-safe with metrics");
         result.AppendLine("  • Runtime Info: 5-minute TTL, thread-safe with metrics");
         result.AppendLine("  • Force reload available on template tools");
-        result.AppendLine("  • Use dotnet_cache_metrics for hit/miss statistics");
-        result.AppendLine();
+    result.AppendLine("  • Use dotnet_cache_metrics for hit/miss statistics");
+    result.AppendLine();
         
         result.AppendLine("RESOURCES (Read-Only Access):");
         result.AppendLine("  • dotnet://sdk-info - Installed SDKs with versions and paths");
-        result.AppendLine("  • dotnet://runtime-info - Installed runtimes with metadata");
-        result.AppendLine("  • dotnet://templates - Complete template catalog");
+  result.AppendLine("  • dotnet://runtime-info - Installed runtimes with metadata");
+   result.AppendLine("  • dotnet://templates - Complete template catalog");
         result.AppendLine("  • dotnet://frameworks - Framework information with LTS status");
         result.AppendLine();
-        
+
         result.AppendLine("DOCUMENTATION:");
         result.AppendLine("  • README: https://github.com/jongalloway/dotnet-mcp");
-        result.AppendLine("  • SDK Integration: doc/sdk-integration.md");
-        result.AppendLine("  • Advanced Topics: doc/advanced-topics.md");
+result.AppendLine("  • SDK Integration: doc/sdk-integration.md");
+   result.AppendLine("  • Advanced Topics: doc/advanced-topics.md");
         result.AppendLine("  • Concurrency Safety: doc/concurrency.md");
         result.AppendLine();
         
         result.AppendLine("For detailed concurrency guidance and parallel execution patterns,");
-        result.AppendLine("see the Concurrency Safety Matrix at: doc/concurrency.md");
-        
+      result.AppendLine("see the Concurrency Safety Matrix at: doc/concurrency.md");
+  
         return Task.FromResult(result.ToString());
     }
 
@@ -729,17 +730,26 @@ public sealed class DotNetCliTools
 
     [McpServerTool, Description("Install a .NET tool globally or locally to a tool manifest. Global tools are available system-wide, local tools are project-specific and tracked in .config/dotnet-tools.json.")]
     [McpMeta("category", "tool")]
-    [McpMeta("priority", 8.0)]
+    [McpMeta("priority",8.0)]
     [McpMeta("commonlyUsed", true)]
     public async Task<string> DotnetToolInstall(
         [Description("Package name of the tool (e.g., 'dotnet-ef', 'dotnet-format')")] string packageName,
         [Description("Install globally (system-wide), otherwise installs locally to tool manifest")] bool global = false,
         [Description("Specific version to install")] string? version = null,
         [Description("Target framework to install for")] string? framework = null,
+        [Description("Ensure local tool manifest exists when installing locally (creates one if missing)")] bool ensureManifest = true,
         [Description(MachineReadableDescription)] bool machineReadable = false)
     {
         if (string.IsNullOrWhiteSpace(packageName))
             return "Error: packageName parameter is required.";
+
+        // If local install requested and manifest should be ensured, create if missing
+        if (!global && ensureManifest && !LocalToolManifestExists())
+        {
+            var manifestResult = await DotNetCommandExecutor.ExecuteCommandAsync("new tool-manifest", _logger, machineReadable);
+            if (manifestResult.Contains("Error", StringComparison.OrdinalIgnoreCase))
+                return manifestResult; // surface manifest creation error
+        }
 
         var args = new StringBuilder($"tool install \"{packageName}\"");
         if (global) args.Append(" --global");
@@ -748,98 +758,108 @@ public sealed class DotNetCliTools
         return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 
+    [McpServerTool, Description("Create (or ensure) a local .NET tool manifest in a directory. Required before installing local (non-global) tools.")]
+    [McpMeta("category", "tool")]
+    [McpMeta("priority",6.0)]
+    public async Task<string> DotnetToolManifestCreate(
+ [Description("Directory to create the manifest in (defaults to current working directory)")] string? directory = null,
+        [Description("Force creation even if a manifest already exists")] bool force = false,
+        [Description(MachineReadableDescription)] bool machineReadable = false)
+ {
+ // dotnet new tool-manifest [--force]
+ // directory parameter not directly supported by CLI; callers should set working dir externally if needed
+ var args = new StringBuilder("new tool-manifest");
+ if (force) args.Append(" --force");
+ return await DotNetCommandExecutor.ExecuteCommandAsync(args.ToString(), _logger, machineReadable);
+ }
+
+    [McpServerTool, Description("Update a .NET tool to a newer version. If no packageName provided, updates all tools.")]
+ [McpMeta("category", "tool")]
+ [McpMeta("priority",7.0)]
+ public async Task<string> DotnetToolUpdate(
+ [Description("Package name of the tool to update (omit to update all tools)")] string? packageName = null,
+ [Description("Update global tool(s) (system-wide), otherwise updates local tool(s)")] bool global = false,
+ [Description("Update to specific version, otherwise updates to latest")] string? version = null,
+ [Description(MachineReadableDescription)] bool machineReadable = false)
+ {
+ var args = new StringBuilder("tool update");
+ if (!string.IsNullOrEmpty(packageName)) args.Append($" \"{packageName}\"");
+ if (global) args.Append(" --global");
+ if (!string.IsNullOrEmpty(version)) args.Append($" --version {version}");
+ return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+ }
+
     [McpServerTool, Description("List installed .NET tools. Shows global tools (system-wide) or local tools (from .config/dotnet-tools.json manifest) with their versions and commands.")]
-    [McpMeta("category", "tool")]
-    [McpMeta("priority", 7.0)]
-    public async Task<string> DotnetToolList(
-        [Description("List global tools (system-wide), otherwise lists local tools from manifest")] bool global = false,
-        [Description(MachineReadableDescription)] bool machineReadable = false)
-    {
-        var args = "tool list";
-        if (global) args += " --global";
-        return await ExecuteDotNetCommand(args, machineReadable);
-    }
+ [McpMeta("category", "tool")]
+ [McpMeta("priority",7.0)]
+ public async Task<string> DotnetToolList(
+ [Description("List global tools (system-wide), otherwise lists local tools from manifest")] bool global = false,
+ [Description(MachineReadableDescription)] bool machineReadable = false)
+ => await ExecuteDotNetCommand("tool list" + (global ? " --global" : string.Empty), machineReadable);
 
-    [McpServerTool, Description("Update a .NET tool to a newer version. Can update to latest, a specific version, or latest prerelease.")]
-    [McpMeta("category", "tool")]
-    [McpMeta("priority", 7.0)]
-    public async Task<string> DotnetToolUpdate(
-        [Description("Package name of the tool to update")] string packageName,
-        [Description("Update global tool (system-wide), otherwise updates local tool")] bool global = false,
-        [Description("Update to specific version, otherwise updates to latest")] string? version = null,
-        [Description(MachineReadableDescription)] bool machineReadable = false)
-    {
-        if (string.IsNullOrWhiteSpace(packageName))
-            return "Error: packageName parameter is required.";
+ [McpServerTool, Description("Uninstall a .NET tool. Removes a global tool (system-wide) or removes from local tool manifest.")]
+ [McpMeta("category", "tool")]
+ [McpMeta("priority",6.0)]
+ public async Task<string> DotnetToolUninstall(
+ [Description("Package name of the tool to uninstall")] string packageName,
+ [Description("Uninstall global tool (system-wide), otherwise uninstalls from local manifest")] bool global = false,
+ [Description(MachineReadableDescription)] bool machineReadable = false)
+ {
+ if (string.IsNullOrWhiteSpace(packageName)) return "Error: packageName parameter is required.";
+ var args = new StringBuilder($"tool uninstall \"{packageName}\"");
+ if (global) args.Append(" --global");
+ return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+ }
 
-        var args = new StringBuilder($"tool update \"{packageName}\"");
-        if (global) args.Append(" --global");
-        if (!string.IsNullOrEmpty(version)) args.Append($" --version {version}");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
-    }
+ [McpServerTool, Description("Restore tools from the tool manifest (.config/dotnet-tools.json). Installs all tools listed in the manifest, essential for project setup after cloning.")]
+ [McpMeta("category", "tool")]
+ [McpMeta("priority",7.0)]
+ public async Task<string> DotnetToolRestore([
+ Description(MachineReadableDescription)] bool machineReadable = false)
+ => await ExecuteDotNetCommand("tool restore", machineReadable);
 
-    [McpServerTool, Description("Uninstall a .NET tool. Removes a global tool (system-wide) or removes from local tool manifest.")]
-    [McpMeta("category", "tool")]
-    [McpMeta("priority", 6.0)]
-    public async Task<string> DotnetToolUninstall(
-        [Description("Package name of the tool to uninstall")] string packageName,
-        [Description("Uninstall global tool (system-wide), otherwise uninstalls from local manifest")] bool global = false,
-        [Description(MachineReadableDescription)] bool machineReadable = false)
-    {
-        if (string.IsNullOrWhiteSpace(packageName))
-            return "Error: packageName parameter is required.";
+ [McpServerTool, Description("Search for .NET tools on NuGet.org. Finds available tools by name or description with download counts and package information.")]
+ [McpMeta("category", "tool")]
+ [McpMeta("priority",6.0)]
+ public async Task<string> DotnetToolSearch(
+ [Description("Search term to find tools")] string searchTerm,
+ [Description("Show detailed information including description and versions")] bool detail = false,
+ [Description("Maximum number of results to return (1-100)")] int? take = null,
+ [Description("Skip the first N results for pagination")] int? skip = null,
+ [Description("Include prerelease tool versions in search")] bool prerelease = false,
+ [Description(MachineReadableDescription)] bool machineReadable = false)
+ {
+ if (string.IsNullOrWhiteSpace(searchTerm)) return "Error: searchTerm parameter is required.";
+ var args = new StringBuilder($"tool search \"{searchTerm}\"");
+ if (detail) args.Append(" --detail");
+ if (take.HasValue) args.Append($" --take {take.Value}");
+ if (skip.HasValue) args.Append($" --skip {skip.Value}");
+ if (prerelease) args.Append(" --prerelease");
+ return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+ }
 
-        var args = new StringBuilder($"tool uninstall \"{packageName}\"");
-        if (global) args.Append(" --global");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
-    }
+ [McpServerTool, Description("Run a .NET tool by its command name. Executes an installed local or global tool with optional arguments.")]
+ [McpMeta("category", "tool")]
+ [McpMeta("priority",7.0)]
+ public async Task<string> DotnetToolRun(
+ [Description("Tool command name to run (e.g., 'dotnet-ef', 'dotnet-format')")] string toolName,
+ [Description("Arguments to pass to the tool (e.g., 'migrations add Initial')")] string? args = null,
+ [Description(MachineReadableDescription)] bool machineReadable = false)
+ {
+ if (string.IsNullOrWhiteSpace(toolName)) return "Error: toolName parameter is required.";
+ if (!string.IsNullOrEmpty(args) && !IsValidAdditionalOptions(args))
+ return "Error: args contains invalid characters. Only alphanumeric characters, hyphens, underscores, dots, spaces, and equals signs are allowed.";
+ var cmd = new StringBuilder($"tool run \"{toolName}\"");
+ if (!string.IsNullOrEmpty(args)) cmd.Append($" -- {args}");
+ return await ExecuteDotNetCommand(cmd.ToString(), machineReadable);
+ }
 
-    [McpServerTool, Description("Restore tools from the tool manifest (.config/dotnet-tools.json). Installs all tools listed in the manifest, essential for project setup after cloning.")]
-    [McpMeta("category", "tool")]
-    [McpMeta("priority", 7.0)]
-    public async Task<string> DotnetToolRestore([Description(MachineReadableDescription)] bool machineReadable = false)
-        => await ExecuteDotNetCommand("tool restore", machineReadable);
-
-    [McpServerTool, Description("Search for .NET tools on NuGet.org. Finds available tools by name or description with download counts and package information.")]
-    [McpMeta("category", "tool")]
-    [McpMeta("priority", 6.0)]
-    public async Task<string> DotnetToolSearch(
-        [Description("Search term to find tools")] string searchTerm,
-        [Description("Show detailed information including description and versions")] bool detail = false,
-        [Description("Maximum number of results to return (1-100)")] int? take = null,
-        [Description("Skip the first N results for pagination")] int? skip = null,
-        [Description("Include prerelease tool versions in search")] bool prerelease = false,
-        [Description(MachineReadableDescription)] bool machineReadable = false)
-    {
-        if (string.IsNullOrWhiteSpace(searchTerm))
-            return "Error: searchTerm parameter is required.";
-
-        var args = new StringBuilder($"tool search \"{searchTerm}\"");
-        if (detail) args.Append(" --detail");
-        if (take.HasValue) args.Append($" --take {take.Value}");
-        if (skip.HasValue) args.Append($" --skip {skip.Value}");
-        if (prerelease) args.Append(" --prerelease");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
-    }
-
-    [McpServerTool, Description("Run a .NET tool by its command name. Executes an installed local or global tool with optional arguments.")]
-    [McpMeta("category", "tool")]
-    [McpMeta("priority", 7.0)]
-    public async Task<string> DotnetToolRun(
-        [Description("Tool command name to run (e.g., 'dotnet-ef', 'dotnet-format')")] string toolName,
-        [Description("Arguments to pass to the tool (e.g., 'migrations add Initial')")] string? args = null,
-        [Description(MachineReadableDescription)] bool machineReadable = false)
-    {
-        if (string.IsNullOrWhiteSpace(toolName))
-            return "Error: toolName parameter is required.";
-
-        if (!string.IsNullOrEmpty(args) && !IsValidAdditionalOptions(args))
-            return "Error: args contains invalid characters. Only alphanumeric characters, hyphens, underscores, dots, spaces, and equals signs are allowed.";
-
-        var commandArgs = new StringBuilder($"tool run \"{toolName}\"");
-        if (!string.IsNullOrEmpty(args)) commandArgs.Append($" -- {args}");
-        return await ExecuteDotNetCommand(commandArgs.ToString(), machineReadable);
-    }
+    private static bool LocalToolManifestExists()
+ {
+ // Manifest default path: .config/dotnet-tools.json in current working directory
+ var manifestPath = Path.Combine(Environment.CurrentDirectory, ".config", "dotnet-tools.json");
+ return File.Exists(manifestPath);
+ }
 
     private async Task<string> ExecuteDotNetCommand(string arguments, bool machineReadable = false)
         => await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable);
