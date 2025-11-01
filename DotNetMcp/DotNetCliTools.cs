@@ -1095,7 +1095,7 @@ public sealed class DotNetCliTools
         return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 
-    [McpServerTool, Description("Drop the Entity Framework Core database. WARNING: This permanently deletes the database. Use with extreme caution, typically only for development. Requires force flag for safety.")]
+    [McpServerTool, Description("Drop the Entity Framework Core database. WARNING: This permanently deletes the database. Use with extreme caution, typically only for development. Set force=true to execute without confirmation prompt.")]
     [McpMeta("category", "ef")]
     [McpMeta("priority", 5.0)]
     [McpMeta("tags", JsonValue = """["ef","entity-framework","database","drop","delete"]""")]
@@ -1104,7 +1104,7 @@ public sealed class DotNetCliTools
         [Description("Startup project file (if different from DbContext project)")] string? startupProject = null,
         [Description("The DbContext class to use (if multiple contexts exist)")] string? context = null,
         [Description("Target framework for the project")] string? framework = null,
-        [Description("Force drop without confirmation (required for safety)")] bool force = false,
+        [Description("Force drop without confirmation prompt (set to true to execute)")] bool force = false,
         [Description("Perform a dry run without actually dropping")] bool dryRun = false,
         [Description(MachineReadableDescription)] bool machineReadable = false)
     {
