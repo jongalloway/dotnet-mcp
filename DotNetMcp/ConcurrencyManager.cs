@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 
 namespace DotNetMcp;
 
@@ -9,7 +10,7 @@ namespace DotNetMcp;
 public sealed class ConcurrencyManager
 {
     private readonly Dictionary<string, ActiveOperation> _activeOperations = new();
-    private readonly object _lockObject = new();
+    private readonly Lock _lock = new();
 
     /// <summary>
     /// Attempts to acquire a lock for an operation on a specific target.
@@ -27,7 +28,7 @@ public sealed class ConcurrencyManager
         var normalizedTarget = NormalizeTarget(target);
         var key = GetOperationKey(operationType, normalizedTarget);
 
-        lock (_lockObject)
+        lock (_lock)
         {
             // Check for conflicting operations
             if (_activeOperations.TryGetValue(key, out var existing))
@@ -87,7 +88,7 @@ public sealed class ConcurrencyManager
         var normalizedTarget = NormalizeTarget(target);
         var key = GetOperationKey(operationType, normalizedTarget);
 
-        lock (_lockObject)
+        lock (_lock)
         {
             _activeOperations.Remove(key);
         }
@@ -100,7 +101,7 @@ public sealed class ConcurrencyManager
     {
         get
         {
-            lock (_lockObject)
+            lock (_lock)
             {
                 return _activeOperations.Count;
             }
@@ -112,7 +113,7 @@ public sealed class ConcurrencyManager
     /// </summary>
     public void Clear()
     {
-        lock (_lockObject)
+        lock (_lock)
         {
             _activeOperations.Clear();
         }
