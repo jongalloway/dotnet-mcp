@@ -800,6 +800,20 @@ public sealed class DotNetCliTools
     public async Task<string> DotnetToolRestore([Description(MachineReadableDescription)] bool machineReadable = false)
         => await ExecuteDotNetCommand("tool restore", machineReadable);
 
+    [McpServerTool, Description("Create a .NET tool manifest file (.config/dotnet-tools.json). Required before installing local tools. Creates the manifest in the current directory or specified output location.")]
+    [McpMeta("category", "tool")]
+    [McpMeta("priority", 6.0)]
+    public async Task<string> DotnetToolManifestCreate(
+        [Description("Output directory for the manifest (defaults to current directory)")] string? output = null,
+        [Description("Force creation even if manifest already exists")] bool force = false,
+        [Description(MachineReadableDescription)] bool machineReadable = false)
+    {
+        var args = new StringBuilder("new tool-manifest");
+        if (!string.IsNullOrEmpty(output)) args.Append($" -o \"{output}\"");
+        if (force) args.Append(" --force");
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+    }
+
     [McpServerTool, Description("Search for .NET tools on NuGet.org. Finds available tools by name or description with download counts and package information.")]
     [McpMeta("category", "tool")]
     [McpMeta("priority", 6.0)]
