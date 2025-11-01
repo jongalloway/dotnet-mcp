@@ -740,6 +740,90 @@ public sealed class DotNetCliTools
         return await DotNetCommandExecutor.ExecuteCommandAsync(args.ToString(), logger: null, machineReadable);
     }
 
+    [McpServerTool, Description("Initialize user secrets for a project. Creates a unique secrets ID and enables secret storage. This is the first step to using user secrets in your project.")]
+    [McpMeta("category", "security")]
+    [McpMeta("priority", 8.0)]
+    public async Task<string> DotnetSecretsInit(
+        [Description("Project file to initialize secrets for (optional, uses current directory if not specified)")] string? project = null,
+        [Description(MachineReadableDescription)] bool machineReadable = false)
+    {
+        var args = new StringBuilder("user-secrets init");
+        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+    }
+
+    [McpServerTool, Description("Set a user secret value. Stores sensitive configuration outside of the project. Supports hierarchical keys (e.g., 'ConnectionStrings:DefaultConnection'). DEVELOPMENT ONLY - not for production deployment.")]
+    [McpMeta("category", "security")]
+    [McpMeta("priority", 9.0)]
+    [McpMeta("commonlyUsed", true)]
+    public async Task<string> DotnetSecretsSet(
+        [Description("Secret key (supports hierarchical keys like 'ConnectionStrings:DefaultConnection')")] string key,
+        [Description("Secret value (will not be logged for security)")] string value,
+        [Description("Project file (optional, uses current directory if not specified)")] string? project = null,
+        [Description(MachineReadableDescription)] bool machineReadable = false)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return "Error: key parameter is required.";
+        
+        if (string.IsNullOrWhiteSpace(value))
+            return "Error: value parameter is required.";
+
+        // Security Note: The secret value must be passed as a command-line argument to dotnet user-secrets,
+        // which is the standard .NET CLI behavior. While this stores the value temporarily in memory
+        // (similar to dev-certs password handling), this is:
+        // 1. Required by the .NET CLI interface - there's no alternative secure input method
+        // 2. Mitigated by passing logger: null below, which prevents logging of the secret value
+        // 3. Not persisted to disk in logs or command history by our code
+        // 4. Consistent with how developers manually use the dotnet user-secrets command
+        // 5. User secrets are ONLY for development, never for production deployment
+        var args = new StringBuilder("user-secrets set");
+        args.Append($" \"{key}\" \"{value}\"");
+        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
+        
+        // Pass logger: null to prevent DotNetCommandExecutor from logging the secret value
+        return await DotNetCommandExecutor.ExecuteCommandAsync(args.ToString(), logger: null, machineReadable);
+    }
+
+    [McpServerTool, Description("List all user secrets for a project. Displays secret keys and values. Useful for debugging configuration.")]
+    [McpMeta("category", "security")]
+    [McpMeta("priority", 7.0)]
+    public async Task<string> DotnetSecretsList(
+        [Description("Project file (optional, uses current directory if not specified)")] string? project = null,
+        [Description(MachineReadableDescription)] bool machineReadable = false)
+    {
+        var args = new StringBuilder("user-secrets list");
+        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+    }
+
+    [McpServerTool, Description("Remove a specific user secret by key. Deletes the secret from local storage.")]
+    [McpMeta("category", "security")]
+    [McpMeta("priority", 6.0)]
+    public async Task<string> DotnetSecretsRemove(
+        [Description("Secret key to remove")] string key,
+        [Description("Project file (optional, uses current directory if not specified)")] string? project = null,
+        [Description(MachineReadableDescription)] bool machineReadable = false)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return "Error: key parameter is required.";
+
+        var args = new StringBuilder($"user-secrets remove \"{key}\"");
+        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+    }
+
+    [McpServerTool, Description("Clear all user secrets for a project. Removes all stored secrets. Use this for a fresh start when debugging configuration issues.")]
+    [McpMeta("category", "security")]
+    [McpMeta("priority", 5.0)]
+    public async Task<string> DotnetSecretsClear(
+        [Description("Project file (optional, uses current directory if not specified)")] string? project = null,
+        [Description(MachineReadableDescription)] bool machineReadable = false)
+    {
+        var args = new StringBuilder("user-secrets clear");
+        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+    }
+
     [McpServerTool, Description("Install a .NET tool globally or locally to a tool manifest. Global tools are available system-wide, local tools are project-specific and tracked in .config/dotnet-tools.json.")]
     [McpMeta("category", "tool")]
     [McpMeta("priority", 8.0)]

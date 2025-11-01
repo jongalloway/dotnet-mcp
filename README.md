@@ -474,6 +474,57 @@ dotnet dev-certs https --export-path ./certs/aspnetapp.pfx --password "SecurePas
 
 *Certificate exported to ./certs/aspnetapp.pfx. You can now mount it in your Docker container.*
 
+### Secure Configuration with User Secrets
+
+**User**: *"Set up user secrets for my API project with a database connection string"*
+
+**AI**: *I'll initialize user secrets for your project...*
+
+```bash
+# Initialize user secrets (adds UserSecretsId to project file)
+dotnet user-secrets init --project MyApi/MyApi.csproj
+```
+
+*Now I'll add your database connection string securely...*
+
+```bash
+# Store connection string (not committed to Git)
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost;Database=MyDb;User=dev;Password=secret123"
+```
+
+*Secret stored! You can also add API keys:*
+
+```bash
+# Add Azure OpenAI API key
+dotnet user-secrets set "Azure:OpenAI:ApiKey" "sk-..."
+
+# Add SendGrid API key
+dotnet user-secrets set "SendGrid:ApiKey" "SG...."
+```
+
+*Let me show you what's configured:*
+
+```bash
+# List all secrets
+dotnet user-secrets list
+```
+
+*Output:*
+```
+ConnectionStrings:DefaultConnection = Server=localhost;Database=MyDb;User=dev;Password=secret123
+Azure:OpenAI:ApiKey = sk-...
+SendGrid:ApiKey = SG....
+```
+
+*These secrets are stored in your user profile (not in the project) and won't be committed to Git. In your code, access them like:*
+
+```csharp
+var connectionString = builder.Configuration["ConnectionStrings:DefaultConnection"];
+var apiKey = builder.Configuration["Azure:OpenAI:ApiKey"];
+```
+
+*Note: User secrets are for **development only**. Use Azure Key Vault or environment variables for production.*
+
 ## Available Tools
 
 The server provides comprehensive .NET development capabilities through MCP tools and resources:
@@ -550,6 +601,11 @@ Resources provide structured JSON data and are more efficient than tool calls fo
 - **dotnet_certificate_check** - Check if HTTPS certificate exists and is trusted
 - **dotnet_certificate_clean** - Remove all HTTPS development certificates
 - **dotnet_certificate_export** - Export HTTPS certificate to a file (supports PFX and PEM formats)
+- **dotnet_secrets_init** - Initialize user secrets for a project (creates UserSecretsId)
+- **dotnet_secrets_set** - Set a user secret value (stores sensitive config outside project)
+- **dotnet_secrets_list** - List all user secrets for a project
+- **dotnet_secrets_remove** - Remove a specific user secret by key
+- **dotnet_secrets_clear** - Clear all user secrets for a project
 
 ### Tools - Utilities
 

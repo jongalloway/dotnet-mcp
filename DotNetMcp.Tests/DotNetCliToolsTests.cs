@@ -675,4 +675,146 @@ public class DotNetCliToolsTests
         result.Should().Contain("Error");
         result.Should().Contain("args contains invalid characters");
     }
+
+    [Fact]
+    public async Task DotnetSecretsInit_WithoutProject_ExecutesCommand()
+    {
+        // Validates that the init command can be executed without project parameter
+        var result = await _tools.DotnetSecretsInit();
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetSecretsInit_WithProject_ExecutesCommand()
+    {
+        // Validates that the init command can be executed with project parameter
+        var result = await _tools.DotnetSecretsInit(project: "MyProject.csproj");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetSecretsSet_WithRequiredParameters_ExecutesCommand()
+    {
+        // Validates that the set command can be executed with required parameters
+        var result = await _tools.DotnetSecretsSet(
+            key: "TestKey",
+            value: "TestValue");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetSecretsSet_WithHierarchicalKey_ExecutesCommand()
+    {
+        // Validates that the set command supports hierarchical keys
+        var result = await _tools.DotnetSecretsSet(
+            key: "ConnectionStrings:DefaultConnection",
+            value: "Server=localhost;Database=TestDb");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetSecretsSet_WithProject_ExecutesCommand()
+    {
+        // Validates that the set command can be executed with project parameter
+        var result = await _tools.DotnetSecretsSet(
+            key: "ApiKey",
+            value: "secret-value-123",
+            project: "MyProject.csproj");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetSecretsSet_WithEmptyKey_ReturnsError()
+    {
+        // Validates that empty key returns error
+        var result = await _tools.DotnetSecretsSet(
+            key: "",
+            value: "TestValue");
+
+        result.Should().Contain("Error");
+        result.Should().Contain("key parameter is required");
+    }
+
+    [Fact]
+    public async Task DotnetSecretsSet_WithEmptyValue_ReturnsError()
+    {
+        // Validates that empty value returns error
+        var result = await _tools.DotnetSecretsSet(
+            key: "TestKey",
+            value: "");
+
+        result.Should().Contain("Error");
+        result.Should().Contain("value parameter is required");
+    }
+
+    [Fact]
+    public async Task DotnetSecretsList_WithoutProject_ExecutesCommand()
+    {
+        // Validates that the list command can be executed without project parameter
+        var result = await _tools.DotnetSecretsList();
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetSecretsList_WithProject_ExecutesCommand()
+    {
+        // Validates that the list command can be executed with project parameter
+        var result = await _tools.DotnetSecretsList(project: "MyProject.csproj");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetSecretsRemove_WithKey_ExecutesCommand()
+    {
+        // Validates that the remove command can be executed with key
+        var result = await _tools.DotnetSecretsRemove(key: "TestKey");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetSecretsRemove_WithKeyAndProject_ExecutesCommand()
+    {
+        // Validates that the remove command can be executed with key and project
+        var result = await _tools.DotnetSecretsRemove(
+            key: "ConnectionStrings:DefaultConnection",
+            project: "MyProject.csproj");
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetSecretsRemove_WithEmptyKey_ReturnsError()
+    {
+        // Validates that empty key returns error
+        var result = await _tools.DotnetSecretsRemove(key: "");
+
+        result.Should().Contain("Error");
+        result.Should().Contain("key parameter is required");
+    }
+
+    [Fact]
+    public async Task DotnetSecretsClear_WithoutProject_ExecutesCommand()
+    {
+        // Validates that the clear command can be executed without project parameter
+        var result = await _tools.DotnetSecretsClear();
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task DotnetSecretsClear_WithProject_ExecutesCommand()
+    {
+        // Validates that the clear command can be executed with project parameter
+        var result = await _tools.DotnetSecretsClear(project: "MyProject.csproj");
+
+        result.Should().NotBeNull();
+    }
 }
