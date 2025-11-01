@@ -1045,9 +1045,20 @@ public sealed class DotNetCliTools
         [Description("Do not build the project before scripting")] bool noBuild = false,
         [Description(MachineReadableDescription)] bool machineReadable = false)
     {
+        // Validate parameter order: if 'to' is specified without 'from', use empty string for from
         var args = new StringBuilder("ef migrations script");
-        if (!string.IsNullOrEmpty(from)) args.Append($" \"{from}\"");
-        if (!string.IsNullOrEmpty(to)) args.Append($" \"{to}\"");
+        if (!string.IsNullOrEmpty(from))
+        {
+            args.Append($" \"{from}\"");
+            if (!string.IsNullOrEmpty(to))
+                args.Append($" \"{to}\"");
+        }
+        else if (!string.IsNullOrEmpty(to))
+        {
+            // If only 'to' is specified, EF Core expects 'from' to be empty string (all migrations up to 'to')
+            args.Append($" \"\" \"{to}\"");
+        }
+        
         if (!string.IsNullOrEmpty(output)) args.Append($" --output \"{output}\"");
         if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
         if (!string.IsNullOrEmpty(startupProject)) args.Append($" --startup-project \"{startupProject}\"");
@@ -1179,8 +1190,25 @@ public sealed class DotNetCliTools
         if (!string.IsNullOrEmpty(outputDir)) args.Append($" --output-dir \"{outputDir}\"");
         if (!string.IsNullOrEmpty(contextDir)) args.Append($" --context-dir \"{contextDir}\"");
         if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
-        if (!string.IsNullOrEmpty(tables)) args.Append($" --table {tables}");
-        if (!string.IsNullOrEmpty(schemas)) args.Append($" --schema {schemas}");
+        
+        // Handle multiple tables - split by comma and add --table for each
+        if (!string.IsNullOrEmpty(tables))
+        {
+            foreach (var table in tables.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                args.Append($" --table {table}");
+            }
+        }
+        
+        // Handle multiple schemas - split by comma and add --schema for each
+        if (!string.IsNullOrEmpty(schemas))
+        {
+            foreach (var schema in schemas.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                args.Append($" --schema {schema}");
+            }
+        }
+        
         if (useDatabaseNames) args.Append(" --use-database-names");
         if (force) args.Append(" --force");
         if (noBuild) args.Append(" --no-build");
