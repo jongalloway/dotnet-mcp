@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Reflection;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Protocol;
@@ -13,6 +14,10 @@ public sealed class DotNetCliTools
     private readonly ILogger<DotNetCliTools> _logger;
     private readonly ConcurrencyManager _concurrencyManager;
     private const string MachineReadableDescription = "Return structured JSON output for both success and error responses instead of plain text";
+    
+    // Constants for server capability discovery
+    private const string DefaultServerVersion = "1.0.0";
+    private const string ProtocolVersion = "0.4.0-preview.3";
 
     public DotNetCliTools(ILogger<DotNetCliTools> logger, ConcurrencyManager concurrencyManager)
     {
@@ -565,10 +570,67 @@ public sealed class DotNetCliTools
         [Description(MachineReadableDescription)] bool machineReadable = false)
   => await ExecuteDotNetCommand(command != null ? $"{command} --help" : "--help", machineReadable);
 
-    [McpServerTool, Description("Get information about .NET MCP Server capabilities including supported features, concurrency safety, and available resources. Provides guidance for AI orchestrators on parallel execution.")]
+    [McpServerTool, Description("Get machine-readable JSON snapshot of server capabilities, versions, and supported features for agent orchestration and discovery.")]
+    [McpMeta("category", "help")]
+    [McpMeta("priority", 8.0)]
+    [McpMeta("commonlyUsed", true)]
+    [McpMeta("tags", JsonValue = """["capabilities","version","discovery","orchestration","metadata"]""")]
+    public async Task<string> DotnetServerCapabilities()
+    {
+        // Get the assembly version
+        var assembly = typeof(DotNetCliTools).Assembly;
+        var version = assembly.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()?.InformationalVersion 
+            ?? assembly.GetName().Version?.ToString() 
+            ?? DefaultServerVersion;
+
+        // Parse installed SDKs from dotnet --list-sdks
+        var sdksOutput = await ExecuteDotNetCommand("--list-sdks", machineReadable: false);
+        var installedSdks = ParseInstalledSdks(sdksOutput);
+
+        // Create the capabilities snapshot
+        var capabilities = new ServerCapabilities
+        {
+            ServerVersion = version,
+            ProtocolVersion = ProtocolVersion,
+            SupportedCategories = new[]
+            {
+                "template",
+                "project",
+                "package",
+                "solution",
+                "reference",
+                "tool",
+                "watch",
+                "sdk",
+                "security",
+                "framework",
+                "format",
+                "nuget",
+                "help",
+                "efcore"
+            },
+            Supports = new ServerFeatureSupport
+            {
+                StructuredErrors = true,
+                MachineReadable = true,
+                Cancellation = true,
+                Telemetry = false  // Future feature
+            },
+            SdkVersions = new SdkVersionInfo
+            {
+                Installed = installedSdks,
+                Recommended = FrameworkHelper.GetLatestRecommendedFramework(),
+                Lts = FrameworkHelper.GetLatestLtsFramework()
+            }
+        };
+
+        return ErrorResultFactory.ToJson(capabilities);
+    }
+
+    [McpServerTool, Description("Get detailed human-readable information about .NET MCP Server capabilities including supported features, concurrency safety, and available resources. Provides guidance for AI orchestrators on parallel execution.")]
     [McpMeta("category", "help")]
     [McpMeta("priority", 5.0)]
-    public Task<string> DotnetServerCapabilities()
+    public Task<string> DotnetServerInfo()
     {
         var result = new StringBuilder();
         result.AppendLine("=== .NET MCP Server Capabilities ===");
@@ -1285,5 +1347,38 @@ public sealed class DotNetCliTools
                 return false;
         }
         return true;
+    }
+
+    /// <summary>
+    /// Parse the output of 'dotnet --list-sdks' to extract SDK versions.
+    /// Expected format: "9.0.306 [/usr/share/dotnet/sdk]"
+    /// </summary>
+    private static string[] ParseInstalledSdks(string sdksOutput)
+    {
+        if (string.IsNullOrWhiteSpace(sdksOutput))
+            return Array.Empty<string>();
+
+        var sdks = new List<string>();
+        var lines = sdksOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+        foreach (var line in lines)
+        {
+            // Each line format: "version [path]"
+            var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length > 0)
+            {
+                var version = parts[0].Trim();
+                // Skip empty lines, error messages, and exit code lines - only keep lines starting with a digit (SDK versions)
+                if (!string.IsNullOrEmpty(version) && 
+                    !version.StartsWith("Exit", StringComparison.OrdinalIgnoreCase) &&
+                    !version.StartsWith("Error", StringComparison.OrdinalIgnoreCase) &&
+                    char.IsDigit(version[0]))
+                {
+                    sdks.Add(version);
+                }
+            }
+        }
+
+        return sdks.ToArray();
     }
 }
