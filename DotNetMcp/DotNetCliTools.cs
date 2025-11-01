@@ -953,6 +953,240 @@ public sealed class DotNetCliTools
         return await ExecuteDotNetCommand(commandArgs.ToString(), machineReadable);
     }
 
+    // Entity Framework Core CLI Tools
+    // Note: Requires dotnet-ef tool to be installed (dotnet tool install dotnet-ef --global or locally)
+
+    [McpServerTool, Description("Create a new Entity Framework Core migration. Generates migration files for database schema changes. Requires Microsoft.EntityFrameworkCore.Design package and dotnet-ef tool.")]
+    [McpMeta("category", "ef")]
+    [McpMeta("priority", 9.0)]
+    [McpMeta("commonlyUsed", true)]
+    [McpMeta("tags", JsonValue = """["ef","entity-framework","migration","database","schema"]""")]
+    public async Task<string> DotnetEfMigrationsAdd(
+        [Description("Name of the migration (e.g., 'InitialCreate', 'AddProductEntity')")] string name,
+        [Description("Project file containing the DbContext")] string? project = null,
+        [Description("Startup project file (if different from DbContext project)")] string? startupProject = null,
+        [Description("The DbContext class to use (if multiple contexts exist)")] string? context = null,
+        [Description("Output directory for migration files")] string? outputDir = null,
+        [Description("Target framework for the project")] string? framework = null,
+        [Description(MachineReadableDescription)] bool machineReadable = false)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return "Error: name parameter is required.";
+
+        var args = new StringBuilder($"ef migrations add \"{name}\"");
+        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
+        if (!string.IsNullOrEmpty(startupProject)) args.Append($" --startup-project \"{startupProject}\"");
+        if (!string.IsNullOrEmpty(context)) args.Append($" --context \"{context}\"");
+        if (!string.IsNullOrEmpty(outputDir)) args.Append($" --output-dir \"{outputDir}\"");
+        if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+    }
+
+    [McpServerTool, Description("List all Entity Framework Core migrations. Shows applied and pending migrations with their status. Useful for understanding migration history.")]
+    [McpMeta("category", "ef")]
+    [McpMeta("priority", 8.0)]
+    [McpMeta("commonlyUsed", true)]
+    [McpMeta("tags", JsonValue = """["ef","entity-framework","migration","database","list"]""")]
+    public async Task<string> DotnetEfMigrationsList(
+        [Description("Project file containing the DbContext")] string? project = null,
+        [Description("Startup project file (if different from DbContext project)")] string? startupProject = null,
+        [Description("The DbContext class to use (if multiple contexts exist)")] string? context = null,
+        [Description("Target framework for the project")] string? framework = null,
+        [Description("Show connection string used")] bool connection = false,
+        [Description("Do not build the project before listing")] bool noBuild = false,
+        [Description(MachineReadableDescription)] bool machineReadable = false)
+    {
+        var args = new StringBuilder("ef migrations list");
+        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
+        if (!string.IsNullOrEmpty(startupProject)) args.Append($" --startup-project \"{startupProject}\"");
+        if (!string.IsNullOrEmpty(context)) args.Append($" --context \"{context}\"");
+        if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
+        if (connection) args.Append(" --connection");
+        if (noBuild) args.Append(" --no-build");
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+    }
+
+    [McpServerTool, Description("Remove the last Entity Framework Core migration. Removes the most recent unapplied migration. Useful for cleaning up mistakes before applying to database.")]
+    [McpMeta("category", "ef")]
+    [McpMeta("priority", 7.0)]
+    [McpMeta("tags", JsonValue = """["ef","entity-framework","migration","database","remove"]""")]
+    public async Task<string> DotnetEfMigrationsRemove(
+        [Description("Project file containing the DbContext")] string? project = null,
+        [Description("Startup project file (if different from DbContext project)")] string? startupProject = null,
+        [Description("The DbContext class to use (if multiple contexts exist)")] string? context = null,
+        [Description("Target framework for the project")] string? framework = null,
+        [Description("Force removal (reverts migration if already applied)")] bool force = false,
+        [Description("Do not build the project before removing")] bool noBuild = false,
+        [Description(MachineReadableDescription)] bool machineReadable = false)
+    {
+        var args = new StringBuilder("ef migrations remove");
+        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
+        if (!string.IsNullOrEmpty(startupProject)) args.Append($" --startup-project \"{startupProject}\"");
+        if (!string.IsNullOrEmpty(context)) args.Append($" --context \"{context}\"");
+        if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
+        if (force) args.Append(" --force");
+        if (noBuild) args.Append(" --no-build");
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+    }
+
+    [McpServerTool, Description("Generate SQL script from Entity Framework Core migrations. Exports migration changes to SQL file for deployment or review. Useful for production deployments.")]
+    [McpMeta("category", "ef")]
+    [McpMeta("priority", 7.0)]
+    [McpMeta("tags", JsonValue = """["ef","entity-framework","migration","database","sql","script"]""")]
+    public async Task<string> DotnetEfMigrationsScript(
+        [Description("Starting migration (default: 0 for all migrations)")] string? from = null,
+        [Description("Target migration (default: last migration)")] string? to = null,
+        [Description("Output file path for SQL script")] string? output = null,
+        [Description("Project file containing the DbContext")] string? project = null,
+        [Description("Startup project file (if different from DbContext project)")] string? startupProject = null,
+        [Description("The DbContext class to use (if multiple contexts exist)")] string? context = null,
+        [Description("Target framework for the project")] string? framework = null,
+        [Description("Generate idempotent script (can be run multiple times)")] bool idempotent = false,
+        [Description("Do not build the project before scripting")] bool noBuild = false,
+        [Description(MachineReadableDescription)] bool machineReadable = false)
+    {
+        var args = new StringBuilder("ef migrations script");
+        if (!string.IsNullOrEmpty(from)) args.Append($" \"{from}\"");
+        if (!string.IsNullOrEmpty(to)) args.Append($" \"{to}\"");
+        if (!string.IsNullOrEmpty(output)) args.Append($" --output \"{output}\"");
+        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
+        if (!string.IsNullOrEmpty(startupProject)) args.Append($" --startup-project \"{startupProject}\"");
+        if (!string.IsNullOrEmpty(context)) args.Append($" --context \"{context}\"");
+        if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
+        if (idempotent) args.Append(" --idempotent");
+        if (noBuild) args.Append(" --no-build");
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+    }
+
+    [McpServerTool, Description("Apply Entity Framework Core migrations to the database. Updates database schema to the latest or specified migration. Essential for database updates.")]
+    [McpMeta("category", "ef")]
+    [McpMeta("priority", 9.0)]
+    [McpMeta("commonlyUsed", true)]
+    [McpMeta("tags", JsonValue = """["ef","entity-framework","database","update","migration","apply"]""")]
+    public async Task<string> DotnetEfDatabaseUpdate(
+        [Description("Target migration name (default: latest migration). Use '0' to rollback all migrations.")] string? migration = null,
+        [Description("Project file containing the DbContext")] string? project = null,
+        [Description("Startup project file (if different from DbContext project)")] string? startupProject = null,
+        [Description("The DbContext class to use (if multiple contexts exist)")] string? context = null,
+        [Description("Target framework for the project")] string? framework = null,
+        [Description("Connection string (overrides configured connection)")] string? connection = null,
+        [Description("Do not build the project before updating")] bool noBuild = false,
+        [Description(MachineReadableDescription)] bool machineReadable = false)
+    {
+        var args = new StringBuilder("ef database update");
+        if (!string.IsNullOrEmpty(migration)) args.Append($" \"{migration}\"");
+        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
+        if (!string.IsNullOrEmpty(startupProject)) args.Append($" --startup-project \"{startupProject}\"");
+        if (!string.IsNullOrEmpty(context)) args.Append($" --context \"{context}\"");
+        if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
+        if (!string.IsNullOrEmpty(connection)) args.Append($" --connection \"{connection}\"");
+        if (noBuild) args.Append(" --no-build");
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+    }
+
+    [McpServerTool, Description("Drop the Entity Framework Core database. WARNING: This permanently deletes the database. Use with extreme caution, typically only for development. Requires force flag for safety.")]
+    [McpMeta("category", "ef")]
+    [McpMeta("priority", 5.0)]
+    [McpMeta("tags", JsonValue = """["ef","entity-framework","database","drop","delete"]""")]
+    public async Task<string> DotnetEfDatabaseDrop(
+        [Description("Project file containing the DbContext")] string? project = null,
+        [Description("Startup project file (if different from DbContext project)")] string? startupProject = null,
+        [Description("The DbContext class to use (if multiple contexts exist)")] string? context = null,
+        [Description("Target framework for the project")] string? framework = null,
+        [Description("Force drop without confirmation (required for safety)")] bool force = false,
+        [Description("Perform a dry run without actually dropping")] bool dryRun = false,
+        [Description(MachineReadableDescription)] bool machineReadable = false)
+    {
+        var args = new StringBuilder("ef database drop");
+        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
+        if (!string.IsNullOrEmpty(startupProject)) args.Append($" --startup-project \"{startupProject}\"");
+        if (!string.IsNullOrEmpty(context)) args.Append($" --context \"{context}\"");
+        if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
+        if (force) args.Append(" --force");
+        if (dryRun) args.Append(" --dry-run");
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+    }
+
+    [McpServerTool, Description("List all Entity Framework Core DbContext classes in the project. Shows available database contexts. Useful for multi-context applications.")]
+    [McpMeta("category", "ef")]
+    [McpMeta("priority", 7.0)]
+    [McpMeta("tags", JsonValue = """["ef","entity-framework","dbcontext","list"]""")]
+    public async Task<string> DotnetEfDbContextList(
+        [Description("Project file containing the DbContext classes")] string? project = null,
+        [Description("Startup project file (if different from DbContext project)")] string? startupProject = null,
+        [Description("Target framework for the project")] string? framework = null,
+        [Description("Do not build the project before listing")] bool noBuild = false,
+        [Description(MachineReadableDescription)] bool machineReadable = false)
+    {
+        var args = new StringBuilder("ef dbcontext list");
+        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
+        if (!string.IsNullOrEmpty(startupProject)) args.Append($" --startup-project \"{startupProject}\"");
+        if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
+        if (noBuild) args.Append(" --no-build");
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+    }
+
+    [McpServerTool, Description("Get Entity Framework Core DbContext information. Shows connection string and provider details for a specific DbContext.")]
+    [McpMeta("category", "ef")]
+    [McpMeta("priority", 7.0)]
+    [McpMeta("tags", JsonValue = """["ef","entity-framework","dbcontext","info","connection-string"]""")]
+    public async Task<string> DotnetEfDbContextInfo(
+        [Description("Project file containing the DbContext")] string? project = null,
+        [Description("Startup project file (if different from DbContext project)")] string? startupProject = null,
+        [Description("The DbContext class to use (if multiple contexts exist)")] string? context = null,
+        [Description("Target framework for the project")] string? framework = null,
+        [Description("Do not build the project before getting info")] bool noBuild = false,
+        [Description(MachineReadableDescription)] bool machineReadable = false)
+    {
+        var args = new StringBuilder("ef dbcontext info");
+        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
+        if (!string.IsNullOrEmpty(startupProject)) args.Append($" --startup-project \"{startupProject}\"");
+        if (!string.IsNullOrEmpty(context)) args.Append($" --context \"{context}\"");
+        if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
+        if (noBuild) args.Append(" --no-build");
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+    }
+
+    [McpServerTool, Description("Reverse engineer (scaffold) Entity Framework Core entities from existing database. Generates DbContext and entity classes from database schema. Essential for database-first development.")]
+    [McpMeta("category", "ef")]
+    [McpMeta("priority", 8.0)]
+    [McpMeta("commonlyUsed", true)]
+    [McpMeta("tags", JsonValue = """["ef","entity-framework","dbcontext","scaffold","reverse-engineer","database-first"]""")]
+    public async Task<string> DotnetEfDbContextScaffold(
+        [Description("Database connection string (e.g., 'Server=localhost;Database=MyDb;...')")] string connection,
+        [Description("Database provider (e.g., 'Microsoft.EntityFrameworkCore.SqlServer', 'Npgsql.EntityFrameworkCore.PostgreSQL')")] string provider,
+        [Description("Project file to add generated files to")] string? project = null,
+        [Description("Startup project file (if different from DbContext project)")] string? startupProject = null,
+        [Description("Output directory for generated files (default: project root)")] string? outputDir = null,
+        [Description("Name for the generated DbContext class")] string? contextDir = null,
+        [Description("Target framework for the project")] string? framework = null,
+        [Description("Specific tables to scaffold (comma-separated, default: all tables)")] string? tables = null,
+        [Description("Specific schemas to scaffold (comma-separated)")] string? schemas = null,
+        [Description("Use database names directly instead of pluralization")] bool useDatabaseNames = false,
+        [Description("Force overwrite of existing files")] bool force = false,
+        [Description("Do not build the project before scaffolding")] bool noBuild = false,
+        [Description(MachineReadableDescription)] bool machineReadable = false)
+    {
+        if (string.IsNullOrWhiteSpace(connection))
+            return "Error: connection parameter is required.";
+
+        if (string.IsNullOrWhiteSpace(provider))
+            return "Error: provider parameter is required.";
+
+        var args = new StringBuilder($"ef dbcontext scaffold \"{connection}\" \"{provider}\"");
+        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
+        if (!string.IsNullOrEmpty(startupProject)) args.Append($" --startup-project \"{startupProject}\"");
+        if (!string.IsNullOrEmpty(outputDir)) args.Append($" --output-dir \"{outputDir}\"");
+        if (!string.IsNullOrEmpty(contextDir)) args.Append($" --context-dir \"{contextDir}\"");
+        if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
+        if (!string.IsNullOrEmpty(tables)) args.Append($" --table {tables}");
+        if (!string.IsNullOrEmpty(schemas)) args.Append($" --schema {schemas}");
+        if (useDatabaseNames) args.Append(" --use-database-names");
+        if (force) args.Append(" --force");
+        if (noBuild) args.Append(" --no-build");
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+    }
+
     private async Task<string> ExecuteDotNetCommand(string arguments, bool machineReadable = false)
         => await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable);
 

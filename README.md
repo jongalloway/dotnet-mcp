@@ -358,26 +358,75 @@ dotnet add MyMicroservices.Api.Tests/MyMicroservices.Api.Tests.csproj reference 
 
 *Solution created with 4 projects: AppHost for orchestration, Web app, API, and unit tests. Ready to run with `dotnet run --project MyMicroservices.AppHost`.*
 
-### Database-Driven Application
+### Database-Driven Application with Entity Framework
 
-**User**: *"Add Entity Framework Core with SQL Server to my API project, and create a NuGet package for my data models"*
+**User**: *"Set up Entity Framework Core with SQL Server for my API and create the initial database migration"*
 
-**AI**: *I'll add EF Core with SQL Server and configure package creation...*
+**AI**: *I'll add EF Core packages, install the dotnet-ef tool, and create your initial migration...*
 
 ```bash
 # Add Entity Framework packages
-dotnet add package Microsoft.EntityFrameworkCore
 dotnet add package Microsoft.EntityFrameworkCore.SqlServer
 dotnet add package Microsoft.EntityFrameworkCore.Design
 
-# Create a data models class library
-dotnet new classlib -n MyMicroservices.Models
+# Install dotnet-ef tool globally
+dotnet tool install dotnet-ef --global
 
-# Configure for NuGet packaging
-dotnet pack MyMicroservices.Models/MyMicroservices.Models.csproj -c Release
+# Create initial migration
+dotnet ef migrations add InitialCreate
+
+# Apply migration to create database
+dotnet ef database update
 ```
 
-*Entity Framework Core with SQL Server provider added. Created a separate Models project that can be packaged and shared.*
+*Entity Framework Core with SQL Server provider added. Initial migration created and applied. Database is ready for use.*
+
+**User**: *"I added a Product entity to my DbContext. Update the database schema"*
+
+**AI**: *I'll create a migration for your Product entity and apply it...*
+
+```bash
+# Create migration for new entity
+dotnet ef migrations add AddProductEntity
+
+# List migrations to see what's pending
+dotnet ef migrations list
+
+# Apply the migration
+dotnet ef database update
+```
+
+*Migration created for Product entity (new table with Id, Name, Price, CreatedDate columns). Database updated successfully.*
+
+**User**: *"Generate SQL script for the last migration so I can review it before production deployment"*
+
+**AI**: *I'll generate an idempotent SQL script from your migration...*
+
+```bash
+# Generate idempotent SQL script (can be run multiple times safely)
+dotnet ef migrations script --idempotent --output deploy.sql
+```
+
+*SQL script generated to deploy.sql. This script can be safely run multiple times and will only apply changes if needed.*
+
+### Database-First Development
+
+**User**: *"I have an existing SQL Server database. Reverse engineer it to Entity Framework classes"*
+
+**AI**: *I'll scaffold your database into Entity Framework Core entities...*
+
+```bash
+# Reverse engineer (scaffold) database to EF Core entities
+dotnet ef dbcontext scaffold "Server=localhost;Database=MyExistingDb;Trusted_Connection=true;" Microsoft.EntityFrameworkCore.SqlServer --output-dir Models
+
+# List the generated DbContext classes
+dotnet ef dbcontext list
+
+# Get detailed info about the DbContext
+dotnet ef dbcontext info
+```
+
+*Database scaffolded successfully. Generated MyExistingDbContext.cs and 15 entity classes (Customer, Order, Product, etc.) in the Models folder.*
 
 ### Multi-Target Testing Strategy
 
@@ -583,6 +632,25 @@ Resources provide structured JSON data and are more efficient than tool calls fo
 - **dotnet_tool_manifest_create** - Create a .NET tool manifest file (.config/dotnet-tools.json)
 - **dotnet_tool_search** - Search for .NET tools on NuGet.org
 - **dotnet_tool_run** - Run a .NET tool by its command name
+
+### Tools - Entity Framework Core
+
+Entity Framework Core tools require the `dotnet-ef` tool to be installed (`dotnet tool install dotnet-ef --global`) and the `Microsoft.EntityFrameworkCore.Design` package in your project.
+
+**Migration Management:**
+- **dotnet_ef_migrations_add** - Create a new migration for database schema changes
+- **dotnet_ef_migrations_list** - List all migrations (applied and pending)
+- **dotnet_ef_migrations_remove** - Remove the last unapplied migration
+- **dotnet_ef_migrations_script** - Generate SQL script from migrations for deployment
+
+**Database Management:**
+- **dotnet_ef_database_update** - Apply migrations to update database schema
+- **dotnet_ef_database_drop** - Drop the database (development only, requires force flag)
+
+**DbContext Tools:**
+- **dotnet_ef_dbcontext_list** - List all DbContext classes in the project
+- **dotnet_ef_dbcontext_info** - Get DbContext information (connection string, provider)
+- **dotnet_ef_dbcontext_scaffold** - Reverse engineer database to entity classes (database-first)
 
 ### Tools - Solution Management
 
