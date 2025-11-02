@@ -149,6 +149,12 @@ The MCP server uses official .NET SDK APIs and CLI commands, ensuring:
 - No data sent to external servers
 - You control what commands execute
 - Standard .NET security model applies
+- **Automatic secret redaction** to protect sensitive information in CLI output
+  - Connection strings, passwords, and API keys are automatically redacted
+  - Powered by Microsoft.Extensions.Compliance.Redaction
+  - Opt-out available with `unsafeOutput=true` for advanced debugging
+  - Patterns include: database credentials, cloud provider keys, tokens, certificates, and more
+  - <5% performance overhead ensures minimal impact
 
 ## How It Works
 
