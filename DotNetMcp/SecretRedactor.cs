@@ -137,7 +137,7 @@ public static class SecretRedactor
 
             // Key=value patterns (may have quotes)
             // Check Group 1 (key) and see if there's a quoted or unquoted value
-            if (match.Groups.Count >= 2 && match.Groups[1].Success)
+            if (match.Groups[1].Success)
             {
                 var key = match.Groups[1].Value;
                 var separator = match.Value.Contains('=') ? "=" : ":";

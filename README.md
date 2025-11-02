@@ -154,7 +154,7 @@ The MCP server uses official .NET SDK APIs and CLI commands, ensuring:
   - Powered by Microsoft.Extensions.Compliance.Redaction
   - Opt-out available with `unsafeOutput=true` for advanced debugging
   - Patterns include: database credentials, cloud provider keys, tokens, certificates, and more
-  - <5% performance overhead ensures minimal impact
+  - Performance impact is minimal and tested to complete within 500ms for 10,000 lines
 
 ## How It Works
 
