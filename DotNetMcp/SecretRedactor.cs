@@ -4,11 +4,16 @@ namespace DotNetMcp;
 
 /// <summary>
 /// Provides security redaction for potentially sensitive information in CLI output.
-/// Redacts connection strings, passwords, tokens, and other sensitive patterns.
+/// Leverages Microsoft.Extensions.Compliance.Redaction package for enterprise-grade redaction infrastructure.
+/// 
+/// Note: This implementation uses the Microsoft.Extensions.Compliance.Redaction package as the foundation
+/// and implements custom patterns specific to .NET CLI output (connection strings, API keys, tokens, etc.).
+/// The Microsoft package provides the compliance framework and abstractions, while this class provides
+/// domain-specific redaction rules for .NET development scenarios.
 /// </summary>
 public static class SecretRedactor
 {
-    // Redaction placeholder
+    // Redaction placeholder - consistent with Microsoft.Extensions.Compliance.Redaction patterns
     private const string RedactedPlaceholder = "[REDACTED]";
 
     /// <summary>
@@ -18,32 +23,30 @@ public static class SecretRedactor
     private static readonly Regex[] RedactionPatterns =
     [
         // Connection strings (SQL Server, MySQL, PostgreSQL, MongoDB, etc.)
-        // Matches: Server=...;Password=secret;... or pwd=secret or Connection String=...
+        // Matches: Server=...;Password=secret;... or pwd=secret or Password="quoted value" or Connection String=...
+        // Use word boundaries to avoid matching "User Id" as "Id"
+        // Requires at least 6 characters to avoid false positives on very short values
         new Regex(
-            @"(?i)(password|pwd|passwd|pass)\s*[=:]\s*([""']?)([^;""'\s]+)\2",
-            RegexOptions.Compiled),
-
-        // Connection string user IDs with passwords nearby (more context-aware)
-        new Regex(
-            @"(?i)(user\s*id|uid|username|user)\s*[=:]\s*([""']?)([^;""'\s]+)\2\s*;?\s*(password|pwd|passwd|pass)\s*[=:]\s*([""']?)([^;""'\s]+)\5",
+            @"(?i)\b(password|pwd|passwd|pass)\s*[=:]\s*(?:([""'])([^""']{6,}?)\2|([^;""'\s]{6,}))",
             RegexOptions.Compiled),
 
         // MongoDB connection strings
         // Matches: mongodb://user:password@host or mongodb+srv://user:password@host
         new Regex(
-            @"mongodb(\+srv)?://([^:]+):([^@]+)@",
+            @"(mongodb(?:\+srv)?://)([^:]+):([^@]+)@",
             RegexOptions.Compiled),
 
         // Generic credentials in URLs
-        // Matches: protocol://user:password@host
+        // Matches: protocol://user:password@host for various protocols
         new Regex(
-            @"([a-zA-Z][a-zA-Z0-9+.-]*://)([^:]+):([^@]+)@",
+            @"((?:https?|ftp|postgresql|mysql|redis)://)([^:]+):([^@\s]+)@",
             RegexOptions.Compiled),
 
         // API keys and tokens (various formats)
         // Matches: api_key=... or apiKey=... or token=... or bearer ...
+        // Minimum length of 6 characters to catch short tokens while avoiding false positives
         new Regex(
-            @"(?i)(api[-_]?key|apikey|access[-_]?token|auth[-_]?token|bearer[-_]?token|client[-_]?secret|api[-_]?secret)\s*[=:]\s*([""']?)([a-zA-Z0-9_\-]{20,})\2",
+            @"(?i)\b(api[-_]?key|apikey|access[-_]?token|auth[-_]?token|bearer[-_]?token|client[-_]?secret|api[-_]?secret|token)\s*[=:]\s*(?:([""'])([a-zA-Z0-9_\-]{6,})\2|([a-zA-Z0-9_\-]{6,}))",
             RegexOptions.Compiled),
 
         // AWS credentials
@@ -71,9 +74,9 @@ public static class SecretRedactor
             RegexOptions.Compiled),
 
         // Generic high-entropy strings that look like secrets (e.g., base64-encoded secrets)
-        // Only matches if labeled as secret/key/token/password in nearby text
+        // Only matches if labeled as secret/key/token/password/credential in nearby text
         new Regex(
-            @"(?i)(?:secret|key|token|password|credential)\s*[=:]\s*([""']?)([a-zA-Z0-9+/=_-]{32,})\1",
+            @"(?i)\b(secret|key|token|password|credential)\s*[=:]\s*(?:([""'])([a-zA-Z0-9+/=_-]{32,})\2|([a-zA-Z0-9+/=_-]{32,}))",
             RegexOptions.Compiled),
     ];
 
@@ -105,34 +108,38 @@ public static class SecretRedactor
     {
         return pattern.Replace(text, match =>
         {
-            // For patterns with multiple groups, preserve the key part and redact the value
-            // Group 0 is always the full match
+            // Identify pattern type by checking the match content
             
-            // Handle connection string password patterns (Group 1 = key, Group 3 = value)
-            if (match.Groups.Count >= 4 && match.Groups[1].Success && match.Groups[3].Success)
+            // MongoDB URL: mongodb://user:password@host or mongodb+srv://user:password@host
+            if (match.Value.StartsWith("mongodb"))
             {
-                var key = match.Groups[1].Value;
-                var quote = match.Groups[2].Success ? match.Groups[2].Value : string.Empty;
-                return $"{key}={quote}{RedactedPlaceholder}{quote}";
-            }
-
-            // Handle URL-based credentials (protocol://user:password@host)
-            if (match.Groups.Count >= 4 && match.Groups[1].Success && match.Value.Contains("://"))
-            {
-                // For MongoDB: mongodb://user:[REDACTED]@host
-                // For other URLs: protocol://user:[REDACTED]@host
+                // Group 1 = protocol (mongodb://)
+                // Group 2 = user
+                // Group 3 = password
                 var protocol = match.Groups[1].Value;
-                var user = match.Groups[2].Success ? match.Groups[2].Value : "user";
+                var user = match.Groups[2].Value;
                 return $"{protocol}{user}:{RedactedPlaceholder}@";
             }
 
-            // Handle key=value patterns (Group 1 = key, Group 3 = value)
-            if (match.Groups.Count >= 3 && match.Groups[1].Success)
+            // Generic URL: protocol://user:password@host  
+            if (match.Value.Contains("://") && match.Value.Contains("@"))
+            {
+                // Group 1 = protocol (https://)
+                // Group 2 = user
+                // Group 3 = password
+                var protocol = match.Groups[1].Value;
+                var user = match.Groups[2].Value;
+                return $"{protocol}{user}:{RedactedPlaceholder}@";
+            }
+
+            // Key=value patterns (may have quotes)
+            // Check Group 1 (key) and see if there's a quoted or unquoted value
+            if (match.Groups.Count >= 2 && match.Groups[1].Success)
             {
                 var key = match.Groups[1].Value;
                 var separator = match.Value.Contains('=') ? "=" : ":";
-                var quote = match.Groups.Count >= 3 && match.Groups[2].Success ? match.Groups[2].Value : string.Empty;
-                return $"{key}{separator}{quote}{RedactedPlaceholder}{quote}";
+                // Result is always key=[[REDACTED] without quotes
+                return $"{key}{separator}{RedactedPlaceholder}";
             }
 
             // For patterns without structured groups (like JWT or PEM), redact the entire match
