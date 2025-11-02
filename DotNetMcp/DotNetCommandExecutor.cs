@@ -19,9 +19,10 @@ public static class DotNetCommandExecutor
     /// <param name="arguments">The command-line arguments to pass to dotnet.exe</param>
     /// <param name="logger">Optional logger for debug/warning messages</param>
     /// <param name="machineReadable">When true, returns JSON format with structured errors; when false, returns plain text</param>
+    /// <param name="unsafeOutput">When true, disables security redaction of sensitive information (default: false). Use with caution.</param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
     /// <returns>Combined output, error, and exit code information (plain text or JSON based on machineReadable)</returns>
-    public static async Task<string> ExecuteCommandAsync(string arguments, ILogger? logger = null, bool machineReadable = false, CancellationToken cancellationToken = default)
+    public static async Task<string> ExecuteCommandAsync(string arguments, ILogger? logger = null, bool machineReadable = false, bool unsafeOutput = false, CancellationToken cancellationToken = default)
     {
         logger?.LogDebug("Executing: dotnet {Arguments}", arguments);
 
@@ -107,6 +108,13 @@ public static class DotNetCommandExecutor
         {
             logger?.LogWarning("Command was cancelled");
             
+            // Apply security redaction to partial output unless unsafeOutput is enabled
+            var partialOutput = output.ToString().TrimEnd();
+            if (!unsafeOutput)
+            {
+                partialOutput = SecretRedactor.Redact(partialOutput);
+            }
+            
             if (machineReadable)
             {
                 var cancelResult = new ErrorResponse
@@ -120,7 +128,7 @@ public static class DotNetCommandExecutor
                             Message = "The operation was cancelled by the user",
                             Category = "Cancellation",
                             Hint = "The command was terminated before completion",
-                            RawOutput = output.ToString().TrimEnd()
+                            RawOutput = partialOutput
                         }
                     },
                     ExitCode = -1
@@ -128,7 +136,7 @@ public static class DotNetCommandExecutor
                 return ErrorResultFactory.ToJson(cancelResult);
             }
 
-            return $"Operation cancelled\nPartial output:\n{output}\nExit Code: -1";
+            return $"Operation cancelled\nPartial output:\n{partialOutput}\nExit Code: -1";
         }
 
         logger?.LogDebug("Command completed with exit code: {ExitCode}", process.ExitCode);
@@ -141,23 +149,30 @@ public static class DotNetCommandExecutor
             logger?.LogWarning("Error output was truncated due to size limit");
         }
 
+        // Apply security redaction unless unsafeOutput is explicitly enabled
+        var outputStr = output.ToString().TrimEnd();
+        var errorStr = error.ToString().TrimEnd();
+        
+        if (!unsafeOutput)
+        {
+            outputStr = SecretRedactor.Redact(outputStr);
+            errorStr = SecretRedactor.Redact(errorStr);
+        }
+
         // If machine-readable format is requested, return structured JSON
         if (machineReadable)
         {
-            var outputStr = output.ToString().TrimEnd();
-            var errorStr = error.ToString().TrimEnd();
             var result = ErrorResultFactory.CreateResult(outputStr, errorStr, process.ExitCode);
             return ErrorResultFactory.ToJson(result);
         }
 
         // Otherwise, return plain text format (backwards compatible)
-        // TrimEnd() is used to remove trailing newlines from StringBuilder content for consistent formatting
         var textResult = new StringBuilder();
-        if (output.Length > 0) textResult.AppendLine(output.ToString().TrimEnd());
-        if (error.Length > 0)
+        if (outputStr.Length > 0) textResult.AppendLine(outputStr);
+        if (errorStr.Length > 0)
         {
             textResult.AppendLine("Errors:");
-            textResult.AppendLine(error.ToString().TrimEnd());
+            textResult.AppendLine(errorStr);
         }
         textResult.AppendLine($"Exit Code: {process.ExitCode}");
         return textResult.ToString();
@@ -166,11 +181,13 @@ public static class DotNetCommandExecutor
     /// <summary>
     /// Execute a dotnet command and return only the standard output.
     /// Throws an exception if the command fails with a non-zero exit code.
+    /// NOTE: This method always applies security redaction and does not support unsafeOutput parameter.
+    /// It is used for resource operations where security is critical.
     /// </summary>
     /// <param name="arguments">The command-line arguments to pass to dotnet.exe</param>
     /// <param name="logger">Optional logger for debug messages</param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
-    /// <returns>Standard output only (no error or exit code information)</returns>
+    /// <returns>Standard output only (no error or exit code information), with security redaction applied</returns>
     /// <exception cref="InvalidOperationException">Thrown if the command fails</exception>
     /// <exception cref="OperationCanceledException">Thrown if the operation is cancelled</exception>
     public static async Task<string> ExecuteCommandForResourceAsync(string arguments, ILogger? logger = null, CancellationToken cancellationToken = default)
@@ -232,14 +249,17 @@ public static class DotNetCommandExecutor
 
         if (process.ExitCode != 0)
         {
-            logger?.LogError("Command failed with exit code {ExitCode}: {Error}", process.ExitCode, error);
-            var errorMessage = !string.IsNullOrEmpty(error)
-                ? $"dotnet command failed: {error}"
+            // Apply redaction to error output before logging or throwing
+            var redactedError = SecretRedactor.Redact(error);
+            logger?.LogError("Command failed with exit code {ExitCode}: {Error}", process.ExitCode, redactedError);
+            var errorMessage = !string.IsNullOrEmpty(redactedError)
+                ? $"dotnet command failed: {redactedError}"
                 : $"dotnet command failed with exit code {process.ExitCode} and no error output.";
             throw new InvalidOperationException(errorMessage);
         }
 
         logger?.LogDebug("Command completed successfully");
-        return output;
+        // Apply redaction to output before returning
+        return SecretRedactor.Redact(output);
     }
 }

@@ -23,7 +23,7 @@ public class CancellationTests
         var arguments = "run --project NonExistentProject.csproj"; // A command that would take time
 
         // Act
-        var task = DotNetCommandExecutor.ExecuteCommandAsync(arguments, _loggerMock.Object, machineReadable: false, cts.Token);
+        var task = DotNetCommandExecutor.ExecuteCommandAsync(arguments, _loggerMock.Object, machineReadable: false, unsafeOutput: false, cts.Token);
         
         // Cancel after a short delay
         await Task.Delay(100);
@@ -44,7 +44,7 @@ public class CancellationTests
         var arguments = "run --project NonExistentProject.csproj";
 
         // Act
-        var task = DotNetCommandExecutor.ExecuteCommandAsync(arguments, _loggerMock.Object, machineReadable: true, cts.Token);
+        var task = DotNetCommandExecutor.ExecuteCommandAsync(arguments, _loggerMock.Object, machineReadable: true, unsafeOutput: false, cts.Token);
         
         // Cancel after a short delay
         await Task.Delay(100);
@@ -83,7 +83,7 @@ public class CancellationTests
         var arguments = "--version"; // Quick command that should succeed
 
         // Act - should complete without cancellation
-        var result = await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _loggerMock.Object, machineReadable: false, cts.Token);
+        var result = await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _loggerMock.Object, machineReadable: false, unsafeOutput: false, cts.Token);
 
         // Assert
         result.Should().NotBeNullOrEmpty();

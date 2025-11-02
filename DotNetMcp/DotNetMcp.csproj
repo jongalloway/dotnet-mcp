@@ -38,6 +38,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Build" Version="17.14.28" />
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.14.28" />
+    <PackageReference Include="Microsoft.Extensions.Compliance.Redaction" Version="9.10.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.10" />
     <PackageReference Include="Microsoft.TemplateEngine.Abstractions" Version="9.0.306" />
     <PackageReference Include="Microsoft.TemplateEngine.Edge" Version="9.0.306" />
