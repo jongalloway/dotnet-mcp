@@ -4,12 +4,15 @@ namespace DotNetMcp;
 
 /// <summary>
 /// Provides security redaction for potentially sensitive information in CLI output.
-/// Leverages Microsoft.Extensions.Compliance.Redaction package for enterprise-grade redaction infrastructure.
 /// 
-/// Note: This implementation uses the Microsoft.Extensions.Compliance.Redaction package as the foundation
-/// and implements custom patterns specific to .NET CLI output (connection strings, API keys, tokens, etc.).
-/// The Microsoft package provides the compliance framework and abstractions, while this class provides
-/// domain-specific redaction rules for .NET development scenarios.
+/// This implementation uses the Microsoft.Extensions.Compliance.Redaction package as a dependency
+/// to align with Microsoft's enterprise compliance framework. The package is referenced in the project
+/// to ensure compatibility with Microsoft's data classification and redaction standards.
+/// 
+/// The actual redaction patterns are domain-specific for .NET CLI scenarios (connection strings,
+/// API keys, tokens, etc.) and are implemented using compiled regular expressions for performance.
+/// Future versions may leverage additional redaction abstractions from the Microsoft package as they
+/// become available for CLI output scenarios.
 /// </summary>
 public static class SecretRedactor
 {
@@ -138,7 +141,7 @@ public static class SecretRedactor
             {
                 var key = match.Groups[1].Value;
                 var separator = match.Value.Contains('=') ? "=" : ":";
-                // Result is always key=[[REDACTED] without quotes
+                // Result is always key=[REDACTED] without quotes
                 return $"{key}{separator}{RedactedPlaceholder}";
             }
 

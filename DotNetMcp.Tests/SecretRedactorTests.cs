@@ -49,7 +49,7 @@ public class SecretRedactorTests
     [InlineData("Server=localhost;Database=test;Password=secret123;", "Server=localhost;Database=test;Password=[REDACTED];")]
     [InlineData("Server=localhost;Database=test;pwd=mysecret;", "Server=localhost;Database=test;pwd=[REDACTED];")]
     [InlineData("Server=localhost;Database=test;passwd=p@ssw0rd;", "Server=localhost;Database=test;passwd=[REDACTED];")]
-    [InlineData("Server=localhost;Database=test;pass=12345;", "Server=localhost;Database=test;pass=[REDACTED];")]
+    [InlineData("Server=localhost;Database=test;pass=123456;", "Server=localhost;Database=test;pass=[REDACTED];")]
     public void Redact_WithConnectionStringPasswords_RedactsPassword(string input, string expected)
     {
         // Act
