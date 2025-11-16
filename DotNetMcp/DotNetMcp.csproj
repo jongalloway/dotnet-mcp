@@ -37,11 +37,10 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Build" Version="17.14.28" />
-    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.14.28" />
-    <PackageReference Include="Microsoft.Extensions.Compliance.Redaction" Version="9.10.0" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.10" />
-    <PackageReference Include="Microsoft.TemplateEngine.Abstractions" Version="9.0.306" />
-    <PackageReference Include="Microsoft.TemplateEngine.Edge" Version="9.0.306" />
+    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="18.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
+    <PackageReference Include="Microsoft.TemplateEngine.Abstractions" Version="10.0.100" />
+    <PackageReference Include="Microsoft.TemplateEngine.Edge" Version="10.0.100" />
     <PackageReference Include="ModelContextProtocol" Version="0.4.0-preview.3" />
     <PackageReference Include="MinVer" Version="6.0.0">
       <PrivateAssets>all</PrivateAssets>
