@@ -115,9 +115,9 @@ AI: Executes dotnet --info and tries to parse support info
 ✅ With Resources:
 User: "What .NET versions do I have?"
 AI: Reads dotnet://sdk/list resource (no execution needed)
-    Returns: .NET 8.0 (LTS), .NET 9.0 (STS), .NET 10.0 (STS)
+    Returns: .NET 8.0 (LTS), .NET 9.0 (STS), .NET 10.0 (LTS)
 User: "Which is LTS?"
-AI: Already knows from resource metadata - .NET 8.0
+AI: Already knows from resource metadata - .NET 8.0, .NET 10.0
 ```
 
 **Example**: Creating a Blazor project with authentication
