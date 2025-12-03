@@ -3,6 +3,12 @@ using Xunit;
 
 namespace DotNetMcp.Tests;
 
+/// <summary>
+/// Tests for TemplateEngineHelper functionality.
+/// Uses the same collection as CachingIntegrationTests to ensure sequential execution
+/// since both test classes share the static TemplateEngineHelper cache state.
+/// </summary>
+[Collection("CachingIntegrationTests")]
 public class TemplateEngineHelperTests
 {
     [Fact]
