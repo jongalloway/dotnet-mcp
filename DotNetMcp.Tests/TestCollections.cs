@@ -2,14 +2,12 @@ using Xunit;
 
 namespace DotNetMcp.Tests;
 
-/// <summary>
-/// Collection definitions for xUnit test parallelization.
-/// 
-/// Tests in the same collection run sequentially (one at a time) to avoid race conditions
-/// when they share state. Tests in different collections can run in parallel.
-/// 
-/// See: https://xunit.net/docs/running-tests-in-parallel
-/// </summary>
+// Collection definitions for xUnit test parallelization.
+//
+// Tests in the same collection run sequentially (one at a time) to avoid race conditions
+// when they share state. Tests in different collections can run in parallel.
+//
+// See: https://xunit.net/docs/running-tests-in-parallel
 
 /// <summary>
 /// Collection for tests that use TemplateEngineHelper, which has static shared state
