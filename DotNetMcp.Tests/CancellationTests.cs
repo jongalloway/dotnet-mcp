@@ -1,5 +1,4 @@
 using DotNetMcp;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -31,9 +30,9 @@ public class CancellationTests
 
         var result = await task;
 
-        // Assert
-        result.Should().Contain("cancelled", because: "operation was cancelled");
-        result.Should().Contain("Exit Code: -1");
+        // Assert - operation was cancelled
+        Assert.Contains("cancelled", result);
+        Assert.Contains("Exit Code: -1", result);
     }
 
     [Fact(Skip = "Integration test - requires actual dotnet CLI")]
@@ -53,9 +52,9 @@ public class CancellationTests
         var result = await task;
 
         // Assert
-        result.Should().Contain("OPERATION_CANCELLED");
-        result.Should().Contain("\"success\": false");
-        result.Should().Contain("\"exitCode\": -1");
+        Assert.Contains("OPERATION_CANCELLED", result);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("\"exitCode\": -1", result);
     }
 
     [Fact(Skip = "Integration test - requires actual dotnet CLI")]
@@ -86,8 +85,9 @@ public class CancellationTests
         var result = await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _loggerMock.Object, machineReadable: false, unsafeOutput: false, cts.Token);
 
         // Assert
-        result.Should().NotBeNullOrEmpty();
-        result.Should().NotContain("cancelled");
+        Assert.NotNull(result);
+        Assert.NotEmpty(result);
+        Assert.DoesNotContain("cancelled", result);
     }
 
     [Fact]
@@ -100,7 +100,8 @@ public class CancellationTests
         var result = await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _loggerMock.Object, machineReadable: false);
 
         // Assert
-        result.Should().NotBeNullOrEmpty();
-        result.Should().Contain("Exit Code: 0");
+        Assert.NotNull(result);
+        Assert.NotEmpty(result);
+        Assert.Contains("Exit Code: 0", result);
     }
 }

@@ -1,5 +1,4 @@
 using DotNetMcp;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -30,7 +29,7 @@ public class DotNetCliToolsTests
             filter: "FullyQualifiedName~MyTest");
 
         // The result should contain output (even if it's an error about missing project)
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -40,7 +39,7 @@ public class DotNetCliToolsTests
         var result = await _tools.DotnetProjectTest(
             collect: "XPlat Code Coverage");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -50,7 +49,7 @@ public class DotNetCliToolsTests
         var result = await _tools.DotnetProjectTest(
             resultsDirectory: "/tmp/test-results");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -60,7 +59,7 @@ public class DotNetCliToolsTests
         var result = await _tools.DotnetProjectTest(
             logger: "trx");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -70,7 +69,7 @@ public class DotNetCliToolsTests
         var result = await _tools.DotnetProjectTest(
             noBuild: true);
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -80,7 +79,7 @@ public class DotNetCliToolsTests
         var result = await _tools.DotnetProjectTest(
             noRestore: true);
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -90,7 +89,7 @@ public class DotNetCliToolsTests
         var result = await _tools.DotnetProjectTest(
             verbosity: "detailed");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -100,7 +99,7 @@ public class DotNetCliToolsTests
         var result = await _tools.DotnetProjectTest(
             framework: "net8.0");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -110,7 +109,7 @@ public class DotNetCliToolsTests
         var result = await _tools.DotnetProjectTest(
             blame: true);
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -120,7 +119,7 @@ public class DotNetCliToolsTests
         var result = await _tools.DotnetProjectTest(
             listTests: true);
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -141,7 +140,7 @@ public class DotNetCliToolsTests
             blame: true,
             listTests: false);
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -150,7 +149,7 @@ public class DotNetCliToolsTests
         // Validates that the trust command can be executed
         var result = await _tools.DotnetCertificateTrust();
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -159,7 +158,7 @@ public class DotNetCliToolsTests
         // Validates that the check command can be executed
         var result = await _tools.DotnetCertificateCheck();
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -168,7 +167,7 @@ public class DotNetCliToolsTests
         // Validates that the clean command can be executed
         var result = await _tools.DotnetCertificateClean();
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -178,7 +177,7 @@ public class DotNetCliToolsTests
         var result = await _tools.DotnetCertificateExport(
             path: "/tmp/cert.pfx");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -189,7 +188,7 @@ public class DotNetCliToolsTests
             path: "/tmp/cert.pfx",
             password: "testPassword123");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -201,7 +200,7 @@ public class DotNetCliToolsTests
             format: "Pfx",
             password: "testPassword123");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -212,7 +211,7 @@ public class DotNetCliToolsTests
             path: "/tmp/cert.pem",
             format: "Pem");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -223,8 +222,8 @@ public class DotNetCliToolsTests
             path: "/tmp/cert.pfx",
             format: "invalid");
 
-        result.Should().Contain("Error");
-        result.Should().Contain("format must be either 'pfx' or 'pem'");
+        Assert.Contains("Error", result);
+        Assert.Contains("format must be either 'pfx' or 'pem'", result);
     }
 
     [Fact]
@@ -234,8 +233,8 @@ public class DotNetCliToolsTests
         var result = await _tools.DotnetCertificateExport(
             path: "");
 
-        result.Should().Contain("Error");
-        result.Should().Contain("path parameter is required");
+        Assert.Contains("Error", result);
+        Assert.Contains("path parameter is required", result);
     }
 
     [Fact]
@@ -247,7 +246,7 @@ public class DotNetCliToolsTests
             password: "strongPassword123!",
             format: "Pfx");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     // Security validation tests for IsValidAdditionalOptions (tested via DotnetProjectNew)
@@ -260,8 +259,8 @@ public class DotNetCliToolsTests
             template: "console",
             additionalOptions: "--use-program-main --framework net8.0");
 
-        result.Should().NotBeNull();
-        result.Should().NotContain("Error: additionalOptions contains invalid characters");
+        Assert.NotNull(result);
+        Assert.DoesNotContain("Error: additionalOptions contains invalid characters", result);
     }
 
     [Fact]
@@ -272,8 +271,8 @@ public class DotNetCliToolsTests
             template: "console",
             additionalOptions: "--langVersion=latest --nullable=enable");
 
-        result.Should().NotBeNull();
-        result.Should().NotContain("Error: additionalOptions contains invalid characters");
+        Assert.NotNull(result);
+        Assert.DoesNotContain("Error: additionalOptions contains invalid characters", result);
     }
 
     [Fact]
@@ -284,7 +283,7 @@ public class DotNetCliToolsTests
             template: "console",
             additionalOptions: "--option; malicious-command");
 
-        result.Should().Contain("Error: additionalOptions contains invalid characters");
+        Assert.Contains("Error: additionalOptions contains invalid characters", result);
     }
 
     [Fact]
@@ -295,7 +294,7 @@ public class DotNetCliToolsTests
             template: "console",
             additionalOptions: "--option | malicious-command");
 
-        result.Should().Contain("Error: additionalOptions contains invalid characters");
+        Assert.Contains("Error: additionalOptions contains invalid characters", result);
     }
 
     [Fact]
@@ -306,7 +305,7 @@ public class DotNetCliToolsTests
             template: "console",
             additionalOptions: "--option && malicious-command");
 
-        result.Should().Contain("Error: additionalOptions contains invalid characters");
+        Assert.Contains("Error: additionalOptions contains invalid characters", result);
     }
 
     [Fact]
@@ -317,7 +316,7 @@ public class DotNetCliToolsTests
             template: "console",
             additionalOptions: "--option `malicious-command`");
 
-        result.Should().Contain("Error: additionalOptions contains invalid characters");
+        Assert.Contains("Error: additionalOptions contains invalid characters", result);
     }
 
     [Fact]
@@ -328,7 +327,7 @@ public class DotNetCliToolsTests
             template: "console",
             additionalOptions: "--option $MALICIOUS_VAR");
 
-        result.Should().Contain("Error: additionalOptions contains invalid characters");
+        Assert.Contains("Error: additionalOptions contains invalid characters", result);
     }
 
     [Fact]
@@ -339,7 +338,7 @@ public class DotNetCliToolsTests
             template: "console",
             additionalOptions: "--option (malicious)");
 
-        result.Should().Contain("Error: additionalOptions contains invalid characters");
+        Assert.Contains("Error: additionalOptions contains invalid characters", result);
     }
 
     [Fact]
@@ -350,7 +349,7 @@ public class DotNetCliToolsTests
             template: "console",
             additionalOptions: "--option < input.txt");
 
-        result.Should().Contain("Error: additionalOptions contains invalid characters");
+        Assert.Contains("Error: additionalOptions contains invalid characters", result);
     }
 
     // Tool Management Tests
@@ -362,7 +361,7 @@ public class DotNetCliToolsTests
         var result = await _tools.DotnetToolInstall(
             packageName: "dotnet-ef");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -373,7 +372,7 @@ public class DotNetCliToolsTests
             packageName: "dotnet-ef",
             global: true);
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -384,7 +383,7 @@ public class DotNetCliToolsTests
             packageName: "dotnet-ef",
             version: "8.0.0");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -395,7 +394,7 @@ public class DotNetCliToolsTests
             packageName: "dotnet-ef",
             framework: "net8.0");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -408,7 +407,7 @@ public class DotNetCliToolsTests
             version: "8.0.0",
             framework: "net8.0");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -418,8 +417,8 @@ public class DotNetCliToolsTests
         var result = await _tools.DotnetToolInstall(
             packageName: "");
 
-        result.Should().Contain("Error");
-        result.Should().Contain("packageName parameter is required");
+        Assert.Contains("Error", result);
+        Assert.Contains("packageName parameter is required", result);
     }
 
     [Fact]
@@ -428,7 +427,7 @@ public class DotNetCliToolsTests
         // Validates that local tool list works
         var result = await _tools.DotnetToolList();
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -438,7 +437,7 @@ public class DotNetCliToolsTests
         var result = await _tools.DotnetToolList(
             global: true);
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -448,7 +447,7 @@ public class DotNetCliToolsTests
         var result = await _tools.DotnetToolUpdate(
             packageName: "dotnet-ef");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -459,7 +458,7 @@ public class DotNetCliToolsTests
             packageName: "dotnet-ef",
             global: true);
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -470,7 +469,7 @@ public class DotNetCliToolsTests
             packageName: "dotnet-ef",
             version: "8.0.1");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -480,8 +479,8 @@ public class DotNetCliToolsTests
         var result = await _tools.DotnetToolUpdate(
             packageName: "");
 
-        result.Should().Contain("Error");
-        result.Should().Contain("packageName parameter is required");
+        Assert.Contains("Error", result);
+        Assert.Contains("packageName parameter is required", result);
     }
 
     [Fact]
@@ -491,7 +490,7 @@ public class DotNetCliToolsTests
         var result = await _tools.DotnetToolUninstall(
             packageName: "dotnet-ef");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -502,7 +501,7 @@ public class DotNetCliToolsTests
             packageName: "dotnet-ef",
             global: true);
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -512,8 +511,8 @@ public class DotNetCliToolsTests
         var result = await _tools.DotnetToolUninstall(
             packageName: "");
 
-        result.Should().Contain("Error");
-        result.Should().Contain("packageName parameter is required");
+        Assert.Contains("Error", result);
+        Assert.Contains("packageName parameter is required", result);
     }
 
     [Fact]
@@ -522,7 +521,7 @@ public class DotNetCliToolsTests
         // Validates that tool restore command works
         var result = await _tools.DotnetToolRestore();
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -531,7 +530,7 @@ public class DotNetCliToolsTests
         // Validates that tool manifest create without parameters works
         var result = await _tools.DotnetToolManifestCreate();
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -541,7 +540,7 @@ public class DotNetCliToolsTests
         var result = await _tools.DotnetToolManifestCreate(
             output: "./test-dir");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -551,7 +550,7 @@ public class DotNetCliToolsTests
         var result = await _tools.DotnetToolManifestCreate(
             force: true);
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -562,7 +561,7 @@ public class DotNetCliToolsTests
             output: "./test-dir",
             force: true);
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -572,7 +571,7 @@ public class DotNetCliToolsTests
         var result = await _tools.DotnetToolSearch(
             searchTerm: "entity");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -583,7 +582,7 @@ public class DotNetCliToolsTests
             searchTerm: "entity",
             detail: true);
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -595,7 +594,7 @@ public class DotNetCliToolsTests
             take: 10,
             skip: 5);
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -606,7 +605,7 @@ public class DotNetCliToolsTests
             searchTerm: "entity",
             prerelease: true);
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -620,7 +619,7 @@ public class DotNetCliToolsTests
             skip: 5,
             prerelease: true);
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -630,8 +629,8 @@ public class DotNetCliToolsTests
         var result = await _tools.DotnetToolSearch(
             searchTerm: "");
 
-        result.Should().Contain("Error");
-        result.Should().Contain("searchTerm parameter is required");
+        Assert.Contains("Error", result);
+        Assert.Contains("searchTerm parameter is required", result);
     }
 
     [Fact]
@@ -641,7 +640,7 @@ public class DotNetCliToolsTests
         var result = await _tools.DotnetToolRun(
             toolName: "dotnet-ef");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -652,7 +651,7 @@ public class DotNetCliToolsTests
             toolName: "dotnet-ef",
             args: "migrations add Initial");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -662,8 +661,8 @@ public class DotNetCliToolsTests
         var result = await _tools.DotnetToolRun(
             toolName: "");
 
-        result.Should().Contain("Error");
-        result.Should().Contain("toolName parameter is required");
+        Assert.Contains("Error", result);
+        Assert.Contains("toolName parameter is required", result);
     }
 
     [Fact]
@@ -674,8 +673,8 @@ public class DotNetCliToolsTests
             toolName: "dotnet-ef",
             args: "migrations add Initial && echo hacked");
 
-        result.Should().Contain("Error");
-        result.Should().Contain("args contains invalid characters");
+        Assert.Contains("Error", result);
+        Assert.Contains("args contains invalid characters", result);
     }
 
     [Fact]
@@ -684,7 +683,7 @@ public class DotNetCliToolsTests
         // Validates that the init command can be executed without project parameter
         var result = await _tools.DotnetSecretsInit();
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -693,7 +692,7 @@ public class DotNetCliToolsTests
         // Validates that the init command can be executed with project parameter
         var result = await _tools.DotnetSecretsInit(project: "MyProject.csproj");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -704,7 +703,7 @@ public class DotNetCliToolsTests
             key: "TestKey",
             value: "TestValue");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -715,7 +714,7 @@ public class DotNetCliToolsTests
             key: "ConnectionStrings:DefaultConnection",
             value: "Server=localhost;Database=TestDb");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -727,7 +726,7 @@ public class DotNetCliToolsTests
             value: "secret-value-123",
             project: "MyProject.csproj");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -738,8 +737,8 @@ public class DotNetCliToolsTests
             key: "",
             value: "TestValue");
 
-        result.Should().Contain("Error");
-        result.Should().Contain("key parameter is required");
+        Assert.Contains("Error", result);
+        Assert.Contains("key parameter is required", result);
     }
 
     [Fact]
@@ -750,8 +749,8 @@ public class DotNetCliToolsTests
             key: "TestKey",
             value: "");
 
-        result.Should().Contain("Error");
-        result.Should().Contain("value parameter is required");
+        Assert.Contains("Error", result);
+        Assert.Contains("value parameter is required", result);
     }
 
     [Fact]
@@ -760,7 +759,7 @@ public class DotNetCliToolsTests
         // Validates that the list command can be executed without project parameter
         var result = await _tools.DotnetSecretsList();
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -769,7 +768,7 @@ public class DotNetCliToolsTests
         // Validates that the list command can be executed with project parameter
         var result = await _tools.DotnetSecretsList(project: "MyProject.csproj");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -778,7 +777,7 @@ public class DotNetCliToolsTests
         // Validates that the remove command can be executed with key
         var result = await _tools.DotnetSecretsRemove(key: "TestKey");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -789,7 +788,7 @@ public class DotNetCliToolsTests
             key: "ConnectionStrings:DefaultConnection",
             project: "MyProject.csproj");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -798,8 +797,8 @@ public class DotNetCliToolsTests
         // Validates that empty key returns error
         var result = await _tools.DotnetSecretsRemove(key: "");
 
-        result.Should().Contain("Error");
-        result.Should().Contain("key parameter is required");
+        Assert.Contains("Error", result);
+        Assert.Contains("key parameter is required", result);
     }
 
     [Fact]
@@ -808,7 +807,7 @@ public class DotNetCliToolsTests
         // Validates that the clear command can be executed without project parameter
         var result = await _tools.DotnetSecretsClear();
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -817,6 +816,6 @@ public class DotNetCliToolsTests
         // Validates that the clear command can be executed with project parameter
         var result = await _tools.DotnetSecretsClear(project: "MyProject.csproj");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 }

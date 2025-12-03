@@ -1,5 +1,4 @@
 using DotNetMcp;
-using FluentAssertions;
 using Xunit;
 
 namespace DotNetMcp.Tests;
@@ -19,7 +18,7 @@ public class TemplateEngineHelperTests
         var result = await TemplateEngineHelper.GetInstalledTemplatesAsync();
 
         // Assert
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
         // Note: The result may indicate no templates found if the template cache hasn't been
         // populated yet. This is expected behavior - templates are discovered when dotnet new
         // commands are first run in the environment. The important thing is that the method
@@ -33,7 +32,7 @@ public class TemplateEngineHelperTests
         var result = await TemplateEngineHelper.SearchTemplatesAsync("console");
 
         // Assert
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
         // The search should return successfully, even if no templates are found
     }
 
@@ -44,7 +43,7 @@ public class TemplateEngineHelperTests
         var result = await TemplateEngineHelper.GetTemplateDetailsAsync("console");
 
         // Assert
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
         // The method should return successfully with an appropriate message
     }
 
@@ -67,7 +66,7 @@ public class TemplateEngineHelperTests
 
         // Assert
         // Should return false for non-existent templates
-        result.Should().BeFalse();
+        Assert.False(result);
     }
 
     [Fact]
@@ -81,6 +80,6 @@ public class TemplateEngineHelperTests
 
         // Assert - Should be able to query again after clearing
         var result = await TemplateEngineHelper.GetInstalledTemplatesAsync();
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 }

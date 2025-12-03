@@ -1,5 +1,4 @@
 using DotNetMcp;
-using FluentAssertions;
 using Xunit;
 
 namespace DotNetMcp.Tests;
@@ -25,9 +24,9 @@ public class ConcurrencyManagerTests
         var result = _manager.TryAcquireOperation(operationType, target, out var conflictingOperation);
 
         // Assert
-        result.Should().BeTrue();
-        conflictingOperation.Should().BeNull();
-        _manager.ActiveOperationCount.Should().Be(1);
+        Assert.True(result);
+        Assert.Null(conflictingOperation);
+        Assert.Equal(1, _manager.ActiveOperationCount);
     }
 
     [Fact]
@@ -45,13 +44,13 @@ public class ConcurrencyManagerTests
         var result = _manager.TryAcquireOperation(operationType, target, out var conflictingOperation);
 
         // Assert
-        result.Should().BeFalse();
-        conflictingOperation.Should().NotBeNull();
-        conflictingOperation.Should().Contain("build");
+        Assert.False(result);
+        Assert.NotNull(conflictingOperation);
+        Assert.Contains("build", conflictingOperation);
         // Check for normalized, lowercased full path
         var normalizedTarget = System.IO.Path.GetFullPath(target).ToLowerInvariant();
-        conflictingOperation.Should().Contain(normalizedTarget);
-        _manager.ActiveOperationCount.Should().Be(1);
+        Assert.Contains(normalizedTarget, conflictingOperation);
+        Assert.Equal(1, _manager.ActiveOperationCount);
     }
 
     [Fact]
@@ -70,9 +69,9 @@ public class ConcurrencyManagerTests
         var result = _manager.TryAcquireOperation(operationType, target2, out var conflictingOperation);
 
         // Assert
-        result.Should().BeTrue();
-        conflictingOperation.Should().BeNull();
-        _manager.ActiveOperationCount.Should().Be(2);
+        Assert.True(result);
+        Assert.Null(conflictingOperation);
+        Assert.Equal(2, _manager.ActiveOperationCount);
     }
 
     [Fact]
@@ -89,9 +88,9 @@ public class ConcurrencyManagerTests
         var result = _manager.TryAcquireOperation("restore", target, out var conflictingOperation);
 
         // Assert
-        result.Should().BeFalse();
-        conflictingOperation.Should().NotBeNull();
-        conflictingOperation.Should().Contain("build");
+        Assert.False(result);
+        Assert.NotNull(conflictingOperation);
+        Assert.Contains("build", conflictingOperation);
     }
 
     [Fact]
@@ -110,9 +109,9 @@ public class ConcurrencyManagerTests
         var result = _manager.TryAcquireOperation(operationType, target, out var conflictingOperation);
 
         // Assert
-        result.Should().BeTrue();
-        conflictingOperation.Should().BeNull();
-        _manager.ActiveOperationCount.Should().Be(1);
+        Assert.True(result);
+        Assert.Null(conflictingOperation);
+        Assert.Equal(1, _manager.ActiveOperationCount);
     }
 
     [Fact]
@@ -128,9 +127,9 @@ public class ConcurrencyManagerTests
         var result = _manager.TryAcquireOperation("template_clear_cache", "", out var conflictingOperation);
 
         // Assert
-        result.Should().BeFalse();
-        conflictingOperation.Should().NotBeNull();
-        conflictingOperation.Should().Contain("template_clear_cache");
+        Assert.False(result);
+        Assert.NotNull(conflictingOperation);
+        Assert.Contains("template_clear_cache", conflictingOperation);
     }
 
     [Fact]
@@ -147,9 +146,9 @@ public class ConcurrencyManagerTests
         // Act - should detect as same target due to normalization
         var result = _manager.TryAcquireOperation("build", target2, out var conflictingOperation);
 
-        // Assert
-        result.Should().BeFalse("paths should be normalized to lowercase");
-        conflictingOperation.Should().NotBeNull();
+        // Assert - paths should be normalized to lowercase
+        Assert.False(result);
+        Assert.NotNull(conflictingOperation);
     }
 
     [Fact]
@@ -158,13 +157,13 @@ public class ConcurrencyManagerTests
         // Arrange
         _manager.TryAcquireOperation("build", "/path1", out _);
         _manager.TryAcquireOperation("test", "/path2", out _);
-        _manager.ActiveOperationCount.Should().Be(2);
+        Assert.Equal(2, _manager.ActiveOperationCount);
 
         // Act
         _manager.Clear();
 
         // Assert
-        _manager.ActiveOperationCount.Should().Be(0);
+        Assert.Equal(0, _manager.ActiveOperationCount);
     }
 
     [Fact]
@@ -179,9 +178,9 @@ public class ConcurrencyManagerTests
         var result = _manager.TryAcquireOperation(operationType, target, out var conflictingOperation);
 
         // Assert
-        result.Should().BeTrue();
-        conflictingOperation.Should().BeNull();
-        _manager.ActiveOperationCount.Should().Be(1);
+        Assert.True(result);
+        Assert.Null(conflictingOperation);
+        Assert.Equal(1, _manager.ActiveOperationCount);
     }
 
     [Fact]
@@ -196,11 +195,11 @@ public class ConcurrencyManagerTests
         {
             var operationId = Guid.NewGuid().ToString();
             var acquireResult = _manager.TryAcquireOperation(operationType, target, out _);
-            acquireResult.Should().BeTrue($"iteration {i} should succeed");
-            _manager.ActiveOperationCount.Should().Be(1);
+            Assert.True(acquireResult);
+            Assert.Equal(1, _manager.ActiveOperationCount);
 
             _manager.ReleaseOperation(operationType, target);
-            _manager.ActiveOperationCount.Should().Be(0);
+            Assert.Equal(0, _manager.ActiveOperationCount);
         }
     }
 
@@ -223,9 +222,9 @@ public class ConcurrencyManagerTests
                     continue;
 
                 var result = _manager.TryAcquireOperation(secondOp, target, out var conflict);
-                result.Should().BeFalse($"{secondOp} should conflict with {firstOp}");
-                conflict.Should().NotBeNull();
-                conflict.Should().Contain(firstOp);
+                Assert.False(result);
+                Assert.NotNull(conflict);
+                Assert.Contains(firstOp, conflict);
             }
         }
     }

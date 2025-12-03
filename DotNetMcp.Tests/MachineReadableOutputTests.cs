@@ -1,5 +1,4 @@
 using DotNetMcp;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Text.Json;
@@ -27,12 +26,13 @@ public class MachineReadableOutputTests
         var result = await _tools.DotnetSdkVersion(machineReadable: false);
 
         // Assert
-        result.Should().NotBeNullOrEmpty();
-        result.Should().Contain("Exit Code:");
+        Assert.NotNull(result);
+        Assert.NotEmpty(result);
+        Assert.Contains("Exit Code:", result);
         
         // Should not be valid JSON
         var isJson = TryParseJson(result, out _);
-        isJson.Should().BeFalse("plain text output should not be JSON");
+        Assert.False(isJson);
     }
 
     [Fact]
@@ -42,26 +42,27 @@ public class MachineReadableOutputTests
         var result = await _tools.DotnetSdkVersion(machineReadable: true);
 
         // Assert
-        result.Should().NotBeNullOrEmpty();
+        Assert.NotNull(result);
+        Assert.NotEmpty(result);
         
         // Should be valid JSON
         var isJson = TryParseJson(result, out var jsonDoc);
-        isJson.Should().BeTrue("machine-readable output should be valid JSON");
+        Assert.True(isJson);
         
         // Verify JSON structure
         var root = jsonDoc!.RootElement;
-        root.TryGetProperty("success", out var successProp).Should().BeTrue();
-        root.TryGetProperty("exitCode", out var exitCodeProp).Should().BeTrue();
+        Assert.True(root.TryGetProperty("success", out var successProp));
+        Assert.True(root.TryGetProperty("exitCode", out var exitCodeProp));
         
         // If successful, should have output property
         if (successProp.GetBoolean())
         {
-            root.TryGetProperty("output", out _).Should().BeTrue();
+            Assert.True(root.TryGetProperty("output", out _));
         }
         else
         {
             // If failed, should have errors array
-            root.TryGetProperty("errors", out _).Should().BeTrue();
+            Assert.True(root.TryGetProperty("errors", out _));
         }
     }
 
@@ -77,21 +78,22 @@ public class MachineReadableOutputTests
             machineReadable: true);
 
         // Assert
-        result.Should().NotBeNullOrEmpty();
+        Assert.NotNull(result);
+        Assert.NotEmpty(result);
         
         var isJson = TryParseJson(result, out var jsonDoc);
-        isJson.Should().BeTrue("machine-readable error output should be valid JSON");
+        Assert.True(isJson);
         
         var root = jsonDoc!.RootElement;
-        root.TryGetProperty("success", out var successProp).Should().BeTrue();
-        successProp.GetBoolean().Should().BeFalse("build should fail for non-existent project");
+        Assert.True(root.TryGetProperty("success", out var successProp));
+        Assert.False(successProp.GetBoolean());
         
-        root.TryGetProperty("exitCode", out var exitCodeProp).Should().BeTrue();
-        exitCodeProp.GetInt32().Should().NotBe(0, "failed builds should have non-zero exit code");
+        Assert.True(root.TryGetProperty("exitCode", out var exitCodeProp));
+        Assert.NotEqual(0, exitCodeProp.GetInt32());
         
-        root.TryGetProperty("errors", out var errorsProp).Should().BeTrue();
-        errorsProp.ValueKind.Should().Be(JsonValueKind.Array);
-        errorsProp.GetArrayLength().Should().BeGreaterThan(0, "should have at least one error");
+        Assert.True(root.TryGetProperty("errors", out var errorsProp));
+        Assert.Equal(JsonValueKind.Array, errorsProp.ValueKind);
+        Assert.True(errorsProp.GetArrayLength() > 0);
     }
 
     [Fact]
@@ -104,10 +106,11 @@ public class MachineReadableOutputTests
             machineReadable: true);
 
         // Assert
-        result.Should().NotBeNullOrEmpty();
+        Assert.NotNull(result);
+        Assert.NotEmpty(result);
         
         var isJson = TryParseJson(result, out _);
-        isJson.Should().BeTrue("machine-readable output should be valid JSON");
+        Assert.True(isJson);
     }
 
     [Fact]
@@ -120,11 +123,12 @@ public class MachineReadableOutputTests
             output: "/tmp/test-output-" + Guid.NewGuid());
 
         // Assert
-        result.Should().NotBeNullOrEmpty();
+        Assert.NotNull(result);
+        Assert.NotEmpty(result);
         
         // Default behavior should be plain text (not JSON)
         var isJson = TryParseJson(result, out _);
-        isJson.Should().BeFalse("default output should be plain text for backwards compatibility");
+        Assert.False(isJson);
     }
 
     [Fact]
@@ -143,9 +147,10 @@ public class MachineReadableOutputTests
         
         foreach (var result in results)
         {
-            result.Should().NotBeNullOrEmpty();
+            Assert.NotNull(result);
+            Assert.NotEmpty(result);
             var isJson = TryParseJson(result, out _);
-            isJson.Should().BeFalse("backwards compatibility requires plain text by default");
+            Assert.False(isJson);
         }
     }
 

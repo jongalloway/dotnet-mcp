@@ -1,5 +1,4 @@
 using DotNetMcp;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -30,8 +29,9 @@ public class CommandExecutorRedactionTests
             unsafeOutput: false);
 
         // Assert - should complete successfully
-        result.Should().NotBeNullOrEmpty();
-        result.Should().Contain("Exit Code: 0");
+        Assert.NotNull(result);
+        Assert.NotEmpty(result);
+        Assert.Contains("Exit Code: 0", result);
     }
 
     [Fact]
@@ -48,8 +48,9 @@ public class CommandExecutorRedactionTests
             unsafeOutput: true);
 
         // Assert - should complete successfully
-        result.Should().NotBeNullOrEmpty();
-        result.Should().Contain("Exit Code: 0");
+        Assert.NotNull(result);
+        Assert.NotEmpty(result);
+        Assert.Contains("Exit Code: 0", result);
     }
 
     [Fact]
@@ -67,8 +68,9 @@ public class CommandExecutorRedactionTests
             unsafeOutput: false);
 
         // Assert - should complete successfully
-        result.Should().NotBeNullOrEmpty();
-        result.Should().Contain("Exit Code: 0");
+        Assert.NotNull(result);
+        Assert.NotEmpty(result);
+        Assert.Contains("Exit Code: 0", result);
     }
 
     [Fact]
@@ -85,8 +87,8 @@ public class CommandExecutorRedactionTests
             unsafeOutput: false);
 
         // Assert - should return JSON format
-        result.Should().Contain("\"success\"");
-        result.Should().Contain("\"exitCode\"");
+        Assert.Contains("\"success\"", result);
+        Assert.Contains("\"exitCode\"", result);
     }
 
     [Fact]
@@ -101,9 +103,10 @@ public class CommandExecutorRedactionTests
             _loggerMock.Object);
 
         // Assert - should complete successfully with redaction applied
-        result.Should().NotBeNullOrEmpty();
+        Assert.NotNull(result);
+        Assert.NotEmpty(result);
         // Version output doesn't have exit code in ExecuteCommandForResourceAsync
-        result.Should().NotContain("Exit Code");
+        Assert.DoesNotContain("Exit Code", result);
     }
 
     [Fact]
@@ -122,12 +125,12 @@ Exit Code: 0
         var redacted = SecretRedactor.Redact(simulatedOutput);
 
         // Assert
-        redacted.Should().Contain("Password=[REDACTED]");
-        redacted.Should().Contain("api_key=[REDACTED]");
-        redacted.Should().NotContain("SecretP@ss123");
-        redacted.Should().NotContain("abcdef1234567890ghijklmnopqrstuvwxyz");
-        redacted.Should().Contain("Server=localhost");
-        redacted.Should().Contain("User ID=admin");
+        Assert.Contains("Password=[REDACTED]", redacted);
+        Assert.Contains("api_key=[REDACTED]", redacted);
+        Assert.DoesNotContain("SecretP@ss123", redacted);
+        Assert.DoesNotContain("abcdef1234567890ghijklmnopqrstuvwxyz", redacted);
+        Assert.Contains("Server=localhost", redacted);
+        Assert.Contains("User ID=admin", redacted);
     }
 
     [Theory]
@@ -142,7 +145,7 @@ Exit Code: 0
         var result = unsafeOutput ? input : SecretRedactor.Redact(input);
 
         // Assert
-        result.Should().Contain(expectedSubstring);
+        Assert.Contains(expectedSubstring, result);
     }
 
     [Fact]
@@ -163,7 +166,7 @@ Time Elapsed 00:00:05.23
         var result = SecretRedactor.Redact(input);
 
         // Assert - nothing should be redacted from normal build output
-        result.Should().Be(input);
+        Assert.Equal(input, result);
     }
 
     [Fact]
@@ -185,7 +188,7 @@ Time Elapsed 00:00:05.23
             var result = SecretRedactor.Redact(input);
 
             // Assert
-            result.Should().Be(expected, $"input was: {input}");
+            Assert.Equal(expected, result);
         }
     }
 
@@ -203,12 +206,12 @@ Line 5: Final line";
         var result = SecretRedactor.Redact(input);
 
         // Assert
-        result.Should().Contain("Line 1: Normal output");
-        result.Should().Contain("Line 2: Password=[REDACTED]");
-        result.Should().Contain("Line 3: More normal output");
-        result.Should().Contain("Line 4: api_key=[REDACTED]");
-        result.Should().Contain("Line 5: Final line");
-        result.Should().NotContain("Secret123");
-        result.Should().NotContain("1234567890abcdefghijklmnopqrstuvwxyz");
+        Assert.Contains("Line 1: Normal output", result);
+        Assert.Contains("Line 2: Password=[REDACTED]", result);
+        Assert.Contains("Line 3: More normal output", result);
+        Assert.Contains("Line 4: api_key=[REDACTED]", result);
+        Assert.Contains("Line 5: Final line", result);
+        Assert.DoesNotContain("Secret123", result);
+        Assert.DoesNotContain("1234567890abcdefghijklmnopqrstuvwxyz", result);
     }
 }
