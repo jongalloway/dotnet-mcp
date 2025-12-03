@@ -9,7 +9,7 @@ using ModelContextProtocol.Server;
 namespace DotNetMcp;
 
 [McpServerToolType]
-public sealed class DotNetCliTools
+public sealed partial class DotNetCliTools
 {
     private readonly ILogger<DotNetCliTools> _logger;
     private readonly ConcurrencyManager _concurrencyManager;
@@ -26,15 +26,19 @@ public sealed class DotNetCliTools
         _concurrencyManager = concurrencyManager!;
     }
 
-    [McpServerTool, Description("List all installed .NET templates with their metadata using the Template Engine. Provides structured information about available project templates.")]
+    /// <summary>
+    /// List all installed .NET templates with their metadata using the Template Engine. 
+    /// Provides structured information about available project templates.
+    /// </summary>
+    /// <param name="forceReload">If true, bypasses cache and reloads templates from disk</param>
+    [McpServerTool]
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("priority", 10.0)]
     [McpMeta("tags", JsonValue = """["template","list","discovery","project-creation"]""")]
-    public async Task<string> DotnetTemplateList(
-        [Description("If true, bypasses cache and reloads templates from disk")] bool forceReload = false)
-          => await TemplateEngineHelper.GetInstalledTemplatesAsync(forceReload, _logger);
+    public partial Task<string> DotnetTemplateList(bool forceReload)
+          => TemplateEngineHelper.GetInstalledTemplatesAsync(forceReload, _logger);
 
     [McpServerTool, Description("Search for .NET templates by name or description. Returns matching templates with their details.")]
     [McpMeta("category", "template")]

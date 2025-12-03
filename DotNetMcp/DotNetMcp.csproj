@@ -5,6 +5,10 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Suppress CS1591 for missing XML comments on non-tool classes -->
+    <!-- The source generator will handle Description attributes for MCP tool methods -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
 
     <!-- NuGet Package Metadata -->
     <PackageId>Community.Mcp.DotNet</PackageId>
