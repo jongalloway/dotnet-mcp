@@ -28,7 +28,7 @@ public class ServerCapabilitiesTests
 
         // Assert
         result.Should().NotBeNullOrEmpty();
-        
+
         // Verify it's valid JSON by parsing it
         var act = () => JsonDocument.Parse(result);
         act.Should().NotThrow();
@@ -71,7 +71,7 @@ public class ServerCapabilitiesTests
         var protocolVersion = jsonDoc.RootElement.GetProperty("protocolVersion").GetString();
 
         // Assert
-        protocolVersion.Should().Be("0.4.0-preview.3");
+        protocolVersion.Should().Be("0.4.1-preview.1");
     }
 
     [Fact]
@@ -209,7 +209,7 @@ public class ServerCapabilitiesTests
     {
         // Act
         var result = await _tools.DotnetServerCapabilities();
-        
+
         // Deserialize to the actual ServerCapabilities object to verify schema
         var capabilities = JsonSerializer.Deserialize<ServerCapabilities>(result, new JsonSerializerOptions
         {
@@ -219,7 +219,7 @@ public class ServerCapabilitiesTests
         // Assert
         capabilities.Should().NotBeNull();
         capabilities!.ServerVersion.Should().NotBeNullOrEmpty();
-        capabilities.ProtocolVersion.Should().Be("0.4.0-preview.3");
+        capabilities.ProtocolVersion.Should().Be("0.4.1-preview.1");
         capabilities.SupportedCategories.Should().NotBeEmpty();
         capabilities.Supports.Should().NotBeNull();
         capabilities.Supports.StructuredErrors.Should().BeTrue();
