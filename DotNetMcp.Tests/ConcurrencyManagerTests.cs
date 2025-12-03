@@ -48,7 +48,9 @@ public class ConcurrencyManagerTests
         result.Should().BeFalse();
         conflictingOperation.Should().NotBeNull();
         conflictingOperation.Should().Contain("build");
-        conflictingOperation.Should().Contain("project.csproj");
+        // Check for normalized, lowercased full path
+        var normalizedTarget = System.IO.Path.GetFullPath(target).ToLowerInvariant();
+        conflictingOperation.Should().Contain(normalizedTarget);
         _manager.ActiveOperationCount.Should().Be(1);
     }
 
