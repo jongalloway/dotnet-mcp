@@ -567,6 +567,7 @@ dotnet user-secrets list
 ```
 
 *Output:*
+
 ```
 ConnectionStrings:DefaultConnection = Server=localhost;Database=MyDb;User=dev;Password=secret123
 Azure:OpenAI:ApiKey = sk-...
@@ -646,16 +647,19 @@ Resources provide structured JSON data and are more efficient than tool calls fo
 Entity Framework Core tools require the `dotnet-ef` tool to be installed (`dotnet tool install dotnet-ef --global`) and the `Microsoft.EntityFrameworkCore.Design` package in your project.
 
 **Migration Management:**
+
 - **dotnet_ef_migrations_add** - Create a new migration for database schema changes
 - **dotnet_ef_migrations_list** - List all migrations (applied and pending)
 - **dotnet_ef_migrations_remove** - Remove the last unapplied migration
 - **dotnet_ef_migrations_script** - Generate SQL script from migrations for deployment
 
 **Database Management:**
+
 - **dotnet_ef_database_update** - Apply migrations to update database schema
 - **dotnet_ef_database_drop** - Drop the database (development only, requires force flag)
 
 **DbContext Tools:**
+
 - **dotnet_ef_dbcontext_list** - List all DbContext classes in the project
 - **dotnet_ef_dbcontext_info** - Get DbContext information (connection string, provider)
 - **dotnet_ef_dbcontext_scaffold** - Reverse engineer database to entity classes (database-first)
@@ -798,6 +802,7 @@ The server includes a comprehensive `server.json` configuration file (`.mcp/serv
 All tools use the `dotnet_` prefix in their external IDs to prevent naming collisions with other MCP servers. This follows best practices for MCP server interoperability:
 
 **Examples:**
+
 - `dotnet_project_new` - Create new projects
 - `dotnet_project_build` - Build projects
 - `dotnet_package_add` - Add NuGet packages
@@ -819,6 +824,7 @@ The top 10 commonly used tools include semantic tags to improve discoverability:
 10. **dotnet_tool_install** - `["tool", "install", "global", "local", "cli"]`
 
 These tags enable AI assistants to:
+
 - Find relevant tools based on semantic intent
 - Group related operations for workflow suggestions
 - Prioritize commonly used tools in recommendations
@@ -877,6 +883,22 @@ See [.github/copilot-instructions.md](.github/copilot-instructions.md) for devel
 - 📖 Check the [documentation](#documentation)
 - 💬 Open a [GitHub Issue](https://github.com/jongalloway/dotnet-mcp/issues)
 - 🔍 Search [existing issues](https://github.com/jongalloway/dotnet-mcp/issues?q=is%3Aissue)
+
+## Related Microsoft MCPs
+
+This .NET MCP server focuses on .NET SDK operations (build, run, test, templates, SDK management). For specialized scenarios, consider these complementary official Microsoft MCP servers:
+
+- **[NuGet MCP Server](https://www.nuget.org/packages/NuGet.Mcp.Server)** - Advanced NuGet package search, metadata, and automation scenarios beyond basic package management
+- **[Aspire MCP Server](https://aspire.dev/dashboard/mcp-server/)** - Runtime monitoring, telemetry, distributed tracing, and resource management for .NET Aspire applications
+
+These MCPs work alongside the .NET MCP to provide comprehensive coverage of the .NET development lifecycle:
+
+| Feature | .NET MCP | NuGet MCP | Aspire MCP |
+|---------|----------|-----------|------------|
+| **Primary Focus** | .NET SDK operations | Package metadata/discovery | Runtime monitoring |
+| **Scope** | CLI commands (build, run, test) | NuGet search & automation | Aspire app telemetry |
+| **Stage** | Development time | Development/discovery time | Runtime/production |
+| **Example Operations** | `dotnet build`, `dotnet new` | Package search, READMEs | Log viewing, tracing |
 
 ## License
 
