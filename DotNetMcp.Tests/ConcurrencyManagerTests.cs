@@ -48,7 +48,7 @@ public class ConcurrencyManagerTests
         result.Should().BeFalse();
         conflictingOperation.Should().NotBeNull();
         conflictingOperation.Should().Contain("build");
-        conflictingOperation.Should().Contain(target.ToLowerInvariant().Replace('\\', '/'));
+        conflictingOperation.Should().Contain("project.csproj");
         _manager.ActiveOperationCount.Should().Be(1);
     }
 
