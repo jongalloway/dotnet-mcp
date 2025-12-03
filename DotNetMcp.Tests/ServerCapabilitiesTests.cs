@@ -1,6 +1,5 @@
 using System.Text.Json;
 using DotNetMcp;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -27,11 +26,12 @@ public class ServerCapabilitiesTests
         var result = await _tools.DotnetServerCapabilities();
 
         // Assert
-        result.Should().NotBeNullOrEmpty();
+        Assert.NotNull(result);
+        Assert.NotEmpty(result);
 
         // Verify it's valid JSON by parsing it
-        var act = () => JsonDocument.Parse(result);
-        act.Should().NotThrow();
+        var doc = JsonDocument.Parse(result);
+        Assert.NotNull(doc);
     }
 
     [Fact]
@@ -43,11 +43,11 @@ public class ServerCapabilitiesTests
         var root = jsonDoc.RootElement;
 
         // Assert - Check all required top-level fields exist
-        root.TryGetProperty("serverVersion", out _).Should().BeTrue();
-        root.TryGetProperty("protocolVersion", out _).Should().BeTrue();
-        root.TryGetProperty("supportedCategories", out _).Should().BeTrue();
-        root.TryGetProperty("supports", out _).Should().BeTrue();
-        root.TryGetProperty("sdkVersions", out _).Should().BeTrue();
+        Assert.True(root.TryGetProperty("serverVersion", out _));
+        Assert.True(root.TryGetProperty("protocolVersion", out _));
+        Assert.True(root.TryGetProperty("supportedCategories", out _));
+        Assert.True(root.TryGetProperty("supports", out _));
+        Assert.True(root.TryGetProperty("sdkVersions", out _));
     }
 
     [Fact]
@@ -59,7 +59,8 @@ public class ServerCapabilitiesTests
         var serverVersion = jsonDoc.RootElement.GetProperty("serverVersion").GetString();
 
         // Assert
-        serverVersion.Should().NotBeNullOrEmpty();
+        Assert.NotNull(serverVersion);
+        Assert.NotEmpty(serverVersion);
     }
 
     [Fact]
@@ -71,7 +72,7 @@ public class ServerCapabilitiesTests
         var protocolVersion = jsonDoc.RootElement.GetProperty("protocolVersion").GetString();
 
         // Assert
-        protocolVersion.Should().Be("0.4.1-preview.1");
+        Assert.Equal("0.4.1-preview.1", protocolVersion);
     }
 
     [Fact]
@@ -87,13 +88,13 @@ public class ServerCapabilitiesTests
             .ToArray();
 
         // Assert
-        categories.Should().NotBeEmpty();
-        categories.Should().Contain("template");
-        categories.Should().Contain("project");
-        categories.Should().Contain("package");
-        categories.Should().Contain("solution");
-        categories.Should().Contain("sdk");
-        categories.Should().Contain("security");
+        Assert.NotEmpty(categories);
+        Assert.Contains("template", categories);
+        Assert.Contains("project", categories);
+        Assert.Contains("package", categories);
+        Assert.Contains("solution", categories);
+        Assert.Contains("sdk", categories);
+        Assert.Contains("security", categories);
     }
 
     [Fact]
@@ -108,7 +109,7 @@ public class ServerCapabilitiesTests
             .GetBoolean();
 
         // Assert
-        structuredErrors.Should().BeTrue();
+        Assert.True(structuredErrors);
     }
 
     [Fact]
@@ -123,7 +124,7 @@ public class ServerCapabilitiesTests
             .GetBoolean();
 
         // Assert
-        machineReadable.Should().BeTrue();
+        Assert.True(machineReadable);
     }
 
     [Fact]
@@ -138,7 +139,7 @@ public class ServerCapabilitiesTests
             .GetBoolean();
 
         // Assert
-        cancellation.Should().BeTrue();
+        Assert.True(cancellation);
     }
 
     [Fact]
@@ -153,7 +154,7 @@ public class ServerCapabilitiesTests
             .GetBoolean();
 
         // Assert - Telemetry is a future feature, should be false initially
-        telemetry.Should().BeFalse();
+        Assert.False(telemetry);
     }
 
     [Fact]
@@ -170,8 +171,12 @@ public class ServerCapabilitiesTests
             .ToArray();
 
         // Assert - At least one SDK should be installed (the one we're using to run tests)
-        installed.Should().NotBeEmpty();
-        installed.Should().AllSatisfy(sdk => sdk.Should().NotBeNullOrEmpty());
+        Assert.NotEmpty(installed);
+        foreach (var sdk in installed)
+        {
+            Assert.NotNull(sdk);
+            Assert.NotEmpty(sdk);
+        }
     }
 
     [Fact]
@@ -186,7 +191,7 @@ public class ServerCapabilitiesTests
             .GetString();
 
         // Assert
-        recommended.Should().Be("net9.0");
+        Assert.Equal("net9.0", recommended);
     }
 
     [Fact]
@@ -201,7 +206,7 @@ public class ServerCapabilitiesTests
             .GetString();
 
         // Assert
-        lts.Should().Be("net8.0");
+        Assert.Equal("net8.0", lts);
     }
 
     [Fact]
@@ -217,19 +222,20 @@ public class ServerCapabilitiesTests
         });
 
         // Assert
-        capabilities.Should().NotBeNull();
-        capabilities!.ServerVersion.Should().NotBeNullOrEmpty();
-        capabilities.ProtocolVersion.Should().Be("0.4.1-preview.1");
-        capabilities.SupportedCategories.Should().NotBeEmpty();
-        capabilities.Supports.Should().NotBeNull();
-        capabilities.Supports.StructuredErrors.Should().BeTrue();
-        capabilities.Supports.MachineReadable.Should().BeTrue();
-        capabilities.Supports.Cancellation.Should().BeTrue();
-        capabilities.Supports.Telemetry.Should().BeFalse();
-        capabilities.SdkVersions.Should().NotBeNull();
-        capabilities.SdkVersions.Installed.Should().NotBeEmpty();
-        capabilities.SdkVersions.Recommended.Should().Be("net9.0");
-        capabilities.SdkVersions.Lts.Should().Be("net8.0");
+        Assert.NotNull(capabilities);
+        Assert.NotNull(capabilities!.ServerVersion);
+        Assert.NotEmpty(capabilities.ServerVersion);
+        Assert.Equal("0.4.1-preview.1", capabilities.ProtocolVersion);
+        Assert.NotEmpty(capabilities.SupportedCategories);
+        Assert.NotNull(capabilities.Supports);
+        Assert.True(capabilities.Supports.StructuredErrors);
+        Assert.True(capabilities.Supports.MachineReadable);
+        Assert.True(capabilities.Supports.Cancellation);
+        Assert.False(capabilities.Supports.Telemetry);
+        Assert.NotNull(capabilities.SdkVersions);
+        Assert.NotEmpty(capabilities.SdkVersions.Installed);
+        Assert.Equal("net9.0", capabilities.SdkVersions.Recommended);
+        Assert.Equal("net8.0", capabilities.SdkVersions.Lts);
     }
 
     [Fact]
@@ -239,10 +245,11 @@ public class ServerCapabilitiesTests
         var result = await _tools.DotnetServerInfo();
 
         // Assert
-        result.Should().NotBeNullOrEmpty();
-        result.Should().Contain("=== .NET MCP Server Capabilities ===");
-        result.Should().Contain("FEATURES:");
-        result.Should().Contain("TOOL CATEGORIES:");
-        result.Should().Contain("CONCURRENCY SAFETY:");
+        Assert.NotNull(result);
+        Assert.NotEmpty(result);
+        Assert.Contains("=== .NET MCP Server Capabilities ===", result);
+        Assert.Contains("FEATURES:", result);
+        Assert.Contains("TOOL CATEGORIES:", result);
+        Assert.Contains("CONCURRENCY SAFETY:", result);
     }
 }

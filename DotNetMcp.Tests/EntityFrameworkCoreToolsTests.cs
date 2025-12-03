@@ -1,5 +1,4 @@
 using DotNetMcp;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -33,7 +32,7 @@ public class EntityFrameworkCoreToolsTests
         var result = await _tools.DotnetEfMigrationsAdd(
             name: "InitialCreate");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -43,7 +42,7 @@ public class EntityFrameworkCoreToolsTests
         var result = await _tools.DotnetEfMigrationsAdd(
             name: "");
 
-        result.Should().Contain("Error");
+        Assert.Contains("Error", result);
     }
 
     [Fact]
@@ -58,7 +57,7 @@ public class EntityFrameworkCoreToolsTests
             outputDir: "Migrations",
             framework: "net9.0");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -66,7 +65,7 @@ public class EntityFrameworkCoreToolsTests
     {
         var result = await _tools.DotnetEfMigrationsList();
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -75,7 +74,7 @@ public class EntityFrameworkCoreToolsTests
         var result = await _tools.DotnetEfMigrationsList(
             project: "MyProject.csproj");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -84,7 +83,7 @@ public class EntityFrameworkCoreToolsTests
         var result = await _tools.DotnetEfMigrationsRemove(
             force: true);
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -92,7 +91,7 @@ public class EntityFrameworkCoreToolsTests
     {
         var result = await _tools.DotnetEfMigrationsScript();
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -102,7 +101,7 @@ public class EntityFrameworkCoreToolsTests
             from: "InitialCreate",
             to: "AddProductEntity");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -112,7 +111,7 @@ public class EntityFrameworkCoreToolsTests
             idempotent: true,
             output: "migration.sql");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     #endregion
@@ -124,7 +123,7 @@ public class EntityFrameworkCoreToolsTests
     {
         var result = await _tools.DotnetEfDatabaseUpdate();
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -133,7 +132,7 @@ public class EntityFrameworkCoreToolsTests
         var result = await _tools.DotnetEfDatabaseUpdate(
             migration: "AddProductEntity");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -143,7 +142,7 @@ public class EntityFrameworkCoreToolsTests
         var result = await _tools.DotnetEfDatabaseUpdate(
             migration: "0");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -152,7 +151,7 @@ public class EntityFrameworkCoreToolsTests
         var result = await _tools.DotnetEfDatabaseDrop(
             force: true);
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -161,7 +160,7 @@ public class EntityFrameworkCoreToolsTests
         var result = await _tools.DotnetEfDatabaseDrop(
             dryRun: true);
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     #endregion
@@ -173,7 +172,7 @@ public class EntityFrameworkCoreToolsTests
     {
         var result = await _tools.DotnetEfDbContextList();
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -182,7 +181,7 @@ public class EntityFrameworkCoreToolsTests
         var result = await _tools.DotnetEfDbContextList(
             project: "MyProject.csproj");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -190,7 +189,7 @@ public class EntityFrameworkCoreToolsTests
     {
         var result = await _tools.DotnetEfDbContextInfo();
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -199,7 +198,7 @@ public class EntityFrameworkCoreToolsTests
         var result = await _tools.DotnetEfDbContextInfo(
             context: "ApplicationDbContext");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -209,7 +208,7 @@ public class EntityFrameworkCoreToolsTests
             connection: "Server=localhost;Database=MyDb;",
             provider: "Microsoft.EntityFrameworkCore.SqlServer");
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -219,7 +218,7 @@ public class EntityFrameworkCoreToolsTests
             connection: "",
             provider: "Microsoft.EntityFrameworkCore.SqlServer");
 
-        result.Should().Contain("Error");
+        Assert.Contains("Error", result);
     }
 
     [Fact]
@@ -229,7 +228,7 @@ public class EntityFrameworkCoreToolsTests
             connection: "Server=localhost;Database=MyDb;",
             provider: "");
 
-        result.Should().Contain("Error");
+        Assert.Contains("Error", result);
     }
 
     [Fact]
@@ -246,7 +245,7 @@ public class EntityFrameworkCoreToolsTests
             useDatabaseNames: true,
             force: true);
 
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     #endregion
@@ -264,10 +263,10 @@ public class EntityFrameworkCoreToolsTests
             .ToList();
 
         // We expect 9 EF Core tools
-        methods.Should().HaveCount(9);
+        Assert.Equal(9, methods.Count);
         
         // Verify method names
-        methods.Select(m => m.Name).Should().Contain(new[]
+        var expectedMethods = new[]
         {
             "DotnetEfMigrationsAdd",
             "DotnetEfMigrationsList",
@@ -278,7 +277,12 @@ public class EntityFrameworkCoreToolsTests
             "DotnetEfDbContextList",
             "DotnetEfDbContextInfo",
             "DotnetEfDbContextScaffold"
-        });
+        };
+        
+        foreach (var expectedMethod in expectedMethods)
+        {
+            Assert.Contains(methods, m => m.Name == expectedMethod);
+        }
     }
 
     #endregion

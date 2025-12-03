@@ -1,5 +1,4 @@
 using DotNetMcp;
-using FluentAssertions;
 using Xunit;
 
 namespace DotNetMcp.Tests;
@@ -22,10 +21,10 @@ public class CachedResourceManagerTests
         });
 
         // Assert
-        entry.Data.Should().Be("test data");
-        loadCount.Should().Be(1);
-        manager.Metrics.Misses.Should().Be(1);
-        manager.Metrics.Hits.Should().Be(0);
+        Assert.Equal("test data", entry.Data);
+        Assert.Equal(1, loadCount);
+        Assert.Equal(1, manager.Metrics.Misses);
+        Assert.Equal(0, manager.Metrics.Hits);
     }
 
     [Fact]
@@ -51,11 +50,11 @@ public class CachedResourceManagerTests
         });
 
         // Assert
-        entry1.Data.Should().Be("test data");
-        entry2.Data.Should().Be("test data");
-        loadCount.Should().Be(1); // Should only load once
-        manager.Metrics.Misses.Should().Be(1);
-        manager.Metrics.Hits.Should().Be(1);
+        Assert.Equal("test data", entry1.Data);
+        Assert.Equal("test data", entry2.Data);
+        Assert.Equal(1, loadCount); // Should only load once
+        Assert.Equal(1, manager.Metrics.Misses);
+        Assert.Equal(1, manager.Metrics.Hits);
     }
 
     [Fact]
@@ -79,11 +78,11 @@ public class CachedResourceManagerTests
         }, forceReload: true);
 
         // Assert
-        entry1.Data.Should().Be("data 1");
-        entry2.Data.Should().Be("data 2");
-        loadCount.Should().Be(2); // Should load twice
-        manager.Metrics.Misses.Should().Be(2);
-        manager.Metrics.Hits.Should().Be(0);
+        Assert.Equal("data 1", entry1.Data);
+        Assert.Equal("data 2", entry2.Data);
+        Assert.Equal(2, loadCount); // Should load twice
+        Assert.Equal(2, manager.Metrics.Misses);
+        Assert.Equal(0, manager.Metrics.Hits);
     }
 
     [Fact]
@@ -111,11 +110,11 @@ public class CachedResourceManagerTests
         });
 
         // Assert
-        entry1.Data.Should().Be("data 1");
-        entry2.Data.Should().Be("data 2");
-        loadCount.Should().Be(2); // Should load twice due to expiration
-        manager.Metrics.Misses.Should().Be(2);
-        manager.Metrics.Hits.Should().Be(0);
+        Assert.Equal("data 1", entry1.Data);
+        Assert.Equal("data 2", entry2.Data);
+        Assert.Equal(2, loadCount); // Should load twice due to expiration
+        Assert.Equal(2, manager.Metrics.Misses);
+        Assert.Equal(0, manager.Metrics.Hits);
     }
 
     [Fact]
@@ -141,9 +140,9 @@ public class CachedResourceManagerTests
         });
 
         // Assert
-        entry.Data.Should().Be("new data");
-        loadCount.Should().Be(2); // Should reload after clearing
-        manager.Metrics.Misses.Should().Be(2);
+        Assert.Equal("new data", entry.Data);
+        Assert.Equal(2, loadCount); // Should reload after clearing
+        Assert.Equal(2, manager.Metrics.Misses);
     }
 
     [Fact]
@@ -159,8 +158,8 @@ public class CachedResourceManagerTests
         manager.ResetMetrics();
 
         // Assert
-        manager.Metrics.Hits.Should().Be(0);
-        manager.Metrics.Misses.Should().Be(0);
+        Assert.Equal(0, manager.Metrics.Hits);
+        Assert.Equal(0, manager.Metrics.Misses);
     }
 
     [Fact]
@@ -174,15 +173,15 @@ public class CachedResourceManagerTests
         var json = manager.GetJsonResponse(entry, new { value = "test" }, DateTime.UtcNow);
 
         // Assert
-        json.Should().Contain("\"data\"");
-        json.Should().Contain("\"cache\"");
-        json.Should().Contain("\"timestamp\"");
-        json.Should().Contain("\"cacheAgeSeconds\"");
-        json.Should().Contain("\"cacheDurationSeconds\"");
-        json.Should().Contain("\"metrics\"");
-        json.Should().Contain("\"hits\"");
-        json.Should().Contain("\"misses\"");
-        json.Should().Contain("\"hitRatio\"");
+        Assert.Contains("\"data\"", json);
+        Assert.Contains("\"cache\"", json);
+        Assert.Contains("\"timestamp\"", json);
+        Assert.Contains("\"cacheAgeSeconds\"", json);
+        Assert.Contains("\"cacheDurationSeconds\"", json);
+        Assert.Contains("\"metrics\"", json);
+        Assert.Contains("\"hits\"", json);
+        Assert.Contains("\"misses\"", json);
+        Assert.Contains("\"hitRatio\"", json);
     }
 
     [Fact]
@@ -197,7 +196,7 @@ public class CachedResourceManagerTests
         };
 
         // Act & Assert
-        entry.IsExpired(DateTime.UtcNow).Should().BeTrue();
+        Assert.True(entry.IsExpired(DateTime.UtcNow));
     }
 
     [Fact]
@@ -212,7 +211,7 @@ public class CachedResourceManagerTests
         };
 
         // Act & Assert
-        entry.IsExpired(DateTime.UtcNow).Should().BeFalse();
+        Assert.False(entry.IsExpired(DateTime.UtcNow));
     }
 
     [Fact]
@@ -231,6 +230,6 @@ public class CachedResourceManagerTests
         var age = entry.CacheAgeSeconds(now);
 
         // Assert
-        age.Should().Be(10);
+        Assert.Equal(10, age);
     }
 }

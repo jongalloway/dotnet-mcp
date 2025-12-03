@@ -1,5 +1,4 @@
 using DotNetMcp;
-using FluentAssertions;
 using Xunit;
 
 namespace DotNetMcp.Tests;
@@ -21,7 +20,7 @@ public class FrameworkHelperTests
         var result = FrameworkHelper.IsValidFramework(tfm);
 
         // Assert
-        result.Should().Be(expected);
+        Assert.Equal(expected, result);
     }
 
     [Theory]
@@ -38,7 +37,7 @@ public class FrameworkHelperTests
         var result = FrameworkHelper.IsLtsFramework(tfm);
 
         // Assert
-        result.Should().Be(expected);
+        Assert.Equal(expected, result);
     }
 
     [Theory]
@@ -53,7 +52,7 @@ public class FrameworkHelperTests
         var result = FrameworkHelper.GetFrameworkDescription(tfm);
 
         // Assert
-        result.Should().Be(expected);
+        Assert.Equal(expected, result);
     }
 
     [Fact]
@@ -63,7 +62,7 @@ public class FrameworkHelperTests
         var result = FrameworkHelper.GetLatestRecommendedFramework();
 
         // Assert
-        result.Should().Be("net9.0");
+        Assert.Equal("net9.0", result);
     }
 
     [Fact]
@@ -73,7 +72,7 @@ public class FrameworkHelperTests
         var result = FrameworkHelper.GetLatestLtsFramework();
 
         // Assert
-        result.Should().Be("net8.0");
+        Assert.Equal("net8.0", result);
     }
 
     [Theory]
@@ -89,7 +88,7 @@ public class FrameworkHelperTests
         var result = FrameworkHelper.IsModernNet(tfm);
 
         // Assert
-        result.Should().Be(expected);
+        Assert.Equal(expected, result);
     }
 
     [Theory]
@@ -103,7 +102,7 @@ public class FrameworkHelperTests
         var result = FrameworkHelper.IsNetCore(tfm);
 
         // Assert
-        result.Should().Be(expected);
+        Assert.Equal(expected, result);
     }
 
     [Theory]
@@ -117,7 +116,7 @@ public class FrameworkHelperTests
         var result = FrameworkHelper.IsNetFramework(tfm);
 
         // Assert
-        result.Should().Be(expected);
+        Assert.Equal(expected, result);
     }
 
     [Theory]
@@ -131,7 +130,7 @@ public class FrameworkHelperTests
         var result = FrameworkHelper.IsNetStandard(tfm);
 
         // Assert
-        result.Should().Be(expected);
+        Assert.Equal(expected, result);
     }
 
     [Fact]
@@ -141,9 +140,9 @@ public class FrameworkHelperTests
         var result = FrameworkHelper.GetSupportedModernFrameworks();
 
         // Assert
-        result.Count.Should().BeGreaterThanOrEqualTo(5);
-        result.Should().Contain("net9.0");
-        result.Should().Contain("net8.0");
+        Assert.True(result.Count >= 5);
+        Assert.Contains("net9.0", result);
+        Assert.Contains("net8.0", result);
     }
 
     [Fact]
@@ -153,8 +152,8 @@ public class FrameworkHelperTests
         var result = FrameworkHelper.GetSupportedNetCoreFrameworks();
 
         // Assert
-        result.Should().Contain("netcoreapp3.1");
-        result.Should().Contain("netcoreapp2.1");
+        Assert.Contains("netcoreapp3.1", result);
+        Assert.Contains("netcoreapp2.1", result);
     }
 
     [Fact]
@@ -164,7 +163,7 @@ public class FrameworkHelperTests
         var result = FrameworkHelper.GetSupportedNetStandardFrameworks();
 
         // Assert
-        result.Should().Contain("netstandard2.1");
-        result.Should().Contain("netstandard2.0");
+        Assert.Contains("netstandard2.1", result);
+        Assert.Contains("netstandard2.0", result);
     }
 }

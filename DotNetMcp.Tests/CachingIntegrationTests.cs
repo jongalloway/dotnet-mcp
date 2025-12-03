@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using DotNetMcp;
-using FluentAssertions;
 using Xunit;
 
 namespace DotNetMcp.Tests;
@@ -25,16 +24,16 @@ public class CachingIntegrationTests
         var result2 = await TemplateEngineHelper.GetInstalledTemplatesAsync(forceReload: false);
 
         // Assert
-        result1.Should().NotBeNull();
-        result2.Should().NotBeNull();
+        Assert.NotNull(result1);
+        Assert.NotNull(result2);
         
         // Cache metrics should show 1 miss and 1 hit
-        TemplateEngineHelper.Metrics.Misses.Should().Be(1);
-        TemplateEngineHelper.Metrics.Hits.Should().Be(1);
-        TemplateEngineHelper.Metrics.HitRatio.Should().BeApproximately(0.5, 0.01);
+        Assert.Equal(1, TemplateEngineHelper.Metrics.Misses);
+        Assert.Equal(1, TemplateEngineHelper.Metrics.Hits);
+        Assert.Equal(0.5, TemplateEngineHelper.Metrics.HitRatio, precision: 2);
         
         // Results should be consistent
-        result1.Should().Be(result2);
+        Assert.Equal(result1, result2);
     }
 
     [Fact]
@@ -50,8 +49,8 @@ public class CachingIntegrationTests
         await TemplateEngineHelper.GetInstalledTemplatesAsync(forceReload: true);
 
         // Assert - Both calls should be cache misses
-        TemplateEngineHelper.Metrics.Misses.Should().Be(2);
-        TemplateEngineHelper.Metrics.Hits.Should().Be(0);
+        Assert.Equal(2, TemplateEngineHelper.Metrics.Misses);
+        Assert.Equal(0, TemplateEngineHelper.Metrics.Hits);
     }
 
     [Fact]
@@ -63,15 +62,15 @@ public class CachingIntegrationTests
         await TemplateEngineHelper.GetInstalledTemplatesAsync(forceReload: false);
 
         // Verify we have metrics
-        TemplateEngineHelper.Metrics.Hits.Should().BeGreaterThan(0);
+        Assert.True(TemplateEngineHelper.Metrics.Hits > 0);
 
         // Act - Clear cache
         await TemplateEngineHelper.ClearCacheAsync();
 
         // Assert - Metrics should be reset
-        TemplateEngineHelper.Metrics.Hits.Should().Be(0);
-        TemplateEngineHelper.Metrics.Misses.Should().Be(0);
-        TemplateEngineHelper.Metrics.HitRatio.Should().Be(0.0);
+        Assert.Equal(0, TemplateEngineHelper.Metrics.Hits);
+        Assert.Equal(0, TemplateEngineHelper.Metrics.Misses);
+        Assert.Equal(0.0, TemplateEngineHelper.Metrics.HitRatio);
     }
 
     [Fact]
@@ -86,8 +85,8 @@ public class CachingIntegrationTests
         await TemplateEngineHelper.GetTemplateDetailsAsync("console"); // Cache hit
 
         // Assert - Should show 1 miss and 2 hits
-        TemplateEngineHelper.Metrics.Misses.Should().Be(1);
-        TemplateEngineHelper.Metrics.Hits.Should().Be(2);
+        Assert.Equal(1, TemplateEngineHelper.Metrics.Misses);
+        Assert.Equal(2, TemplateEngineHelper.Metrics.Hits);
     }
 
     [Fact]
@@ -98,13 +97,13 @@ public class CachingIntegrationTests
 
         // Act - Generate activity in template cache
         await TemplateEngineHelper.GetInstalledTemplatesAsync();
-        TemplateEngineHelper.Metrics.Misses.Should().Be(1);
+        Assert.Equal(1, TemplateEngineHelper.Metrics.Misses);
 
         // Act - Clear all caches
         await DotNetResources.ClearAllCachesAsync();
 
         // Assert - Template metrics should be reset
-        TemplateEngineHelper.Metrics.Hits.Should().Be(0);
-        TemplateEngineHelper.Metrics.Misses.Should().Be(0);
+        Assert.Equal(0, TemplateEngineHelper.Metrics.Hits);
+        Assert.Equal(0, TemplateEngineHelper.Metrics.Misses);
     }
 }

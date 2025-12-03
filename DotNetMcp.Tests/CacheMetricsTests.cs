@@ -1,5 +1,4 @@
 using DotNetMcp;
-using FluentAssertions;
 using Xunit;
 
 namespace DotNetMcp.Tests;
@@ -13,9 +12,9 @@ public class CacheMetricsTests
         var metrics = new CacheMetrics();
 
         // Assert
-        metrics.Hits.Should().Be(0);
-        metrics.Misses.Should().Be(0);
-        metrics.HitRatio.Should().Be(0.0);
+        Assert.Equal(0, metrics.Hits);
+        Assert.Equal(0, metrics.Misses);
+        Assert.Equal(0.0, metrics.HitRatio);
     }
 
     [Fact]
@@ -30,8 +29,8 @@ public class CacheMetricsTests
         metrics.RecordHit();
 
         // Assert
-        metrics.Hits.Should().Be(3);
-        metrics.Misses.Should().Be(0);
+        Assert.Equal(3, metrics.Hits);
+        Assert.Equal(0, metrics.Misses);
     }
 
     [Fact]
@@ -45,8 +44,8 @@ public class CacheMetricsTests
         metrics.RecordMiss();
 
         // Assert
-        metrics.Hits.Should().Be(0);
-        metrics.Misses.Should().Be(2);
+        Assert.Equal(0, metrics.Hits);
+        Assert.Equal(2, metrics.Misses);
     }
 
     [Fact]
@@ -61,8 +60,8 @@ public class CacheMetricsTests
         metrics.RecordHit();
         metrics.RecordMiss();
 
-        // Assert
-        metrics.HitRatio.Should().BeApproximately(0.75, 0.01); // 3 hits / 4 total = 0.75
+        // Assert - 3 hits / 4 total = 0.75
+        Assert.Equal(0.75, metrics.HitRatio, precision: 2);
     }
 
     [Fact]
@@ -72,7 +71,7 @@ public class CacheMetricsTests
         var metrics = new CacheMetrics();
 
         // Act & Assert
-        metrics.HitRatio.Should().Be(0.0);
+        Assert.Equal(0.0, metrics.HitRatio);
     }
 
     [Fact]
@@ -88,9 +87,9 @@ public class CacheMetricsTests
         metrics.Reset();
 
         // Assert
-        metrics.Hits.Should().Be(0);
-        metrics.Misses.Should().Be(0);
-        metrics.HitRatio.Should().Be(0.0);
+        Assert.Equal(0, metrics.Hits);
+        Assert.Equal(0, metrics.Misses);
+        Assert.Equal(0.0, metrics.HitRatio);
     }
 
     [Fact]
@@ -107,13 +106,13 @@ public class CacheMetricsTests
         var result = metrics.ToString();
 
         // Assert
-        result.Should().Contain("Hits: 3");
-        result.Should().Contain("Misses: 1");
-        result.Should().Contain("Hit Ratio: 75");
+        Assert.Contains("Hits: 3", result);
+        Assert.Contains("Misses: 1", result);
+        Assert.Contains("Hit Ratio: 75", result);
     }
 
     [Fact]
-    public void CacheMetrics_IsThreadSafe()
+    public async Task CacheMetrics_IsThreadSafe()
     {
         // Arrange
         var metrics = new CacheMetrics();
@@ -126,11 +125,11 @@ public class CacheMetricsTests
             tasks.Add(Task.Run(() => metrics.RecordMiss()));
         }
 
-        Task.WaitAll(tasks.ToArray());
+        await Task.WhenAll(tasks);
 
         // Assert - Should have exactly 100 hits and 100 misses
-        metrics.Hits.Should().Be(100);
-        metrics.Misses.Should().Be(100);
-        metrics.HitRatio.Should().BeApproximately(0.5, 0.01);
+        Assert.Equal(100, metrics.Hits);
+        Assert.Equal(100, metrics.Misses);
+        Assert.Equal(0.5, metrics.HitRatio, precision: 2);
     }
 }

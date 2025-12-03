@@ -1,5 +1,4 @@
 using DotNetMcp;
-using FluentAssertions;
 using Xunit;
 
 namespace DotNetMcp.Tests;
@@ -18,11 +17,11 @@ public class ErrorResultFactoryTests
         var result = ErrorResultFactory.CreateResult(output, error, exitCode);
 
         // Assert
-        result.Should().BeOfType<SuccessResult>();
+        Assert.IsType<SuccessResult>(result);
         var successResult = (SuccessResult)result;
-        successResult.Success.Should().BeTrue();
-        successResult.ExitCode.Should().Be(0);
-        successResult.Output.Should().Contain("Build succeeded");
+        Assert.True(successResult.Success);
+        Assert.Equal(0, successResult.ExitCode);
+        Assert.Contains("Build succeeded", successResult.Output);
     }
 
     [Fact]
@@ -37,13 +36,13 @@ public class ErrorResultFactoryTests
         var result = ErrorResultFactory.CreateResult(output, error, exitCode);
 
         // Assert
-        result.Should().BeOfType<ErrorResponse>();
+        Assert.IsType<ErrorResponse>(result);
         var errorResponse = (ErrorResponse)result;
-        errorResponse.Success.Should().BeFalse();
-        errorResponse.ExitCode.Should().Be(1);
-        errorResponse.Errors.Should().HaveCount(1);
-        errorResponse.Errors[0].Code.Should().Be("EXIT_1");
-        errorResponse.Errors[0].Category.Should().Be("Unknown");
+        Assert.False(errorResponse.Success);
+        Assert.Equal(1, errorResponse.ExitCode);
+        Assert.Single(errorResponse.Errors);
+        Assert.Equal("EXIT_1", errorResponse.Errors[0].Code);
+        Assert.Equal("Unknown", errorResponse.Errors[0].Category);
     }
 
     [Fact]
@@ -58,16 +57,16 @@ public class ErrorResultFactoryTests
         var result = ErrorResultFactory.CreateResult(output, error, exitCode);
 
         // Assert
-        result.Should().BeOfType<ErrorResponse>();
+        Assert.IsType<ErrorResponse>(result);
         var errorResponse = (ErrorResponse)result;
-        errorResponse.Success.Should().BeFalse();
-        errorResponse.Errors.Should().HaveCount(1);
+        Assert.False(errorResponse.Success);
+        Assert.Single(errorResponse.Errors);
         
         var parsedError = errorResponse.Errors[0];
-        parsedError.Code.Should().Be("CS0103");
-        parsedError.Category.Should().Be("Compilation");
-        parsedError.Message.Should().Contain("does not exist in the current context");
-        parsedError.Hint.Should().Contain("Check for typos or missing using directives");
+        Assert.Equal("CS0103", parsedError.Code);
+        Assert.Equal("Compilation", parsedError.Category);
+        Assert.Contains("does not exist in the current context", parsedError.Message);
+        Assert.Contains("Check for typos or missing using directives", parsedError.Hint);
     }
 
     [Fact]
@@ -82,15 +81,15 @@ public class ErrorResultFactoryTests
         var result = ErrorResultFactory.CreateResult(output, error, exitCode);
 
         // Assert
-        result.Should().BeOfType<ErrorResponse>();
+        Assert.IsType<ErrorResponse>(result);
         var errorResponse = (ErrorResponse)result;
-        errorResponse.Errors.Should().HaveCount(1);
+        Assert.Single(errorResponse.Errors);
         
         var parsedError = errorResponse.Errors[0];
-        parsedError.Code.Should().Be("MSB3644");
-        parsedError.Category.Should().Be("Build");
-        parsedError.Message.Should().Contain("reference assemblies");
-        parsedError.Hint.Should().Contain("Install the .NET SDK");
+        Assert.Equal("MSB3644", parsedError.Code);
+        Assert.Equal("Build", parsedError.Category);
+        Assert.Contains("reference assemblies", parsedError.Message);
+        Assert.Contains("Install the .NET SDK", parsedError.Hint);
     }
 
     [Fact]
@@ -105,15 +104,15 @@ public class ErrorResultFactoryTests
         var result = ErrorResultFactory.CreateResult(output, error, exitCode);
 
         // Assert
-        result.Should().BeOfType<ErrorResponse>();
+        Assert.IsType<ErrorResponse>(result);
         var errorResponse = (ErrorResponse)result;
-        errorResponse.Errors.Should().HaveCount(1);
+        Assert.Single(errorResponse.Errors);
         
         var parsedError = errorResponse.Errors[0];
-        parsedError.Code.Should().Be("NU1101");
-        parsedError.Category.Should().Be("Package");
-        parsedError.Message.Should().Contain("Unable to find package");
-        parsedError.Hint.Should().Contain("Check package name and source");
+        Assert.Equal("NU1101", parsedError.Code);
+        Assert.Equal("Package", parsedError.Category);
+        Assert.Contains("Unable to find package", parsedError.Message);
+        Assert.Contains("Check package name and source", parsedError.Hint);
     }
 
     [Fact]
@@ -129,11 +128,11 @@ Program.cs(15,10): error CS1001: Identifier expected";
         var result = ErrorResultFactory.CreateResult(output, error, exitCode);
 
         // Assert
-        result.Should().BeOfType<ErrorResponse>();
+        Assert.IsType<ErrorResponse>(result);
         var errorResponse = (ErrorResponse)result;
-        errorResponse.Errors.Should().HaveCount(2);
-        errorResponse.Errors[0].Code.Should().Be("CS0103");
-        errorResponse.Errors[1].Code.Should().Be("CS1001");
+        Assert.Equal(2, errorResponse.Errors.Count);
+        Assert.Equal("CS0103", errorResponse.Errors[0].Code);
+        Assert.Equal("CS1001", errorResponse.Errors[1].Code);
     }
 
     [Fact]
@@ -151,10 +150,11 @@ Program.cs(15,10): error CS1001: Identifier expected";
         var json = ErrorResultFactory.ToJson(successResult);
 
         // Assert
-        json.Should().NotBeNullOrEmpty();
-        json.Should().Contain("\"success\": true");
-        json.Should().Contain("\"output\"");
-        json.Should().Contain("\"exitCode\": 0");
+        Assert.NotNull(json);
+        Assert.NotEmpty(json);
+        Assert.Contains("\"success\": true", json);
+        Assert.Contains("\"output\"", json);
+        Assert.Contains("\"exitCode\": 0", json);
     }
 
     [Fact]
@@ -182,11 +182,12 @@ Program.cs(15,10): error CS1001: Identifier expected";
         var json = ErrorResultFactory.ToJson(errorResponse);
 
         // Assert
-        json.Should().NotBeNullOrEmpty();
-        json.Should().Contain("\"success\": false");
-        json.Should().Contain("\"code\": \"CS0103\"");
-        json.Should().Contain("\"category\": \"Compilation\"");
-        json.Should().Contain("\"hint\": \"Test hint\"");
+        Assert.NotNull(json);
+        Assert.NotEmpty(json);
+        Assert.Contains("\"success\": false", json);
+        Assert.Contains("\"code\": \"CS0103\"", json);
+        Assert.Contains("\"category\": \"Compilation\"", json);
+        Assert.Contains("\"hint\": \"Test hint\"", json);
     }
 
     [Fact]
@@ -201,10 +202,10 @@ Program.cs(15,10): error CS1001: Identifier expected";
         var result = ErrorResultFactory.CreateResult(output, error, exitCode);
 
         // Assert
-        result.Should().BeOfType<SuccessResult>();
+        Assert.IsType<SuccessResult>(result);
         var successResult = (SuccessResult)result;
-        successResult.Output.Should().NotContain("MySecretPass123");
-        successResult.Output.Should().Contain("***REDACTED***");
+        Assert.DoesNotContain("MySecretPass123", successResult.Output);
+        Assert.Contains("***REDACTED***", successResult.Output);
     }
 
     [Fact]
@@ -219,12 +220,12 @@ Program.cs(15,10): error CS1001: Identifier expected";
         var result = ErrorResultFactory.CreateResult(output, error, exitCode);
 
         // Assert
-        result.Should().BeOfType<ErrorResponse>();
+        Assert.IsType<ErrorResponse>(result);
         var errorResponse = (ErrorResponse)result;
-        errorResponse.Errors.Should().HaveCount(1);
+        Assert.Single(errorResponse.Errors);
         var genericError = errorResponse.Errors[0];
-        genericError.RawOutput.Should().NotContain("ghp_abc123def456");
-        genericError.RawOutput.Should().Contain("***REDACTED***");
+        Assert.DoesNotContain("ghp_abc123def456", genericError.RawOutput);
+        Assert.Contains("***REDACTED***", genericError.RawOutput);
     }
 
     [Fact]
@@ -239,13 +240,13 @@ Program.cs(15,10): error CS1001: Identifier expected";
         var result = ErrorResultFactory.CreateResult(output, error, exitCode);
 
         // Assert
-        result.Should().BeOfType<ErrorResponse>();
+        Assert.IsType<ErrorResponse>(result);
         var errorResponse = (ErrorResponse)result;
-        errorResponse.Errors.Should().HaveCount(1);
+        Assert.Single(errorResponse.Errors);
         
         var parsedError = errorResponse.Errors[0];
-        parsedError.Code.Should().Be("NETSDK1045");
-        parsedError.Category.Should().Be("SDK");
-        parsedError.Hint.Should().Contain("Update the SDK");
+        Assert.Equal("NETSDK1045", parsedError.Code);
+        Assert.Equal("SDK", parsedError.Category);
+        Assert.Contains("Update the SDK", parsedError.Hint);
     }
 }

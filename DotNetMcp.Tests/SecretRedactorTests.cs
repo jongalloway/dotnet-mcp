@@ -1,5 +1,4 @@
 using DotNetMcp;
-using FluentAssertions;
 using Xunit;
 
 namespace DotNetMcp.Tests;
@@ -16,7 +15,7 @@ public class SecretRedactorTests
         var result = SecretRedactor.Redact(input!);
 
         // Assert
-        result.Should().BeNull();
+        Assert.Null(result);
     }
 
     [Fact]
@@ -29,7 +28,7 @@ public class SecretRedactorTests
         var result = SecretRedactor.Redact(input);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -42,7 +41,7 @@ public class SecretRedactorTests
         var result = SecretRedactor.Redact(input);
 
         // Assert
-        result.Should().Be(input);
+        Assert.Equal(input, result);
     }
 
     [Theory]
@@ -56,7 +55,7 @@ public class SecretRedactorTests
         var result = SecretRedactor.Redact(input);
 
         // Assert
-        result.Should().Be(expected);
+        Assert.Equal(expected, result);
     }
 
     [Theory]
@@ -69,7 +68,7 @@ public class SecretRedactorTests
         var result = SecretRedactor.Redact(input);
 
         // Assert
-        result.Should().Be(expected);
+        Assert.Equal(expected, result);
     }
 
     [Theory]
@@ -81,7 +80,7 @@ public class SecretRedactorTests
         var result = SecretRedactor.Redact(input);
 
         // Assert
-        result.Should().Be(expected);
+        Assert.Equal(expected, result);
     }
 
     [Theory]
@@ -94,7 +93,7 @@ public class SecretRedactorTests
         var result = SecretRedactor.Redact(input);
 
         // Assert
-        result.Should().Be(expected);
+        Assert.Equal(expected, result);
     }
 
     [Theory]
@@ -110,7 +109,7 @@ public class SecretRedactorTests
         var result = SecretRedactor.Redact(input);
 
         // Assert
-        result.Should().Be(expected);
+        Assert.Equal(expected, result);
     }
 
     [Theory]
@@ -122,7 +121,7 @@ public class SecretRedactorTests
         var result = SecretRedactor.Redact(input);
 
         // Assert
-        result.Should().Be(expected);
+        Assert.Equal(expected, result);
     }
 
     [Theory]
@@ -134,7 +133,7 @@ public class SecretRedactorTests
         var result = SecretRedactor.Redact(input);
 
         // Assert
-        result.Should().Be(expected);
+        Assert.Equal(expected, result);
     }
 
     [Fact]
@@ -148,8 +147,8 @@ public class SecretRedactorTests
         var result = SecretRedactor.Redact(input);
 
         // Assert
-        result.Should().Contain("[REDACTED]");
-        result.Should().NotContain("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9");
+        Assert.Contains("[REDACTED]", result);
+        Assert.DoesNotContain("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9", result);
     }
 
     [Fact]
@@ -166,8 +165,8 @@ MzEfYyjiWA4R4/M2bS1+fWIcPm15A4d9NHpCwmT6MQZ3oY0RXmL3KzUr0Y4HME6k
         var result = SecretRedactor.Redact(input);
 
         // Assert
-        result.Should().Contain("[REDACTED]");
-        result.Should().NotContain("MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7VJTUt9Us8cKj");
+        Assert.Contains("[REDACTED]", result);
+        Assert.DoesNotContain("MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7VJTUt9Us8cKj", result);
     }
 
     [Theory]
@@ -181,7 +180,7 @@ MzEfYyjiWA4R4/M2bS1+fWIcPm15A4d9NHpCwmT6MQZ3oY0RXmL3KzUr0Y4HME6k
         var result = SecretRedactor.Redact(input);
 
         // Assert
-        result.Should().Be(expected);
+        Assert.Equal(expected, result);
     }
 
     [Fact]
@@ -194,12 +193,12 @@ MzEfYyjiWA4R4/M2bS1+fWIcPm15A4d9NHpCwmT6MQZ3oY0RXmL3KzUr0Y4HME6k
         var result = SecretRedactor.Redact(input);
 
         // Assert
-        result.Should().Contain("Password=[REDACTED]");
-        result.Should().Contain("api_key=[REDACTED]");
-        result.Should().Contain("token=[REDACTED]");
-        result.Should().NotContain("secret123");
-        result.Should().NotContain("abcdef123456");
-        result.Should().NotContain("xyz789");
+        Assert.Contains("Password=[REDACTED]", result);
+        Assert.Contains("api_key=[REDACTED]", result);
+        Assert.Contains("token=[REDACTED]", result);
+        Assert.DoesNotContain("secret123", result);
+        Assert.DoesNotContain("abcdef123456", result);
+        Assert.DoesNotContain("xyz789", result);
     }
 
     [Fact]
@@ -212,11 +211,11 @@ MzEfYyjiWA4R4/M2bS1+fWIcPm15A4d9NHpCwmT6MQZ3oY0RXmL3KzUr0Y4HME6k
         var result = SecretRedactor.Redact(input);
 
         // Assert
-        result.Should().Contain("Server=myServerAddress");
-        result.Should().Contain("Database=myDataBase");
-        result.Should().Contain("User Id=myUsername");
-        result.Should().Contain("Password=[REDACTED]");
-        result.Should().NotContain("myPassword");
+        Assert.Contains("Server=myServerAddress", result);
+        Assert.Contains("Database=myDataBase", result);
+        Assert.Contains("User Id=myUsername", result);
+        Assert.Contains("Password=[REDACTED]", result);
+        Assert.DoesNotContain("myPassword", result);
     }
 
     [Fact]
@@ -232,10 +231,10 @@ MzEfYyjiWA4R4/M2bS1+fWIcPm15A4d9NHpCwmT6MQZ3oY0RXmL3KzUr0Y4HME6k
         var result = SecretRedactor.Redact(input);
 
         // Assert
-        result.Should().Contain("Password=[REDACTED]");
-        result.Should().NotContain("MyS3cr3tP@ssw0rd");
-        result.Should().Contain("Server=localhost");
-        result.Should().Contain("User ID=sa");
+        Assert.Contains("Password=[REDACTED]", result);
+        Assert.DoesNotContain("MyS3cr3tP@ssw0rd", result);
+        Assert.Contains("Server=localhost", result);
+        Assert.Contains("User ID=sa", result);
     }
 
     [Theory]
@@ -248,7 +247,7 @@ MzEfYyjiWA4R4/M2bS1+fWIcPm15A4d9NHpCwmT6MQZ3oY0RXmL3KzUr0Y4HME6k
         var result = SecretRedactor.Redact(input);
 
         // Assert
-        result.Should().Be(expected);
+        Assert.Equal(expected, result);
     }
 
     [Fact]
@@ -266,8 +265,8 @@ Done.";
         var result = SecretRedactor.Redact(input);
 
         // Assert
-        result.Should().Contain("Password=[REDACTED]");
-        result.Should().NotContain("Dev123!");
+        Assert.Contains("Password=[REDACTED]", result);
+        Assert.DoesNotContain("Dev123!", result);
     }
 
     [Fact]
@@ -283,8 +282,8 @@ Done.";
 
         // Assert - should complete in reasonable time (well under 5% overhead for typical operations)
         // Allowing 500ms for 10,000 lines is very generous and ensures minimal overhead
-        sw.ElapsedMilliseconds.Should().BeLessThan(500, "redaction should be fast on large inputs");
-        result.Should().Be(input);
+        Assert.True(sw.ElapsedMilliseconds < 500);
+        Assert.Equal(input, result);
     }
 
     [Fact]
@@ -332,8 +331,7 @@ Done.";
 
         // Assert - overhead should be minimal
         // For 1000 iterations of typical output, redaction should add less than 500ms total
-        overheadMs.Should().BeLessThan(500, 
-            $"redaction overhead should be minimal (baseline: {baselineMs}ms, with redaction: {swWithRedaction.ElapsedMilliseconds}ms, overhead: {overheadPercentage:F1}%)");
+        Assert.True(overheadMs < 500);
     }
 
     [Fact]
@@ -359,14 +357,13 @@ Done.";
         {
             var result = SecretRedactor.Redact(outputWithSecrets);
             // Verify redaction occurred
-            result.Should().Contain("[REDACTED]");
+            Assert.Contains("[REDACTED]", result);
         }
         sw.Stop();
 
         // Assert - even with secrets, redaction should be fast
         // For 1000 iterations with secrets, should complete in under 1 second
-        sw.ElapsedMilliseconds.Should().BeLessThan(1000,
-            $"redaction with secrets should be fast (elapsed: {sw.ElapsedMilliseconds}ms for {iterations} iterations)");
+        Assert.True(sw.ElapsedMilliseconds < 1000);
     }
 
     [Fact]
@@ -386,15 +383,15 @@ Deploying application with config:
         var result = SecretRedactor.Redact(input);
 
         // Assert
-        result.Should().Contain("Password=[REDACTED]");
-        result.Should().Contain("api:[REDACTED]@api.example.com");
-        result.Should().Contain("admin:[REDACTED]@cluster.example.com");
-        result.Should().Contain("api_key=[REDACTED]");
-        result.Should().Contain("aws_access_key_id=[REDACTED]");
-        result.Should().NotContain("SuperSecret123");
-        result.Should().NotContain("SecretKey456");
-        result.Should().NotContain("MongoPass789");
-        result.Should().NotContain("1234567890abcdefghijklmnopqrstuvwxyz");
-        result.Should().NotContain("AKIAIOSFODNN7EXAMPLE");
+        Assert.Contains("Password=[REDACTED]", result);
+        Assert.Contains("api:[REDACTED]@api.example.com", result);
+        Assert.Contains("admin:[REDACTED]@cluster.example.com", result);
+        Assert.Contains("api_key=[REDACTED]", result);
+        Assert.Contains("aws_access_key_id=[REDACTED]", result);
+        Assert.DoesNotContain("SuperSecret123", result);
+        Assert.DoesNotContain("SecretKey456", result);
+        Assert.DoesNotContain("MongoPass789", result);
+        Assert.DoesNotContain("1234567890abcdefghijklmnopqrstuvwxyz", result);
+        Assert.DoesNotContain("AKIAIOSFODNN7EXAMPLE", result);
     }
 }

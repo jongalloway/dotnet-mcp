@@ -1,5 +1,4 @@
 using DotNetMcp;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -32,8 +31,8 @@ public class ConcurrencyControlTests
         var secondBuildResult = await _tools.DotnetProjectBuild(project: projectPath, machineReadable: false);
 
         // Assert - Second build should get concurrency error
-        secondBuildResult.Should().Contain("CONCURRENCY_CONFLICT", "second build should be blocked");
-        secondBuildResult.Should().Contain("build", "error should mention the operation type");
+        Assert.Contains("CONCURRENCY_CONFLICT", secondBuildResult);
+        Assert.Contains("build", secondBuildResult);
 
         // Cleanup - wait for first build to complete
         await firstBuildTask;
@@ -54,8 +53,8 @@ public class ConcurrencyControlTests
         var results = await Task.WhenAll(task1, task2);
 
         // Assert - Neither should have concurrency errors (they may fail for other reasons though)
-        results[0].Should().NotContain("CONCURRENCY_CONFLICT");
-        results[1].Should().NotContain("CONCURRENCY_CONFLICT");
+        Assert.DoesNotContain("CONCURRENCY_CONFLICT", results[0]);
+        Assert.DoesNotContain("CONCURRENCY_CONFLICT", results[1]);
     }
 
     [Fact(Skip = "Integration test - requires actual dotnet CLI and valid project")]
@@ -70,8 +69,8 @@ public class ConcurrencyControlTests
         // Second operation on same target should work after first completes
         var testResult = await _tools.DotnetProjectTest(project: projectPath, machineReadable: false);
 
-        // Assert
-        testResult.Should().NotContain("CONCURRENCY_CONFLICT", "test should proceed after build completes");
+        // Assert - test should proceed after build completes
+        Assert.DoesNotContain("CONCURRENCY_CONFLICT", testResult);
     }
 
     [Fact]
@@ -87,10 +86,10 @@ public class ConcurrencyControlTests
         var result = await _tools.DotnetProjectBuild(project: projectPath, machineReadable: true);
 
         // Assert
-        result.Should().Contain("\"code\": \"CONCURRENCY_CONFLICT\"");
-        result.Should().Contain("\"success\": false");
-        result.Should().Contain("\"category\": \"Concurrency\"");
-        result.Should().Contain("\"exitCode\": -1");
+        Assert.Contains("\"code\": \"CONCURRENCY_CONFLICT\"", result);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("\"category\": \"Concurrency\"", result);
+        Assert.Contains("\"exitCode\": -1", result);
 
         // Cleanup
         _concurrencyManager.Clear();
@@ -109,9 +108,9 @@ public class ConcurrencyControlTests
         var result = await _tools.DotnetProjectRun(project: projectPath, machineReadable: false);
 
         // Assert
-        result.Should().Contain("Error:");
-        result.Should().Contain("conflicting operation");
-        result.Should().Contain("run");
+        Assert.Contains("Error:", result);
+        Assert.Contains("conflicting operation", result);
+        Assert.Contains("run", result);
 
         // Cleanup
         _concurrencyManager.Clear();
@@ -130,9 +129,9 @@ public class ConcurrencyControlTests
         var result = await _tools.DotnetProjectPublish(project: projectPath, machineReadable: false);
 
         // Assert
-        result.Should().Contain("Error:");
-        result.Should().Contain("conflicting operation");
-        result.Should().Contain("publish");
+        Assert.Contains("Error:", result);
+        Assert.Contains("conflicting operation", result);
+        Assert.Contains("publish", result);
 
         // Cleanup
         _concurrencyManager.Clear();
@@ -151,9 +150,9 @@ public class ConcurrencyControlTests
         var result = await _tools.DotnetProjectTest(project: projectPath, machineReadable: false);
 
         // Assert
-        result.Should().Contain("Error:");
-        result.Should().Contain("conflicting operation");
-        result.Should().Contain("test");
+        Assert.Contains("Error:", result);
+        Assert.Contains("conflicting operation", result);
+        Assert.Contains("test", result);
 
         // Cleanup
         _concurrencyManager.Clear();
@@ -174,8 +173,8 @@ public class ConcurrencyControlTests
         var secondAcquire = _concurrencyManager.TryAcquireOperation(operationType, target, out _);
 
         // Assert
-        firstAcquire.Should().BeTrue();
-        secondAcquire.Should().BeTrue();
+        Assert.True(firstAcquire);
+        Assert.True(secondAcquire);
         
         // Cleanup
         _concurrencyManager.Clear();
