@@ -15,7 +15,6 @@
       "transport": {
         "type": "stdio"
       },
-      "packageArguments": ["--yes"],
       "environmentVariables": [
         {
           "name": "DOTNET_SKIP_FIRST_TIME_EXPERIENCE",
