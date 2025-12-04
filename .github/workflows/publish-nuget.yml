@@ -150,13 +150,47 @@ jobs:
       - name: Login to MCP Registry
         run: ./mcp-publisher login github-oidc
 
-      - name: Debug - Verify server.json location
+      - name: Extract server.json from package and copy to repository root
         run: |
-          echo "Current directory: $(pwd)"
-          echo "Listing DotNetMcp/.mcp/:"
-          ls -la DotNetMcp/.mcp/ || echo "Directory not found"
-          echo "Checking file:"
-          cat DotNetMcp/.mcp/server.json || echo "File not found"
+          echo "📋 Extracting server.json from NuGet package..."
+          # Get the first nupkg file (there should only be one)
+          package=$(ls ./artifacts/*.nupkg 2>/dev/null | head -1)
+          
+          if [ -z "$package" ]; then
+            echo "❌ ERROR: No .nupkg files found in ./artifacts/"
+            exit 1
+          fi
+          echo "Using package: $package"
+          
+          # Extract server.json from the package (it has the correct version)
+          if ! unzip -p "$package" ".mcp/server.json" > /tmp/server.json; then
+            echo "❌ ERROR: Failed to extract .mcp/server.json from package"
+            exit 1
+          fi
+          
+          # Verify the extracted file is not empty
+          if [ ! -s /tmp/server.json ]; then
+            echo "❌ ERROR: Extracted server.json is empty"
+            exit 1
+          fi
+          
+          echo "📄 Extracted server.json content:"
+          if ! jq '.' /tmp/server.json; then
+            echo "❌ ERROR: server.json is not valid JSON"
+            exit 1
+          fi
+          
+          # Copy to repository root (mcp-publisher expects server.json at root)
+          cp /tmp/server.json ./server.json
+          
+          echo "✅ server.json copied to repository root"
 
       - name: Publish to MCP Registry
-        run: ./mcp-publisher publish --file=DotNetMcp/.mcp/server.json
+        run: ./mcp-publisher publish
+
+      - name: Cleanup root server.json
+        if: always()
+        run: |
+          echo "🧹 Cleaning up root server.json..."
+          rm -f ./server.json
+          echo "✅ Cleanup complete"
