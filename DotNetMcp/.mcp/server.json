@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
   "name": "io.github.jongalloway/dotnet-mcp",
   "title": ".NET MCP Server",
-  "description": "A community-maintained MCP server that provides AI assistants with direct access to the .NET SDK for project creation, package management, building, testing, and more.",
+  "description": "AI assistant access to .NET SDK for projects, packages, building, testing, and development tools.",
   "status": "active",
   "version": "0.0.0-placeholder",
   "packages": [
