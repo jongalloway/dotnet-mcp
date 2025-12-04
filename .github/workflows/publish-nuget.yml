@@ -175,7 +175,10 @@ jobs:
           fi
           
           echo "📄 Extracted server.json content:"
-          jq '.' /tmp/server.json
+          if ! jq '.' /tmp/server.json; then
+            echo "❌ ERROR: server.json is not valid JSON"
+            exit 1
+          fi
           
           # Copy to repository root (mcp-publisher expects server.json at root)
           cp /tmp/server.json ./server.json
