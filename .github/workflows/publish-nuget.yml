@@ -150,7 +150,7 @@ jobs:
       - name: Login to MCP Registry
         run: ./mcp-publisher login github-oidc
 
-      - name: Extract server.json from package and copy to root .mcp folder
+      - name: Extract server.json from package and copy to repository root
         run: |
           echo "📋 Extracting server.json from NuGet package..."
           # Get the first nupkg file (there should only be one)
@@ -177,18 +177,17 @@ jobs:
           echo "📄 Extracted server.json content:"
           jq '.' /tmp/server.json
           
-          # Create root-level .mcp directory and copy the file
-          mkdir -p .mcp
-          cp /tmp/server.json .mcp/server.json
+          # Copy to repository root (mcp-publisher expects server.json at root)
+          cp /tmp/server.json ./server.json
           
-          echo "✅ server.json copied to .mcp/server.json"
+          echo "✅ server.json copied to repository root"
 
       - name: Publish to MCP Registry
         run: ./mcp-publisher publish
 
-      - name: Cleanup root .mcp folder
+      - name: Cleanup root server.json
         if: always()
         run: |
-          echo "🧹 Cleaning up root .mcp folder..."
-          rm -rf .mcp
+          echo "🧹 Cleaning up root server.json..."
+          rm -f ./server.json
           echo "✅ Cleanup complete"
