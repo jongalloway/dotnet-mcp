@@ -150,13 +150,45 @@ jobs:
       - name: Login to MCP Registry
         run: ./mcp-publisher login github-oidc
 
-      - name: Debug - Verify server.json location
+      - name: Extract server.json from package and copy to root .mcp folder
         run: |
-          echo "Current directory: $(pwd)"
-          echo "Listing DotNetMcp/.mcp/:"
-          ls -la DotNetMcp/.mcp/ || echo "Directory not found"
-          echo "Checking file:"
-          cat DotNetMcp/.mcp/server.json || echo "File not found"
+          echo "📋 Extracting server.json from NuGet package..."
+          # Get the first nupkg file (there should only be one)
+          package=$(ls ./artifacts/*.nupkg 2>/dev/null | head -1)
+          
+          if [ -z "$package" ]; then
+            echo "❌ ERROR: No .nupkg files found in ./artifacts/"
+            exit 1
+          fi
+          echo "Using package: $package"
+          
+          # Extract server.json from the package (it has the correct version)
+          if ! unzip -p "$package" ".mcp/server.json" > /tmp/server.json; then
+            echo "❌ ERROR: Failed to extract .mcp/server.json from package"
+            exit 1
+          fi
+          
+          # Verify the extracted file is not empty
+          if [ ! -s /tmp/server.json ]; then
+            echo "❌ ERROR: Extracted server.json is empty"
+            exit 1
+          fi
+          
+          echo "📄 Extracted server.json content:"
+          jq '.' /tmp/server.json
+          
+          # Create root-level .mcp directory and copy the file
+          mkdir -p .mcp
+          cp /tmp/server.json .mcp/server.json
+          
+          echo "✅ server.json copied to .mcp/server.json"
 
       - name: Publish to MCP Registry
-        run: ./mcp-publisher publish --file=DotNetMcp/.mcp/server.json
+        run: ./mcp-publisher publish
+
+      - name: Cleanup root .mcp folder
+        if: always()
+        run: |
+          echo "🧹 Cleaning up root .mcp folder..."
+          rm -rf .mcp
+          echo "✅ Cleanup complete"
