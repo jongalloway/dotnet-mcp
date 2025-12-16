@@ -26,5 +26,8 @@ jobs:
       - name: Build
         run: dotnet build DotNetMcp.slnx --no-restore --configuration Release
 
+      - name: Validate server.json
+        run: pwsh -File scripts/validate-server-json.ps1
+
       - name: Test
         run: dotnet test DotNetMcp.slnx --no-build --configuration Release --verbosity normal
