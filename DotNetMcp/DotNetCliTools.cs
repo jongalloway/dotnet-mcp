@@ -323,16 +323,24 @@ public sealed partial class DotNetCliTools
         return await ExecuteWithConcurrencyCheck("test", GetOperationTarget(project), args.ToString(), machineReadable);
     }
 
-    [McpServerTool, Description("Publish a .NET project for deployment")]
+    /// <summary>
+    /// Publish a .NET project for deployment.
+    /// </summary>
+    /// <param name="project">The project file to publish</param>
+    /// <param name="configuration">The configuration to publish (Debug or Release)</param>
+    /// <param name="output">The output directory for published files</param>
+    /// <param name="runtime">The target runtime identifier (e.g., 'linux-x64', 'win-x64')</param>
+    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
+    [McpServerTool]
     [McpMeta("category", "project")]
     [McpMeta("priority", 7.0)]
     [McpMeta("isLongRunning", true)]
-    public async Task<string> DotnetProjectPublish(
-     [Description("The project file to publish")] string? project = null,
-        [Description("The configuration to publish (Debug or Release)")] string? configuration = null,
-      [Description("The output directory for published files")] string? output = null,
-        [Description("The target runtime identifier (e.g., 'linux-x64', 'win-x64')")] string? runtime = null,
-        [Description(MachineReadableDescription)] bool machineReadable = false)
+    public async partial Task<string> DotnetProjectPublish(
+        string? project = null,
+        string? configuration = null,
+        string? output = null,
+        string? runtime = null,
+        bool machineReadable = false)
     {
         var args = new StringBuilder("publish");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
@@ -343,16 +351,25 @@ public sealed partial class DotNetCliTools
         return await ExecuteWithConcurrencyCheck("publish", GetOperationTarget(project), args.ToString(), machineReadable);
     }
 
-    [McpServerTool, Description("Create a NuGet package from a .NET project. Use this to pack projects for distribution on NuGet.org or private feeds.")]
+    /// <summary>
+    /// Create a NuGet package from a .NET project. Use this to pack projects for distribution on NuGet.org or private feeds.
+    /// </summary>
+    /// <param name="project">The project file to pack</param>
+    /// <param name="configuration">The configuration to pack (Debug or Release)</param>
+    /// <param name="output">The output directory for the package</param>
+    /// <param name="includeSymbols">Include symbols package</param>
+    /// <param name="includeSource">Include source files in the package</param>
+    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
+    [McpServerTool]
     [McpMeta("category", "package")]
     [McpMeta("priority", 5.0)]
-    public async Task<string> DotnetPackCreate(
-      [Description("The project file to pack")] string? project = null,
-      [Description("The configuration to pack (Debug or Release)")] string? configuration = null,
-        [Description("The output directory for the package")] string? output = null,
-        [Description("Include symbols package")] bool includeSymbols = false,
-[Description("Include source files in the package")] bool includeSource = false,
-        [Description(MachineReadableDescription)] bool machineReadable = false)
+    public async partial Task<string> DotnetPackCreate(
+        string? project = null,
+        string? configuration = null,
+        string? output = null,
+        bool includeSymbols = false,
+        bool includeSource = false,
+        bool machineReadable = false)
     {
         var args = new StringBuilder("pack");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
@@ -363,13 +380,19 @@ public sealed partial class DotNetCliTools
         return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 
-    [McpServerTool, Description("Clean the output of a .NET project")]
+    /// <summary>
+    /// Clean the output of a .NET project.
+    /// </summary>
+    /// <param name="project">The project file or solution file to clean</param>
+    /// <param name="configuration">The configuration to clean (Debug or Release)</param>
+    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
+    [McpServerTool]
     [McpMeta("category", "project")]
     [McpMeta("priority", 6.0)]
-    public async Task<string> DotnetProjectClean(
-     [Description("The project file or solution file to clean")] string? project = null,
-        [Description("The configuration to clean (Debug or Release)")] string? configuration = null,
-        [Description(MachineReadableDescription)] bool machineReadable = false)
+    public async partial Task<string> DotnetProjectClean(
+        string? project = null,
+        string? configuration = null,
+        bool machineReadable = false)
     {
         var args = new StringBuilder("clean");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
