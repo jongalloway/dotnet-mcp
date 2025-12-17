@@ -14,7 +14,7 @@ public sealed class DotNetCliTools
     private readonly ILogger<DotNetCliTools> _logger;
     private readonly ConcurrencyManager _concurrencyManager;
     private const string MachineReadableDescription = "Return structured JSON output for both success and error responses instead of plain text";
-    
+
     // Constants for server capability discovery
     private const string DefaultServerVersion = "1.0.0";
     private const string ProtocolVersion = "0.4.1-preview.1";
@@ -78,7 +78,7 @@ public sealed class DotNetCliTools
     [McpServerTool, Description("Get information about .NET framework versions, including which are LTS releases. Useful for understanding framework compatibility.")]
     [McpMeta("category", "framework")]
     [McpMeta("usesFrameworkHelper", true)]
-    public Task<string> DotnetFrameworkInfo(
+    public async Task<string> DotnetFrameworkInfo(
      [Description("Optional: specific framework to get info about (e.g., 'net8.0', 'net6.0')")] string? framework = null)
     {
         var result = new StringBuilder();
@@ -95,8 +95,27 @@ public sealed class DotNetCliTools
         }
         else
         {
+            var supportedModernFrameworks = FrameworkHelper.GetSupportedModernFrameworks().ToList();
+
+            // Only show preview TFMs when the SDK major version is installed.
+            try
+            {
+                var sdkList = await DotNetCommandExecutor.ExecuteCommandForResourceAsync("--list-sdks", _logger);
+                var hasNet11Sdk = sdkList
+                    .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                    .Any(line => line.TrimStart().StartsWith("11.", StringComparison.Ordinal));
+                if (hasNet11Sdk)
+                {
+                    supportedModernFrameworks.Insert(0, DotNetSdkConstants.TargetFrameworks.Net110);
+                }
+            }
+            catch
+            {
+                // If SDK discovery fails, fall back to stable list.
+            }
+
             result.AppendLine("Modern .NET Frameworks (5.0+):");
-            foreach (var fw in FrameworkHelper.GetSupportedModernFrameworks())
+            foreach (var fw in supportedModernFrameworks)
             {
                 var ltsMarker = FrameworkHelper.IsLtsFramework(fw) ? " (LTS)" : string.Empty;
                 result.AppendLine($"  {fw}{ltsMarker} - {FrameworkHelper.GetFrameworkDescription(fw)}");
@@ -115,7 +134,7 @@ public sealed class DotNetCliTools
             result.AppendLine($"Latest LTS: {FrameworkHelper.GetLatestLtsFramework()}");
         }
 
-        return Task.FromResult(result.ToString());
+        return result.ToString();
     }
 
     [McpServerTool, Description("Create a new .NET project or file from a template. Common templates: console, classlib, web, webapi, mvc, blazor, xunit, nunit, mstest.")]
@@ -127,7 +146,7 @@ public sealed class DotNetCliTools
   [Description("The template to use (e.g., 'console', 'classlib', 'webapi')")] string? template = null,
         [Description("The name for the project")] string? name = null,
         [Description("The output directory")] string? output = null,
-        [Description("The target framework (e.g., 'net9.0', 'net8.0')")] string? framework = null,
+    [Description("The target framework (e.g., 'net10.0', 'net8.0')")] string? framework = null,
         [Description("Additional template-specific options (e.g., '--format slnx', '--use-program-main', '--aot')")] string? additionalOptions = null,
         [Description(MachineReadableDescription)] bool machineReadable = false)
     {
@@ -176,7 +195,7 @@ public sealed class DotNetCliTools
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
         if (!string.IsNullOrEmpty(framework)) args.Append($" -f {framework}");
-        
+
         return await ExecuteWithConcurrencyCheck("build", GetOperationTarget(project), args.ToString(), machineReadable);
     }
 
@@ -196,7 +215,7 @@ public sealed class DotNetCliTools
         if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
         if (!string.IsNullOrEmpty(appArgs)) args.Append($" -- {appArgs}");
-        
+
         return await ExecuteWithConcurrencyCheck("run", GetOperationTarget(project), args.ToString(), machineReadable);
     }
 
@@ -234,7 +253,7 @@ public sealed class DotNetCliTools
         if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
         if (blame) args.Append(" --blame");
         if (listTests) args.Append(" --list-tests");
-        
+
         return await ExecuteWithConcurrencyCheck("test", GetOperationTarget(project), args.ToString(), machineReadable);
     }
 
@@ -254,7 +273,7 @@ public sealed class DotNetCliTools
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
         if (!string.IsNullOrEmpty(output)) args.Append($" -o \"{output}\"");
         if (!string.IsNullOrEmpty(runtime)) args.Append($" -r {runtime}");
-        
+
         return await ExecuteWithConcurrencyCheck("publish", GetOperationTarget(project), args.ToString(), machineReadable);
     }
 
@@ -541,25 +560,25 @@ public sealed class DotNetCliTools
     [McpServerTool, Description("Get information about installed .NET SDKs and runtimes")]
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 6.0)]
-    public async Task<string> DotnetSdkInfo([Description(MachineReadableDescription)] bool machineReadable = false) 
+    public async Task<string> DotnetSdkInfo([Description(MachineReadableDescription)] bool machineReadable = false)
         => await ExecuteDotNetCommand("--info", machineReadable);
 
     [McpServerTool, Description("Get the version of the .NET SDK")]
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 6.0)]
-    public async Task<string> DotnetSdkVersion([Description(MachineReadableDescription)] bool machineReadable = false) 
+    public async Task<string> DotnetSdkVersion([Description(MachineReadableDescription)] bool machineReadable = false)
         => await ExecuteDotNetCommand("--version", machineReadable);
 
     [McpServerTool, Description("List installed .NET SDKs")]
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 6.0)]
-    public async Task<string> DotnetSdkList([Description(MachineReadableDescription)] bool machineReadable = false) 
+    public async Task<string> DotnetSdkList([Description(MachineReadableDescription)] bool machineReadable = false)
         => await ExecuteDotNetCommand("--list-sdks", machineReadable);
 
     [McpServerTool, Description("List installed .NET runtimes")]
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 6.0)]
-    public async Task<string> DotnetRuntimeList([Description(MachineReadableDescription)] bool machineReadable = false) 
+    public async Task<string> DotnetRuntimeList([Description(MachineReadableDescription)] bool machineReadable = false)
         => await ExecuteDotNetCommand("--list-runtimes", machineReadable);
 
     [McpServerTool, Description("Get help for a specific dotnet command. Use this to discover available options for any dotnet command.")]
@@ -579,8 +598,8 @@ public sealed class DotNetCliTools
     {
         // Get the assembly version
         var assembly = typeof(DotNetCliTools).Assembly;
-        var version = assembly.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()?.InformationalVersion 
-            ?? assembly.GetName().Version?.ToString() 
+        var version = assembly.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()?.InformationalVersion
+            ?? assembly.GetName().Version?.ToString()
             ?? DefaultServerVersion;
 
         // Parse installed SDKs from dotnet --list-sdks
@@ -639,7 +658,7 @@ public sealed class DotNetCliTools
         result.AppendLine("Protocol: Model Context Protocol (MCP)");
         result.AppendLine("Transport: stdio");
         result.AppendLine();
-        
+
         result.AppendLine("FEATURES:");
         result.AppendLine("  • 49 MCP Tools across 13 categories");
         result.AppendLine("  • 4 MCP Resources (SDK, Runtime, Templates, Frameworks)");
@@ -648,7 +667,7 @@ public sealed class DotNetCliTools
         result.AppendLine("  • Framework validation and LTS identification");
         result.AppendLine("  • Thread-safe caching with metrics tracking");
         result.AppendLine();
-        
+
         result.AppendLine("TOOL CATEGORIES:");
         result.AppendLine("  • Template (5 tools): List, search, info, cache management");
         result.AppendLine("  • Project (7 tools): New, build, run, test, publish, clean, restore");
@@ -664,7 +683,7 @@ public sealed class DotNetCliTools
         result.AppendLine("  • NuGet (1 tool): Cache management");
         result.AppendLine("  • Help (2 tools): Command help, server capabilities");
         result.AppendLine();
-        
+
         result.AppendLine("CONCURRENCY SAFETY:");
         result.AppendLine("  ✅ Read-only operations: Always safe for parallel execution");
         result.AppendLine("     (Info, List, Search, Check, Help, Metrics tools)");
@@ -676,7 +695,7 @@ public sealed class DotNetCliTools
         result.AppendLine("  📖 See documentation: doc/concurrency.md");
         result.AppendLine("     Full concurrency safety matrix with detailed guidance");
         result.AppendLine();
-        
+
         result.AppendLine("CACHING:");
         result.AppendLine("  • Templates: 5-minute TTL, thread-safe with metrics");
         result.AppendLine("  • SDK Info: 5-minute TTL, thread-safe with metrics");
@@ -684,24 +703,24 @@ public sealed class DotNetCliTools
         result.AppendLine("  • Force reload available on template tools");
         result.AppendLine("  • Use dotnet_cache_metrics for hit/miss statistics");
         result.AppendLine();
-        
+
         result.AppendLine("RESOURCES (Read-Only Access):");
         result.AppendLine("  • dotnet://sdk-info - Installed SDKs with versions and paths");
         result.AppendLine("  • dotnet://runtime-info - Installed runtimes with metadata");
         result.AppendLine("  • dotnet://templates - Complete template catalog");
         result.AppendLine("  • dotnet://frameworks - Framework information with LTS status");
         result.AppendLine();
-        
+
         result.AppendLine("DOCUMENTATION:");
         result.AppendLine("  • README: https://github.com/jongalloway/dotnet-mcp");
         result.AppendLine("  • SDK Integration: doc/sdk-integration.md");
         result.AppendLine("  • Advanced Topics: doc/advanced-topics.md");
         result.AppendLine("  • Concurrency Safety: doc/concurrency.md");
         result.AppendLine();
-        
+
         result.AppendLine("For detailed concurrency guidance and parallel execution patterns,");
         result.AppendLine("see the Concurrency Safety Matrix at: doc/concurrency.md");
-        
+
         return Task.FromResult(result.ToString());
     }
 
@@ -781,34 +800,34 @@ public sealed class DotNetCliTools
         [Description(MachineReadableDescription)] bool machineReadable = false)
     {
         if (string.IsNullOrWhiteSpace(path))
-        return "Error: path parameter is required.";
+            return "Error: path parameter is required.";
 
         // Validate and normalize format if provided
         string? normalizedFormat = null;
-  if (!string.IsNullOrEmpty(format))
+        if (!string.IsNullOrEmpty(format))
         {
-       normalizedFormat = format.ToLowerInvariant();
-        if (normalizedFormat != "pfx" && normalizedFormat != "pem")
-           return "Error: format must be either 'pfx' or 'pem' (case-insensitive).";
-    }
+            normalizedFormat = format.ToLowerInvariant();
+            if (normalizedFormat != "pfx" && normalizedFormat != "pem")
+                return "Error: format must be either 'pfx' or 'pem' (case-insensitive).";
+        }
 
-      // Security Note: The password must be passed as a command-line argument to dotnet dev-certs,
+        // Security Note: The password must be passed as a command-line argument to dotnet dev-certs,
         // which is the standard .NET CLI behavior. While this stores the password temporarily in memory
         // (CodeQL alert cs/cleartext-storage-of-sensitive-information), this is:
         // 1. Required by the .NET CLI interface - there's no alternative secure input method
         // 2. Mitigated by passing logger: null below, which prevents logging of the password
-      // 3. Not persisted to disk or stored long-term
+        // 3. Not persisted to disk or stored long-term
         // 4. Consistent with how developers manually use the dotnet dev-certs command
-   var args = new StringBuilder("dev-certs https");
+        var args = new StringBuilder("dev-certs https");
         args.Append($" --export-path \"{path}\"");
-        
+
         if (!string.IsNullOrEmpty(normalizedFormat))
-     args.Append($" --format {normalizedFormat}");
-    
-     if (!string.IsNullOrEmpty(password))
+            args.Append($" --format {normalizedFormat}");
+
+        if (!string.IsNullOrEmpty(password))
             args.Append($" --password \"{password}\"");
 
-  // Pass logger: null to prevent DotNetCommandExecutor from logging the password
+        // Pass logger: null to prevent DotNetCommandExecutor from logging the password
         return await DotNetCommandExecutor.ExecuteCommandAsync(args.ToString(), logger: null, machineReadable, unsafeOutput: false);
     }
 
@@ -836,7 +855,7 @@ public sealed class DotNetCliTools
     {
         if (string.IsNullOrWhiteSpace(key))
             return "Error: key parameter is required.";
-        
+
         if (string.IsNullOrWhiteSpace(value))
             return "Error: value parameter is required.";
 
@@ -851,7 +870,7 @@ public sealed class DotNetCliTools
         var args = new StringBuilder("user-secrets set");
         args.Append($" \"{key}\" \"{value}\"");
         if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
-        
+
         // Pass logger: null to prevent DotNetCommandExecutor from logging the secret value
         return await DotNetCommandExecutor.ExecuteCommandAsync(args.ToString(), logger: null, machineReadable, unsafeOutput: false);
     }
@@ -1130,7 +1149,7 @@ public sealed class DotNetCliTools
             // If only 'to' is specified, EF Core expects 'from' to be empty string (all migrations up to 'to')
             args.Append($" \"\" \"{to}\"");
         }
-        
+
         if (!string.IsNullOrEmpty(output)) args.Append($" --output \"{output}\"");
         if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
         if (!string.IsNullOrEmpty(startupProject)) args.Append($" --startup-project \"{startupProject}\"");
@@ -1262,7 +1281,7 @@ public sealed class DotNetCliTools
         if (!string.IsNullOrEmpty(outputDir)) args.Append($" --output-dir \"{outputDir}\"");
         if (!string.IsNullOrEmpty(contextDir)) args.Append($" --context-dir \"{contextDir}\"");
         if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
-        
+
         // Handle multiple tables - split by comma and add --table for each
         if (!string.IsNullOrEmpty(tables))
         {
@@ -1271,7 +1290,7 @@ public sealed class DotNetCliTools
                 args.Append($" --table \"{table}\"");
             }
         }
-        
+
         // Handle multiple schemas - split by comma and add --schema for each
         if (!string.IsNullOrEmpty(schemas))
         {
@@ -1280,7 +1299,7 @@ public sealed class DotNetCliTools
                 args.Append($" --schema \"{schema}\"");
             }
         }
-        
+
         if (useDatabaseNames) args.Append(" --use-database-names");
         if (force) args.Append(" --force");
         if (noBuild) args.Append(" --no-build");
@@ -1294,9 +1313,9 @@ public sealed class DotNetCliTools
     /// Execute a command with concurrency control. Returns error if there's a conflict.
     /// </summary>
     private async Task<string> ExecuteWithConcurrencyCheck(
-        string operationType, 
-        string target, 
-        string arguments, 
+        string operationType,
+        string target,
+        string arguments,
         bool machineReadable = false,
         CancellationToken cancellationToken = default)
     {
@@ -1305,7 +1324,7 @@ public sealed class DotNetCliTools
         {
             // Conflict detected - return error
             var errorResponse = ErrorResultFactory.CreateConcurrencyConflict(operationType, target, conflictingOperation!);
-            return machineReadable 
+            return machineReadable
                 ? ErrorResultFactory.ToJson(errorResponse)
                 : $"Error: {errorResponse.Errors[0].Message}\nHint: {errorResponse.Errors[0].Hint}";
         }
@@ -1369,7 +1388,7 @@ public sealed class DotNetCliTools
             {
                 var version = parts[0].Trim();
                 // Skip empty lines, error messages, and exit code lines - only keep lines starting with a digit (SDK versions)
-                if (!string.IsNullOrEmpty(version) && 
+                if (!string.IsNullOrEmpty(version) &&
                     !version.StartsWith("Exit", StringComparison.OrdinalIgnoreCase) &&
                     !version.StartsWith("Error", StringComparison.OrdinalIgnoreCase) &&
                     char.IsDigit(version[0]))

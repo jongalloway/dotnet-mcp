@@ -30,6 +30,55 @@ public sealed class DotNetResources
     private static readonly CachedResourceManager<List<RuntimeInfo>> _runtimeCacheManager =
         new("Runtime", defaultTtlSeconds: 300);
 
+    private static async Task<List<SdkInfo>> LoadSdksAsync(ILogger logger)
+    {
+        var result = await DotNetCommandExecutor.ExecuteCommandForResourceAsync("--list-sdks", logger);
+
+        // Parse the SDK list output and sort by version
+        var lines = result.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+        static Version ParseForSorting(string sdkVersion)
+        {
+            if (string.IsNullOrWhiteSpace(sdkVersion))
+                return new Version(0, 0);
+
+            // Examples:
+            // - 10.0.101
+            // - 11.0.100-preview.1
+            // - 11.0.100-alpha.1+abcdef
+            var baseVersion = sdkVersion.Split('-', '+')[0];
+            return Version.TryParse(baseVersion, out var v) ? v : new Version(0, 0);
+        }
+
+        static bool IsPrerelease(string sdkVersion) => sdkVersion.Contains('-', StringComparison.Ordinal);
+
+        var sdks = lines
+            .Select(line => line.Split('[', 2))
+            .Where(parts => parts.Length == 2)
+            .Select(parts =>
+            {
+                var version = parts[0].Trim();
+                var path = parts[1].TrimEnd(']').Trim();
+                return new SdkInfo(version, Path.Combine(path, version));
+            })
+            .OrderBy(sdk => ParseForSorting(sdk.Version))
+            // If the numeric version is the same, put prereleases before stable so the stable appears as the latest.
+            .ThenBy(sdk => IsPrerelease(sdk.Version) ? 0 : 1)
+            .ToList();
+
+        return sdks;
+    }
+
+    private static bool TryGetSdkMajorVersion(string sdkVersion, out int major)
+    {
+        major = 0;
+        if (string.IsNullOrWhiteSpace(sdkVersion))
+            return false;
+
+        var firstSegment = sdkVersion.Split('.', 2, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        return int.TryParse(firstSegment, out major);
+    }
+
     public DotNetResources(ILogger<DotNetResources> logger)
     {
         _logger = logger;
@@ -43,7 +92,7 @@ public sealed class DotNetResources
         await _sdkCacheManager.ClearAsync();
         await _runtimeCacheManager.ClearAsync();
         await TemplateEngineHelper.ClearCacheAsync();
-        
+
         _sdkCacheManager.ResetMetrics();
         _runtimeCacheManager.ResetMetrics();
     }
@@ -74,24 +123,7 @@ public sealed class DotNetResources
         {
             var entry = await _sdkCacheManager.GetOrLoadAsync(async () =>
             {
-                var result = await DotNetCommandExecutor.ExecuteCommandForResourceAsync("--list-sdks", _logger);
-
-                // Parse the SDK list output and sort by version
-                var lines = result.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-                
-                var sdks = lines
-                    .Select(line => line.Split('[', 2))
-                    .Where(parts => parts.Length == 2)
-                    .Select(parts => 
-                    {
-                        var version = parts[0].Trim();
-                        var path = parts[1].TrimEnd(']').Trim();
-                        return new SdkInfo(version, Path.Combine(path, version));
-                    })
-                    .OrderBy(sdk => Version.TryParse(sdk.Version, out var v) ? v : new Version(0, 0))
-                    .ToList();
-
-                return sdks;
+                return await LoadSdksAsync(_logger);
             });
 
             var responseData = new
@@ -129,7 +161,7 @@ public sealed class DotNetResources
 
                 // Parse the runtime list output
                 var lines = result.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-                
+
                 var runtimes = lines
                     .Select(line => line.Split('[', 2))
                     .Where(parts => parts.Length == 2)
@@ -211,12 +243,22 @@ public sealed class DotNetResources
     [McpMeta("category", "framework")]
     [McpMeta("dataFormat", "json")]
     [McpMeta("usesFrameworkHelper", true)]
-    public Task<string> GetFrameworks()
+    public async Task<string> GetFrameworks()
     {
         _logger.LogDebug("Reading framework information");
         try
         {
-            var modernFrameworks = FrameworkHelper.GetSupportedModernFrameworks()
+            var supportedModernFrameworks = FrameworkHelper.GetSupportedModernFrameworks().ToList();
+
+            // Only surface preview TFMs when the corresponding SDK major version is installed.
+            // This avoids suggesting frameworks users can't actually target.
+            var sdkEntry = await _sdkCacheManager.GetOrLoadAsync(() => LoadSdksAsync(_logger));
+            if (sdkEntry.Data.Any(sdk => TryGetSdkMajorVersion(sdk.Version, out var major) && major == 11))
+            {
+                supportedModernFrameworks.Insert(0, DotNetSdkConstants.TargetFrameworks.Net110);
+            }
+
+            var modernFrameworks = supportedModernFrameworks
                 .Select(fw => new
                 {
                     tfm = fw,
@@ -254,12 +296,12 @@ public sealed class DotNetResources
                 latestLts = FrameworkHelper.GetLatestLtsFramework()
             };
 
-            return Task.FromResult(JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true }));
+            return JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting framework information");
-            return Task.FromResult(JsonSerializer.Serialize(new { error = ex.Message }));
+            return JsonSerializer.Serialize(new { error = ex.Message });
         }
     }
 }
