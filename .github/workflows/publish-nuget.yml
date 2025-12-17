@@ -32,12 +32,28 @@ jobs:
       - name: Pack
         run: dotnet pack DotNetMcp/DotNetMcp.csproj --configuration Release --no-build --output ./artifacts
 
-      - name: Verify server.json version update
+      - name: Validate server.json in package
         run: |
-          echo "📋 Checking server.json in package..."
+          echo "📋 Validating server.json in package..."
           for package in ./artifacts/*.nupkg; do
             echo "Package: $(basename "$package")"
-            unzip -p "$package" ".mcp/server.json" | jq '.'
+            
+            # Extract server.json
+            unzip -p "$package" ".mcp/server.json" > /tmp/server.json
+            
+            # Display content
+            echo "Content:"
+            cat /tmp/server.json | jq '.'
+            echo ""
+            
+            # Validate with PowerShell script
+            echo "Running validation..."
+            pwsh -File scripts/validate-server-json.ps1 -ServerJsonPath /tmp/server.json
+            
+            if [ $? -ne 0 ]; then
+              echo "❌ ERROR: server.json validation failed!"
+              exit 1
+            fi
             echo ""
           done
 
@@ -155,34 +171,34 @@ jobs:
           echo "📋 Extracting server.json from NuGet package..."
           # Get the first nupkg file (there should only be one)
           package=$(ls ./artifacts/*.nupkg 2>/dev/null | head -1)
-          
+
           if [ -z "$package" ]; then
             echo "❌ ERROR: No .nupkg files found in ./artifacts/"
             exit 1
           fi
           echo "Using package: $package"
-          
+
           # Extract server.json from the package (it has the correct version)
           if ! unzip -p "$package" ".mcp/server.json" > /tmp/server.json; then
             echo "❌ ERROR: Failed to extract .mcp/server.json from package"
             exit 1
           fi
-          
+
           # Verify the extracted file is not empty
           if [ ! -s /tmp/server.json ]; then
             echo "❌ ERROR: Extracted server.json is empty"
             exit 1
           fi
-          
+
           echo "📄 Extracted server.json content:"
           if ! jq '.' /tmp/server.json; then
             echo "❌ ERROR: server.json is not valid JSON"
             exit 1
           fi
-          
+
           # Copy to repository root (mcp-publisher expects server.json at root)
           cp /tmp/server.json ./server.json
-          
+
           echo "✅ server.json copied to repository root"
 
       - name: Publish to MCP Registry
