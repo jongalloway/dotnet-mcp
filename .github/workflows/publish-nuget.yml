@@ -23,15 +23,16 @@ jobs:
         with:
           dotnet-version: "10.0.x"
           cache: true
-          cache-dependency-path: |
-            DotNetMcp/DotNetMcp.csproj
-            **/*.csproj
+          cache-dependency-path: "**/*.csproj"
 
       - name: Restore dependencies
         run: dotnet restore DotNetMcp/DotNetMcp.csproj
 
+      - name: Build
+        run: dotnet build DotNetMcp/DotNetMcp.csproj --configuration Release --no-restore
+
       - name: Pack
-        run: dotnet pack DotNetMcp/DotNetMcp.csproj --configuration Release --no-restore --output ./artifacts
+        run: dotnet pack DotNetMcp/DotNetMcp.csproj --configuration Release --no-build --output ./artifacts
 
       - name: Validate server.json in package
         run: |

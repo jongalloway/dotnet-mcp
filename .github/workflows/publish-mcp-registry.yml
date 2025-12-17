@@ -5,6 +5,8 @@ env:
 
 on:
     workflow_run:
+        # IMPORTANT: This must match the `name:` of the NuGet publish workflow in publish-nuget.yml.
+        # If that workflow is renamed, update this list to keep the trigger working.
         workflows: ["Publish NuGet Package"]
         types:
             - completed
@@ -48,15 +50,22 @@ jobs:
                     exit 1
                   fi
 
-                  # Determine version
+                  # 1) Determine version from workflow input or git tag
                   input_version='${{ inputs.packageVersion }}'
                   if [ -n "${input_version:-}" ]; then
                     version="$input_version"
                   else
                     tag=$(git tag --points-at HEAD | grep '^v' | sort -V | tail -n 1 || true)
                     if [ -z "${tag:-}" ]; then
-                      echo "❌ ERROR: Could not determine version from a v* tag on this commit."
-                      echo "Provide workflow_dispatch input 'packageVersion' to publish a specific version."
+                      if [ "${GITHUB_EVENT_NAME:-}" = "workflow_dispatch" ]; then
+                        echo "❌ ERROR: No v* tag found on the checked-out commit (${GITHUB_SHA:-})."
+                        echo "When triggering this workflow manually you must either:"
+                        echo "  - Provide the 'packageVersion' input, or"
+                        echo "  - Trigger the workflow from a commit that has a v* tag."
+                      else
+                        echo "❌ ERROR: Could not determine version from a v* tag on this commit."
+                        echo "Provide workflow_dispatch input 'packageVersion' to publish a specific version."
+                      fi
                       exit 1
                     fi
                     version="${tag#v}"
@@ -69,7 +78,9 @@ jobs:
                   echo "Version: $version"
                   echo "NuGet URL: $url"
 
-                  # 3) Wait for NuGet to serve the version, then download
+                  # 2) Wait for NuGet to serve the version, then download
+                  # Retry configuration: 12 attempts with exponential backoff starting at 10s, capped at 120s.
+                  # This allows up to ~20 minutes total wait time for NuGet eventual consistency.
                   max_attempts=12
                   sleep_seconds=10
                   mkdir -p ./artifacts
@@ -99,7 +110,7 @@ jobs:
                     exit 1
                   fi
 
-                  # 4) Extract server.json (mcp-publisher expects it at repo root)
+                  # 3) Extract server.json (mcp-publisher expects it at repo root)
                   if ! unzip -p "$out" ".mcp/server.json" > /tmp/server.json; then
                     echo "❌ ERROR: Failed to extract .mcp/server.json from package"
                     exit 1
@@ -133,8 +144,13 @@ jobs:
               run: |
                   set -euo pipefail
 
+                  # Retry configuration: 8 attempts with exponential backoff starting at 15s, capped at 180s.
+                  # With this configuration, worst-case total wait time is roughly 15-20 minutes.
+                  # This window gives the MCP registry enough time to observe the newly published
+                  # NuGet package while keeping the workflow bounded.
                   max_attempts=8
                   sleep_seconds=15
+                  max_sleep_seconds=180
 
                   for attempt in $(seq 1 $max_attempts); do
                     echo "Attempt $attempt/$max_attempts to publish to MCP registry"
@@ -153,10 +169,10 @@ jobs:
                     if grep -q "exists but version" publish.log; then
                       echo "⚠️  Registry cannot see NuGet version yet; retrying after ${sleep_seconds}s"
                       sleep "$sleep_seconds"
-                      # Backoff, cap at 180s
+                      # Apply exponential backoff with cap
                       sleep_seconds=$(( sleep_seconds * 2 ))
-                      if [ "$sleep_seconds" -gt 180 ]; then
-                        sleep_seconds=180
+                      if [ "$sleep_seconds" -gt "$max_sleep_seconds" ]; then
+                        sleep_seconds="$max_sleep_seconds"
                       fi
                       continue
                     fi
