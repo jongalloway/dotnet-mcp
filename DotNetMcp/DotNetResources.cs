@@ -37,6 +37,21 @@ public sealed class DotNetResources
         // Parse the SDK list output and sort by version
         var lines = result.Split('\n', StringSplitOptions.RemoveEmptyEntries);
 
+        static Version ParseForSorting(string sdkVersion)
+        {
+            if (string.IsNullOrWhiteSpace(sdkVersion))
+                return new Version(0, 0);
+
+            // Examples:
+            // - 10.0.101
+            // - 11.0.100-preview.1
+            // - 11.0.100-alpha.1+abcdef
+            var baseVersion = sdkVersion.Split('-', '+')[0];
+            return Version.TryParse(baseVersion, out var v) ? v : new Version(0, 0);
+        }
+
+        static bool IsPrerelease(string sdkVersion) => sdkVersion.Contains('-', StringComparison.Ordinal);
+
         var sdks = lines
             .Select(line => line.Split('[', 2))
             .Where(parts => parts.Length == 2)
@@ -46,7 +61,9 @@ public sealed class DotNetResources
                 var path = parts[1].TrimEnd(']').Trim();
                 return new SdkInfo(version, Path.Combine(path, version));
             })
-            .OrderBy(sdk => Version.TryParse(sdk.Version, out var v) ? v : new Version(0, 0))
+            .OrderBy(sdk => ParseForSorting(sdk.Version))
+            // If the numeric version is the same, put prereleases before stable so the stable appears as the latest.
+            .ThenBy(sdk => IsPrerelease(sdk.Version) ? 0 : 1)
             .ToList();
 
         return sdks;
