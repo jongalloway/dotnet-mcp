@@ -133,9 +133,9 @@ function Test-JsonAgainstSchema {
                     exit 2
                 }
 
-                # MCP registry validation requires the NuGet v3 index URL
-                if (-not ($package.registryBaseUrl -like "*/v3/index.json")) {
-                    Write-Host "❌ ERROR: NuGet registryBaseUrl must point to a v3 index (e.g., https://api.nuget.org/v3/index.json)" -ForegroundColor Red
+                # MCP registry validation requires the official NuGet v3 index URL
+                if ($package.registryBaseUrl -ne "https://api.nuget.org/v3/index.json") {
+                    Write-Host "❌ ERROR: NuGet registryBaseUrl must be exactly 'https://api.nuget.org/v3/index.json'" -ForegroundColor Red
                     Write-Host "   Actual: $($package.registryBaseUrl)" -ForegroundColor Gray
                     exit 2
                 }
