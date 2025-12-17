@@ -8,7 +8,8 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- Suppress CS1591 for missing XML comments on non-tool classes -->
     <!-- The source generator creates [Description] attributes from XML documentation for MCP tool methods -->
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- Suppress CS1066: optional parameter defaults are intentionally used on tool methods for MCP metadata/schema, but are not consumed in all invocation contexts -->
+    <NoWarn>$(NoWarn);CS1591;CS1066</NoWarn>
 
     <!-- NuGet Package Metadata -->
     <PackageId>Community.Mcp.DotNet</PackageId>

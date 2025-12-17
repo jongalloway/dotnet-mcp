@@ -1,5 +1,5 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.jongalloway/dotnet-mcp",
   "title": ".NET MCP Server",
   "description": "AI assistant access to .NET SDK for projects, packages, building, testing, and development tools.",
