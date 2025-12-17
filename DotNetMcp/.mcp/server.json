@@ -7,7 +7,7 @@
   "packages": [
     {
       "registryType": "nuget",
-      "registryBaseUrl": "https://api.nuget.org",
+      "registryBaseUrl": "https://api.nuget.org/v3/index.json",
       "identifier": "Community.Mcp.DotNet",
       "version": "0.0.0-placeholder",
       "runtimeHint": "dnx",

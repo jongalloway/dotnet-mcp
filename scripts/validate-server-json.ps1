@@ -127,6 +127,19 @@ function Test-JsonAgainstSchema {
                 Write-Host "❌ ERROR: Package missing 'registryType'" -ForegroundColor Red
                 exit 2
             }
+            if ($package.registryType -eq "nuget") {
+                if (-not $package.registryBaseUrl) {
+                    Write-Host "❌ ERROR: NuGet package missing 'registryBaseUrl'" -ForegroundColor Red
+                    exit 2
+                }
+
+                # MCP registry validation requires the NuGet v3 index URL
+                if (-not ($package.registryBaseUrl -like "*/v3/index.json")) {
+                    Write-Host "❌ ERROR: NuGet registryBaseUrl must point to a v3 index (e.g., https://api.nuget.org/v3/index.json)" -ForegroundColor Red
+                    Write-Host "   Actual: $($package.registryBaseUrl)" -ForegroundColor Gray
+                    exit 2
+                }
+            }
             if (-not $package.identifier) {
                 Write-Host "❌ ERROR: Package missing 'identifier'" -ForegroundColor Red
                 exit 2

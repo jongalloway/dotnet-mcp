@@ -8,6 +8,7 @@ namespace DotNetMcp.Tests;
 public class ServerJsonValidationTests
 {
     private const string CurrentSchemaUrl = "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json";
+    private const string NuGetOrgV3IndexUrl = "https://api.nuget.org/v3/index.json";
     private static readonly string ServerJsonRelativePath = Path.Combine("DotNetMcp", ".mcp", "server.json");
 
     private static string FindRepoRoot()
@@ -181,6 +182,14 @@ public class ServerJsonValidationTests
                 "Package missing 'identifier'");
             Assert.True(package.TryGetProperty("transport", out _),
                 "Package missing 'transport'");
+
+            if (package.TryGetProperty("registryType", out var registryTypeElement)
+                && string.Equals(registryTypeElement.GetString(), "nuget", StringComparison.OrdinalIgnoreCase))
+            {
+                Assert.True(package.TryGetProperty("registryBaseUrl", out var registryBaseUrlElement),
+                    "NuGet package missing 'registryBaseUrl'");
+                Assert.Equal(NuGetOrgV3IndexUrl, registryBaseUrlElement.GetString());
+            }
         }
     }
 }
