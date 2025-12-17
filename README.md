@@ -16,7 +16,7 @@ Click to install in your preferred environment:
 [![VS Code Insiders - Install .NET MCP](https://img.shields.io/badge/VS_Code_Insiders-Install_.NET_MCP-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dnx%22%2C%22args%22%3A%5B%22Community.Mcp.DotNet%400.1.0-%2A%22%2C%22--yes%22%5D%7D&quality=insiders)
 [![Visual Studio - Install .NET MCP](https://img.shields.io/badge/Visual_Studio-Install_.NET_MCP-5C2D91?style=flat-square&logo=visualstudio&logoColor=white)](https://vs-open.link/mcp-install?%7B%22name%22%3A%22Community.Mcp.DotNet%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22dnx%22%2C%22args%22%3A%5B%22Community.Mcp.DotNet%400.1.0-%22%2C%22--yes%22%5D%7D)
 
-> **Note**: Quick install requires .NET 10 SDK (launching November 2025). See [manual installation](#installation) for .NET 9 support.
+> **Note**: Quick install requires .NET 10 SDK.
 
 ## What is This?
 
@@ -65,7 +65,7 @@ The .NET MCP Server provides **context and intelligence** that raw CLI execution
 #### **2. Framework Intelligence**
 
 - **With MCP**: AI knows which .NET versions are installed, which are LTS, and can recommend appropriately
-- **Without MCP**: AI suggests `net8.0` when you only have `net9.0` installed, leading to errors
+- **Without MCP**: AI suggests `net8.0` when you only have `net10.0` installed, leading to errors
 
 #### **3. Rich Tool Descriptions**
 
@@ -185,8 +185,8 @@ The .NET MCP Server acts as an intelligent middleware that:
 
 ### Requirements
 
-- **For Quick Install**: .NET 10 SDK (launching November 2025)
-- **For Manual Install**: .NET 9.0 SDK or later
+- **For Quick Install**: .NET 10 SDK
+- **For Manual Install**: .NET 10 SDK
 - Visual Studio Code, Visual Studio 2022 (v17.13+), or Claude Desktop
 
 ### Option 1: Quick Install (Recommended)
@@ -211,7 +211,7 @@ Follow the instructions below for your specific development environment:
      - **Command**: `dnx`
      - **Arguments**: `Community.Mcp.DotNet@0.1.0-* --yes`
 
-**Manual Configuration** (for .NET 9 or source builds):
+**Manual Configuration** (for source builds or custom setups):
 
 Edit your VS Code settings (`Ctrl+,` or `Cmd+,`, search for "mcp"):
 
@@ -245,7 +245,7 @@ Edit your VS Code settings (`Ctrl+,` or `Cmd+,`, search for "mcp"):
      - **Command**: `dnx`
      - **Arguments**: `Community.Mcp.DotNet@0.1.0-* --yes`
 
-**Manual Configuration** (for .NET 9 or source builds):
+**Manual Configuration** (for source builds or custom setups):
 
 1. Go to **Tools** > **Options** > **GitHub Copilot** > **MCP Servers**
 2. Click **Add**
@@ -287,7 +287,7 @@ Edit your VS Code settings (`Ctrl+,` or `Cmd+,`, search for "mcp"):
 }
 ```
 
-**Manual Configuration** (for .NET 9 or source builds):
+**Manual Configuration** (for source builds or custom setups):
 
 **macOS**:
 
@@ -438,7 +438,7 @@ dotnet ef dbcontext info
 
 ### Multi-Target Testing Strategy
 
-**User**: *"Add integration tests using NUnit that target both .NET 8 and .NET 9, and configure them to run with code coverage"*
+**User**: *"Add integration tests using NUnit that target both .NET 8 and .NET 10, and configure them to run with code coverage"*
 
 **AI**: *I'll set up multi-targeted integration tests with coverage...*
 
@@ -447,7 +447,7 @@ dotnet ef dbcontext info
 dotnet new nunit -n MyMicroservices.IntegrationTests
 
 # Update project to multi-target (edit .csproj)
-# <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+# <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
 
 # Add integration test packages
 dotnet add MyMicroservices.IntegrationTests package Microsoft.AspNetCore.Mvc.Testing
@@ -457,7 +457,7 @@ dotnet add MyMicroservices.IntegrationTests package coverlet.collector
 dotnet test --collect:"XPlat Code Coverage"
 ```
 
-*Integration test project created with multi-targeting. Tests will run on both .NET 8 and .NET 9 with code coverage enabled.*
+*Integration test project created with multi-targeting. Tests will run on both .NET 8 and .NET 10 with code coverage enabled.*
 
 ### Exploring and Discovering
 
@@ -753,8 +753,8 @@ dotnet-mcp/
 ## Technology Stack
 
 - **Protocol**: [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)
-- **SDK**: [MCP SDK for .NET](https://github.com/modelcontextprotocol/csharp-sdk) v0.4.0-preview.2
-- **Runtime**: .NET 9.0 (target framework)
+- **SDK**: [MCP SDK for .NET](https://github.com/modelcontextprotocol/csharp-sdk) v0.5.0-preview.1
+- **Runtime**: .NET 10.0 (target framework)
 - **Transport**: stdio (standard input/output)
 - **NuGet Packages**:
   - `Microsoft.TemplateEngine.Abstractions` & `Edge` - Template metadata

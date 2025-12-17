@@ -136,7 +136,7 @@ public class DotNetCliToolsTests
             noBuild: true,
             noRestore: true,
             verbosity: "minimal",
-            framework: "net9.0",
+            framework: "net10.0",
             blame: true,
             listTests: false);
 
@@ -250,7 +250,7 @@ public class DotNetCliToolsTests
     }
 
     // Security validation tests for IsValidAdditionalOptions (tested via DotnetProjectNew)
-    
+
     [Fact]
     public async Task DotnetProjectNew_WithValidAdditionalOptions_AcceptsCommand()
     {

@@ -31,6 +31,8 @@ public static class FrameworkHelper
 
         return framework.ToLowerInvariant() switch
         {
+            "net11.0" => ".NET 11.0 (Preview)",
+            "net10.0" => ".NET 10.0 (LTS)",
             "net9.0" => ".NET 9.0",
             "net8.0" => ".NET 8.0 (LTS)",
             "net7.0" => ".NET 7.0",
@@ -70,6 +72,7 @@ public static class FrameworkHelper
 
         return framework.ToLowerInvariant() switch
         {
+            "net10.0" => true,
             "net8.0" => true,
             "net6.0" => true,
             "netcoreapp3.1" => true,
@@ -83,7 +86,7 @@ public static class FrameworkHelper
     /// </summary>
     public static string GetLatestRecommendedFramework()
     {
-        return DotNetSdkConstants.TargetFrameworks.Net90;
+        return DotNetSdkConstants.TargetFrameworks.Net100;
     }
 
     /// <summary>
@@ -91,7 +94,7 @@ public static class FrameworkHelper
     /// </summary>
     public static string GetLatestLtsFramework()
     {
-        return DotNetSdkConstants.TargetFrameworks.Net80;
+        return DotNetSdkConstants.TargetFrameworks.Net100;
     }
 
     /// <summary>
@@ -101,6 +104,7 @@ public static class FrameworkHelper
     {
         return new[]
         {
+            DotNetSdkConstants.TargetFrameworks.Net100,
             DotNetSdkConstants.TargetFrameworks.Net90,
             DotNetSdkConstants.TargetFrameworks.Net80,
             DotNetSdkConstants.TargetFrameworks.Net70,
