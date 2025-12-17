@@ -9,6 +9,8 @@ public class DotNetSdkConstantsTests
     public void TargetFrameworks_ContainsModernNetVersions()
     {
         // Assert
+        Assert.Equal("net11.0", DotNetSdkConstants.TargetFrameworks.Net110);
+        Assert.Equal("net10.0", DotNetSdkConstants.TargetFrameworks.Net100);
         Assert.Equal("net9.0", DotNetSdkConstants.TargetFrameworks.Net90);
         Assert.Equal("net8.0", DotNetSdkConstants.TargetFrameworks.Net80);
         Assert.Equal("net7.0", DotNetSdkConstants.TargetFrameworks.Net70);

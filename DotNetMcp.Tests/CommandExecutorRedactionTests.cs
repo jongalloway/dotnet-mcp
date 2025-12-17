@@ -23,8 +23,8 @@ public class CommandExecutorRedactionTests
 
         // Act
         var result = await DotNetCommandExecutor.ExecuteCommandAsync(
-            arguments, 
-            _loggerMock.Object, 
+            arguments,
+            _loggerMock.Object,
             machineReadable: false,
             unsafeOutput: false);
 
@@ -42,8 +42,8 @@ public class CommandExecutorRedactionTests
 
         // Act
         var result = await DotNetCommandExecutor.ExecuteCommandAsync(
-            arguments, 
-            _loggerMock.Object, 
+            arguments,
+            _loggerMock.Object,
             machineReadable: false,
             unsafeOutput: true);
 
@@ -62,8 +62,8 @@ public class CommandExecutorRedactionTests
 
         // Act
         var result = await DotNetCommandExecutor.ExecuteCommandAsync(
-            arguments, 
-            _loggerMock.Object, 
+            arguments,
+            _loggerMock.Object,
             machineReadable: false,
             unsafeOutput: false);
 
@@ -81,8 +81,8 @@ public class CommandExecutorRedactionTests
 
         // Act
         var result = await DotNetCommandExecutor.ExecuteCommandAsync(
-            arguments, 
-            _loggerMock.Object, 
+            arguments,
+            _loggerMock.Object,
             machineReadable: true,
             unsafeOutput: false);
 
@@ -99,7 +99,7 @@ public class CommandExecutorRedactionTests
 
         // Act
         var result = await DotNetCommandExecutor.ExecuteCommandForResourceAsync(
-            arguments, 
+            arguments,
             _loggerMock.Object);
 
         // Assert - should complete successfully with redaction applied
@@ -154,8 +154,8 @@ Exit Code: 0
         // Arrange
         var input = @"
 Build succeeded.
-    Project1 -> /path/to/bin/Debug/net9.0/Project1.dll
-    Project2 -> /path/to/bin/Debug/net9.0/Project2.dll
+    Project1 -> /path/to/bin/Debug/net10.0/Project1.dll
+    Project2 -> /path/to/bin/Debug/net10.0/Project2.dll
 Build succeeded.
     0 Warning(s)
     0 Error(s)

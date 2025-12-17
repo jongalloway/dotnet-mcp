@@ -6,7 +6,7 @@ This project is an MCP (Model Context Protocol) server that integrates with the 
 
 ## Key Technologies
 
-- **.NET 9.0**: The latest version of .NET (STS - Standard Term Support)
+- **.NET 10.0**: The latest version of .NET (LTS - Long Term Support)
 - **Model Context Protocol SDK**: Version 0.4.0-preview.2
 - **Stdio Transport**: Communication via standard input/output
 - **Microsoft.Extensions.Hosting**: For application lifecycle management
@@ -59,10 +59,10 @@ The server uses a **hybrid architecture**:
 When building the project, always use the full path to the project file:
 
 ```bash
-dotnet build --project C:\Users\jonga\Documents\GitHub\dotnet-mcp\DotNetMcp\DotNetMcp.csproj
+dotnet build C:\Users\jonga\Documents\GitHub\dotnet-mcp\DotNetMcp\DotNetMcp.csproj
 ```
 
-**Important**: If a build fails due to inability to find the project file, use the `--project` flag with the full path to the `.csproj` file. Do not rely on relative paths or current directory assumptions.
+**Important**: If a build fails due to inability to find the project file, pass the full path to the `.csproj` file. Do not rely on relative paths or current directory assumptions.
 
 ### Testing Changes
 
@@ -97,7 +97,7 @@ if (FrameworkHelper.IsValidFramework(framework))
 ### Using SDK Constants
 ```csharp
 // Use strongly-typed constants
-var framework = DotNetSdkConstants.TargetFrameworks.Net90;
+var framework = DotNetSdkConstants.TargetFrameworks.Net100;
 var config = DotNetSdkConstants.Configurations.Release;
 var runtime = DotNetSdkConstants.RuntimeIdentifiers.LinuxX64;
 ```
@@ -159,7 +159,7 @@ public async Task<string> DotnetProjectNewValidated(
 
 ### DotNetSdkConstants
 Provides strongly-typed constants for common SDK values.
-- **TargetFrameworks**: TFMs (net9.0, net8.0, etc.)
+- **TargetFrameworks**: TFMs (net10.0, net8.0, etc.)
 - **Configurations**: Debug, Release
 - **RuntimeIdentifiers**: win-x64, linux-x64, etc.
 - **Templates**: Common template short names

@@ -55,7 +55,7 @@ public class EntityFrameworkCoreToolsTests
             startupProject: "MyApi.csproj",
             context: "ApplicationDbContext",
             outputDir: "Migrations",
-            framework: "net9.0");
+            framework: "net10.0");
 
         Assert.NotNull(result);
     }
@@ -264,7 +264,7 @@ public class EntityFrameworkCoreToolsTests
 
         // We expect 9 EF Core tools
         Assert.Equal(9, methods.Count);
-        
+
         // Verify method names
         var expectedMethods = new[]
         {
@@ -278,7 +278,7 @@ public class EntityFrameworkCoreToolsTests
             "DotnetEfDbContextInfo",
             "DotnetEfDbContextScaffold"
         };
-        
+
         foreach (var expectedMethod in expectedMethods)
         {
             Assert.Contains(methods, m => m.Name == expectedMethod);

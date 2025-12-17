@@ -6,6 +6,8 @@ namespace DotNetMcp.Tests;
 public class FrameworkHelperTests
 {
     [Theory]
+    [InlineData("net11.0", true)]
+    [InlineData("net10.0", true)]
     [InlineData("net9.0", true)]
     [InlineData("net8.0", true)]
     [InlineData("net7.0", true)]
@@ -24,6 +26,8 @@ public class FrameworkHelperTests
     }
 
     [Theory]
+    [InlineData("net11.0", false)]
+    [InlineData("net10.0", true)]
     [InlineData("net8.0", true)]
     [InlineData("net6.0", true)]
     [InlineData("netcoreapp3.1", true)]
@@ -41,6 +45,8 @@ public class FrameworkHelperTests
     }
 
     [Theory]
+    [InlineData("net11.0", ".NET 11.0 (Preview)")]
+    [InlineData("net10.0", ".NET 10.0 (LTS)")]
     [InlineData("net9.0", ".NET 9.0")]
     [InlineData("net8.0", ".NET 8.0 (LTS)")]
     [InlineData("net6.0", ".NET 6.0 (LTS)")]
@@ -56,26 +62,28 @@ public class FrameworkHelperTests
     }
 
     [Fact]
-    public void GetLatestRecommendedFramework_ReturnsNet90()
+    public void GetLatestRecommendedFramework_ReturnsNet100()
     {
         // Act
         var result = FrameworkHelper.GetLatestRecommendedFramework();
 
         // Assert
-        Assert.Equal("net9.0", result);
+        Assert.Equal("net10.0", result);
     }
 
     [Fact]
-    public void GetLatestLtsFramework_ReturnsNet80()
+    public void GetLatestLtsFramework_ReturnsNet100()
     {
         // Act
         var result = FrameworkHelper.GetLatestLtsFramework();
 
         // Assert
-        Assert.Equal("net8.0", result);
+        Assert.Equal("net10.0", result);
     }
 
     [Theory]
+    [InlineData("net11.0", true)]
+    [InlineData("net10.0", true)]
     [InlineData("net9.0", true)]
     [InlineData("net8.0", true)]
     [InlineData("net5.0", true)]
@@ -94,6 +102,8 @@ public class FrameworkHelperTests
     [Theory]
     [InlineData("netcoreapp3.1", true)]
     [InlineData("netcoreapp2.1", true)]
+    [InlineData("net11.0", false)]
+    [InlineData("net10.0", false)]
     [InlineData("net9.0", false)]
     [InlineData("netstandard2.0", false)]
     public void IsNetCore_ClassifiesCorrectly(string tfm, bool expected)
@@ -108,6 +118,8 @@ public class FrameworkHelperTests
     [Theory]
     [InlineData("net48", true)]
     [InlineData("net472", true)]
+    [InlineData("net11.0", false)]
+    [InlineData("net10.0", false)]
     [InlineData("net9.0", false)]
     [InlineData("netcoreapp3.1", false)]
     public void IsNetFramework_ClassifiesCorrectly(string tfm, bool expected)
@@ -122,6 +134,8 @@ public class FrameworkHelperTests
     [Theory]
     [InlineData("netstandard2.1", true)]
     [InlineData("netstandard2.0", true)]
+    [InlineData("net11.0", false)]
+    [InlineData("net10.0", false)]
     [InlineData("net9.0", false)]
     [InlineData("netcoreapp3.1", false)]
     public void IsNetStandard_ClassifiesCorrectly(string tfm, bool expected)
@@ -141,6 +155,7 @@ public class FrameworkHelperTests
 
         // Assert
         Assert.True(result.Count >= 5);
+        Assert.Contains("net10.0", result);
         Assert.Contains("net9.0", result);
         Assert.Contains("net8.0", result);
     }

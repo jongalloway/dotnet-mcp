@@ -14,20 +14,24 @@ This approach provides rich metadata access, type-safe operations, and validatio
 ## SDK Packages
 
 ### Template Engine
+
 - **Microsoft.TemplateEngine.Abstractions** (v9.0.306)
 - **Microsoft.TemplateEngine.Edge** (v9.0.306)
 
 Provides programmatic access to the .NET template system:
+
 - List all installed templates with metadata
 - Access template parameters and options
 - Search and filter templates
 - Validate template existence
 
 ### MSBuild
+
 - **Microsoft.Build.Utilities.Core** (v17.14.x)
 - **Microsoft.Build** (v17.14.x)
 
 Provides framework validation and metadata:
+
 - Parse and validate Target Framework Monikers (TFMs)
 - Access framework version information
 - Framework classification (modern .NET, .NET Core, .NET Framework, .NET Standard)
@@ -41,6 +45,7 @@ Located in `DotNetMcp/CachedResourceManager.cs`
 Generic cache manager for readonly resources with configurable TTL and metrics tracking:
 
 **Features:**
+
 - Configurable TTL (default: 300 seconds)
 - Thread-safe async operations using `SemaphoreSlim`
 - Cache hit/miss metrics tracking
@@ -49,6 +54,7 @@ Generic cache manager for readonly resources with configurable TTL and metrics t
 - JSON response generation with cache metadata
 
 **Usage Example:**
+
 ```csharp
 var cache = new CachedResourceManager<string>("MyResource", defaultTtlSeconds: 300);
 
@@ -74,11 +80,13 @@ Located in `DotNetMcp/CacheMetrics.cs`
 Thread-safe metrics tracker for monitoring cache performance:
 
 **Properties:**
+
 - `Hits` - Number of cache hits
 - `Misses` - Number of cache misses
 - `HitRatio` - Cache hit ratio (0.0 to 1.0)
 
 **Methods:**
+
 - `RecordHit()` - Increment hit counter
 - `RecordMiss()` - Increment miss counter
 - `Reset()` - Reset all metrics to zero
@@ -90,19 +98,24 @@ Located in `DotNetMcp/DotNetSdkConstants.cs`
 Provides strongly-typed constants for common SDK values:
 
 **Target Frameworks**
+
 ```csharp
+DotNetSdkConstants.TargetFrameworks.Net110     // "net11.0"
+DotNetSdkConstants.TargetFrameworks.Net100     // "net10.0"
 DotNetSdkConstants.TargetFrameworks.Net90      // "net9.0"
 DotNetSdkConstants.TargetFrameworks.Net80      // "net8.0"
 DotNetSdkConstants.TargetFrameworks.Net60      // "net6.0"
 ```
 
 **Build Configurations**
+
 ```csharp
 DotNetSdkConstants.Configurations.Debug
 DotNetSdkConstants.Configurations.Release
 ```
 
 **Runtime Identifiers**
+
 ```csharp
 DotNetSdkConstants.RuntimeIdentifiers.WinX64
 DotNetSdkConstants.RuntimeIdentifiers.LinuxX64
@@ -110,6 +123,7 @@ DotNetSdkConstants.RuntimeIdentifiers.OsxArm64
 ```
 
 **Common Templates**
+
 ```csharp
 DotNetSdkConstants.Templates.Console
 DotNetSdkConstants.Templates.WebApi
@@ -117,6 +131,7 @@ DotNetSdkConstants.Templates.Blazor
 ```
 
 **Common NuGet Packages**
+
 ```csharp
 DotNetSdkConstants.CommonPackages.NewtonsoftJson
 DotNetSdkConstants.CommonPackages.EFCore
@@ -130,6 +145,7 @@ Located in `DotNetMcp/TemplateEngineHelper.cs`
 Integrates with the .NET Template Engine for template operations with built-in caching:
 
 **Methods:**
+
 - `GetInstalledTemplatesAsync(forceReload)` - Get all installed templates with metadata
 - `GetTemplateDetailsAsync(shortName, forceReload)` - Get detailed template information
 - `SearchTemplatesAsync(searchTerm, forceReload)` - Search templates by name/description
@@ -138,12 +154,14 @@ Integrates with the .NET Template Engine for template operations with built-in c
 - `Metrics` - Property to access cache hit/miss statistics
 
 **Caching:**
+
 - Templates are cached for 5 minutes (300 seconds) by default
 - Cache can be bypassed with `forceReload: true` parameter
 - Cache is automatically invalidated after expiry or when cleared
 - Thread-safe implementation using `CachedResourceManager<T>`
 
 **Usage Example:**
+
 ```csharp
 // Normal usage (uses cache)
 var templates = await TemplateEngineHelper.GetInstalledTemplatesAsync();
@@ -166,6 +184,7 @@ Located in `DotNetMcp/FrameworkHelper.cs`
 Provides framework validation and information:
 
 **Methods:**
+
 - `IsValidFramework(framework)` - Validate a TFM
 - `GetFrameworkDescription(framework)` - Get friendly name (e.g., ".NET 8.0 (LTS)")
 - `IsLtsFramework(framework)` - Check if framework is Long-Term Support
@@ -180,6 +199,7 @@ Provides framework validation and information:
 - `GetSupportedNetStandardFrameworks()` - List .NET Standard versions
 
 **Usage Example:**
+
 ```csharp
 if (FrameworkHelper.IsValidFramework("net8.0"))
 {
@@ -194,16 +214,19 @@ if (FrameworkHelper.IsValidFramework("net8.0"))
 
 **`dotnet_template_list(forceReload)`**
 Lists all installed templates using the Template Engine API. Returns structured data with template names, languages, types, and descriptions.
+
 - Cached for 5 minutes by default
 - Use `forceReload: true` to bypass cache
 
 **`dotnet_template_search(searchTerm, forceReload)`**
 Searches templates by name or description. More powerful than CLI text parsing.
+
 - Uses cached template data
 - Can force reload for fresh results
 
 **`dotnet_template_info(templateShortName, forceReload)`**
 Gets detailed template information including all available parameters and their types.
+
 - Uses cached template data
 - Can force reload for fresh results
 
@@ -223,21 +246,25 @@ Provides framework version information, identifies LTS releases, and classifies 
 ### Resource Endpoints
 
 **`dotnet://sdk-info`**
+
 - Returns JSON with installed .NET SDK versions and paths
 - Cached for 5 minutes (300 seconds)
 - Includes cache metadata: timestamp, age, duration, metrics
 
 **`dotnet://runtime-info`**
+
 - Returns JSON with installed .NET runtime information
 - Cached for 5 minutes (300 seconds)
 - Includes cache metadata: timestamp, age, duration, metrics
 
 **`dotnet://templates`**
+
 - Returns JSON catalog of installed templates with full metadata
 - Cached for 5 minutes (300 seconds)
 - Uses TemplateEngineHelper cache
 
 **`dotnet://frameworks`**
+
 - Returns JSON with framework information (not cached)
 - Provides static metadata about .NET TFMs
 
@@ -300,13 +327,15 @@ All cached resources include metadata:
 
 ## When to Use SDK Integration vs CLI
 
-### Use SDK Integration For:
+### Use SDK Integration For
+
 - Metadata and discovery (templates, frameworks)
 - Input validation before execution
 - Structured data access
 - Type-safe operations
 
-### Use CLI Execution For:
+### Use CLI Execution For
+
 - Actual command operations (build, run, test)
 - Features not exposed by SDK packages
 - Proven, tested functionality
@@ -331,21 +360,25 @@ public async Task<string> DotnetProjectNew(string template)
 ## Benefits
 
 **Type Safety**
+
 - Strongly-typed constants prevent typos
 - IntelliSense support for SDK values
 - Compile-time validation
 
 **Rich Metadata**
+
 - Direct access to template information
 - Framework classification and LTS status
 - Template parameter discovery
 
 **Better Validation**
+
 - Validate inputs before execution
 - Provide helpful error messages
 - Guide users to correct values
 
 **Future Extensibility**
+
 - Foundation for MSBuild project analysis
 - Ready for NuGet API integration
 - Prepared for Roslyn integration

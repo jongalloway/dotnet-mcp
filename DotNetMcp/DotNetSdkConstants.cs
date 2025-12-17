@@ -12,6 +12,8 @@ public static class DotNetSdkConstants
     public static class TargetFrameworks
     {
         // .NET (Modern)
+        public const string Net110 = "net11.0";
+        public const string Net100 = "net10.0";
         public const string Net90 = "net9.0";
         public const string Net80 = "net8.0";
         public const string Net70 = "net7.0";

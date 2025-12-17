@@ -297,7 +297,7 @@ Done.";
             "",
             "  Determining projects to restore...",
             "  Restored /path/to/Project.csproj (in 234 ms).",
-            "  Project -> /path/to/bin/Debug/net9.0/Project.dll",
+            "  Project -> /path/to/bin/Debug/net10.0/Project.dll",
             "",
             "Build succeeded.",
             "    0 Warning(s)",

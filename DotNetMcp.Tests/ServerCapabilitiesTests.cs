@@ -180,7 +180,7 @@ public class ServerCapabilitiesTests
     }
 
     [Fact]
-    public async Task DotnetServerCapabilities_SdkVersions_Recommended_IsNet90()
+    public async Task DotnetServerCapabilities_SdkVersions_Recommended_IsNet100()
     {
         // Act
         var result = await _tools.DotnetServerCapabilities();
@@ -191,11 +191,11 @@ public class ServerCapabilitiesTests
             .GetString();
 
         // Assert
-        Assert.Equal("net9.0", recommended);
+        Assert.Equal("net10.0", recommended);
     }
 
     [Fact]
-    public async Task DotnetServerCapabilities_SdkVersions_Lts_IsNet80()
+    public async Task DotnetServerCapabilities_SdkVersions_Lts_IsNet100()
     {
         // Act
         var result = await _tools.DotnetServerCapabilities();
@@ -206,7 +206,7 @@ public class ServerCapabilitiesTests
             .GetString();
 
         // Assert
-        Assert.Equal("net8.0", lts);
+        Assert.Equal("net10.0", lts);
     }
 
     [Fact]
@@ -234,8 +234,8 @@ public class ServerCapabilitiesTests
         Assert.False(capabilities.Supports.Telemetry);
         Assert.NotNull(capabilities.SdkVersions);
         Assert.NotEmpty(capabilities.SdkVersions.Installed);
-        Assert.Equal("net9.0", capabilities.SdkVersions.Recommended);
-        Assert.Equal("net8.0", capabilities.SdkVersions.Lts);
+        Assert.Equal("net10.0", capabilities.SdkVersions.Recommended);
+        Assert.Equal("net10.0", capabilities.SdkVersions.Lts);
     }
 
     [Fact]
