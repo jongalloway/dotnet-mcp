@@ -17,7 +17,7 @@ public sealed class DotNetCliTools
 
     // Constants for server capability discovery
     private const string DefaultServerVersion = "1.0.0";
-    private const string ProtocolVersion = "0.4.1-preview.1";
+    private const string ProtocolVersion = "0.5.0-preview.1";
 
     public DotNetCliTools(ILogger<DotNetCliTools> logger, ConcurrencyManager concurrencyManager)
     {

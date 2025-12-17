@@ -753,7 +753,7 @@ dotnet-mcp/
 ## Technology Stack
 
 - **Protocol**: [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)
-- **SDK**: [MCP SDK for .NET](https://github.com/modelcontextprotocol/csharp-sdk) v0.4.0-preview.2
+- **SDK**: [MCP SDK for .NET](https://github.com/modelcontextprotocol/csharp-sdk) v0.5.0-preview.1
 - **Runtime**: .NET 10.0 (target framework)
 - **Transport**: stdio (standard input/output)
 - **NuGet Packages**:

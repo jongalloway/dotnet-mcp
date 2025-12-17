@@ -72,7 +72,7 @@ public class ServerCapabilitiesTests
         var protocolVersion = jsonDoc.RootElement.GetProperty("protocolVersion").GetString();
 
         // Assert
-        Assert.Equal("0.4.1-preview.1", protocolVersion);
+        Assert.Equal("0.5.0-preview.1", protocolVersion);
     }
 
     [Fact]
@@ -225,7 +225,7 @@ public class ServerCapabilitiesTests
         Assert.NotNull(capabilities);
         Assert.NotNull(capabilities!.ServerVersion);
         Assert.NotEmpty(capabilities.ServerVersion);
-        Assert.Equal("0.4.1-preview.1", capabilities.ProtocolVersion);
+        Assert.Equal("0.5.0-preview.1", capabilities.ProtocolVersion);
         Assert.NotEmpty(capabilities.SupportedCategories);
         Assert.NotNull(capabilities.Supports);
         Assert.True(capabilities.Supports.StructuredErrors);
