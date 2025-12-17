@@ -7,6 +7,7 @@ namespace DotNetMcp.Tests;
 [Collection("Sequential")]
 public class ServerJsonValidationTests
 {
+    private const string CurrentSchemaUrl = "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json";
     private static readonly string ServerJsonRelativePath = Path.Combine("DotNetMcp", ".mcp", "server.json");
 
     private static string FindRepoRoot()
@@ -72,6 +73,25 @@ public class ServerJsonValidationTests
         Assert.True(root.TryGetProperty("name", out _), "Missing 'name' property");
         Assert.True(root.TryGetProperty("description", out _), "Missing 'description' property");
         Assert.True(root.TryGetProperty("version", out _), "Missing 'version' property");
+    }
+
+    [Fact]
+    public void ServerJson_ShouldReferenceCurrentSchema()
+    {
+        // Arrange
+        var serverJsonFullPath = GetServerJsonFullPath();
+
+        var jsonContent = File.ReadAllText(serverJsonFullPath);
+        using var doc = JsonDocument.Parse(jsonContent);
+        var root = doc.RootElement;
+
+        // Act
+        var schemaUrl = root.TryGetProperty("$schema", out var schemaElement)
+            ? schemaElement.GetString()
+            : null;
+
+        // Assert
+        Assert.Equal(CurrentSchemaUrl, schemaUrl);
     }
 
     [Fact]

@@ -21,7 +21,7 @@
 [CmdletBinding()]
 param(
     [string]$ServerJsonPath = "DotNetMcp\.mcp\server.json",
-    [string]$SchemaUrl = "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+    [string]$SchemaUrl = "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
     [switch]$ValidatePublished,
     [string]$PackageId = "Community.Mcp.DotNet",
     [string]$PackageVersion
