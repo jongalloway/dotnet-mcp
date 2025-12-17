@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text.Json;
 using Xunit;
 
@@ -6,19 +7,38 @@ namespace DotNetMcp.Tests;
 [Collection("Sequential")]
 public class ServerJsonValidationTests
 {
-    private const string ServerJsonPath = "DotNetMcp/.mcp/server.json";
+    private static readonly string ServerJsonRelativePath = Path.Combine("DotNetMcp", ".mcp", "server.json");
+
+    private static string FindRepoRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+
+        while (directory is not null)
+        {
+            var slnxPath = Path.Combine(directory.FullName, "DotNetMcp.slnx");
+            if (File.Exists(slnxPath))
+            {
+                return directory.FullName;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new InvalidOperationException(
+            "Unable to locate repository root (DotNetMcp.slnx not found) starting from AppContext.BaseDirectory.");
+    }
+
+    private static string GetServerJsonFullPath()
+    {
+        var repoRoot = FindRepoRoot();
+        return Path.Combine(repoRoot, ServerJsonRelativePath);
+    }
 
     [Fact]
     public void ServerJson_ShouldExist()
     {
         // Arrange & Act
-        var serverJsonFullPath = Path.Combine(
-            Directory.GetCurrentDirectory(),
-            "..",
-            "..",
-            "..",
-            "..",
-            ServerJsonPath);
+        var serverJsonFullPath = GetServerJsonFullPath();
 
         // Assert
         Assert.True(File.Exists(serverJsonFullPath),
@@ -29,13 +49,7 @@ public class ServerJsonValidationTests
     public void ServerJson_ShouldBeValidJson()
     {
         // Arrange
-        var serverJsonFullPath = Path.Combine(
-            Directory.GetCurrentDirectory(),
-            "..",
-            "..",
-            "..",
-            "..",
-            ServerJsonPath);
+        var serverJsonFullPath = GetServerJsonFullPath();
 
         var jsonContent = File.ReadAllText(serverJsonFullPath);
 
@@ -48,13 +62,7 @@ public class ServerJsonValidationTests
     public void ServerJson_ShouldHaveRequiredProperties()
     {
         // Arrange
-        var serverJsonFullPath = Path.Combine(
-            Directory.GetCurrentDirectory(),
-            "..",
-            "..",
-            "..",
-            "..",
-            ServerJsonPath);
+        var serverJsonFullPath = GetServerJsonFullPath();
 
         var jsonContent = File.ReadAllText(serverJsonFullPath);
         using var doc = JsonDocument.Parse(jsonContent);
@@ -70,13 +78,7 @@ public class ServerJsonValidationTests
     public void ServerJson_NameShouldBeInReverseDnsFormat()
     {
         // Arrange
-        var serverJsonFullPath = Path.Combine(
-            Directory.GetCurrentDirectory(),
-            "..",
-            "..",
-            "..",
-            "..",
-            ServerJsonPath);
+        var serverJsonFullPath = GetServerJsonFullPath();
 
         var jsonContent = File.ReadAllText(serverJsonFullPath);
         using var doc = JsonDocument.Parse(jsonContent);
@@ -95,13 +97,7 @@ public class ServerJsonValidationTests
     public void ServerJson_ShouldNotContainInvalidProperties()
     {
         // Arrange
-        var serverJsonFullPath = Path.Combine(
-            Directory.GetCurrentDirectory(),
-            "..",
-            "..",
-            "..",
-            "..",
-            ServerJsonPath);
+        var serverJsonFullPath = GetServerJsonFullPath();
 
         var jsonContent = File.ReadAllText(serverJsonFullPath);
         using var doc = JsonDocument.Parse(jsonContent);
@@ -113,16 +109,11 @@ public class ServerJsonValidationTests
             "packages", "remotes", "repository", "title", "version", "websiteUrl"
         };
 
-        var invalidProperties = new List<string>();
-
-        // Act
-        foreach (var property in root.EnumerateObject())
-        {
-            if (!validProperties.Contains(property.Name))
-            {
-                invalidProperties.Add(property.Name);
-            }
-        }
+        var invalidProperties = root
+            .EnumerateObject()
+            .Select(property => property.Name)
+            .Where(name => !validProperties.Contains(name))
+            .ToList();
 
         // Assert
         Assert.Empty(invalidProperties);
@@ -132,13 +123,7 @@ public class ServerJsonValidationTests
     public void ServerJson_ShouldNotContainToolsOrResources()
     {
         // Arrange
-        var serverJsonFullPath = Path.Combine(
-            Directory.GetCurrentDirectory(),
-            "..",
-            "..",
-            "..",
-            "..",
-            ServerJsonPath);
+        var serverJsonFullPath = GetServerJsonFullPath();
 
         var jsonContent = File.ReadAllText(serverJsonFullPath);
         using var doc = JsonDocument.Parse(jsonContent);
@@ -157,13 +142,7 @@ public class ServerJsonValidationTests
     public void ServerJson_PackagesShouldHaveRequiredFields()
     {
         // Arrange
-        var serverJsonFullPath = Path.Combine(
-            Directory.GetCurrentDirectory(),
-            "..",
-            "..",
-            "..",
-            "..",
-            ServerJsonPath);
+        var serverJsonFullPath = GetServerJsonFullPath();
 
         var jsonContent = File.ReadAllText(serverJsonFullPath);
         using var doc = JsonDocument.Parse(jsonContent);
