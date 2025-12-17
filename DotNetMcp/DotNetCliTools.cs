@@ -92,11 +92,15 @@ public sealed partial class DotNetCliTools
         return Task.FromResult(result.ToString());
     }
 
-    [McpServerTool, Description("Get information about .NET framework versions, including which are LTS releases. Useful for understanding framework compatibility.")]
+    /// <summary>
+    /// Get information about .NET framework versions, including which are LTS releases. 
+    /// Useful for understanding framework compatibility.
+    /// </summary>
+    /// <param name="framework">Optional: specific framework to get info about (e.g., 'net8.0', 'net6.0')</param>
+    [McpServerTool]
     [McpMeta("category", "framework")]
     [McpMeta("usesFrameworkHelper", true)]
-    public async Task<string> DotnetFrameworkInfo(
-     [Description("Optional: specific framework to get info about (e.g., 'net8.0', 'net6.0')")] string? framework = null)
+    public async partial Task<string> DotnetFrameworkInfo(string? framework = null)
     {
         var result = new StringBuilder();
 
@@ -154,18 +158,28 @@ public sealed partial class DotNetCliTools
         return result.ToString();
     }
 
-    [McpServerTool, Description("Create a new .NET project or file from a template. Common templates: console, classlib, web, webapi, mvc, blazor, xunit, nunit, mstest.")]
+    /// <summary>
+    /// Create a new .NET project or file from a template. 
+    /// Common templates: console, classlib, web, webapi, mvc, blazor, xunit, nunit, mstest.
+    /// </summary>
+    /// <param name="template">The template to use (e.g., 'console', 'classlib', 'webapi')</param>
+    /// <param name="name">The name for the project</param>
+    /// <param name="output">The output directory</param>
+    /// <param name="framework">The target framework (e.g., 'net10.0', 'net8.0')</param>
+    /// <param name="additionalOptions">Additional template-specific options (e.g., '--format slnx', '--use-program-main', '--aot')</param>
+    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
+    [McpServerTool]
     [McpMeta("category", "project")]
     [McpMeta("priority", 10.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("tags", JsonValue = """["project","create","new","template","initialization"]""")]
-    public async Task<string> DotnetProjectNew(
-  [Description("The template to use (e.g., 'console', 'classlib', 'webapi')")] string? template = null,
-        [Description("The name for the project")] string? name = null,
-        [Description("The output directory")] string? output = null,
-    [Description("The target framework (e.g., 'net10.0', 'net8.0')")] string? framework = null,
-        [Description("Additional template-specific options (e.g., '--format slnx', '--use-program-main', '--aot')")] string? additionalOptions = null,
-        [Description(MachineReadableDescription)] bool machineReadable = false)
+    public async partial Task<string> DotnetProjectNew(
+        string? template = null,
+        string? name = null,
+        string? output = null,
+        string? framework = null,
+        string? additionalOptions = null,
+        bool machineReadable = false)
     {
         if (string.IsNullOrWhiteSpace(template))
             return "Error: template parameter is required.";
@@ -182,31 +196,43 @@ public sealed partial class DotNetCliTools
         return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 
-    [McpServerTool, Description("Restore the dependencies and tools of a .NET project")]
+    /// <summary>
+    /// Restore the dependencies and tools of a .NET project.
+    /// </summary>
+    /// <param name="project">The project file or solution file to restore</param>
+    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
+    [McpServerTool]
     [McpMeta("category", "project")]
     [McpMeta("priority", 8.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("tags", JsonValue = """["project","restore","dependencies","packages","setup"]""")]
-    public async Task<string> DotnetProjectRestore(
-        [Description("The project file or solution file to restore")] string? project = null,
-        [Description(MachineReadableDescription)] bool machineReadable = false)
+    public async partial Task<string> DotnetProjectRestore(
+        string? project = null,
+        bool machineReadable = false)
     {
         var args = "restore";
         if (!string.IsNullOrEmpty(project)) args += $" \"{project}\"";
         return await ExecuteDotNetCommand(args, machineReadable);
     }
 
-    [McpServerTool, Description("Build a .NET project and its dependencies")]
+    /// <summary>
+    /// Build a .NET project and its dependencies.
+    /// </summary>
+    /// <param name="project">The project file or solution file to build</param>
+    /// <param name="configuration">The configuration to build (Debug or Release)</param>
+    /// <param name="framework">Build for a specific framework</param>
+    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
+    [McpServerTool]
     [McpMeta("category", "project")]
     [McpMeta("priority", 10.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("isLongRunning", true)]
     [McpMeta("tags", JsonValue = """["project","build","compile","compilation"]""")]
-    public async Task<string> DotnetProjectBuild(
-        [Description("The project file or solution file to build")] string? project = null,
-        [Description("The configuration to build (Debug or Release)")] string? configuration = null,
-        [Description("Build for a specific framework")] string? framework = null,
-        [Description(MachineReadableDescription)] bool machineReadable = false)
+    public async partial Task<string> DotnetProjectBuild(
+        string? project = null,
+        string? configuration = null,
+        string? framework = null,
+        bool machineReadable = false)
     {
         var args = new StringBuilder("build");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
@@ -216,17 +242,24 @@ public sealed partial class DotNetCliTools
         return await ExecuteWithConcurrencyCheck("build", GetOperationTarget(project), args.ToString(), machineReadable);
     }
 
-    [McpServerTool, Description("Build and run a .NET project")]
+    /// <summary>
+    /// Build and run a .NET project.
+    /// </summary>
+    /// <param name="project">The project file to run</param>
+    /// <param name="configuration">The configuration to use (Debug or Release)</param>
+    /// <param name="appArgs">Arguments to pass to the application</param>
+    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
+    [McpServerTool]
     [McpMeta("category", "project")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("isLongRunning", true)]
     [McpMeta("tags", JsonValue = """["project","run","execute","launch","development"]""")]
-    public async Task<string> DotnetProjectRun(
-      [Description("The project file to run")] string? project = null,
-           [Description("The configuration to use (Debug or Release)")] string? configuration = null,
-           [Description("Arguments to pass to the application")] string? appArgs = null,
-           [Description(MachineReadableDescription)] bool machineReadable = false)
+    public async partial Task<string> DotnetProjectRun(
+        string? project = null,
+        string? configuration = null,
+        string? appArgs = null,
+        bool machineReadable = false)
     {
         var args = new StringBuilder("run");
         if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
@@ -236,26 +269,42 @@ public sealed partial class DotNetCliTools
         return await ExecuteWithConcurrencyCheck("run", GetOperationTarget(project), args.ToString(), machineReadable);
     }
 
-    [McpServerTool, Description("Run unit tests in a .NET project")]
+    /// <summary>
+    /// Run unit tests in a .NET project.
+    /// </summary>
+    /// <param name="project">The project file or solution file to test</param>
+    /// <param name="configuration">The configuration to test (Debug or Release)</param>
+    /// <param name="filter">Filter to run specific tests</param>
+    /// <param name="collect">The friendly name of the data collector (e.g., 'XPlat Code Coverage')</param>
+    /// <param name="resultsDirectory">The directory where test results will be placed</param>
+    /// <param name="logger">The logger to use for test results (e.g., 'trx', 'console;verbosity=detailed')</param>
+    /// <param name="noBuild">Do not build the project before testing</param>
+    /// <param name="noRestore">Do not restore the project before building</param>
+    /// <param name="verbosity">Set the MSBuild verbosity level (quiet, minimal, normal, detailed, diagnostic)</param>
+    /// <param name="framework">The target framework to test for</param>
+    /// <param name="blame">Run tests in blame mode to isolate problematic tests</param>
+    /// <param name="listTests">List discovered tests without running them</param>
+    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
+    [McpServerTool]
     [McpMeta("category", "project")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("isLongRunning", true)]
     [McpMeta("tags", JsonValue = """["project","test","testing","unit-test","validation"]""")]
-    public async Task<string> DotnetProjectTest(
-        [Description("The project file or solution file to test")] string? project = null,
-        [Description("The configuration to test (Debug or Release)")] string? configuration = null,
-        [Description("Filter to run specific tests")] string? filter = null,
-        [Description("The friendly name of the data collector (e.g., 'XPlat Code Coverage')")] string? collect = null,
-        [Description("The directory where test results will be placed")] string? resultsDirectory = null,
-      [Description("The logger to use for test results (e.g., 'trx', 'console;verbosity=detailed')")] string? logger = null,
-    [Description("Do not build the project before testing")] bool noBuild = false,
-   [Description("Do not restore the project before building")] bool noRestore = false,
-        [Description("Set the MSBuild verbosity level (quiet, minimal, normal, detailed, diagnostic)")] string? verbosity = null,
-   [Description("The target framework to test for")] string? framework = null,
-        [Description("Run tests in blame mode to isolate problematic tests")] bool blame = false,
-        [Description("List discovered tests without running them")] bool listTests = false,
-        [Description(MachineReadableDescription)] bool machineReadable = false)
+    public async partial Task<string> DotnetProjectTest(
+        string? project = null,
+        string? configuration = null,
+        string? filter = null,
+        string? collect = null,
+        string? resultsDirectory = null,
+        string? logger = null,
+        bool noBuild = false,
+        bool noRestore = false,
+        string? verbosity = null,
+        string? framework = null,
+        bool blame = false,
+        bool listTests = false,
+        bool machineReadable = false)
     {
         var args = new StringBuilder("test");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
