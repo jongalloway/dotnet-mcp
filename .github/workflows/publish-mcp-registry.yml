@@ -80,14 +80,14 @@ jobs:
 
                   # 2) Wait for NuGet to serve the version, then download
                   # Retry configuration: 12 attempts with exponential backoff starting at 10s, capped at 120s.
-                  # This allows up to ~20 minutes total wait time for NuGet eventual consistency.
+                  # This allows up to ~16.5 minutes total wait time for NuGet eventual consistency.
                   max_attempts=12
                   sleep_seconds=10
                   mkdir -p ./artifacts
                   out="./artifacts/${package_id}.${version}.nupkg"
 
                   for attempt in $(seq 1 $max_attempts); do
-                    echo "Attempt $attempt/$max_attempts (sleep=$sleep_seconds)s"
+                    echo "Attempt $attempt/$max_attempts (sleep=${sleep_seconds}s)"
 
                     if curl -s -f -I "$url" > /dev/null 2>&1; then
                       echo "✅ NuGet is serving ${package_id} ${version}"
@@ -96,11 +96,15 @@ jobs:
                       break
                     fi
 
-                    echo "Not visible yet; waiting..."
-                    sleep "$sleep_seconds"
-                    sleep_seconds=$(( sleep_seconds * 2 ))
-                    if [ "$sleep_seconds" -gt 120 ]; then
-                      sleep_seconds=120
+                    if [ "$attempt" -lt "$max_attempts" ]; then
+                      echo "Not visible yet; waiting..."
+                      sleep "$sleep_seconds"
+                      sleep_seconds=$(( sleep_seconds * 2 ))
+                      if [ "$sleep_seconds" -gt 120 ]; then
+                        sleep_seconds=120
+                      fi
+                    else
+                      echo "Not visible yet; no retries remaining"
                     fi
                   done
 
@@ -145,7 +149,7 @@ jobs:
                   set -euo pipefail
 
                   # Retry configuration: 8 attempts with exponential backoff starting at 15s, capped at 180s.
-                  # With this configuration, worst-case total wait time is roughly 15-20 minutes.
+                  # With this configuration, worst-case total wait time is roughly 13 minutes (~765 seconds).
                   # This window gives the MCP registry enough time to observe the newly published
                   # NuGet package while keeping the workflow bounded.
                   max_attempts=8
@@ -167,14 +171,18 @@ jobs:
 
                     # Retry only for the known eventual-consistency error.
                     if grep -q "exists but version" publish.log; then
-                      echo "⚠️  Registry cannot see NuGet version yet; retrying after ${sleep_seconds}s"
-                      sleep "$sleep_seconds"
-                      # Apply exponential backoff with cap
-                      sleep_seconds=$(( sleep_seconds * 2 ))
-                      if [ "$sleep_seconds" -gt "$max_sleep_seconds" ]; then
-                        sleep_seconds="$max_sleep_seconds"
+                      if [ "$attempt" -lt "$max_attempts" ]; then
+                        echo "⚠️  Registry cannot see NuGet version yet; retrying after ${sleep_seconds}s"
+                        sleep "$sleep_seconds"
+                        # Apply exponential backoff with cap
+                        sleep_seconds=$(( sleep_seconds * 2 ))
+                        if [ "$sleep_seconds" -gt "$max_sleep_seconds" ]; then
+                          sleep_seconds="$max_sleep_seconds"
+                        fi
+                        continue
+                      else
+                        echo "⚠️  Registry cannot see NuGet version yet; no retries remaining, failing without additional delay"
                       fi
-                      continue
                     fi
 
                     echo "❌ Publish failed with non-retryable error"
