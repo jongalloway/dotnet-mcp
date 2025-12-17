@@ -7,7 +7,7 @@ This project is an MCP (Model Context Protocol) server that integrates with the 
 ## Key Technologies
 
 - **.NET 10.0**: The latest version of .NET (LTS - Long Term Support)
-- **Model Context Protocol SDK**: Version 0.4.0-preview.2
+- **Model Context Protocol SDK**: Version 0.5.0-preview.1
 - **Stdio Transport**: Communication via standard input/output
 - **Microsoft.Extensions.Hosting**: For application lifecycle management
 - **Microsoft.TemplateEngine.\***: Direct integration with .NET Template Engine (v9.0.306)
