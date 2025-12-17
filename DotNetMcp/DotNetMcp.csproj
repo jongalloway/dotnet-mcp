@@ -36,8 +36,9 @@
 
   <ItemGroup>
     <None Include="../README.md" Pack="true" PackagePath="/" />
-    <!-- Updated server.json will be generated and included during pack -->
-    <None Include=".mcp/server.json" Pack="true" PackagePath="/.mcp/" />
+    <!-- Keep the checked-in server.json as the source-of-truth (with placeholders), but pack a generated copy from obj/ that has the real version injected. -->
+    <None Include=".mcp/server.json" Pack="false" />
+    <None Include="$(IntermediateOutputPath)mcp/server.json" Pack="true" PackagePath="/.mcp/" Visible="false" />
   </ItemGroup>
 
   <ItemGroup>
@@ -56,13 +57,16 @@
   <!-- Update server.json with current version before packing -->
   <Target Name="UpdateMcpServerJson" BeforeTargets="GenerateNuspec">
     <PropertyGroup>
-      <ServerJsonPath>$(MSBuildProjectDirectory)\.mcp\server.json</ServerJsonPath>
+      <ServerJsonPath>$(MSBuildProjectDirectory)/.mcp/server.json</ServerJsonPath>
       <ServerJsonContent>$([System.IO.File]::ReadAllText('$(ServerJsonPath)'))</ServerJsonContent>
+      <GeneratedServerJsonDir>$(IntermediateOutputPath)mcp</GeneratedServerJsonDir>
+      <GeneratedServerJsonPath>$(GeneratedServerJsonDir)/server.json</GeneratedServerJsonPath>
       <!-- Replace both version occurrences with actual MinVer version -->
       <UpdatedServerJsonContent>$(ServerJsonContent.Replace('"version": "0.0.0-placeholder"', '"version": "$(Version)"'))</UpdatedServerJsonContent>
     </PropertyGroup>
-    <WriteLinesToFile File="$(ServerJsonPath)" Lines="$(UpdatedServerJsonContent)" Overwrite="true" />
-    <Message Importance="high" Text="Updated .mcp/server.json with version $(Version)" />
+    <MakeDir Directories="$(GeneratedServerJsonDir)" />
+    <WriteLinesToFile File="$(GeneratedServerJsonPath)" Lines="$(UpdatedServerJsonContent)" Overwrite="true" />
+    <Message Importance="high" Text="Generated .mcp/server.json for pack with version $(Version)" />
   </Target>
 
 </Project>
