@@ -799,12 +799,15 @@ public sealed partial class DotNetCliTools
         bool machineReadable = false)
         => await ExecuteDotNetCommand(command != null ? $"{command} --help" : "--help", machineReadable);
 
-    [McpServerTool, Description("Get machine-readable JSON snapshot of server capabilities, versions, and supported features for agent orchestration and discovery.")]
+    /// <summary>
+    /// Get machine-readable JSON snapshot of server capabilities, versions, and supported features for agent orchestration and discovery.
+    /// </summary>
+    [McpServerTool]
     [McpMeta("category", "help")]
     [McpMeta("priority", 8.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("tags", JsonValue = """["capabilities","version","discovery","orchestration","metadata"]""")]
-    public async Task<string> DotnetServerCapabilities()
+    public async partial Task<string> DotnetServerCapabilities()
     {
         // Get the assembly version
         var assembly = typeof(DotNetCliTools).Assembly;
