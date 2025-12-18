@@ -451,10 +451,10 @@ dotnet new nunit -n MyMicroservices.IntegrationTests
 
 # Add integration test packages
 dotnet add MyMicroservices.IntegrationTests package Microsoft.AspNetCore.Mvc.Testing
-dotnet add MyMicroservices.IntegrationTests package coverlet.collector
+dotnet add MyMicroservices.IntegrationTests package Microsoft.Testing.Extensions.CodeCoverage
 
 # Run tests with coverage for both frameworks
-dotnet test --collect:"XPlat Code Coverage"
+dotnet test -- --coverage --coverage-output-format cobertura
 ```
 
 *Integration test project created with multi-targeting. Tests will run on both .NET 8 and .NET 10 with code coverage enabled.*
@@ -499,7 +499,7 @@ dotnet clean
 dotnet build -c Release
 
 # Run all tests
-dotnet test --logger "console;verbosity=detailed"
+dotnet test --verbosity detailed
 ```
 
 *All packages updated to latest versions. Code formatted consistently across solution. Build succeeded with 0 warnings. All 156 tests passed.*

@@ -7,14 +7,26 @@ This repository uses an xUnit test project to validate the MCP server’s behavi
 Run all tests (recommended):
 
 ```bash
-dotnet test DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release
+dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release
 ```
 
 Run tests from the solution:
 
 ```bash
-dotnet test DotNetMcp.slnx -c Release
+dotnet test --solution DotNetMcp.slnx -c Release
 ```
+
+## Code coverage
+
+To collect coverage with Microsoft Testing Platform, run:
+
+```bash
+dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release -- --coverage --coverage-output-format cobertura
+```
+
+The Cobertura XML will be written under the test output folder, typically:
+
+- `DotNetMcp.Tests/bin/Release/net10.0/TestResults/*.cobertura.xml`
 
 ## Test project layout
 
@@ -44,13 +56,13 @@ PowerShell:
 
 ```powershell
 $env:DOTNET_MCP_INTERACTIVE_TESTS = "1"
-dotnet test DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release
+dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release
 ```
 
 bash:
 
 ```bash
-DOTNET_MCP_INTERACTIVE_TESTS=1 dotnet test DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release
+DOTNET_MCP_INTERACTIVE_TESTS=1 dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release
 ```
 
 If interactive tests are disabled, they will appear as skipped with a message explaining how to enable them.
@@ -58,4 +70,4 @@ If interactive tests are disabled, they will appear as skipped with a message ex
 ## Tips
 
 - Prefer `-c Release` for CI parity.
-- If you’re iterating on a single area, use `dotnet test --filter "FullyQualifiedName~SomeClass"` to narrow the run.
+- If you’re iterating on a single area, use Microsoft Testing Platform filters after `--`, for example: `dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release -- --filter-class DotNetMcp.Tests.CacheMetricsTests`.
