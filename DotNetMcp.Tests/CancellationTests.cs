@@ -1,17 +1,17 @@
 using DotNetMcp;
 using Microsoft.Extensions.Logging;
-using Moq;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace DotNetMcp.Tests;
 
 public class CancellationTests
 {
-    private readonly Mock<ILogger> _loggerMock;
+    private readonly ILogger _logger;
 
     public CancellationTests()
     {
-        _loggerMock = new Mock<ILogger>();
+        _logger = NullLogger.Instance;
     }
 
     [Fact(Skip = "Integration test - requires actual dotnet CLI")]
@@ -22,7 +22,7 @@ public class CancellationTests
         var arguments = "run --project NonExistentProject.csproj"; // A command that would take time
 
         // Act
-        var task = DotNetCommandExecutor.ExecuteCommandAsync(arguments, _loggerMock.Object, machineReadable: false, unsafeOutput: false, cts.Token);
+        var task = DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable: false, unsafeOutput: false, cts.Token);
         
         // Cancel after a short delay
         await Task.Delay(100);
@@ -43,7 +43,7 @@ public class CancellationTests
         var arguments = "run --project NonExistentProject.csproj";
 
         // Act
-        var task = DotNetCommandExecutor.ExecuteCommandAsync(arguments, _loggerMock.Object, machineReadable: true, unsafeOutput: false, cts.Token);
+        var task = DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable: true, unsafeOutput: false, cts.Token);
         
         // Cancel after a short delay
         await Task.Delay(100);
@@ -65,7 +65,7 @@ public class CancellationTests
         var arguments = "--version"; // Quick command
 
         // Act
-        var task = DotNetCommandExecutor.ExecuteCommandForResourceAsync(arguments, _loggerMock.Object, cts.Token);
+        var task = DotNetCommandExecutor.ExecuteCommandForResourceAsync(arguments, _logger, cts.Token);
         
         // Cancel immediately
         cts.Cancel();
@@ -82,7 +82,7 @@ public class CancellationTests
         var arguments = "--version"; // Quick command that should succeed
 
         // Act - should complete without cancellation
-        var result = await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _loggerMock.Object, machineReadable: false, unsafeOutput: false, cts.Token);
+        var result = await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable: false, unsafeOutput: false, cts.Token);
 
         // Assert
         Assert.NotNull(result);
@@ -97,7 +97,7 @@ public class CancellationTests
         var arguments = "--version";
 
         // Act - using default cancellation token
-        var result = await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _loggerMock.Object, machineReadable: false);
+        var result = await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable: false);
 
         // Assert
         Assert.NotNull(result);

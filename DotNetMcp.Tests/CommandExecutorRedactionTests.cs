@@ -1,17 +1,17 @@
 using DotNetMcp;
 using Microsoft.Extensions.Logging;
-using Moq;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace DotNetMcp.Tests;
 
 public class CommandExecutorRedactionTests
 {
-    private readonly Mock<ILogger> _loggerMock;
+    private readonly ILogger _logger;
 
     public CommandExecutorRedactionTests()
     {
-        _loggerMock = new Mock<ILogger>();
+        _logger = NullLogger.Instance;
     }
 
     [Fact]
@@ -24,7 +24,7 @@ public class CommandExecutorRedactionTests
         // Act
         var result = await DotNetCommandExecutor.ExecuteCommandAsync(
             arguments,
-            _loggerMock.Object,
+            _logger,
             machineReadable: false,
             unsafeOutput: false);
 
@@ -43,7 +43,7 @@ public class CommandExecutorRedactionTests
         // Act
         var result = await DotNetCommandExecutor.ExecuteCommandAsync(
             arguments,
-            _loggerMock.Object,
+            _logger,
             machineReadable: false,
             unsafeOutput: true);
 
@@ -63,7 +63,7 @@ public class CommandExecutorRedactionTests
         // Act
         var result = await DotNetCommandExecutor.ExecuteCommandAsync(
             arguments,
-            _loggerMock.Object,
+            _logger,
             machineReadable: false,
             unsafeOutput: false);
 
@@ -82,7 +82,7 @@ public class CommandExecutorRedactionTests
         // Act
         var result = await DotNetCommandExecutor.ExecuteCommandAsync(
             arguments,
-            _loggerMock.Object,
+            _logger,
             machineReadable: true,
             unsafeOutput: false);
 
@@ -100,7 +100,7 @@ public class CommandExecutorRedactionTests
         // Act
         var result = await DotNetCommandExecutor.ExecuteCommandForResourceAsync(
             arguments,
-            _loggerMock.Object);
+            _logger);
 
         // Assert - should complete successfully with redaction applied
         Assert.NotNull(result);
