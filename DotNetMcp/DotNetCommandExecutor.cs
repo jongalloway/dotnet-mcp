@@ -117,6 +117,10 @@ public static class DotNetCommandExecutor
             
             if (machineReadable)
             {
+                var code = "OPERATION_CANCELLED";
+                var category = "Cancellation";
+                var mcpErrorCode = McpErrorCodes.GetMcpErrorCode(code, category, -1);
+                
                 var cancelResult = new ErrorResponse
                 {
                     Success = false,
@@ -124,11 +128,17 @@ public static class DotNetCommandExecutor
                     {
                         new ErrorResult
                         {
-                            Code = "OPERATION_CANCELLED",
+                            Code = code,
                             Message = "The operation was cancelled by the user",
-                            Category = "Cancellation",
+                            Category = category,
                             Hint = "The command was terminated before completion",
-                            RawOutput = partialOutput
+                            RawOutput = partialOutput,
+                            McpErrorCode = mcpErrorCode,
+                            Data = new ErrorData
+                            {
+                                Command = $"dotnet {arguments}",
+                                ExitCode = -1
+                            }
                         }
                     },
                     ExitCode = -1
@@ -162,7 +172,7 @@ public static class DotNetCommandExecutor
         // If machine-readable format is requested, return structured JSON
         if (machineReadable)
         {
-            var result = ErrorResultFactory.CreateResult(outputStr, errorStr, process.ExitCode);
+            var result = ErrorResultFactory.CreateResult(outputStr, errorStr, process.ExitCode, $"dotnet {arguments}");
             return ErrorResultFactory.ToJson(result);
         }
 

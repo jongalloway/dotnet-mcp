@@ -36,6 +36,52 @@ public sealed class ErrorResult
     /// </summary>
     [JsonPropertyName("rawOutput")]
     public string RawOutput { get; init; } = string.Empty;
+
+    /// <summary>
+    /// MCP (Model Context Protocol) error code following JSON-RPC 2.0 specification.
+    /// Common codes: -32002 (ResourceNotFound), -32602 (InvalidParams), -32603 (InternalError).
+    /// Only set when an MCP error code is applicable to this error.
+    /// </summary>
+    [JsonPropertyName("mcpErrorCode")]
+    public int? McpErrorCode { get; init; }
+
+    /// <summary>
+    /// Structured data payload with actionable details for programmatic error handling.
+    /// Contains information like exit code, command arguments, and error details (with secrets redacted).
+    /// </summary>
+    [JsonPropertyName("data")]
+    public ErrorData? Data { get; init; }
+}
+
+/// <summary>
+/// Structured data payload for error results, providing actionable details for debugging.
+/// All sensitive information is redacted before inclusion.
+/// </summary>
+public sealed class ErrorData
+{
+    /// <summary>
+    /// The command that was executed (e.g., "dotnet build MyProject.csproj")
+    /// </summary>
+    [JsonPropertyName("command")]
+    public string? Command { get; init; }
+
+    /// <summary>
+    /// Process exit code
+    /// </summary>
+    [JsonPropertyName("exitCode")]
+    public int? ExitCode { get; init; }
+
+    /// <summary>
+    /// Standard error output from the command (redacted for sensitive information)
+    /// </summary>
+    [JsonPropertyName("stderr")]
+    public string? Stderr { get; init; }
+
+    /// <summary>
+    /// Additional context-specific data as key-value pairs
+    /// </summary>
+    [JsonPropertyName("additionalData")]
+    public Dictionary<string, string>? AdditionalData { get; init; }
 }
 
 /// <summary>

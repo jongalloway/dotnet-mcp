@@ -18,19 +18,15 @@ public static partial class ErrorResultFactory
     [GeneratedRegex(@"(?<code>NU\d+):\s+(?<message>.+)")]
     private static partial Regex NuGetErrorRegex();
 
-    // Regex for masking sensitive values - compiled once and reused
-    // Captures: (1) keyword, (2) separator (= or :), (3) value (stops at whitespace, semicolon, or quotes)
-    [GeneratedRegex(@"(password|secret|token|apikey|api-key|api_key|connectionstring|connection-string|connection_string|credentials|authorization|bearer)([\s]*[=:]\s*)[""']?([^\s;""']+)[""']?", RegexOptions.IgnoreCase)]
-    private static partial Regex SensitiveValueRegex();
-
     /// <summary>
     /// Parse CLI output and create structured error response.
     /// </summary>
     /// <param name="output">Standard output from the command</param>
     /// <param name="error">Standard error from the command</param>
     /// <param name="exitCode">Exit code from the command</param>
+    /// <param name="command">Optional command that was executed for structured data</param>
     /// <returns>ErrorResponse with parsed errors or SuccessResult if exitCode is 0</returns>
-    public static object CreateResult(string output, string error, int exitCode)
+    public static object CreateResult(string output, string error, int exitCode, string? command = null)
     {
         // Success case
         if (exitCode == 0)
@@ -50,7 +46,7 @@ public static partial class ErrorResultFactory
 
         // Parse errors from each line using LINQ
         errors.AddRange(lines
-            .Select(ParseErrorLine)
+            .Select(line => ParseErrorLine(line, error, exitCode, command))
             .OfType<ErrorResult>());
 
         // If no specific errors were parsed, create a generic error
@@ -61,13 +57,19 @@ public static partial class ErrorResultFactory
                 ? "Command failed with no error output" 
                 : error.Length > 500 ? error[..500] + "..." : error.Trim();
             
+            var genericCode = $"EXIT_{exitCode}";
+            var category = "Unknown";
+            var mcpErrorCode = McpErrorCodes.GetMcpErrorCode(genericCode, category, exitCode);
+            
             errors.Add(new ErrorResult
             {
-                Code = $"EXIT_{exitCode}",
+                Code = genericCode,
                 Message = errorMessage,
-                Category = "Unknown",
+                Category = category,
                 Hint = "Check the command syntax and arguments",
-                RawOutput = SanitizeOutput(combinedOutput)
+                RawOutput = SanitizeOutput(combinedOutput),
+                McpErrorCode = mcpErrorCode,
+                Data = CreateErrorData(command, exitCode, error)
             });
         }
 
@@ -82,20 +84,25 @@ public static partial class ErrorResultFactory
     /// <summary>
     /// Parse a single line and extract error information if present.
     /// </summary>
-    private static ErrorResult? ParseErrorLine(string line)
+    private static ErrorResult? ParseErrorLine(string line, string stderr, int exitCode, string? command)
     {
         // Try compiler error format first (most specific)
         var compilerMatch = CompilerErrorRegex().Match(line);
         if (compilerMatch.Success)
         {
             var code = compilerMatch.Groups["code"].Value;
+            var category = GetCategory(code);
+            var mcpErrorCode = McpErrorCodes.GetMcpErrorCode(code, category, exitCode);
+            
             return new ErrorResult
             {
                 Code = code,
                 Message = compilerMatch.Groups["message"].Value.Trim(),
-                Category = GetCategory(code),
+                Category = category,
                 Hint = GetHint(code),
-                RawOutput = SanitizeOutput(line)
+                RawOutput = SanitizeOutput(line),
+                McpErrorCode = mcpErrorCode,
+                Data = CreateErrorData(command, exitCode, stderr)
             };
         }
 
@@ -104,13 +111,18 @@ public static partial class ErrorResultFactory
         if (nugetMatch.Success)
         {
             var code = nugetMatch.Groups["code"].Value;
+            var category = "Package";
+            var mcpErrorCode = McpErrorCodes.GetMcpErrorCode(code, category, exitCode);
+            
             return new ErrorResult
             {
                 Code = code,
                 Message = nugetMatch.Groups["message"].Value.Trim(),
-                Category = "Package",
+                Category = category,
                 Hint = GetHint(code),
-                RawOutput = SanitizeOutput(line)
+                RawOutput = SanitizeOutput(line),
+                McpErrorCode = mcpErrorCode,
+                Data = CreateErrorData(command, exitCode, stderr)
             };
         }
 
@@ -119,13 +131,18 @@ public static partial class ErrorResultFactory
         if (genericMatch.Success)
         {
             var code = genericMatch.Groups["code"].Value;
+            var category = GetCategory(code);
+            var mcpErrorCode = McpErrorCodes.GetMcpErrorCode(code, category, exitCode);
+            
             return new ErrorResult
             {
                 Code = code,
                 Message = genericMatch.Groups["message"].Value.Trim(),
-                Category = GetCategory(code),
+                Category = category,
                 Hint = GetHint(code),
-                RawOutput = SanitizeOutput(line)
+                RawOutput = SanitizeOutput(line),
+                McpErrorCode = mcpErrorCode,
+                Data = CreateErrorData(command, exitCode, stderr)
             };
         }
 
@@ -187,22 +204,54 @@ public static partial class ErrorResultFactory
 
     /// <summary>
     /// Sanitize output to remove sensitive data like passwords, tokens, etc., from the output.
+    /// Uses SecretRedactor for consistent redaction patterns across the application.
     /// </summary>
     private static string SanitizeOutput(string output)
     {
         if (string.IsNullOrWhiteSpace(output))
             return output;
 
-        // Use pre-compiled regex to mask values after sensitive keywords
-        var sanitized = SensitiveValueRegex().Replace(output, m =>
-        {
-            // Replace the captured value with redacted text, preserving the original separator
-            var keyword = m.Groups[1].Value;
-            var separator = m.Groups[2].Value;
-            return $"{keyword}{separator}***REDACTED***";
-        });
+        // Use SecretRedactor for consistent redaction
+        return SecretRedactor.Redact(output);
+    }
 
-        return sanitized;
+    /// <summary>
+    /// Maximum length for stderr in structured error data before truncation.
+    /// </summary>
+    private const int MaxStderrLength = 1000;
+    
+    /// <summary>
+    /// Truncation suffix appended to truncated stderr messages.
+    /// </summary>
+    private const string TruncationSuffix = "... (truncated)";
+
+    /// <summary>
+    /// Create structured error data payload with sanitized command and stderr strings and the raw exit code.
+    /// </summary>
+    private static ErrorData? CreateErrorData(string? command, int exitCode, string stderr)
+    {
+        // Create data if we have meaningful information (command, stderr, or non-zero exit code)
+        if (string.IsNullOrWhiteSpace(command) && string.IsNullOrWhiteSpace(stderr) && exitCode == 0)
+        {
+            return null;
+        }
+
+        // Sanitize command and stderr to remove sensitive information
+        var sanitizedCommand = string.IsNullOrWhiteSpace(command) ? null : SanitizeOutput(command);
+        var sanitizedStderr = string.IsNullOrWhiteSpace(stderr) ? null : SanitizeOutput(stderr);
+
+        // Truncate stderr if it's too long, accounting for the suffix length
+        if (sanitizedStderr != null && sanitizedStderr.Length > MaxStderrLength)
+        {
+            sanitizedStderr = sanitizedStderr[..(MaxStderrLength - TruncationSuffix.Length)] + TruncationSuffix;
+        }
+
+        return new ErrorData
+        {
+            Command = sanitizedCommand,
+            ExitCode = exitCode,
+            Stderr = sanitizedStderr
+        };
     }
 
     /// <summary>
@@ -214,6 +263,10 @@ public static partial class ErrorResultFactory
     /// <returns>ErrorResponse with CONCURRENCY_CONFLICT error</returns>
     public static ErrorResponse CreateConcurrencyConflict(string operationType, string target, string conflictingOperation)
     {
+        var code = "CONCURRENCY_CONFLICT";
+        var category = "Concurrency";
+        var mcpErrorCode = McpErrorCodes.GetMcpErrorCode(code, category, -1);
+        
         return new ErrorResponse
         {
             Success = false,
@@ -221,11 +274,22 @@ public static partial class ErrorResultFactory
             {
                 new ErrorResult
                 {
-                    Code = "CONCURRENCY_CONFLICT",
+                    Code = code,
                     Message = $"Cannot execute '{operationType}' on '{target}' because a conflicting operation is already in progress: {conflictingOperation}",
-                    Category = "Concurrency",
+                    Category = category,
                     Hint = "Wait for the conflicting operation to complete, or cancel it before retrying this operation.",
-                    RawOutput = string.Empty
+                    RawOutput = string.Empty,
+                    McpErrorCode = mcpErrorCode,
+                    Data = new ErrorData
+                    {
+                        ExitCode = -1,
+                        AdditionalData = new Dictionary<string, string>
+                        {
+                            ["operationType"] = SanitizeOutput(operationType),
+                            ["target"] = SanitizeOutput(target),
+                            ["conflictingOperation"] = SanitizeOutput(conflictingOperation)
+                        }
+                    }
                 }
             },
             ExitCode = -1
