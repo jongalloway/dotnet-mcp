@@ -34,4 +34,18 @@ jobs:
         run: pwsh -File scripts/validate-server-json.ps1
 
       - name: Test
-        run: dotnet test DotNetMcp.slnx --no-build --configuration Release --verbosity normal
+        run: dotnet test --solution DotNetMcp.slnx --no-build --configuration Release --verbosity normal -- --coverage --coverage-output-format cobertura
+
+      - name: Collect coverage artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          coverage_file=$(find DotNetMcp.Tests/bin/Release -name '*.cobertura.xml' | head -n 1)
+          echo "Found coverage file: ${coverage_file}"
+          cp "${coverage_file}" coverage.cobertura.xml
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-cobertura
+          path: coverage.cobertura.xml
