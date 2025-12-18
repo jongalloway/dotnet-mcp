@@ -1,6 +1,6 @@
 using DotNetMcp;
 using Microsoft.Extensions.Logging;
-using Moq;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace DotNetMcp.Tests;
@@ -9,13 +9,13 @@ public class ConcurrencyControlTests
 {
     private readonly DotNetCliTools _tools;
     private readonly ConcurrencyManager _concurrencyManager;
-    private readonly Mock<ILogger<DotNetCliTools>> _loggerMock;
+    private readonly ILogger<DotNetCliTools> _logger;
 
     public ConcurrencyControlTests()
     {
-        _loggerMock = new Mock<ILogger<DotNetCliTools>>();
+        _logger = NullLogger<DotNetCliTools>.Instance;
         _concurrencyManager = new ConcurrencyManager();
-        _tools = new DotNetCliTools(_loggerMock.Object, _concurrencyManager);
+        _tools = new DotNetCliTools(_logger, _concurrencyManager);
     }
 
     [Fact(Skip = "Integration test - requires actual dotnet CLI and valid project")]
