@@ -451,7 +451,7 @@ dotnet new nunit -n MyMicroservices.IntegrationTests
 
 # Add integration test packages
 dotnet add MyMicroservices.IntegrationTests package Microsoft.AspNetCore.Mvc.Testing
-dotnet add MyMicroservices.IntegrationTests package coverlet.collector
+dotnet add MyMicroservices.IntegrationTests package Microsoft.Testing.Extensions.CodeCoverage
 
 # Run tests with coverage for both frameworks
 dotnet test -- --coverage --coverage-output-format cobertura

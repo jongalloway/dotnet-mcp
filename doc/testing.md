@@ -28,8 +28,6 @@ The Cobertura XML will be written under the test output folder, typically:
 
 - `DotNetMcp.Tests/bin/Release/net10.0/TestResults/*.cobertura.xml`
 
-```
-
 ## Test project layout
 
 - `DotNetMcp.Tests/` contains the test suite.
