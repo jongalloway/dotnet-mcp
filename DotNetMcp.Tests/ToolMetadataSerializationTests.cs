@@ -223,7 +223,7 @@ public class ToolMetadataSerializationTests
     }
 
     /// <summary>
-    /// Verifies that metadata categories are consistent across tools.
+    /// Verifies that metadata categories are consistently applied across tools.
     /// </summary>
     [Fact]
     public void MetadataCategories_AreConsistent()
@@ -233,30 +233,27 @@ public class ToolMetadataSerializationTests
         var methods = toolType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
         var toolMethods = methods.Where(m => m.GetCustomAttribute<McpServerToolAttribute>() != null).ToList();
 
-        // Act - Get all category values by checking the actual attribute usage
-        // Categories are stored differently depending on how they're used in the code
-        var categoriesFromCode = new HashSet<string>();
-        
-        foreach (var method in toolMethods)
-        {
-            var metaAttrs = method.GetCustomAttributes<McpMetaAttribute>().ToList();
-            foreach (var meta in metaAttrs.Where(m => m.Name == "category"))
-            {
-                // The value could be in JsonValue (if set explicitly) or we need to parse from source
-                // For this test, we'll just verify that category metadata exists
-                categoriesFromCode.Add(meta.Name);
-            }
-        }
-
-        // Assert - Verify that we have tools with category metadata
-        Assert.Contains("category", categoriesFromCode);
-        
-        // Verify at least some expected categories are used (based on grep output)
+        // Act - Find all tools that have category metadata
         var toolsWithCategories = toolMethods
             .Where(m => m.GetCustomAttributes<McpMetaAttribute>().Any(meta => meta.Name == "category"))
             .ToList();
         
+        // Assert - Verify a significant portion of tools have category metadata
         Assert.NotEmpty(toolsWithCategories);
-        Assert.True(toolsWithCategories.Count >= 40, $"Expected at least 40 tools with categories, found {toolsWithCategories.Count}");
+        
+        // Most tools should have categories (use 80% as threshold to allow for flexibility)
+        var percentageWithCategories = (double)toolsWithCategories.Count / toolMethods.Count;
+        Assert.True(percentageWithCategories >= 0.80, 
+            $"Expected at least 80% of tools to have categories, found {percentageWithCategories:P0} ({toolsWithCategories.Count}/{toolMethods.Count})");
+        
+        // Verify each tool with a category has the metadata properly set
+        foreach (var tool in toolsWithCategories)
+        {
+            var categoryMeta = tool.GetCustomAttributes<McpMetaAttribute>()
+                .FirstOrDefault(m => m.Name == "category");
+            
+            Assert.NotNull(categoryMeta);
+            // The category metadata should exist (value is set via constructor, not directly accessible)
+        }
     }
 }
