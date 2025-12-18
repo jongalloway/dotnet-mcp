@@ -121,8 +121,8 @@ public class CacheMetricsTests
         // Act - Concurrently record hits and misses
         for (int i = 0; i < 100; i++)
         {
-            tasks.Add(Task.Run(() => metrics.RecordHit()));
-            tasks.Add(Task.Run(() => metrics.RecordMiss()));
+            tasks.Add(Task.Run(() => metrics.RecordHit(), TestContext.Current.CancellationToken));
+            tasks.Add(Task.Run(() => metrics.RecordMiss(), TestContext.Current.CancellationToken));
         }
 
         await Task.WhenAll(tasks);

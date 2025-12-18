@@ -16,7 +16,7 @@ public class CachedResourceManagerTests
         var entry = await manager.GetOrLoadAsync(async () =>
         {
             loadCount++;
-            await Task.Delay(10);
+            await Task.Delay(10, TestContext.Current.CancellationToken);
             return "test data";
         });
 
@@ -38,14 +38,14 @@ public class CachedResourceManagerTests
         var entry1 = await manager.GetOrLoadAsync(async () =>
         {
             loadCount++;
-            await Task.Delay(10);
+            await Task.Delay(10, TestContext.Current.CancellationToken);
             return "test data";
         });
 
         var entry2 = await manager.GetOrLoadAsync(async () =>
         {
             loadCount++;
-            await Task.Delay(10);
+            await Task.Delay(10, TestContext.Current.CancellationToken);
             return "test data";
         });
 
@@ -100,7 +100,7 @@ public class CachedResourceManagerTests
         });
 
         // Wait for cache to expire
-        await Task.Delay(1100);
+        await Task.Delay(1100, TestContext.Current.CancellationToken);
 
         // Load again
         var entry2 = await manager.GetOrLoadAsync(async () =>

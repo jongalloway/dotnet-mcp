@@ -26,7 +26,8 @@ public class CommandExecutorRedactionTests
             arguments,
             _logger,
             machineReadable: false,
-            unsafeOutput: false);
+            unsafeOutput: false,
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert - should complete successfully
         Assert.NotNull(result);
@@ -45,7 +46,8 @@ public class CommandExecutorRedactionTests
             arguments,
             _logger,
             machineReadable: false,
-            unsafeOutput: true);
+            unsafeOutput: true,
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert - should complete successfully
         Assert.NotNull(result);
@@ -65,7 +67,8 @@ public class CommandExecutorRedactionTests
             arguments,
             _logger,
             machineReadable: false,
-            unsafeOutput: false);
+            unsafeOutput: false,
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert - should complete successfully
         Assert.NotNull(result);
@@ -84,7 +87,8 @@ public class CommandExecutorRedactionTests
             arguments,
             _logger,
             machineReadable: true,
-            unsafeOutput: false);
+            unsafeOutput: false,
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert - should return JSON format
         Assert.Contains("\"success\"", result);
@@ -100,7 +104,8 @@ public class CommandExecutorRedactionTests
         // Act
         var result = await DotNetCommandExecutor.ExecuteCommandForResourceAsync(
             arguments,
-            _logger);
+            _logger,
+            TestContext.Current.CancellationToken);
 
         // Assert - should complete successfully with redaction applied
         Assert.NotNull(result);

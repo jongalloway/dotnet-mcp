@@ -18,14 +18,14 @@ public class CancellationTests
     public async Task ExecuteCommandAsync_WhenCancelled_ShouldTerminateProcess()
     {
         // Arrange
-        using var cts = new CancellationTokenSource();
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         var arguments = "run --project NonExistentProject.csproj"; // A command that would take time
 
         // Act
         var task = DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable: false, unsafeOutput: false, cts.Token);
-        
+
         // Cancel after a short delay
-        await Task.Delay(100);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
         cts.Cancel();
 
         var result = await task;
@@ -39,14 +39,14 @@ public class CancellationTests
     public async Task ExecuteCommandAsync_WhenCancelledWithMachineReadable_ShouldReturnStructuredError()
     {
         // Arrange
-        using var cts = new CancellationTokenSource();
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         var arguments = "run --project NonExistentProject.csproj";
 
         // Act
         var task = DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable: true, unsafeOutput: false, cts.Token);
-        
+
         // Cancel after a short delay
-        await Task.Delay(100);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
         cts.Cancel();
 
         var result = await task;
@@ -61,12 +61,12 @@ public class CancellationTests
     public async Task ExecuteCommandForResourceAsync_WhenCancelled_ShouldThrowOperationCanceledException()
     {
         // Arrange
-        using var cts = new CancellationTokenSource();
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         var arguments = "--version"; // Quick command
 
         // Act
         var task = DotNetCommandExecutor.ExecuteCommandForResourceAsync(arguments, _logger, cts.Token);
-        
+
         // Cancel immediately
         cts.Cancel();
 
@@ -78,7 +78,7 @@ public class CancellationTests
     public async Task ExecuteCommandAsync_WithValidCancellationToken_ShouldAcceptIt()
     {
         // Arrange
-        using var cts = new CancellationTokenSource();
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         var arguments = "--version"; // Quick command that should succeed
 
         // Act - should complete without cancellation
@@ -97,7 +97,9 @@ public class CancellationTests
         var arguments = "--version";
 
         // Act - using default cancellation token
+#pragma warning disable xUnit1051
         var result = await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable: false);
+#pragma warning restore xUnit1051
 
         // Assert
         Assert.NotNull(result);
