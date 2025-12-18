@@ -40,7 +40,7 @@ public class McpErrorCodesTests
     }
 
     [Theory]
-    [InlineData("NETSDK1045", "SDK", 1, -32602)] // Framework not supported
+    [InlineData("NETSDK1045", "SDK", 1, -32602)] // Current SDK doesn't support targeting framework
     [InlineData("CS1001", "Compilation", 1, -32602)] // Identifier expected
     [InlineData("CS1513", "Compilation", 1, -32602)] // Closing brace expected
     public void GetMcpErrorCode_WithInvalidParamsScenarios_ReturnsInvalidParams(
