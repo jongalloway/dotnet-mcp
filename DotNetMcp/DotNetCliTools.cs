@@ -1025,7 +1025,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("category", "security")]
     [McpMeta("priority", 7.0)]
     public async partial Task<string> DotnetCertificateCheck(bool machineReadable = false)
-        => await ExecuteDotNetCommand("dev-certs https --check --trust", machineReadable);
+        => await ExecuteDotNetCommand("dev-certs https --check", machineReadable);
 
     /// <summary>
     /// Remove all HTTPS development certificates.

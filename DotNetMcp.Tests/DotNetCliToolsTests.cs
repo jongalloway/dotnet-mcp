@@ -143,7 +143,7 @@ public class DotNetCliToolsTests
         Assert.NotNull(result);
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetCertificateTrust_ExecutesCommand()
     {
         // Validates that the trust command can be executed
@@ -161,7 +161,7 @@ public class DotNetCliToolsTests
         Assert.NotNull(result);
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetCertificateClean_ExecutesCommand()
     {
         // Validates that the clean command can be executed
