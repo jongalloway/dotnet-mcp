@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using Xunit;
 
 namespace DotNetMcp.Tests;
@@ -8,7 +9,10 @@ public sealed class InteractiveFactAttribute : FactAttribute
 {
     public const string EnableEnvironmentVariableName = "DOTNET_MCP_INTERACTIVE_TESTS";
 
-    public InteractiveFactAttribute()
+    public InteractiveFactAttribute(
+        [CallerFilePath] string sourceFilePath = "",
+        [CallerLineNumber] int sourceLineNumber = 0) 
+        : base(sourceFilePath, sourceLineNumber)
     {
         if (!IsEnabled())
             Skip = $"Interactive test is opt-in. Set {EnableEnvironmentVariableName}=1 to enable.";
