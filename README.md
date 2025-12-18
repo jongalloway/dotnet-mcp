@@ -5,9 +5,7 @@
 [![Build and Test](https://github.com/jongalloway/dotnet-mcp/actions/workflows/build.yml/badge.svg)](https://github.com/jongalloway/dotnet-mcp/actions/workflows/build.yml)
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-blue.svg)](https://github.com/jongalloway/dotnet-mcp/blob/main/.github/dependabot.yml)
 [![NuGet](https://img.shields.io/nuget/v/Community.Mcp.DotNet.svg)](https://www.nuget.org/packages/Community.Mcp.DotNet/)
-[![MCP Registry](https://img.shields.io/badge/MCP_Registry-Published-brightgreen?style=flat&logo=github)](https://github.com/modelcontextprotocol/servers/blob/main/src/io.github.jongalloway/dotnet-mcp/README.md)
-
-> **Badges**: Build status is tracked via GitHub Actions. Dependabot monitors dependency updates. The package is available on [NuGet.org](https://www.nuget.org/packages/Community.Mcp.DotNet/) and listed in the [MCP Registry](https://github.com/modelcontextprotocol/servers/blob/main/src/io.github.jongalloway/dotnet-mcp/README.md) as `io.github.jongalloway/dotnet-mcp`.
+[![MCP Version](https://img.shields.io/badge/dynamic/json?url=https://registry.modelcontextprotocol.io/v0.1/servers%3Fsearch%3Dio.github.jongalloway%2Fdotnet-mcp%26version%3Dlatest&query=$.servers[0].version&label=MCP%20Version)](https://registry.modelcontextprotocol.io/?q=io.github.jongalloway%2Fdotnet-mcp)
 
 Give your AI assistant superpowers for .NET development! This MCP server connects GitHub Copilot, Claude, and other AI assistants directly to the .NET SDK, enabling them to create projects, manage packages, run builds, and more—all through natural language.
 
