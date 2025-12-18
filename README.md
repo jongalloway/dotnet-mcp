@@ -568,7 +568,7 @@ dotnet user-secrets list
 
 *Output:*
 
-```
+```text
 ConnectionStrings:DefaultConnection = Server=localhost;Database=MyDb;User=dev;Password=secret123
 Azure:OpenAI:ApiKey = sk-...
 SendGrid:ApiKey = SG....
@@ -739,7 +739,10 @@ dotnet-mcp/
 │   ├── FrameworkHelperTests.cs     # Tests for framework validation and metadata
 │   └── DotNetSdkConstantsTests.cs  # Tests for SDK constants validation
 ├── doc/
-│   └── sdk-integration.md          # SDK integration architecture documentation
+│   ├── sdk-integration.md          # SDK integration architecture documentation
+│   ├── advanced-topics.md          # Performance, logging, and security details
+│   ├── concurrency.md              # Concurrency safety and orchestration guidance
+│   └── testing.md                  # How to run tests (including opt-in interactive tests)
 ├── .github/
 │   ├── copilot-instructions.md     # Development guidelines for GitHub Copilot
 │   ├── dependabot.yml              # Automated dependency updates
@@ -765,6 +768,7 @@ dotnet-mcp/
 - 📖 [SDK Integration Details](doc/sdk-integration.md) - Technical architecture and SDK usage
 - 📖 [Advanced Topics](doc/advanced-topics.md) - Performance, logging, and security details
 - 📖 [Concurrency Safety](doc/concurrency.md) - Parallel execution guidance for AI orchestrators
+- 📖 [Testing](doc/testing.md) - How to run tests (including opt-in interactive tests)
 - 📖 [Model Context Protocol](https://modelcontextprotocol.io/) - Official MCP specification
 - 📖 [MCP C# SDK Docs](https://modelcontextprotocol.github.io/csharp-sdk/) - SDK documentation
 
