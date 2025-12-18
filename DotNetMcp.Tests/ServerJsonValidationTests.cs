@@ -4,7 +4,6 @@ using Xunit;
 
 namespace DotNetMcp.Tests;
 
-[Collection("Sequential")]
 public class ServerJsonValidationTests
 {
     private const string CurrentSchemaUrl = "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json";
