@@ -7,7 +7,7 @@
 [![NuGet](https://img.shields.io/nuget/v/Community.Mcp.DotNet.svg)](https://www.nuget.org/packages/Community.Mcp.DotNet/)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-Published-brightgreen?style=flat&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0xMiAyTDMgN1YxN0wxMiAyMkwyMSAxN1Y3TDEyIDJaIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+)](https://github.com/modelcontextprotocol/servers/blob/main/src/io.github.jongalloway/dotnet-mcp/README.md)
 
-> **Badges**: Build status is tracked via GitHub Actions. The package is published to [NuGet.org](https://www.nuget.org/packages/Community.Mcp.DotNet/) and the [MCP Registry](https://github.com/modelcontextprotocol/servers/blob/main/src/io.github.jongalloway/dotnet-mcp/README.md) (listed as `io.github.jongalloway/dotnet-mcp`). The MCP Registry badge is a static badge linking to the registry listing.
+> **Badges**: Build status is tracked via GitHub Actions. Dependabot monitors dependency updates. The package is published to [NuGet.org](https://www.nuget.org/packages/Community.Mcp.DotNet/) and the [MCP Registry](https://github.com/modelcontextprotocol/servers/blob/main/src/io.github.jongalloway/dotnet-mcp/README.md) (listed as `io.github.jongalloway/dotnet-mcp`). The MCP Registry badge is a static badge linking to the registry listing.
 
 Give your AI assistant superpowers for .NET development! This MCP server connects GitHub Copilot, Claude, and other AI assistants directly to the .NET SDK, enabling them to create projects, manage packages, run builds, and more—all through natural language.
 
