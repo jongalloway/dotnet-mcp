@@ -1,7 +1,6 @@
 using System.Reflection;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
@@ -130,7 +129,7 @@ public class ToolMetadataSerializationTests
         services.AddLogging();
 
         // Act - This should not throw and should register all tools
-        var serverBuilder = services.AddMcpServer()
+        services.AddMcpServer()
             .WithStdioServerTransport()
             .WithTools<DotNetCliTools>();
 
@@ -210,15 +209,15 @@ public class ToolMetadataSerializationTests
         Assert.NotEmpty(toolMethods);
         
         // Verify that each method has parameters with reasonable names
-        foreach (var method in toolMethods.Take(5)) // Sample check
+        var parameterValidations = toolMethods.Take(5) // Sample check
+            .SelectMany(method => method.GetParameters()
+                .Select(param => new { method, param }));
+        
+        foreach (var validation in parameterValidations)
         {
-            var parameters = method.GetParameters();
-            foreach (var param in parameters)
-            {
-                // Parameter names should not be compiler-generated
-                Assert.False(string.IsNullOrEmpty(param.Name));
-                Assert.DoesNotContain("<>", param.Name);
-            }
+            // Parameter names should not be compiler-generated
+            Assert.False(string.IsNullOrEmpty(validation.param.Name));
+            Assert.DoesNotContain("<>", validation.param.Name);
         }
     }
 
@@ -247,11 +246,12 @@ public class ToolMetadataSerializationTests
             $"Expected at least 80% of tools to have categories, found {percentageWithCategories:P0} ({toolsWithCategories.Count}/{toolMethods.Count})");
         
         // Verify each tool with a category has the metadata properly set
-        foreach (var tool in toolsWithCategories)
+        var categoryMetadata = toolsWithCategories
+            .Select(tool => tool.GetCustomAttributes<McpMetaAttribute>()
+                .FirstOrDefault(m => m.Name == "category"));
+        
+        foreach (var categoryMeta in categoryMetadata)
         {
-            var categoryMeta = tool.GetCustomAttributes<McpMetaAttribute>()
-                .FirstOrDefault(m => m.Name == "category");
-            
             Assert.NotNull(categoryMeta);
             // The category metadata should exist (value is set via constructor, not directly accessible)
         }
