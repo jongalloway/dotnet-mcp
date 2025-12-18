@@ -12,6 +12,11 @@ jobs:
     permissions:
       contents: read
 
+    env:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+
     steps:
       - uses: actions/checkout@v6
 
@@ -22,6 +27,7 @@ jobs:
           cache: true
           cache-dependency-path: |
             DotNetMcp.slnx
+            dotnet-tools.json
             **/*.csproj
 
       - name: Restore dependencies

@@ -6,7 +6,6 @@ using Xunit;
 
 namespace DotNetMcp.Tests;
 
-[Collection("Sequential")]
 public class XmlDocumentationCoverageTests
 {
     private static string FindRepoRoot()
