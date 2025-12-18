@@ -57,19 +57,20 @@ public static class McpErrorCodes
     public static int? GetMcpErrorCode(string errorCode, string category, int exitCode)
     {
         // Resource not found scenarios
-        if (errorCode.StartsWith("NU1101", StringComparison.OrdinalIgnoreCase) || // Package not found
-            errorCode.StartsWith("NU1102", StringComparison.OrdinalIgnoreCase) || // Package version not found
-            errorCode.StartsWith("MSB1003", StringComparison.OrdinalIgnoreCase) || // Project/solution file not found
-            errorCode.StartsWith("NETSDK1004", StringComparison.OrdinalIgnoreCase)) // Assets file not found
+        // Use Equals for exact matching to avoid false positives like "NU1101ABC"
+        if (errorCode.Equals("NU1101", StringComparison.OrdinalIgnoreCase) || // Package not found
+            errorCode.Equals("NU1102", StringComparison.OrdinalIgnoreCase) || // Package version not found
+            errorCode.Equals("MSB1003", StringComparison.OrdinalIgnoreCase) || // Project/solution file not found
+            errorCode.Equals("NETSDK1004", StringComparison.OrdinalIgnoreCase)) // Assets file not found
         {
             return ResourceNotFound;
         }
 
         // Invalid params scenarios
-        if (errorCode.StartsWith("MSB4236", StringComparison.OrdinalIgnoreCase) || // SDK not found
-            errorCode.StartsWith("NETSDK1045", StringComparison.OrdinalIgnoreCase) || // Framework not supported
-            errorCode.StartsWith("CS1001", StringComparison.OrdinalIgnoreCase) || // Identifier expected
-            errorCode.StartsWith("CS1513", StringComparison.OrdinalIgnoreCase)) // Closing brace expected
+        if (errorCode.Equals("MSB4236", StringComparison.OrdinalIgnoreCase) || // SDK not found
+            errorCode.Equals("NETSDK1045", StringComparison.OrdinalIgnoreCase) || // Framework not supported
+            errorCode.Equals("CS1001", StringComparison.OrdinalIgnoreCase) || // Identifier expected
+            errorCode.Equals("CS1513", StringComparison.OrdinalIgnoreCase)) // Closing brace expected
         {
             return InvalidParams;
         }

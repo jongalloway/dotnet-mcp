@@ -219,14 +219,19 @@ public static partial class ErrorResultFactory
     /// Maximum length for stderr in structured error data before truncation.
     /// </summary>
     private const int MaxStderrLength = 1000;
+    
+    /// <summary>
+    /// Truncation suffix appended to truncated stderr messages.
+    /// </summary>
+    private const string TruncationSuffix = "... (truncated)";
 
     /// <summary>
     /// Create structured error data payload with command, exit code, and stderr (all sanitized).
     /// </summary>
     private static ErrorData? CreateErrorData(string? command, int exitCode, string stderr)
     {
-        // Only create data if we have meaningful information
-        if (string.IsNullOrWhiteSpace(command) && string.IsNullOrWhiteSpace(stderr))
+        // Create data if we have meaningful information (command, stderr, or non-zero exit code)
+        if (string.IsNullOrWhiteSpace(command) && string.IsNullOrWhiteSpace(stderr) && exitCode == 0)
         {
             return null;
         }
@@ -235,10 +240,10 @@ public static partial class ErrorResultFactory
         var sanitizedCommand = string.IsNullOrWhiteSpace(command) ? null : SanitizeOutput(command);
         var sanitizedStderr = string.IsNullOrWhiteSpace(stderr) ? null : SanitizeOutput(stderr);
 
-        // Truncate stderr if it's too long (keep first MaxStderrLength characters)
+        // Truncate stderr if it's too long, accounting for the suffix length
         if (sanitizedStderr != null && sanitizedStderr.Length > MaxStderrLength)
         {
-            sanitizedStderr = sanitizedStderr[..MaxStderrLength] + "... (truncated)";
+            sanitizedStderr = sanitizedStderr[..(MaxStderrLength - TruncationSuffix.Length)] + TruncationSuffix;
         }
 
         return new ErrorData
