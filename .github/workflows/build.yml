@@ -41,6 +41,10 @@ jobs:
         run: |
           set -euo pipefail
           coverage_file=$(find DotNetMcp.Tests/bin/Release -name '*.cobertura.xml' | head -n 1)
+          if [[ -z "${coverage_file}" ]]; then
+            echo "Error: No coverage file found matching '*.cobertura.xml' under 'DotNetMcp.Tests/bin/Release'." >&2
+            exit 1
+          fi
           echo "Found coverage file: ${coverage_file}"
           cp "${coverage_file}" coverage.cobertura.xml
 
