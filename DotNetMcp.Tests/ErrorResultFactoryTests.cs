@@ -205,7 +205,7 @@ Program.cs(15,10): error CS1001: Identifier expected";
         Assert.IsType<SuccessResult>(result);
         var successResult = (SuccessResult)result;
         Assert.DoesNotContain("MySecretPass123", successResult.Output);
-        Assert.Contains("***REDACTED***", successResult.Output);
+        Assert.Contains("[REDACTED]", successResult.Output);
     }
 
     [Fact]
@@ -225,7 +225,7 @@ Program.cs(15,10): error CS1001: Identifier expected";
         Assert.Single(errorResponse.Errors);
         var genericError = errorResponse.Errors[0];
         Assert.DoesNotContain("ghp_abc123def456", genericError.RawOutput);
-        Assert.Contains("***REDACTED***", genericError.RawOutput);
+        Assert.Contains("[REDACTED]", genericError.RawOutput);
     }
 
     [Fact]
@@ -248,5 +248,213 @@ Program.cs(15,10): error CS1001: Identifier expected";
         Assert.Equal("NETSDK1045", parsedError.Code);
         Assert.Equal("SDK", parsedError.Category);
         Assert.Contains("Update the SDK", parsedError.Hint);
+    }
+
+    [Fact]
+    public void CreateResult_WithResourceNotFoundError_IncludesMcpErrorCode()
+    {
+        // Arrange - Package not found error
+        var output = "";
+        var error = "error NU1101: Unable to find package NonExistentPackage. No packages exist with this id in source(s): nuget.org";
+        var exitCode = 1;
+
+        // Act
+        var result = ErrorResultFactory.CreateResult(output, error, exitCode);
+
+        // Assert
+        Assert.IsType<ErrorResponse>(result);
+        var errorResponse = (ErrorResponse)result;
+        Assert.Single(errorResponse.Errors);
+        
+        var parsedError = errorResponse.Errors[0];
+        Assert.Equal("NU1101", parsedError.Code);
+        Assert.NotNull(parsedError.McpErrorCode);
+        Assert.Equal(-32002, parsedError.McpErrorCode); // ResourceNotFound
+    }
+
+    [Fact]
+    public void CreateResult_WithProjectNotFoundError_IncludesMcpErrorCode()
+    {
+        // Arrange - Project file not found
+        var output = "";
+        var error = "error MSB1003: Specify a project or solution file. The current working directory does not contain a project or solution file.";
+        var exitCode = 1;
+
+        // Act
+        var result = ErrorResultFactory.CreateResult(output, error, exitCode);
+
+        // Assert
+        Assert.IsType<ErrorResponse>(result);
+        var errorResponse = (ErrorResponse)result;
+        Assert.Single(errorResponse.Errors);
+        
+        var parsedError = errorResponse.Errors[0];
+        Assert.Equal("MSB1003", parsedError.Code);
+        Assert.NotNull(parsedError.McpErrorCode);
+        Assert.Equal(-32002, parsedError.McpErrorCode); // ResourceNotFound
+    }
+
+    [Fact]
+    public void CreateResult_WithInvalidParamsError_IncludesMcpErrorCode()
+    {
+        // Arrange - Invalid parameters (unsupported framework)
+        var output = "";
+        var error = "error NETSDK1045: The current .NET SDK does not support targeting .NET 6.0";
+        var exitCode = 1;
+
+        // Act
+        var result = ErrorResultFactory.CreateResult(output, error, exitCode);
+
+        // Assert
+        Assert.IsType<ErrorResponse>(result);
+        var errorResponse = (ErrorResponse)result;
+        Assert.Single(errorResponse.Errors);
+        
+        var parsedError = errorResponse.Errors[0];
+        Assert.Equal("NETSDK1045", parsedError.Code);
+        Assert.NotNull(parsedError.McpErrorCode);
+        Assert.Equal(-32602, parsedError.McpErrorCode); // InvalidParams
+    }
+
+    [Fact]
+    public void CreateResult_WithGenericError_IncludesMcpErrorCodeAndData()
+    {
+        // Arrange - Generic error with no specific code
+        var output = "";
+        var error = "Command failed with unknown error";
+        var exitCode = 1;
+        var command = "dotnet build MyProject.csproj";
+
+        // Act
+        var result = ErrorResultFactory.CreateResult(output, error, exitCode, command);
+
+        // Assert
+        Assert.IsType<ErrorResponse>(result);
+        var errorResponse = (ErrorResponse)result;
+        Assert.Single(errorResponse.Errors);
+        
+        var parsedError = errorResponse.Errors[0];
+        Assert.Equal("EXIT_1", parsedError.Code);
+        Assert.NotNull(parsedError.McpErrorCode);
+        Assert.Equal(-32603, parsedError.McpErrorCode); // InternalError
+        
+        // Check data payload
+        Assert.NotNull(parsedError.Data);
+        Assert.Equal(command, parsedError.Data.Command);
+        Assert.Equal(exitCode, parsedError.Data.ExitCode);
+        Assert.NotNull(parsedError.Data.Stderr);
+    }
+
+    [Fact]
+    public void CreateResult_WithDataPayload_RedactsSensitiveInformation()
+    {
+        // Arrange - Error with sensitive data in command and stderr
+        var output = "";
+        var error = "Authentication failed: token=ghp_secret123456";
+        var exitCode = 1;
+        var command = "dotnet nuget push api_key=secret_key_123456";
+
+        // Act
+        var result = ErrorResultFactory.CreateResult(output, error, exitCode, command);
+
+        // Assert
+        Assert.IsType<ErrorResponse>(result);
+        var errorResponse = (ErrorResponse)result;
+        Assert.Single(errorResponse.Errors);
+        
+        var parsedError = errorResponse.Errors[0];
+        Assert.NotNull(parsedError.Data);
+        
+        // Verify secrets are redacted in command (api_key=... pattern is recognized)
+        Assert.Contains("[REDACTED]", parsedError.Data.Command);
+        Assert.DoesNotContain("secret_key_123456", parsedError.Data.Command);
+        
+        // Verify secrets are redacted in stderr (token=... pattern is recognized)
+        Assert.Contains("[REDACTED]", parsedError.Data.Stderr);
+        Assert.DoesNotContain("ghp_secret123456", parsedError.Data.Stderr);
+    }
+
+    [Fact]
+    public void CreateResult_WithCompilerError_DoesNotIncludeMcpErrorCode()
+    {
+        // Arrange - Standard compiler error that doesn't map to MCP error
+        var output = "";
+        var error = "Program.cs(10,5): error CS0103: The name 'foo' does not exist in the current context";
+        var exitCode = 1;
+
+        // Act
+        var result = ErrorResultFactory.CreateResult(output, error, exitCode);
+
+        // Assert
+        Assert.IsType<ErrorResponse>(result);
+        var errorResponse = (ErrorResponse)result;
+        Assert.Single(errorResponse.Errors);
+        
+        var parsedError = errorResponse.Errors[0];
+        Assert.Equal("CS0103", parsedError.Code);
+        Assert.Null(parsedError.McpErrorCode); // No MCP error code for regular compiler errors
+        Assert.Null(parsedError.Data); // No data when no MCP error code
+    }
+
+    [Fact]
+    public void CreateConcurrencyConflict_IncludesMcpErrorCodeAndStructuredData()
+    {
+        // Act
+        var result = ErrorResultFactory.CreateConcurrencyConflict("build", "MyProject.csproj", "test operation");
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Single(result.Errors);
+        
+        var error = result.Errors[0];
+        Assert.Equal("CONCURRENCY_CONFLICT", error.Code);
+        Assert.NotNull(error.McpErrorCode);
+        Assert.Equal(-32603, error.McpErrorCode); // InternalError
+        
+        // Check structured data
+        Assert.NotNull(error.Data);
+        Assert.Equal(-1, error.Data.ExitCode);
+        Assert.NotNull(error.Data.AdditionalData);
+        Assert.Equal("build", error.Data.AdditionalData["operationType"]);
+        Assert.Equal("MyProject.csproj", error.Data.AdditionalData["target"]);
+        Assert.Equal("test operation", error.Data.AdditionalData["conflictingOperation"]);
+    }
+
+    [Fact]
+    public void ToJson_WithMcpErrorCode_ProducesValidJson()
+    {
+        // Arrange
+        var errorResponse = new ErrorResponse
+        {
+            Success = false,
+            ExitCode = 1,
+            Errors = new List<ErrorResult>
+            {
+                new ErrorResult
+                {
+                    Code = "NU1101",
+                    Message = "Package not found",
+                    Category = "Package",
+                    McpErrorCode = -32002,
+                    Data = new ErrorData
+                    {
+                        Command = "dotnet add package NonExistent",
+                        ExitCode = 1,
+                        Stderr = "Package not found"
+                    }
+                }
+            }
+        };
+
+        // Act
+        var json = ErrorResultFactory.ToJson(errorResponse);
+
+        // Assert
+        Assert.NotNull(json);
+        Assert.NotEmpty(json);
+        Assert.Contains("\"mcpErrorCode\": -32002", json);
+        Assert.Contains("\"data\"", json);
+        Assert.Contains("\"command\"", json);
+        Assert.Contains("\"stderr\"", json);
     }
 }

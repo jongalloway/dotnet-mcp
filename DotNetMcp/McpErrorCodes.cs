@@ -1,0 +1,94 @@
+namespace DotNetMcp;
+
+/// <summary>
+/// MCP (Model Context Protocol) error codes following JSON-RPC 2.0 specification.
+/// These codes align with MCP v0.5.0 protocol error semantics.
+/// </summary>
+public static class McpErrorCodes
+{
+    /// <summary>
+    /// Parse error - Invalid JSON was received by the server (-32700)
+    /// </summary>
+    public const int ParseError = -32700;
+
+    /// <summary>
+    /// Invalid Request - The JSON sent is not a valid Request object (-32600)
+    /// </summary>
+    public const int InvalidRequest = -32600;
+
+    /// <summary>
+    /// Method not found - The method does not exist / is not available (-32601)
+    /// </summary>
+    public const int MethodNotFound = -32601;
+
+    /// <summary>
+    /// Invalid params - Invalid method parameter(s) (-32602)
+    /// </summary>
+    public const int InvalidParams = -32602;
+
+    /// <summary>
+    /// Internal error - Internal JSON-RPC error (-32603)
+    /// </summary>
+    public const int InternalError = -32603;
+
+    /// <summary>
+    /// Resource not found - The requested resource does not exist (MCP-specific: -32002)
+    /// Used when a resource URI cannot be resolved or a file/project/package is not found.
+    /// </summary>
+    public const int ResourceNotFound = -32002;
+
+    /// <summary>
+    /// Server error range start - Reserved for implementation-defined server errors (-32000)
+    /// </summary>
+    public const int ServerErrorRangeStart = -32000;
+
+    /// <summary>
+    /// Server error range end - Reserved for implementation-defined server errors (-32099)
+    /// </summary>
+    public const int ServerErrorRangeEnd = -32099;
+
+    /// <summary>
+    /// Determines if an MCP error code should be assigned based on the error context.
+    /// </summary>
+    /// <param name="errorCode">The dotnet error code (e.g., "CS0103", "NU1101", "EXIT_1")</param>
+    /// <param name="category">The error category (e.g., "Compilation", "Package", "Unknown")</param>
+    /// <param name="exitCode">The process exit code</param>
+    /// <returns>The appropriate MCP error code, or null if no specific MCP code applies</returns>
+    public static int? GetMcpErrorCode(string errorCode, string category, int exitCode)
+    {
+        // Resource not found scenarios
+        if (errorCode.StartsWith("NU1101", StringComparison.OrdinalIgnoreCase) || // Package not found
+            errorCode.StartsWith("NU1102", StringComparison.OrdinalIgnoreCase) || // Package version not found
+            errorCode.StartsWith("MSB1003", StringComparison.OrdinalIgnoreCase) || // Project/solution file not found
+            errorCode.StartsWith("NETSDK1004", StringComparison.OrdinalIgnoreCase) || // Assets file not found
+            (exitCode != 0 && category == "Unknown" && errorCode.Contains("not found", StringComparison.OrdinalIgnoreCase)))
+        {
+            return ResourceNotFound;
+        }
+
+        // Invalid params scenarios
+        if (errorCode.StartsWith("MSB4236", StringComparison.OrdinalIgnoreCase) || // SDK not found
+            errorCode.StartsWith("NETSDK1045", StringComparison.OrdinalIgnoreCase) || // Framework not supported
+            errorCode.StartsWith("CS1001", StringComparison.OrdinalIgnoreCase) || // Identifier expected
+            errorCode.StartsWith("CS1513", StringComparison.OrdinalIgnoreCase)) // Closing brace expected
+        {
+            return InvalidParams;
+        }
+
+        // Internal errors for unexpected failures
+        if (errorCode == "OPERATION_CANCELLED" || 
+            errorCode == "CONCURRENCY_CONFLICT")
+        {
+            return InternalError;
+        }
+
+        // For generic failures, use InternalError
+        if (exitCode != 0 && category == "Unknown")
+        {
+            return InternalError;
+        }
+
+        // No specific MCP error code for this scenario
+        return null;
+    }
+}
