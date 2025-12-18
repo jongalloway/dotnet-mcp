@@ -22,7 +22,7 @@ namespace DotNetMcp.Tests;
 /// These tests verify cache behavior and must run without interference from other tests
 /// that might modify the static cache or metrics.
 /// </remarks>
-[CollectionDefinition("CachingIntegrationTests")]
+[CollectionDefinition("CachingIntegrationTests", DisableParallelization = true)]
 public class CachingIntegrationTestsCollection
 {
 }
