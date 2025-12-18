@@ -61,14 +61,14 @@ public static class McpErrorCodes
         if (errorCode.Equals("NU1101", StringComparison.OrdinalIgnoreCase) || // Package not found
             errorCode.Equals("NU1102", StringComparison.OrdinalIgnoreCase) || // Package version not found
             errorCode.Equals("MSB1003", StringComparison.OrdinalIgnoreCase) || // Project/solution file not found
-            errorCode.Equals("NETSDK1004", StringComparison.OrdinalIgnoreCase)) // Assets file not found
+            errorCode.Equals("NETSDK1004", StringComparison.OrdinalIgnoreCase) || // Assets file not found
+            errorCode.Equals("MSB4236", StringComparison.OrdinalIgnoreCase)) // SDK not found
         {
             return ResourceNotFound;
         }
 
         // Invalid params scenarios
-        if (errorCode.Equals("MSB4236", StringComparison.OrdinalIgnoreCase) || // SDK not found
-            errorCode.Equals("NETSDK1045", StringComparison.OrdinalIgnoreCase) || // Framework not supported
+        if (errorCode.Equals("NETSDK1045", StringComparison.OrdinalIgnoreCase) || // Framework not supported
             errorCode.Equals("CS1001", StringComparison.OrdinalIgnoreCase) || // Identifier expected
             errorCode.Equals("CS1513", StringComparison.OrdinalIgnoreCase)) // Closing brace expected
         {

@@ -40,7 +40,6 @@ public class McpErrorCodesTests
     }
 
     [Theory]
-    [InlineData("MSB4236", "Build", 1, -32602)] // SDK not found
     [InlineData("NETSDK1045", "SDK", 1, -32602)] // Framework not supported
     [InlineData("CS1001", "Compilation", 1, -32602)] // Identifier expected
     [InlineData("CS1513", "Compilation", 1, -32602)] // Closing brace expected
@@ -108,5 +107,31 @@ public class McpErrorCodesTests
         Assert.Equal(mcpCode1, mcpCode2);
         Assert.Equal(mcpCode2, mcpCode3);
         Assert.Equal(-32002, mcpCode1.Value);
+    }
+
+    [Theory]
+    [InlineData("NU1101ABC")] // Error code with suffix
+    [InlineData("XNU1101")] // Error code with prefix
+    [InlineData("NU1101_CUSTOM")] // Error code with underscore suffix
+    [InlineData("MSB1003_TEST")] // MSB error with suffix
+    [InlineData("PREFIX_MSB4236")] // MSB error with prefix
+    public void GetMcpErrorCode_WithPrefixOrSuffix_ReturnsNull(string errorCode)
+    {
+        // Act - Test that error codes with prefixes/suffixes don't match
+        var mcpCode = McpErrorCodes.GetMcpErrorCode(errorCode, "Package", 1);
+
+        // Assert - Should not match because we use exact Equals, not StartsWith
+        Assert.Null(mcpCode);
+    }
+
+    [Fact]
+    public void GetMcpErrorCode_MSB4236_MapsToResourceNotFound()
+    {
+        // Act - MSB4236 (SDK not found) should map to ResourceNotFound
+        var mcpCode = McpErrorCodes.GetMcpErrorCode("MSB4236", "Build", 1);
+
+        // Assert
+        Assert.NotNull(mcpCode);
+        Assert.Equal(-32002, mcpCode.Value); // ResourceNotFound
     }
 }

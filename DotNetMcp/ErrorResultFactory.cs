@@ -226,7 +226,7 @@ public static partial class ErrorResultFactory
     private const string TruncationSuffix = "... (truncated)";
 
     /// <summary>
-    /// Create structured error data payload with command, exit code, and stderr (all sanitized).
+    /// Create structured error data payload with sanitized command and stderr strings and the raw exit code.
     /// </summary>
     private static ErrorData? CreateErrorData(string? command, int exitCode, string stderr)
     {
@@ -285,9 +285,9 @@ public static partial class ErrorResultFactory
                         ExitCode = -1,
                         AdditionalData = new Dictionary<string, string>
                         {
-                            ["operationType"] = operationType,
-                            ["target"] = target,
-                            ["conflictingOperation"] = conflictingOperation
+                            ["operationType"] = SanitizeOutput(operationType),
+                            ["target"] = SanitizeOutput(target),
+                            ["conflictingOperation"] = SanitizeOutput(conflictingOperation)
                         }
                     }
                 }

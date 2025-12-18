@@ -257,9 +257,10 @@ Program.cs(15,10): error CS1001: Identifier expected";
         var output = "";
         var error = "error NU1101: Unable to find package NonExistentPackage. No packages exist with this id in source(s): nuget.org";
         var exitCode = 1;
+        var command = "dotnet add package NonExistentPackage";
 
         // Act
-        var result = ErrorResultFactory.CreateResult(output, error, exitCode);
+        var result = ErrorResultFactory.CreateResult(output, error, exitCode, command);
 
         // Assert
         Assert.IsType<ErrorResponse>(result);
@@ -270,6 +271,12 @@ Program.cs(15,10): error CS1001: Identifier expected";
         Assert.Equal("NU1101", parsedError.Code);
         Assert.NotNull(parsedError.McpErrorCode);
         Assert.Equal(-32002, parsedError.McpErrorCode); // ResourceNotFound
+        
+        // Verify Data is populated
+        Assert.NotNull(parsedError.Data);
+        Assert.Equal(command, parsedError.Data.Command);
+        Assert.Equal(exitCode, parsedError.Data.ExitCode);
+        Assert.NotNull(parsedError.Data.Stderr);
     }
 
     [Fact]
@@ -279,9 +286,10 @@ Program.cs(15,10): error CS1001: Identifier expected";
         var output = "";
         var error = "error MSB1003: Specify a project or solution file. The current working directory does not contain a project or solution file.";
         var exitCode = 1;
+        var command = "dotnet build";
 
         // Act
-        var result = ErrorResultFactory.CreateResult(output, error, exitCode);
+        var result = ErrorResultFactory.CreateResult(output, error, exitCode, command);
 
         // Assert
         Assert.IsType<ErrorResponse>(result);
@@ -292,6 +300,12 @@ Program.cs(15,10): error CS1001: Identifier expected";
         Assert.Equal("MSB1003", parsedError.Code);
         Assert.NotNull(parsedError.McpErrorCode);
         Assert.Equal(-32002, parsedError.McpErrorCode); // ResourceNotFound
+        
+        // Verify Data is populated
+        Assert.NotNull(parsedError.Data);
+        Assert.Equal(command, parsedError.Data.Command);
+        Assert.Equal(exitCode, parsedError.Data.ExitCode);
+        Assert.NotNull(parsedError.Data.Stderr);
     }
 
     [Fact]
@@ -461,5 +475,76 @@ Program.cs(15,10): error CS1001: Identifier expected";
         Assert.Contains("\"data\"", json);
         Assert.Contains("\"command\"", json);
         Assert.Contains("\"stderr\"", json);
+    }
+
+    [Fact]
+    public void CreateResult_WithLongStderr_TruncatesCorrectly()
+    {
+        // Arrange - Create stderr longer than 1000 characters
+        var longStderr = new string('x', 1200);
+        var output = "";
+        var exitCode = 1;
+        var command = "dotnet test";
+
+        // Act
+        var result = ErrorResultFactory.CreateResult(output, longStderr, exitCode, command);
+
+        // Assert
+        Assert.IsType<ErrorResponse>(result);
+        var errorResponse = (ErrorResponse)result;
+        Assert.Single(errorResponse.Errors);
+        
+        var parsedError = errorResponse.Errors[0];
+        Assert.NotNull(parsedError.Data);
+        Assert.NotNull(parsedError.Data.Stderr);
+        
+        // Verify truncation: should be <= 1000 characters
+        Assert.True(parsedError.Data.Stderr.Length <= 1000);
+        
+        // Verify truncation suffix is present
+        Assert.EndsWith("... (truncated)", parsedError.Data.Stderr);
+    }
+
+    [Fact]
+    public void CreateResult_WithNoCommandNoStderrAndExitCode0_ReturnsNullErrorData()
+    {
+        // Arrange - Success case with no command or stderr
+        var output = "Build succeeded.";
+        var error = "";
+        var exitCode = 0;
+
+        // Act
+        var result = ErrorResultFactory.CreateResult(output, error, exitCode, null);
+
+        // Assert
+        Assert.IsType<SuccessResult>(result);
+        var successResult = (SuccessResult)result;
+        Assert.True(successResult.Success);
+        Assert.Equal(0, successResult.ExitCode);
+    }
+
+    [Fact]
+    public void CreateResult_WithNoCommandNoStderrButNonZeroExitCode_CreatesErrorData()
+    {
+        // Arrange - Failure with no command or stderr but non-zero exit code
+        var output = "";
+        var error = "";
+        var exitCode = 1;
+        var command = null as string;
+
+        // Act
+        var result = ErrorResultFactory.CreateResult(output, error, exitCode, command);
+
+        // Assert
+        Assert.IsType<ErrorResponse>(result);
+        var errorResponse = (ErrorResponse)result;
+        Assert.Single(errorResponse.Errors);
+        
+        var parsedError = errorResponse.Errors[0];
+        // ErrorData should be created even without command/stderr because exitCode != 0
+        Assert.NotNull(parsedError.Data);
+        Assert.Null(parsedError.Data.Command);
+        Assert.Null(parsedError.Data.Stderr);
+        Assert.Equal(exitCode, parsedError.Data.ExitCode);
     }
 }
