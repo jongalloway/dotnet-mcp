@@ -381,9 +381,10 @@ Program.cs(15,10): error CS1001: Identifier expected";
         var output = "";
         var error = "Program.cs(10,5): error CS0103: The name 'foo' does not exist in the current context";
         var exitCode = 1;
+        var command = "dotnet build test.csproj";
 
         // Act
-        var result = ErrorResultFactory.CreateResult(output, error, exitCode);
+        var result = ErrorResultFactory.CreateResult(output, error, exitCode, command);
 
         // Assert
         Assert.IsType<ErrorResponse>(result);
@@ -393,7 +394,11 @@ Program.cs(15,10): error CS1001: Identifier expected";
         var parsedError = errorResponse.Errors[0];
         Assert.Equal("CS0103", parsedError.Code);
         Assert.Null(parsedError.McpErrorCode); // No MCP error code for regular compiler errors
-        Assert.Null(parsedError.Data); // No data when no MCP error code
+        
+        // ErrorData is still provided even without MCP error code (useful for debugging)
+        Assert.NotNull(parsedError.Data);
+        Assert.Equal(command, parsedError.Data.Command);
+        Assert.Equal(exitCode, parsedError.Data.ExitCode);
     }
 
     [Fact]

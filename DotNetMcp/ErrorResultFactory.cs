@@ -102,7 +102,7 @@ public static partial class ErrorResultFactory
                 Hint = GetHint(code),
                 RawOutput = SanitizeOutput(line),
                 McpErrorCode = mcpErrorCode,
-                Data = mcpErrorCode.HasValue ? CreateErrorData(command, exitCode, stderr) : null
+                Data = CreateErrorData(command, exitCode, stderr)
             };
         }
 
@@ -122,7 +122,7 @@ public static partial class ErrorResultFactory
                 Hint = GetHint(code),
                 RawOutput = SanitizeOutput(line),
                 McpErrorCode = mcpErrorCode,
-                Data = mcpErrorCode.HasValue ? CreateErrorData(command, exitCode, stderr) : null
+                Data = CreateErrorData(command, exitCode, stderr)
             };
         }
 
@@ -142,7 +142,7 @@ public static partial class ErrorResultFactory
                 Hint = GetHint(code),
                 RawOutput = SanitizeOutput(line),
                 McpErrorCode = mcpErrorCode,
-                Data = mcpErrorCode.HasValue ? CreateErrorData(command, exitCode, stderr) : null
+                Data = CreateErrorData(command, exitCode, stderr)
             };
         }
 
@@ -216,6 +216,11 @@ public static partial class ErrorResultFactory
     }
 
     /// <summary>
+    /// Maximum length for stderr in structured error data before truncation.
+    /// </summary>
+    private const int MaxStderrLength = 1000;
+
+    /// <summary>
     /// Create structured error data payload with command, exit code, and stderr (all sanitized).
     /// </summary>
     private static ErrorData? CreateErrorData(string? command, int exitCode, string stderr)
@@ -230,10 +235,10 @@ public static partial class ErrorResultFactory
         var sanitizedCommand = string.IsNullOrWhiteSpace(command) ? null : SanitizeOutput(command);
         var sanitizedStderr = string.IsNullOrWhiteSpace(stderr) ? null : SanitizeOutput(stderr);
 
-        // Truncate stderr if it's too long (keep first 1000 characters)
-        if (sanitizedStderr != null && sanitizedStderr.Length > 1000)
+        // Truncate stderr if it's too long (keep first MaxStderrLength characters)
+        if (sanitizedStderr != null && sanitizedStderr.Length > MaxStderrLength)
         {
-            sanitizedStderr = sanitizedStderr[..1000] + "... (truncated)";
+            sanitizedStderr = sanitizedStderr[..MaxStderrLength] + "... (truncated)";
         }
 
         return new ErrorData

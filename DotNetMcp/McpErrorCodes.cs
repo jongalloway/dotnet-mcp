@@ -60,8 +60,7 @@ public static class McpErrorCodes
         if (errorCode.StartsWith("NU1101", StringComparison.OrdinalIgnoreCase) || // Package not found
             errorCode.StartsWith("NU1102", StringComparison.OrdinalIgnoreCase) || // Package version not found
             errorCode.StartsWith("MSB1003", StringComparison.OrdinalIgnoreCase) || // Project/solution file not found
-            errorCode.StartsWith("NETSDK1004", StringComparison.OrdinalIgnoreCase) || // Assets file not found
-            (exitCode != 0 && category == "Unknown" && errorCode.Contains("not found", StringComparison.OrdinalIgnoreCase)))
+            errorCode.StartsWith("NETSDK1004", StringComparison.OrdinalIgnoreCase)) // Assets file not found
         {
             return ResourceNotFound;
         }
