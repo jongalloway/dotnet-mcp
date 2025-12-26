@@ -294,18 +294,20 @@ public class CachedResourceManagerTests
         // Arrange
         using var manager = new CachedResourceManager<string>("TestResource");
         using var cts = new CancellationTokenSource();
-        var tokenWasPassed = false;
+        CancellationToken? passedToken = null;
 
         // Act
         var entry = await manager.GetOrLoadAsync(async (ct) =>
         {
-            tokenWasPassed = !ct.IsCancellationRequested && ct == cts.Token;
+            passedToken = ct;
             await Task.Delay(10, TestContext.Current.CancellationToken);
             return "test data";
         }, cancellationToken: cts.Token);
 
         // Assert
-        Assert.True(tokenWasPassed);
+        Assert.NotNull(passedToken);
+        Assert.True(passedToken.Value.CanBeCanceled);
+        Assert.Equal(cts.Token.GetHashCode(), passedToken.Value.GetHashCode());
         Assert.Equal("test data", entry.Data);
     }
 
