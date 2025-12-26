@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main]
 
+# Cancel in-progress runs for the same branch to save CI resources
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -26,9 +31,13 @@ jobs:
           dotnet-version: "10.0.x"
           cache: true
           cache-dependency-path: |
+            global.json
             DotNetMcp.slnx
             dotnet-tools.json
             **/*.csproj
+
+      - name: Display .NET info
+        run: dotnet --info
 
       - name: Restore dependencies
         run: dotnet restore DotNetMcp.slnx
@@ -40,7 +49,17 @@ jobs:
         run: pwsh -File scripts/validate-server-json.ps1
 
       - name: Test
-        run: dotnet test --solution DotNetMcp.slnx --no-build --configuration Release --verbosity normal -- --coverage --coverage-output-format cobertura
+        run: |
+          dotnet test --solution DotNetMcp.slnx \
+            --no-build \
+            --configuration Release \
+            --verbosity normal \
+            -- \
+            --coverage \
+            --coverage-output-format cobertura \
+            --report-xunit-trx \
+            --report-xunit-trx-filename test-results.trx \
+            --long-running 300
 
       - name: Collect coverage artifact
         shell: bash
@@ -59,3 +78,12 @@ jobs:
         with:
           name: coverage-cobertura
           path: coverage.cobertura.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            **/TestResults/*.trx
+            **/TestResults/*.xml
