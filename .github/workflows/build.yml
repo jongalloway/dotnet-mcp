@@ -48,15 +48,7 @@ jobs:
         run: pwsh -File scripts/validate-server-json.ps1
 
       - name: Test
-        run: |
-          dotnet test --solution DotNetMcp.slnx \
-            --no-build \
-            --configuration Release \
-            --verbosity normal \
-            --logger "trx;LogFileName=test-results.trx" \
-            -- \
-            --coverage \
-            --coverage-output-format cobertura
+        run: dotnet test --solution DotNetMcp.slnx --no-build --configuration Release --verbosity normal -- --coverage --coverage-output-format cobertura
 
       - name: Collect coverage artifact
         shell: bash
@@ -78,7 +70,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: test-results
           path: "**/TestResults/*.trx"
