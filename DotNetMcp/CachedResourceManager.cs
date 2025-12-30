@@ -82,7 +82,7 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
         // Fast-path: Check cache without lock (common case: cache hit)
         if (!forceReload)
         {
-            var cachedEntry = _cache;
+            var cachedEntry = Volatile.Read(ref _cache);
             if (cachedEntry != null && !cachedEntry.IsExpired(now))
             {
                 _metrics.RecordHit();
@@ -114,17 +114,18 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
 
             var data = await loader();
             // Use refreshed 'now' for accurate TTL calculation
-            _cache = new CachedEntry<T>
+            var newEntry = new CachedEntry<T>
             {
                 Data = data,
                 CachedAt = now,
                 CacheDuration = customTtl ?? _defaultTtl
             };
+            Volatile.Write(ref _cache, newEntry);
 
             _logger?.LogInformation("{ResourceName} cache updated - expires in {Duration}s",
-                _resourceName, _cache.CacheDuration.TotalSeconds);
+                _resourceName, newEntry.CacheDuration.TotalSeconds);
 
-            return _cache;
+            return newEntry;
         }
         finally
         {
@@ -152,7 +153,7 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
         // Fast-path: Check cache without lock (common case: cache hit)
         if (!forceReload)
         {
-            var cachedEntry = _cache;
+            var cachedEntry = Volatile.Read(ref _cache);
             if (cachedEntry != null && !cachedEntry.IsExpired(now))
             {
                 _metrics.RecordHit();
@@ -184,17 +185,18 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
 
             var data = await loader(cancellationToken);
             // Use refreshed 'now' for accurate TTL calculation
-            _cache = new CachedEntry<T>
+            var newEntry = new CachedEntry<T>
             {
                 Data = data,
                 CachedAt = now,
                 CacheDuration = customTtl ?? _defaultTtl
             };
+            Volatile.Write(ref _cache, newEntry);
 
             _logger?.LogInformation("{ResourceName} cache updated - expires in {Duration}s",
-                _resourceName, _cache.CacheDuration.TotalSeconds);
+                _resourceName, newEntry.CacheDuration.TotalSeconds);
 
-            return _cache;
+            return newEntry;
         }
         finally
         {
