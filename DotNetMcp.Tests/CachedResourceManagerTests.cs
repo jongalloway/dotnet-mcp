@@ -256,12 +256,17 @@ public class CachedResourceManagerTests
         // Wait for the first call to start and acquire the lock
         await firstCallStarted.Task;
 
-        // Act & Assert - Second call should be cancelled while waiting for lock
+        // Act - Start second call that will wait for the lock
+        var secondTask = manager.GetOrLoadAsync(async () => "second data", cancellationToken: cts.Token);
+
+        // Give the second call a moment to start and begin waiting for the lock
+        await Task.Delay(50, TestContext.Current.CancellationToken);
+
+        // Cancel while the second call is waiting for the lock
         cts.Cancel();
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
-        {
-            await manager.GetOrLoadAsync(async () => "second data", cancellationToken: cts.Token);
-        });
+
+        // Assert - Second call should be cancelled while waiting for the lock
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await secondTask);
 
         // Cleanup - allow first task to complete
         firstCallCanComplete.SetResult(true);
@@ -307,7 +312,7 @@ public class CachedResourceManagerTests
         // Assert
         Assert.NotNull(passedToken);
         Assert.True(passedToken.Value.CanBeCanceled);
-        Assert.Equal(cts.Token.GetHashCode(), passedToken.Value.GetHashCode());
+        Assert.Equal(cts.Token, passedToken.Value);
         Assert.Equal("test data", entry.Data);
     }
 
@@ -346,18 +351,53 @@ public class CachedResourceManagerTests
     {
         // Arrange
         using var manager = new CachedResourceManager<string>("TestResource");
-        using var cts = new CancellationTokenSource();
-        
-        await manager.GetOrLoadAsync(async () => "test data", cancellationToken: TestContext.Current.CancellationToken);
-        
-        // Act
-        cts.Cancel();
-        
-        // Assert
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+        using var loaderCts = new CancellationTokenSource();
+        var loaderStarted = new TaskCompletionSource<bool>();
+
+        // Start a long-running GetOrLoadAsync call to hold the internal lock
+        var loaderTask = manager.GetOrLoadAsync(async ct =>
         {
-            await manager.ClearAsync(cts.Token);
-        });
+            loaderStarted.TrySetResult(true);
+            try
+            {
+                // Hold the lock for a long time until cancelled
+                await Task.Delay(TimeSpan.FromSeconds(30), ct);
+            }
+            catch (OperationCanceledException)
+            {
+                // Swallow cancellation to allow task to complete gracefully
+            }
+
+            return "test data";
+        }, cancellationToken: loaderCts.Token);
+
+        // Ensure the loader has started and is holding the lock
+        await loaderStarted.Task;
+
+        using var clearCts = new CancellationTokenSource();
+
+        // Act - start ClearAsync so it waits for the lock
+        var clearTask = Task.Run(async () => await manager.ClearAsync(clearCts.Token));
+
+        // Give ClearAsync a moment to reach the lock acquisition point
+        await Task.Delay(50, TestContext.Current.CancellationToken);
+
+        // Cancel while ClearAsync is waiting
+        clearCts.Cancel();
+
+        // Assert - ClearAsync should observe cancellation and throw
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await clearTask);
+
+        // Cleanup: release the loader so the test can complete
+        loaderCts.Cancel();
+        try
+        {
+            await loaderTask;
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected during cleanup
+        }
     }
 
     [Fact]
