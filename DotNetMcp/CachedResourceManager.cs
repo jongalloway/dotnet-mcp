@@ -61,15 +61,17 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
     /// <param name="loader">Function to load fresh data when cache is expired.</param>
     /// <param name="forceReload">If true, forces a cache miss and reloads data.</param>
     /// <param name="customTtl">Optional custom TTL for this specific cache entry.</param>
+    /// <param name="cancellationToken">Optional cancellation token to cancel the operation.</param>
     /// <returns>Cached data with metadata.</returns>
     public async Task<CachedEntry<T>> GetOrLoadAsync(
         Func<Task<T>> loader,
         bool forceReload = false,
-        TimeSpan? customTtl = null)
+        TimeSpan? customTtl = null,
+        CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
 
-        await _cacheLock.WaitAsync();
+        await _cacheLock.WaitAsync(cancellationToken);
         try
         {
             // Check if we need to reload
@@ -106,11 +108,64 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
     }
 
     /// <summary>
+    /// Gets or loads cached data with cancellation support, executing the loader function if cache is expired or forceReload is true.
+    /// </summary>
+    /// <param name="loader">Function to load fresh data when cache is expired, which accepts a cancellation token.</param>
+    /// <param name="forceReload">If true, forces a cache miss and reloads data.</param>
+    /// <param name="customTtl">Optional custom TTL for this specific cache entry.</param>
+    /// <param name="cancellationToken">Optional cancellation token to cancel the operation.</param>
+    /// <returns>Cached data with metadata.</returns>
+    public async Task<CachedEntry<T>> GetOrLoadAsync(
+        Func<CancellationToken, Task<T>> loader,
+        bool forceReload = false,
+        TimeSpan? customTtl = null,
+        CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+
+        await _cacheLock.WaitAsync(cancellationToken);
+        try
+        {
+            // Check if we need to reload
+            if (forceReload || _cache == null || _cache.IsExpired(now))
+            {
+                _metrics.RecordMiss();
+                _logger?.LogDebug("{ResourceName} cache miss - loading fresh data (forceReload: {ForceReload})",
+                    _resourceName, forceReload);
+
+                var data = await loader(cancellationToken);
+                _cache = new CachedEntry<T>
+                {
+                    Data = data,
+                    CachedAt = now,
+                    CacheDuration = customTtl ?? _defaultTtl
+                };
+
+                _logger?.LogInformation("{ResourceName} cache updated - expires in {Duration}s",
+                    _resourceName, _cache.CacheDuration.TotalSeconds);
+            }
+            else
+            {
+                _metrics.RecordHit();
+                _logger?.LogDebug("{ResourceName} cache hit - age: {AgeSeconds}s, metrics: {Metrics}",
+                    _resourceName, _cache.CacheAgeSeconds(now), _metrics);
+            }
+
+            return _cache;
+        }
+        finally
+        {
+            _cacheLock.Release();
+        }
+    }
+
+    /// <summary>
     /// Clears the cache, forcing next access to reload data.
     /// </summary>
-    public async Task ClearAsync()
+    /// <param name="cancellationToken">Optional cancellation token to cancel the operation.</param>
+    public async Task ClearAsync(CancellationToken cancellationToken = default)
     {
-        await _cacheLock.WaitAsync();
+        await _cacheLock.WaitAsync(cancellationToken);
         try
         {
             _cache = null;
