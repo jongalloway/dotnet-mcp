@@ -417,4 +417,106 @@ public class CachedResourceManagerTests
         Assert.Equal("test data", entry.Data);
         Assert.Equal(1, manager.Metrics.Misses);
     }
+
+    [Fact]
+    public void GetOrLoadAsync_ThrowsObjectDisposedExceptionAfterDispose()
+    {
+        // Arrange
+        var manager = new CachedResourceManager<string>("TestResource");
+        manager.Dispose();
+
+        // Act & Assert
+        var exception = Assert.ThrowsAsync<ObjectDisposedException>(async () =>
+        {
+            await manager.GetOrLoadAsync(async () => "test data");
+        });
+
+        Assert.NotNull(exception);
+    }
+
+    [Fact]
+    public void GetOrLoadAsync_WithCancellableLoader_ThrowsObjectDisposedExceptionAfterDispose()
+    {
+        // Arrange
+        var manager = new CachedResourceManager<string>("TestResource");
+        manager.Dispose();
+
+        // Act & Assert
+        var exception = Assert.ThrowsAsync<ObjectDisposedException>(async () =>
+        {
+            await manager.GetOrLoadAsync(async (ct) => "test data");
+        });
+
+        Assert.NotNull(exception);
+    }
+
+    [Fact]
+    public void ClearAsync_ThrowsObjectDisposedExceptionAfterDispose()
+    {
+        // Arrange
+        var manager = new CachedResourceManager<string>("TestResource");
+        manager.Dispose();
+
+        // Act & Assert
+        var exception = Assert.ThrowsAsync<ObjectDisposedException>(async () =>
+        {
+            await manager.ClearAsync();
+        });
+
+        Assert.NotNull(exception);
+    }
+
+    [Fact]
+    public void ResetMetrics_ThrowsObjectDisposedExceptionAfterDispose()
+    {
+        // Arrange
+        var manager = new CachedResourceManager<string>("TestResource");
+        manager.Dispose();
+
+        // Act & Assert
+        var exception = Assert.Throws<ObjectDisposedException>(() =>
+        {
+            manager.ResetMetrics();
+        });
+
+        Assert.NotNull(exception);
+    }
+
+    [Fact]
+    public void GetJsonResponse_ThrowsObjectDisposedExceptionAfterDispose()
+    {
+        // Arrange
+        var manager = new CachedResourceManager<string>("TestResource");
+        var entry = new CachedEntry<string>
+        {
+            Data = "test",
+            CachedAt = DateTime.UtcNow,
+            CacheDuration = TimeSpan.FromSeconds(60)
+        };
+        manager.Dispose();
+
+        // Act & Assert
+        var exception = Assert.Throws<ObjectDisposedException>(() =>
+        {
+            manager.GetJsonResponse(entry, new { value = "test" }, DateTime.UtcNow);
+        });
+
+        Assert.NotNull(exception);
+    }
+
+    [Fact]
+    public void Metrics_ThrowsObjectDisposedExceptionAfterDispose()
+    {
+        // Arrange
+        var manager = new CachedResourceManager<string>("TestResource");
+        manager.Dispose();
+
+        // Act & Assert
+        var exception = Assert.Throws<ObjectDisposedException>(() =>
+        {
+            var metrics = manager.Metrics;
+        });
+
+        Assert.NotNull(exception);
+    }
 }

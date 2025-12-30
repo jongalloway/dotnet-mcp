@@ -53,7 +53,14 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
     /// <summary>
     /// Gets cache metrics for this resource.
     /// </summary>
-    public CacheMetrics Metrics => _metrics;
+    public CacheMetrics Metrics
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return _metrics;
+        }
+    }
 
     /// <summary>
     /// Gets or loads cached data, executing the loader function if cache is expired or forceReload is true.
@@ -69,6 +76,7 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
         TimeSpan? customTtl = null,
         CancellationToken cancellationToken = default)
     {
+        ThrowIfDisposed();
         var now = DateTime.UtcNow;
 
         await _cacheLock.WaitAsync(cancellationToken);
@@ -121,6 +129,7 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
         TimeSpan? customTtl = null,
         CancellationToken cancellationToken = default)
     {
+        ThrowIfDisposed();
         var now = DateTime.UtcNow;
 
         await _cacheLock.WaitAsync(cancellationToken);
@@ -165,6 +174,7 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
     /// <param name="cancellationToken">Optional cancellation token to cancel the operation.</param>
     public async Task ClearAsync(CancellationToken cancellationToken = default)
     {
+        ThrowIfDisposed();
         await _cacheLock.WaitAsync(cancellationToken);
         try
         {
@@ -182,6 +192,7 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
     /// </summary>
     public void ResetMetrics()
     {
+        ThrowIfDisposed();
         _metrics.Reset();
         _logger?.LogInformation("{ResourceName} cache metrics reset", _resourceName);
     }
@@ -194,6 +205,7 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
     /// <param name="now">The timestamp representing when the cache entry was accessed.</param>
     public string GetJsonResponse(CachedEntry<T> entry, object additionalData, DateTime now)
     {
+        ThrowIfDisposed();
         var response = new
         {
             data = additionalData,
@@ -215,6 +227,17 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
     }
 
     private bool _disposed = false;
+
+    /// <summary>
+    /// Throws ObjectDisposedException if this instance has been disposed.
+    /// </summary>
+    private void ThrowIfDisposed()
+    {
+        if (_disposed)
+        {
+            throw new ObjectDisposedException(nameof(CachedResourceManager<T>));
+        }
+    }
 
     /// <summary>
     /// Disposes the resources used by the cache manager.
