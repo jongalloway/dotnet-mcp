@@ -67,10 +67,3 @@ jobs:
         with:
           name: coverage-cobertura
           path: coverage.cobertura.xml
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v6
-        with:
-          name: test-results
-          path: "**/TestResults/*.trx"
