@@ -235,7 +235,7 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
     {
         if (_disposed)
         {
-            throw new ObjectDisposedException(nameof(CachedResourceManager<T>));
+            throw new ObjectDisposedException(GetType().FullName);
         }
     }
 
