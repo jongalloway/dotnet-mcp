@@ -507,4 +507,210 @@ public class CachedResourceManagerTests
             _ = manager.Metrics;
         });
     }
+
+    [Fact]
+    public async Task GetOrLoadAsync_ConcurrentCallsOnExpiry_LoadsOnlyOnce()
+    {
+        // Arrange - Cache with 1 second TTL
+        using var manager = new CachedResourceManager<string>("TestResource", defaultTtlSeconds: 1);
+        var loadCount = 0;
+        var loadStarted = new TaskCompletionSource<bool>();
+        var loadCanComplete = new TaskCompletionSource<bool>();
+
+        // First load to populate cache
+        await manager.GetOrLoadAsync(async () => "initial data");
+
+        // Wait for cache to expire
+        await Task.Delay(1100, TestContext.Current.CancellationToken);
+
+        // Act - Start multiple concurrent calls when cache is expired
+        var task1 = Task.Run(async () =>
+        {
+            return await manager.GetOrLoadAsync(async () =>
+            {
+                var count = Interlocked.Increment(ref loadCount);
+                if (count == 1)
+                {
+                    loadStarted.SetResult(true);
+                    await loadCanComplete.Task;
+                }
+                return $"data {count}";
+            }, cancellationToken: TestContext.Current.CancellationToken);
+        });
+
+        // Wait for first call to start loading
+        await loadStarted.Task;
+
+        // Start additional concurrent calls while first is still loading
+        var task2 = manager.GetOrLoadAsync(async () =>
+        {
+            Interlocked.Increment(ref loadCount);
+            return "data concurrent";
+        }, cancellationToken: TestContext.Current.CancellationToken);
+
+        var task3 = manager.GetOrLoadAsync(async () =>
+        {
+            Interlocked.Increment(ref loadCount);
+            return "data concurrent2";
+        }, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Give the concurrent tasks a moment to reach the lock
+        await Task.Delay(100, TestContext.Current.CancellationToken);
+
+        // Allow the first load to complete
+        loadCanComplete.SetResult(true);
+
+        // Wait for all tasks to complete
+        var results = await Task.WhenAll(task1, task2, task3);
+
+        // Assert - Only one load should have occurred (cache stampede protection)
+        Assert.Equal(1, loadCount);
+        Assert.All(results, r => Assert.Equal("data 1", r.Data));
+        Assert.Equal(2, manager.Metrics.Misses); // One from initial load, one from the reload
+    }
+
+    [Fact]
+    public async Task GetOrLoadAsync_CacheHits_DoNotWaitOnLock()
+    {
+        // Arrange
+        using var manager = new CachedResourceManager<string>("TestResource");
+        var loadInProgress = new TaskCompletionSource<bool>();
+        var loadCanComplete = new TaskCompletionSource<bool>();
+
+        // Populate cache first
+        await manager.GetOrLoadAsync(async () => "cached data");
+
+        // Start a forceReload operation that will hold the lock
+        var reloadTask = Task.Run(async () =>
+        {
+            await manager.GetOrLoadAsync(async () =>
+            {
+                loadInProgress.SetResult(true);
+                await loadCanComplete.Task;
+                return "reloaded data";
+            }, forceReload: true, cancellationToken: TestContext.Current.CancellationToken);
+        });
+
+        // Wait for the reload to start and acquire the lock
+        await loadInProgress.Task;
+
+        // Act - Try to get the cached data while lock is held
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var entry = await manager.GetOrLoadAsync(async () => "should not load");
+        stopwatch.Stop();
+
+        // Assert - Cache hit should be fast (< 100ms) even though lock is held
+        Assert.Equal("cached data", entry.Data);
+        Assert.True(stopwatch.ElapsedMilliseconds < 100, 
+            $"Cache hit took {stopwatch.ElapsedMilliseconds}ms, expected < 100ms");
+        Assert.Equal(1, manager.Metrics.Hits); // One hit from the fast-path read
+        Assert.Equal(2, manager.Metrics.Misses); // Initial load + forceReload (in progress)
+
+        // Cleanup
+        loadCanComplete.SetResult(true);
+        await reloadTask;
+    }
+
+    [Fact]
+    public async Task GetOrLoadAsync_WithCancellableLoader_ConcurrentCallsOnExpiry_LoadsOnlyOnce()
+    {
+        // Arrange - Cache with 1 second TTL
+        using var manager = new CachedResourceManager<string>("TestResource", defaultTtlSeconds: 1);
+        var loadCount = 0;
+        var loadStarted = new TaskCompletionSource<bool>();
+        var loadCanComplete = new TaskCompletionSource<bool>();
+
+        // First load to populate cache
+        await manager.GetOrLoadAsync(async (ct) => "initial data", cancellationToken: TestContext.Current.CancellationToken);
+
+        // Wait for cache to expire
+        await Task.Delay(1100, TestContext.Current.CancellationToken);
+
+        // Act - Start multiple concurrent calls when cache is expired
+        var task1 = Task.Run(async () =>
+        {
+            return await manager.GetOrLoadAsync(async (ct) =>
+            {
+                var count = Interlocked.Increment(ref loadCount);
+                if (count == 1)
+                {
+                    loadStarted.SetResult(true);
+                    await loadCanComplete.Task;
+                }
+                return $"data {count}";
+            }, cancellationToken: TestContext.Current.CancellationToken);
+        });
+
+        // Wait for first call to start loading
+        await loadStarted.Task;
+
+        // Start additional concurrent calls while first is still loading
+        var task2 = manager.GetOrLoadAsync(async (ct) =>
+        {
+            Interlocked.Increment(ref loadCount);
+            return "data concurrent";
+        }, cancellationToken: TestContext.Current.CancellationToken);
+
+        var task3 = manager.GetOrLoadAsync(async (ct) =>
+        {
+            Interlocked.Increment(ref loadCount);
+            return "data concurrent2";
+        }, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Give the concurrent tasks a moment to reach the lock
+        await Task.Delay(100, TestContext.Current.CancellationToken);
+
+        // Allow the first load to complete
+        loadCanComplete.SetResult(true);
+
+        // Wait for all tasks to complete
+        var results = await Task.WhenAll(task1, task2, task3);
+
+        // Assert - Only one load should have occurred (cache stampede protection)
+        Assert.Equal(1, loadCount);
+        Assert.All(results, r => Assert.Equal("data 1", r.Data));
+        Assert.Equal(2, manager.Metrics.Misses); // One from initial load, one from the reload
+    }
+
+    [Fact]
+    public async Task GetOrLoadAsync_WithCancellableLoader_CacheHits_DoNotWaitOnLock()
+    {
+        // Arrange
+        using var manager = new CachedResourceManager<string>("TestResource");
+        var loadInProgress = new TaskCompletionSource<bool>();
+        var loadCanComplete = new TaskCompletionSource<bool>();
+
+        // Populate cache first
+        await manager.GetOrLoadAsync(async (ct) => "cached data", cancellationToken: TestContext.Current.CancellationToken);
+
+        // Start a forceReload operation that will hold the lock
+        var reloadTask = Task.Run(async () =>
+        {
+            await manager.GetOrLoadAsync(async (ct) =>
+            {
+                loadInProgress.SetResult(true);
+                await loadCanComplete.Task;
+                return "reloaded data";
+            }, forceReload: true, cancellationToken: TestContext.Current.CancellationToken);
+        });
+
+        // Wait for the reload to start and acquire the lock
+        await loadInProgress.Task;
+
+        // Act - Try to get the cached data while lock is held
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var entry = await manager.GetOrLoadAsync(async (ct) => "should not load", cancellationToken: TestContext.Current.CancellationToken);
+        stopwatch.Stop();
+
+        // Assert - Cache hit should be fast (< 100ms) even though lock is held
+        Assert.Equal("cached data", entry.Data);
+        Assert.True(stopwatch.ElapsedMilliseconds < 100, 
+            $"Cache hit took {stopwatch.ElapsedMilliseconds}ms, expected < 100ms");
+        Assert.Equal(1, manager.Metrics.Hits); // One hit from the fast-path read
+        Assert.Equal(2, manager.Metrics.Misses); // Initial load + forceReload (in progress)
+
+        // Cleanup
+        loadCanComplete.SetResult(true);
+        await reloadTask;
+    }
 }

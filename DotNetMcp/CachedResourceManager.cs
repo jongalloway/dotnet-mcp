@@ -79,33 +79,48 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
         ThrowIfDisposed();
         var now = DateTime.UtcNow;
 
-        await _cacheLock.WaitAsync(cancellationToken);
-        try
+        // Fast-path: Check cache without lock (common case: cache hit)
+        if (!forceReload)
         {
-            // Check if we need to reload
-            if (forceReload || _cache == null || _cache.IsExpired(now))
-            {
-                _metrics.RecordMiss();
-                _logger?.LogDebug("{ResourceName} cache miss - loading fresh data (forceReload: {ForceReload})",
-                    _resourceName, forceReload);
-
-                var data = await loader();
-                _cache = new CachedEntry<T>
-                {
-                    Data = data,
-                    CachedAt = now,
-                    CacheDuration = customTtl ?? _defaultTtl
-                };
-
-                _logger?.LogInformation("{ResourceName} cache updated - expires in {Duration}s",
-                    _resourceName, _cache.CacheDuration.TotalSeconds);
-            }
-            else
+            var cachedEntry = _cache;
+            if (cachedEntry != null && !cachedEntry.IsExpired(now))
             {
                 _metrics.RecordHit();
                 _logger?.LogDebug("{ResourceName} cache hit - age: {AgeSeconds}s, metrics: {Metrics}",
-                    _resourceName, _cache.CacheAgeSeconds(now), _metrics);
+                    _resourceName, cachedEntry.CacheAgeSeconds(now), _metrics);
+                return cachedEntry;
             }
+        }
+
+        // Slow-path: Cache miss or expired, acquire lock
+        await _cacheLock.WaitAsync(cancellationToken);
+        try
+        {
+            // Double-check: Another thread may have loaded while we waited for the lock
+            now = DateTime.UtcNow;
+            if (!forceReload && _cache != null && !_cache.IsExpired(now))
+            {
+                _metrics.RecordHit();
+                _logger?.LogDebug("{ResourceName} cache hit (after lock) - age: {AgeSeconds}s, metrics: {Metrics}",
+                    _resourceName, _cache.CacheAgeSeconds(now), _metrics);
+                return _cache;
+            }
+
+            // Need to reload
+            _metrics.RecordMiss();
+            _logger?.LogDebug("{ResourceName} cache miss - loading fresh data (forceReload: {ForceReload})",
+                _resourceName, forceReload);
+
+            var data = await loader();
+            _cache = new CachedEntry<T>
+            {
+                Data = data,
+                CachedAt = now,
+                CacheDuration = customTtl ?? _defaultTtl
+            };
+
+            _logger?.LogInformation("{ResourceName} cache updated - expires in {Duration}s",
+                _resourceName, _cache.CacheDuration.TotalSeconds);
 
             return _cache;
         }
@@ -132,33 +147,48 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
         ThrowIfDisposed();
         var now = DateTime.UtcNow;
 
-        await _cacheLock.WaitAsync(cancellationToken);
-        try
+        // Fast-path: Check cache without lock (common case: cache hit)
+        if (!forceReload)
         {
-            // Check if we need to reload
-            if (forceReload || _cache == null || _cache.IsExpired(now))
-            {
-                _metrics.RecordMiss();
-                _logger?.LogDebug("{ResourceName} cache miss - loading fresh data (forceReload: {ForceReload})",
-                    _resourceName, forceReload);
-
-                var data = await loader(cancellationToken);
-                _cache = new CachedEntry<T>
-                {
-                    Data = data,
-                    CachedAt = now,
-                    CacheDuration = customTtl ?? _defaultTtl
-                };
-
-                _logger?.LogInformation("{ResourceName} cache updated - expires in {Duration}s",
-                    _resourceName, _cache.CacheDuration.TotalSeconds);
-            }
-            else
+            var cachedEntry = _cache;
+            if (cachedEntry != null && !cachedEntry.IsExpired(now))
             {
                 _metrics.RecordHit();
                 _logger?.LogDebug("{ResourceName} cache hit - age: {AgeSeconds}s, metrics: {Metrics}",
-                    _resourceName, _cache.CacheAgeSeconds(now), _metrics);
+                    _resourceName, cachedEntry.CacheAgeSeconds(now), _metrics);
+                return cachedEntry;
             }
+        }
+
+        // Slow-path: Cache miss or expired, acquire lock
+        await _cacheLock.WaitAsync(cancellationToken);
+        try
+        {
+            // Double-check: Another thread may have loaded while we waited for the lock
+            now = DateTime.UtcNow;
+            if (!forceReload && _cache != null && !_cache.IsExpired(now))
+            {
+                _metrics.RecordHit();
+                _logger?.LogDebug("{ResourceName} cache hit (after lock) - age: {AgeSeconds}s, metrics: {Metrics}",
+                    _resourceName, _cache.CacheAgeSeconds(now), _metrics);
+                return _cache;
+            }
+
+            // Need to reload
+            _metrics.RecordMiss();
+            _logger?.LogDebug("{ResourceName} cache miss - loading fresh data (forceReload: {ForceReload})",
+                _resourceName, forceReload);
+
+            var data = await loader(cancellationToken);
+            _cache = new CachedEntry<T>
+            {
+                Data = data,
+                CachedAt = now,
+                CacheDuration = customTtl ?? _defaultTtl
+            };
+
+            _logger?.LogInformation("{ResourceName} cache updated - expires in {Duration}s",
+                _resourceName, _cache.CacheDuration.TotalSeconds);
 
             return _cache;
         }
