@@ -419,51 +419,45 @@ public class CachedResourceManagerTests
     }
 
     [Fact]
-    public void GetOrLoadAsync_ThrowsObjectDisposedExceptionAfterDispose()
+    public async Task GetOrLoadAsync_ThrowsObjectDisposedExceptionAfterDispose()
     {
         // Arrange
         var manager = new CachedResourceManager<string>("TestResource");
         manager.Dispose();
 
         // Act & Assert
-        var exception = Assert.ThrowsAsync<ObjectDisposedException>(async () =>
+        await Assert.ThrowsAsync<ObjectDisposedException>(async () =>
         {
             await manager.GetOrLoadAsync(async () => "test data");
         });
-
-        Assert.NotNull(exception);
     }
 
     [Fact]
-    public void GetOrLoadAsync_WithCancellableLoader_ThrowsObjectDisposedExceptionAfterDispose()
+    public async Task GetOrLoadAsync_WithCancellableLoader_ThrowsObjectDisposedExceptionAfterDispose()
     {
         // Arrange
         var manager = new CachedResourceManager<string>("TestResource");
         manager.Dispose();
 
         // Act & Assert
-        var exception = Assert.ThrowsAsync<ObjectDisposedException>(async () =>
+        await Assert.ThrowsAsync<ObjectDisposedException>(async () =>
         {
             await manager.GetOrLoadAsync(async (ct) => "test data");
         });
-
-        Assert.NotNull(exception);
     }
 
     [Fact]
-    public void ClearAsync_ThrowsObjectDisposedExceptionAfterDispose()
+    public async Task ClearAsync_ThrowsObjectDisposedExceptionAfterDispose()
     {
         // Arrange
         var manager = new CachedResourceManager<string>("TestResource");
         manager.Dispose();
 
         // Act & Assert
-        var exception = Assert.ThrowsAsync<ObjectDisposedException>(async () =>
+        await Assert.ThrowsAsync<ObjectDisposedException>(async () =>
         {
             await manager.ClearAsync();
         });
-
-        Assert.NotNull(exception);
     }
 
     [Fact]
@@ -474,12 +468,10 @@ public class CachedResourceManagerTests
         manager.Dispose();
 
         // Act & Assert
-        var exception = Assert.Throws<ObjectDisposedException>(() =>
+        Assert.Throws<ObjectDisposedException>(() =>
         {
             manager.ResetMetrics();
         });
-
-        Assert.NotNull(exception);
     }
 
     [Fact]
@@ -496,12 +488,10 @@ public class CachedResourceManagerTests
         manager.Dispose();
 
         // Act & Assert
-        var exception = Assert.Throws<ObjectDisposedException>(() =>
+        Assert.Throws<ObjectDisposedException>(() =>
         {
             manager.GetJsonResponse(entry, new { value = "test" }, DateTime.UtcNow);
         });
-
-        Assert.NotNull(exception);
     }
 
     [Fact]
@@ -512,11 +502,9 @@ public class CachedResourceManagerTests
         manager.Dispose();
 
         // Act & Assert
-        var exception = Assert.Throws<ObjectDisposedException>(() =>
+        Assert.Throws<ObjectDisposedException>(() =>
         {
-            var metrics = manager.Metrics;
+            _ = manager.Metrics;
         });
-
-        Assert.NotNull(exception);
     }
 }
