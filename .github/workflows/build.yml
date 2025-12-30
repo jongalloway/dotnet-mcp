@@ -71,7 +71,7 @@ jobs:
           cp "${coverage_file}" coverage.cobertura.xml
 
       - name: Upload coverage artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: coverage-cobertura
           path: coverage.cobertura.xml
