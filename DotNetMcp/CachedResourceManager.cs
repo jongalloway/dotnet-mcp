@@ -97,6 +97,7 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
         try
         {
             // Double-check: Another thread may have loaded while we waited for the lock
+            // Refresh 'now' to account for time spent waiting for lock
             now = DateTime.UtcNow;
             if (!forceReload && _cache != null && !_cache.IsExpired(now))
             {
@@ -112,6 +113,7 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
                 _resourceName, forceReload);
 
             var data = await loader();
+            // Use refreshed 'now' for accurate TTL calculation
             _cache = new CachedEntry<T>
             {
                 Data = data,
@@ -165,6 +167,7 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
         try
         {
             // Double-check: Another thread may have loaded while we waited for the lock
+            // Refresh 'now' to account for time spent waiting for lock
             now = DateTime.UtcNow;
             if (!forceReload && _cache != null && !_cache.IsExpired(now))
             {
@@ -180,6 +183,7 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
                 _resourceName, forceReload);
 
             var data = await loader(cancellationToken);
+            // Use refreshed 'now' for accurate TTL calculation
             _cache = new CachedEntry<T>
             {
                 Data = data,
