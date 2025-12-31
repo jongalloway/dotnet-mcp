@@ -1863,15 +1863,12 @@ public sealed partial class DotNetCliTools
     /// Does not require building the project.
     /// </summary>
     /// <param name="projectPath">Path to the .csproj file to analyze</param>
-    /// <param name="machineReadable">Return structured JSON output (always true for this tool)</param>
     [McpServerTool]
     [McpMeta("category", "project")]
     [McpMeta("usesMSBuild", true)]
     [McpMeta("priority", 7.0)]
     [McpMeta("tags", JsonValue = """["project","analyze","introspection","metadata"]""")]
-    public async partial Task<string> DotnetProjectAnalyze(
-        string projectPath,
-        bool machineReadable = true)
+    public async partial Task<string> DotnetProjectAnalyze(string projectPath)
     {
         _logger.LogDebug("Analyzing project file: {ProjectPath}", projectPath);
         return await ProjectAnalysisHelper.AnalyzeProjectAsync(projectPath, _logger);
@@ -1882,15 +1879,12 @@ public sealed partial class DotNetCliTools
     /// Returns structured JSON with dependency information. For transitive dependencies, use CLI commands.
     /// </summary>
     /// <param name="projectPath">Path to the .csproj file to analyze</param>
-    /// <param name="machineReadable">Return structured JSON output (always true for this tool)</param>
     [McpServerTool]
     [McpMeta("category", "project")]
     [McpMeta("usesMSBuild", true)]
     [McpMeta("priority", 6.0)]
     [McpMeta("tags", JsonValue = """["project","dependencies","analyze","packages"]""")]
-    public async partial Task<string> DotnetProjectDependencies(
-        string projectPath,
-        bool machineReadable = true)
+    public async partial Task<string> DotnetProjectDependencies(string projectPath)
     {
         _logger.LogDebug("Analyzing dependencies for: {ProjectPath}", projectPath);
         return await ProjectAnalysisHelper.AnalyzeDependenciesAsync(projectPath, _logger);
@@ -1901,15 +1895,12 @@ public sealed partial class DotNetCliTools
     /// Returns structured JSON with errors, warnings, and recommendations. Does not require building.
     /// </summary>
     /// <param name="projectPath">Path to the .csproj file to validate</param>
-    /// <param name="machineReadable">Return structured JSON output (always true for this tool)</param>
     [McpServerTool]
     [McpMeta("category", "project")]
     [McpMeta("usesMSBuild", true)]
     [McpMeta("priority", 6.0)]
     [McpMeta("tags", JsonValue = """["project","validate","health-check","diagnostics"]""")]
-    public async partial Task<string> DotnetProjectValidate(
-        string projectPath,
-        bool machineReadable = true)
+    public async partial Task<string> DotnetProjectValidate(string projectPath)
     {
         _logger.LogDebug("Validating project: {ProjectPath}", projectPath);
         return await ProjectAnalysisHelper.ValidateProjectAsync(projectPath, _logger);

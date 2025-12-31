@@ -1,7 +1,5 @@
-using System.Text;
 using System.Text.Json;
 using Microsoft.Build.Evaluation;
-using Microsoft.Build.Execution;
 using Microsoft.Extensions.Logging;
 
 namespace DotNetMcp;
@@ -289,21 +287,13 @@ public static class ProjectAnalysisHelper
 
     private static object[] GetProjectReferences(Project project)
     {
-        var projects = new List<object>();
-
-        foreach (var item in project.GetItems("ProjectReference"))
-        {
-            var projectPath = item.EvaluatedInclude;
-            var projectName = Path.GetFileNameWithoutExtension(projectPath);
-
-            projects.Add(new
+        return project.GetItems("ProjectReference")
+            .Select(item => new
             {
-                name = projectName,
-                path = projectPath
-            });
-        }
-
-        return projects.ToArray();
+                name = Path.GetFileNameWithoutExtension(item.EvaluatedInclude),
+                path = item.EvaluatedInclude
+            })
+            .ToArray<object>();
     }
 
     private static object GetBuildProperties(Project project)

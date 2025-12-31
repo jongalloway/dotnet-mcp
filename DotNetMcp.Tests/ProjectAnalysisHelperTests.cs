@@ -9,7 +9,6 @@ namespace DotNetMcp.Tests;
 public class ProjectAnalysisHelperTests
 {
     private readonly ILogger<DotNetCliTools> _logger;
-    private string _testProjectPath = null!;
 
     public ProjectAnalysisHelperTests()
     {
@@ -148,14 +147,9 @@ public class ProjectAnalysisHelperTests
             Path.Combine(currentDir, "..", "..", "DotNetMcp.Tests", "DotNetMcp.Tests.csproj"),
         };
 
-        foreach (var path in possiblePaths)
-        {
-            if (File.Exists(path))
-            {
-                return Path.GetFullPath(path);
-            }
-        }
-
-        return null;
+        return possiblePaths
+            .Where(File.Exists)
+            .Select(Path.GetFullPath)
+            .FirstOrDefault();
     }
 }
