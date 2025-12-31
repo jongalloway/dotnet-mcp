@@ -30,11 +30,14 @@ Provides programmatic access to the .NET template system:
 - **Microsoft.Build.Utilities.Core** (v17.14.x)
 - **Microsoft.Build** (v17.14.x)
 
-Provides framework validation and metadata:
+Provides framework validation, metadata, and project analysis:
 
 - Parse and validate Target Framework Monikers (TFMs)
 - Access framework version information
 - Framework classification (modern .NET, .NET Core, .NET Framework, .NET Standard)
+- Parse and analyze .csproj files without building
+- Extract package references, project references, and build properties
+- Validate project configuration and detect common issues
 
 ## Helper Classes
 
@@ -208,6 +211,48 @@ if (FrameworkHelper.IsValidFramework("net8.0"))
 }
 ```
 
+### ProjectAnalysisHelper
+
+Located in `DotNetMcp/ProjectAnalysisHelper.cs`
+
+Provides comprehensive .csproj file analysis using MSBuild APIs without requiring a build:
+
+**Methods:**
+
+- `AnalyzeProjectAsync(projectPath, logger)` - Comprehensive project analysis
+  - Returns JSON with target frameworks, package references, project references, build properties
+- `AnalyzeDependenciesAsync(projectPath, logger)` - Dependency graph analysis
+  - Returns JSON with direct package and project dependencies
+- `ValidateProjectAsync(projectPath, logger)` - Project health check
+  - Returns JSON with errors, warnings, and recommendations
+
+**Usage Example:**
+
+```csharp
+// Analyze a project file
+var analysisJson = await ProjectAnalysisHelper.AnalyzeProjectAsync("MyApp.csproj", logger);
+// Returns: target frameworks, packages, project refs, build properties, analyzers, etc.
+
+// Analyze dependencies
+var depsJson = await ProjectAnalysisHelper.AnalyzeDependenciesAsync("MyApp.csproj", logger);
+// Returns: direct package dependencies, project dependencies, framework info
+
+// Validate project health
+var validationJson = await ProjectAnalysisHelper.ValidateProjectAsync("MyApp.csproj", logger);
+// Returns: errors, warnings, recommendations (e.g., use LTS framework, enable nullable)
+```
+
+**Features:**
+
+- Parses .csproj files using MSBuild's Project class
+- No build required - reads project structure directly
+- Extracts package references with versions and metadata
+- Extracts project references with paths
+- Reads build properties (PublishAot, InvariantGlobalization, etc.)
+- Validates framework versions and suggests LTS alternatives
+- Detects missing configuration (OutputType, Nullable, etc.)
+- Thread-safe and async-first design
+
 ## MCP Tools Using SDK Integration
 
 ### Template Tools
@@ -379,30 +424,53 @@ public async Task<string> DotnetProjectNew(string template)
 
 **Future Extensibility**
 
-- Foundation for MSBuild project analysis
+- Foundation for MSBuild project analysis ✅ (Implemented)
 - Ready for NuGet API integration
 - Prepared for Roslyn integration
 
+### Project Analysis Tools
+
+**`dotnet_project_analyze(projectPath)`**
+Analyzes a .csproj file using MSBuild APIs to extract comprehensive project information. Returns JSON with target frameworks, package references, project references, build properties, analyzers, and configuration.
+
+**`dotnet_project_dependencies(projectPath)`**
+Builds a dependency graph showing direct package and project dependencies. Returns JSON with dependency counts and notes about using CLI for transitive dependencies.
+
+**`dotnet_project_validate(projectPath)`**
+Validates project health and configuration. Detects common issues like missing SDK, invalid frameworks, deprecated configurations. Returns JSON with errors, warnings, and recommendations.
+
 ## Testing SDK Integration
 
-Test template and framework tools:
+Test template, framework, and project analysis tools:
 
 ```
 # Template discovery
 "What .NET templates are available?"
-? Uses dotnet_template_list
+→ Uses dotnet_template_list
 
 # Template search
 "Show me web-related templates"
-? Uses dotnet_template_search
+→ Uses dotnet_template_search
 
 # Template details
 "What options does the console template have?"
-? Uses dotnet_template_info
+→ Uses dotnet_template_info
 
 # Framework information
 "Which .NET versions are LTS?"
-? Uses dotnet_framework_info
+→ Uses dotnet_framework_info
+
+# Project analysis
+"Analyze the MyApp.csproj file and show me what packages it uses"
+→ Uses dotnet_project_analyze
+
+# Dependency analysis
+"What dependencies does this project have?"
+→ Uses dotnet_project_dependencies
+
+# Project validation
+"Check if MyApp.csproj has any configuration issues"
+→ Uses dotnet_project_validate
 ```
 
 ## Future Enhancement Opportunities
@@ -410,7 +478,7 @@ Test template and framework tools:
 The SDK integration foundation enables:
 
 1. **NuGet API Integration** - Package querying and dependency analysis
-2. **MSBuild Project Analysis** - Parse and analyze project files
+2. **MSBuild Project Analysis** ✅ (Implemented) - Parse and analyze project files
 3. **Roslyn Integration** - Code analysis and generation
 4. **Workload Management** - .NET workload installation and management
 5. **Template Creation** - Assist in creating custom templates

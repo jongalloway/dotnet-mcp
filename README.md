@@ -616,6 +616,9 @@ Resources provide structured JSON data and are more efficient than tool calls fo
 - **dotnet_project_test** - Run unit tests
 - **dotnet_project_publish** - Publish projects for deployment
 - **dotnet_project_clean** - Clean build outputs
+- **dotnet_project_analyze** - Analyze .csproj files to extract comprehensive project information (frameworks, packages, properties)
+- **dotnet_project_dependencies** - Build dependency graph showing direct package and project dependencies
+- **dotnet_project_validate** - Validate project health and detect common issues, deprecated packages, and configuration problems
 - **dotnet_pack_create** - Create NuGet packages from projects
 - **dotnet_watch_run** - Run with file watching and hot reload
 - **dotnet_watch_test** - Run tests with auto-restart on file changes
