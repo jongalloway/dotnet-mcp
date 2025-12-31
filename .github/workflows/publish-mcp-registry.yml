@@ -4,30 +4,22 @@ env:
     PACKAGE_ID: Community.Mcp.DotNet
 
 on:
-    workflow_run:
-        # IMPORTANT: This must match the `name:` of the NuGet publish workflow in publish-nuget.yml.
-        # If that workflow is renamed, update this list to keep the trigger working.
-        workflows: ["Publish NuGet Package"]
-        types:
-            - completed
-    workflow_dispatch:
-        inputs:
-            packageVersion:
-                description: "NuGet package version to publish (optional; defaults to tag version if available)"
-                required: false
-                type: string
+  workflow_dispatch:
+    inputs:
+      packageVersion:
+        description: "NuGet package version to publish (required for manual runs, e.g. 1.2.3)"
+        required: true
+        type: string
 
 jobs:
     publish-registry:
-        # Only run automatically if the NuGet publish workflow succeeded
-        if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
         runs-on: ubuntu-latest
         permissions:
             contents: read
             id-token: write # Required for GitHub OIDC login (mcp-publisher)
 
         concurrency:
-            group: publish-mcp-registry-${{ github.repository }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+            group: "publish-mcp-registry-${{ github.repository }}-${{ github.ref }}"
             cancel-in-progress: false
 
         steps:
@@ -35,8 +27,6 @@ jobs:
               uses: actions/checkout@v6
               with:
                   fetch-depth: 0
-                  # For workflow_run, check out the exact commit that was published to NuGet.
-                  ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
             - name: Prepare package (wait, download, extract server.json)
               id: prepare
