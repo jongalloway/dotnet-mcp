@@ -231,6 +231,15 @@ jobs:
         run: |
           set -euo pipefail
 
+          # First, verify the artifact was downloaded
+          nupkg=$(ls -1 ./artifacts/*.nupkg | head -n 1)
+          if [ -z "${nupkg:-}" ] || [ ! -f "$nupkg" ]; then
+            echo "❌ ERROR: No .nupkg found in ./artifacts"
+            ls -la ./artifacts || true
+            exit 1
+          fi
+
+          # Then validate we received the package metadata from the publish job
           package_id="${{ needs.publish.outputs.package_id }}"
           version="${{ needs.publish.outputs.version }}"
 
@@ -238,13 +247,6 @@ jobs:
             echo "❌ ERROR: Package ID or version not provided by publish job"
             echo "Package ID: ${package_id:-<empty>}"
             echo "Version: ${version:-<empty>}"
-            exit 1
-          fi
-
-          nupkg=$(ls -1 ./artifacts/*.nupkg | head -n 1)
-          if [ -z "${nupkg:-}" ] || [ ! -f "$nupkg" ]; then
-            echo "❌ ERROR: No .nupkg found in ./artifacts"
-            ls -la ./artifacts || true
             exit 1
           fi
 
@@ -319,7 +321,7 @@ jobs:
 
             # Retry only for known eventual-consistency style errors from the MCP registry.
             # Match multiple common phrasings in a case-insensitive way to avoid relying on a single exact string.
-            if grep -Ei '(exists but version|version.*not.*available|eventual consistency|propagat(e|ion) delay)' publish.log; then
+            if grep -Ei '(exists but version|version.*not.*available|eventual consistency|propagate|propagation delay)' publish.log; then
               if [ "$attempt" -lt "$max_attempts" ]; then
                 echo "⚠️  Registry cannot see NuGet version yet; retrying after ${sleep_seconds}s"
                 sleep "$sleep_seconds"

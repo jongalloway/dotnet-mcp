@@ -177,7 +177,7 @@ jobs:
 
                     # Retry only for known eventual-consistency style errors from the MCP registry.
                     # Match multiple common phrasings in a case-insensitive way to avoid relying on a single exact string.
-                    if grep -Ei '(exists but version|version.*not.*available|eventual consistency|propagat(e|ion) delay)' publish.log; then
+                    if grep -Ei '(exists but version|version.*not.*available|eventual consistency|propagate|propagation delay)' publish.log; then
                       if [ "$attempt" -lt "$max_attempts" ]; then
                         echo "⚠️  Registry cannot see NuGet version yet; retrying after ${sleep_seconds}s"
                         sleep "$sleep_seconds"
