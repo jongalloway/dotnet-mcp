@@ -170,7 +170,7 @@ public class CachedResourceManagerTests
         var entry = await manager.GetOrLoadAsync(async () => "test data");
 
         // Act
-        var json = manager.GetJsonResponse(entry, new { value = "test" }, DateTime.UtcNow);
+        var json = manager.GetJsonResponse(entry, new { value = "test" }, DateTimeOffset.UtcNow);
 
         // Assert
         Assert.Contains("\"data\"", json);
@@ -191,12 +191,12 @@ public class CachedResourceManagerTests
         var entry = new CachedEntry<string>
         {
             Data = "test",
-            CachedAt = DateTime.UtcNow.AddSeconds(-10),
+            CachedAt = DateTimeOffset.UtcNow.AddSeconds(-10),
             CacheDuration = TimeSpan.FromSeconds(5)
         };
 
         // Act & Assert
-        Assert.True(entry.IsExpired(DateTime.UtcNow));
+        Assert.True(entry.IsExpired(DateTimeOffset.UtcNow));
     }
 
     [Fact]
@@ -206,19 +206,19 @@ public class CachedResourceManagerTests
         var entry = new CachedEntry<string>
         {
             Data = "test",
-            CachedAt = DateTime.UtcNow.AddSeconds(-2),
+            CachedAt = DateTimeOffset.UtcNow.AddSeconds(-2),
             CacheDuration = TimeSpan.FromSeconds(5)
         };
 
         // Act & Assert
-        Assert.False(entry.IsExpired(DateTime.UtcNow));
+        Assert.False(entry.IsExpired(DateTimeOffset.UtcNow));
     }
 
     [Fact]
     public async Task CachedEntry_CacheAgeSeconds_CalculatesCorrectly()
     {
         // Arrange
-        var now = DateTime.UtcNow;
+        var now = DateTimeOffset.UtcNow;
         var entry = new CachedEntry<string>
         {
             Data = "test",
@@ -482,7 +482,7 @@ public class CachedResourceManagerTests
         var entry = new CachedEntry<string>
         {
             Data = "test",
-            CachedAt = DateTime.UtcNow,
+            CachedAt = DateTimeOffset.UtcNow,
             CacheDuration = TimeSpan.FromSeconds(60)
         };
         manager.Dispose();
@@ -490,7 +490,7 @@ public class CachedResourceManagerTests
         // Act & Assert
         Assert.Throws<ObjectDisposedException>(() =>
         {
-            manager.GetJsonResponse(entry, new { value = "test" }, DateTime.UtcNow);
+            manager.GetJsonResponse(entry, new { value = "test" }, DateTimeOffset.UtcNow);
         });
     }
 

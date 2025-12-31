@@ -10,12 +10,12 @@ namespace DotNetMcp;
 public class CachedEntry<T> where T : notnull
 {
     public required T Data { get; set; }
-    public DateTime CachedAt { get; set; }
+    public DateTimeOffset CachedAt { get; set; }
     public TimeSpan CacheDuration { get; set; }
 
-    public bool IsExpired(DateTime now) => now > CachedAt.Add(CacheDuration);
+    public bool IsExpired(DateTimeOffset now) => now > CachedAt.Add(CacheDuration);
 
-    public int CacheAgeSeconds(DateTime now) => (int)(now - CachedAt).TotalSeconds;
+    public int CacheAgeSeconds(DateTimeOffset now) => (int)(now - CachedAt).TotalSeconds;
 }
 
 /// <summary>
@@ -36,6 +36,7 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
     private readonly CacheMetrics _metrics = new();
     private readonly ILogger? _logger;
     private readonly string _resourceName;
+    private readonly TimeProvider _timeProvider;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CachedResourceManager{T}"/> class.
@@ -43,11 +44,13 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
     /// <param name="resourceName">Name of the resource for logging purposes.</param>
     /// <param name="defaultTtlSeconds">Default cache TTL in seconds (default: 300).</param>
     /// <param name="logger">Optional logger instance.</param>
-    public CachedResourceManager(string resourceName, int defaultTtlSeconds = 300, ILogger? logger = null)
+    /// <param name="timeProvider">Optional time provider for testability (default: TimeProvider.System).</param>
+    public CachedResourceManager(string resourceName, int defaultTtlSeconds = 300, ILogger? logger = null, TimeProvider? timeProvider = null)
     {
         _resourceName = resourceName;
         _defaultTtl = TimeSpan.FromSeconds(defaultTtlSeconds);
         _logger = logger;
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     /// <summary>
@@ -77,7 +80,7 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
         CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
-        var now = DateTime.UtcNow;
+        var now = _timeProvider.GetUtcNow();
 
         // Fast-path: Check cache without lock (common case: cache hit)
         if (!forceReload)
@@ -98,7 +101,7 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
         {
             // Double-check: Another thread may have loaded while we waited for the lock
             // Refresh 'now' to account for time spent waiting for lock
-            now = DateTime.UtcNow;
+            now = _timeProvider.GetUtcNow();
             if (!forceReload && _cache != null && !_cache.IsExpired(now))
             {
                 _metrics.RecordHit();
@@ -148,7 +151,7 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
         CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
-        var now = DateTime.UtcNow;
+        var now = _timeProvider.GetUtcNow();
 
         // Fast-path: Check cache without lock (common case: cache hit)
         if (!forceReload)
@@ -169,7 +172,7 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
         {
             // Double-check: Another thread may have loaded while we waited for the lock
             // Refresh 'now' to account for time spent waiting for lock
-            now = DateTime.UtcNow;
+            now = _timeProvider.GetUtcNow();
             if (!forceReload && _cache != null && !_cache.IsExpired(now))
             {
                 _metrics.RecordHit();
@@ -239,7 +242,7 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
     /// <param name="entry">The cached entry containing data and metadata.</param>
     /// <param name="additionalData">Additional data to include in the response.</param>
     /// <param name="now">The timestamp representing when the cache entry was accessed.</param>
-    public string GetJsonResponse(CachedEntry<T> entry, object additionalData, DateTime now)
+    public string GetJsonResponse(CachedEntry<T> entry, object additionalData, DateTimeOffset now)
     {
         ThrowIfDisposed();
         var response = new
