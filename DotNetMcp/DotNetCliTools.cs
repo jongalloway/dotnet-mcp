@@ -875,17 +875,18 @@ public sealed partial class DotNetCliTools
         result.AppendLine();
 
         result.AppendLine("FEATURES:");
-        result.AppendLine("  • 49 MCP Tools across 13 categories");
+        result.AppendLine("  • 52 MCP Tools across 13 categories");
         result.AppendLine("  • 4 MCP Resources (SDK, Runtime, Templates, Frameworks)");
         result.AppendLine("  • Direct .NET SDK integration via NuGet packages");
         result.AppendLine("  • Template Engine integration with caching (5-min TTL)");
         result.AppendLine("  • Framework validation and LTS identification");
+        result.AppendLine("  • MSBuild integration for project analysis");
         result.AppendLine("  • Thread-safe caching with metrics tracking");
         result.AppendLine();
 
         result.AppendLine("TOOL CATEGORIES:");
         result.AppendLine("  • Template (5 tools): List, search, info, cache management");
-        result.AppendLine("  • Project (7 tools): New, build, run, test, publish, clean, restore");
+        result.AppendLine("  • Project (10 tools): New, build, run, test, publish, clean, restore, analyze, dependencies, validate");
         result.AppendLine("  • Package (6 tools): Add, remove, update, list, search, pack");
         result.AppendLine("  • Solution (4 tools): Create, add, remove, list");
         result.AppendLine("  • Reference (3 tools): Add, remove, list");
@@ -1854,5 +1855,54 @@ public sealed partial class DotNetCliTools
         }
 
         return sdks.ToArray();
+    }
+
+    /// <summary>
+    /// Analyze a .csproj file to extract comprehensive project information including target frameworks, 
+    /// package references, project references, and build properties. Returns structured JSON.
+    /// Does not require building the project.
+    /// </summary>
+    /// <param name="projectPath">Path to the .csproj file to analyze</param>
+    [McpServerTool]
+    [McpMeta("category", "project")]
+    [McpMeta("usesMSBuild", true)]
+    [McpMeta("priority", 7.0)]
+    [McpMeta("tags", JsonValue = """["project","analyze","introspection","metadata"]""")]
+    public async partial Task<string> DotnetProjectAnalyze(string projectPath)
+    {
+        _logger.LogDebug("Analyzing project file: {ProjectPath}", projectPath);
+        return await ProjectAnalysisHelper.AnalyzeProjectAsync(projectPath, _logger);
+    }
+
+    /// <summary>
+    /// Analyze project dependencies to build a dependency graph showing direct package and project dependencies.
+    /// Returns structured JSON with dependency information. For transitive dependencies, use CLI commands.
+    /// </summary>
+    /// <param name="projectPath">Path to the .csproj file to analyze</param>
+    [McpServerTool]
+    [McpMeta("category", "project")]
+    [McpMeta("usesMSBuild", true)]
+    [McpMeta("priority", 6.0)]
+    [McpMeta("tags", JsonValue = """["project","dependencies","analyze","packages"]""")]
+    public async partial Task<string> DotnetProjectDependencies(string projectPath)
+    {
+        _logger.LogDebug("Analyzing dependencies for: {ProjectPath}", projectPath);
+        return await ProjectAnalysisHelper.AnalyzeDependenciesAsync(projectPath, _logger);
+    }
+
+    /// <summary>
+    /// Validate a .csproj file for common issues, deprecated packages, and configuration problems.
+    /// Returns structured JSON with errors, warnings, and recommendations. Does not require building.
+    /// </summary>
+    /// <param name="projectPath">Path to the .csproj file to validate</param>
+    [McpServerTool]
+    [McpMeta("category", "project")]
+    [McpMeta("usesMSBuild", true)]
+    [McpMeta("priority", 6.0)]
+    [McpMeta("tags", JsonValue = """["project","validate","health-check","diagnostics"]""")]
+    public async partial Task<string> DotnetProjectValidate(string projectPath)
+    {
+        _logger.LogDebug("Validating project: {ProjectPath}", projectPath);
+        return await ProjectAnalysisHelper.ValidateProjectAsync(projectPath, _logger);
     }
 }

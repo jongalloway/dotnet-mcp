@@ -818,4 +818,34 @@ public class DotNetCliToolsTests
 
         Assert.NotNull(result);
     }
+
+    [Fact]
+    public async Task DotnetProjectAnalyze_WithNonExistentFile_ReturnsError()
+    {
+        // Validates that analyze returns an error for non-existent files
+        var result = await _tools.DotnetProjectAnalyze("/tmp/nonexistent.csproj");
+
+        Assert.NotNull(result);
+        Assert.Contains("not found", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProjectDependencies_WithNonExistentFile_ReturnsError()
+    {
+        // Validates that dependencies analysis returns an error for non-existent files
+        var result = await _tools.DotnetProjectDependencies("/tmp/nonexistent.csproj");
+
+        Assert.NotNull(result);
+        Assert.Contains("not found", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProjectValidate_WithNonExistentFile_ReturnsError()
+    {
+        // Validates that validation returns an error for non-existent files
+        var result = await _tools.DotnetProjectValidate("/tmp/nonexistent.csproj");
+
+        Assert.NotNull(result);
+        Assert.Contains("not found", result, StringComparison.OrdinalIgnoreCase);
+    }
 }
