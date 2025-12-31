@@ -18,7 +18,7 @@ public class CachedResourceManagerTests
             loadCount++;
             await Task.Delay(10, TestContext.Current.CancellationToken);
             return "test data";
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("test data", entry.Data);
@@ -40,14 +40,14 @@ public class CachedResourceManagerTests
             loadCount++;
             await Task.Delay(10, TestContext.Current.CancellationToken);
             return "test data";
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
         var entry2 = await manager.GetOrLoadAsync(async () =>
         {
             loadCount++;
             await Task.Delay(10, TestContext.Current.CancellationToken);
             return "test data";
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("test data", entry1.Data);
@@ -69,13 +69,13 @@ public class CachedResourceManagerTests
         {
             loadCount++;
             return $"data {loadCount}";
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
         var entry2 = await manager.GetOrLoadAsync(async () =>
         {
             loadCount++;
             return $"data {loadCount}";
-        }, forceReload: true);
+        }, forceReload: true, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("data 1", entry1.Data);
@@ -98,7 +98,7 @@ public class CachedResourceManagerTests
         {
             loadCount++;
             return $"data {loadCount}";
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
         // Advance time past cache expiry (no need for Task.Delay!)
         fakeTime.Advance(TimeSpan.FromSeconds(1.1));
@@ -108,7 +108,7 @@ public class CachedResourceManagerTests
         {
             loadCount++;
             return $"data {loadCount}";
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("data 1", entry1.Data);
@@ -129,16 +129,16 @@ public class CachedResourceManagerTests
         {
             loadCount++;
             return "test data";
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
-        await manager.ClearAsync();
+        await manager.ClearAsync(TestContext.Current.CancellationToken);
 
         var entry = await manager.GetOrLoadAsync(async () =>
         {
             loadCount++;
             return "new data";
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("new data", entry.Data);
@@ -168,7 +168,7 @@ public class CachedResourceManagerTests
     {
         // Arrange
         using var manager = new CachedResourceManager<string>("TestResource");
-        var entry = await manager.GetOrLoadAsync(async () => "test data");
+        var entry = await manager.GetOrLoadAsync(async () => "test data", cancellationToken: TestContext.Current.CancellationToken);
 
         // Act
         var json = manager.GetJsonResponse(entry, new { value = "test" }, DateTimeOffset.UtcNow);
@@ -252,7 +252,7 @@ public class CachedResourceManagerTests
                 await firstCallCanComplete.Task;
                 return "first data";
             }, cancellationToken: TestContext.Current.CancellationToken);
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Wait for the first call to start and acquire the lock
         await firstCallStarted.Task;
@@ -378,7 +378,7 @@ public class CachedResourceManagerTests
         using var clearCts = new CancellationTokenSource();
 
         // Act - start ClearAsync so it waits for the lock
-        var clearTask = Task.Run(async () => await manager.ClearAsync(clearCts.Token));
+        var clearTask = Task.Run(async () => await manager.ClearAsync(clearCts.Token), TestContext.Current.CancellationToken);
 
         // Give ClearAsync a moment to reach the lock acquisition point
         await Task.Delay(50, TestContext.Current.CancellationToken);
@@ -412,7 +412,7 @@ public class CachedResourceManagerTests
         {
             await Task.Delay(10, TestContext.Current.CancellationToken);
             return "test data";
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("test data", entry.Data);
@@ -429,7 +429,7 @@ public class CachedResourceManagerTests
         // Act & Assert
         await Assert.ThrowsAsync<ObjectDisposedException>(async () =>
         {
-            await manager.GetOrLoadAsync(async () => "test data");
+            await manager.GetOrLoadAsync(async () => "test data", cancellationToken: TestContext.Current.CancellationToken);
         });
     }
 
@@ -443,7 +443,7 @@ public class CachedResourceManagerTests
         // Act & Assert
         await Assert.ThrowsAsync<ObjectDisposedException>(async () =>
         {
-            await manager.GetOrLoadAsync(async (ct) => "test data");
+            await manager.GetOrLoadAsync(async (ct) => "test data", cancellationToken: TestContext.Current.CancellationToken);
         });
     }
 
@@ -457,7 +457,7 @@ public class CachedResourceManagerTests
         // Act & Assert
         await Assert.ThrowsAsync<ObjectDisposedException>(async () =>
         {
-            await manager.ClearAsync();
+            await manager.ClearAsync(TestContext.Current.CancellationToken);
         });
     }
 
@@ -520,7 +520,7 @@ public class CachedResourceManagerTests
         var loadCanComplete = new TaskCompletionSource<bool>();
 
         // First load to populate cache
-        await manager.GetOrLoadAsync(async () => "initial data");
+        await manager.GetOrLoadAsync(async () => "initial data", cancellationToken: TestContext.Current.CancellationToken);
 
         // Advance time past cache expiry (no Task.Delay needed!)
         fakeTime.Advance(TimeSpan.FromSeconds(1.1));
@@ -580,7 +580,7 @@ public class CachedResourceManagerTests
         var loadCanComplete = new TaskCompletionSource<bool>();
 
         // Populate cache first
-        await manager.GetOrLoadAsync(async () => "cached data");
+        await manager.GetOrLoadAsync(async () => "cached data", cancellationToken: TestContext.Current.CancellationToken);
 
         // Start a forceReload operation that will hold the lock
         var reloadTask = Task.Run(async () =>
@@ -591,14 +591,14 @@ public class CachedResourceManagerTests
                 await loadCanComplete.Task;
                 return "reloaded data";
             }, forceReload: true, cancellationToken: TestContext.Current.CancellationToken);
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Wait for the reload to start and acquire the lock
         await loadInProgress.Task;
 
         // Act - Try to get the cached data while lock is held
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        var entry = await manager.GetOrLoadAsync(async () => "should not load");
+        var entry = await manager.GetOrLoadAsync(async () => "should not load", cancellationToken: TestContext.Current.CancellationToken);
         stopwatch.Stop();
 
         // Assert - Cache hit should be fast (< 100ms) even though lock is held
@@ -695,7 +695,7 @@ public class CachedResourceManagerTests
                 await loadCanComplete.Task;
                 return "reloaded data";
             }, forceReload: true, cancellationToken: TestContext.Current.CancellationToken);
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Wait for the reload to start and acquire the lock
         await loadInProgress.Task;
@@ -732,7 +732,7 @@ public class CachedResourceManagerTests
         {
             loadCount++;
             return $"data {loadCount}";
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
         // Advance time by 30 seconds (still within 60-second TTL)
         fakeTime.Advance(TimeSpan.FromSeconds(30));
@@ -742,7 +742,7 @@ public class CachedResourceManagerTests
         {
             loadCount++;
             return $"data {loadCount}";
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("data 1", entry1.Data);
@@ -765,7 +765,7 @@ public class CachedResourceManagerTests
         {
             loadCount++;
             return $"data {loadCount}";
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
         // Advance time by 61 seconds (past the 60-second TTL)
         fakeTime.Advance(TimeSpan.FromSeconds(61));
@@ -775,7 +775,7 @@ public class CachedResourceManagerTests
         {
             loadCount++;
             return $"data {loadCount}";
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("data 1", entry1.Data);
@@ -798,7 +798,7 @@ public class CachedResourceManagerTests
         {
             loadCount++;
             return $"data {loadCount}";
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
         // Advance time to exactly 60 seconds (at expiry boundary)
         fakeTime.Advance(TimeSpan.FromSeconds(60));
@@ -808,7 +808,7 @@ public class CachedResourceManagerTests
         {
             loadCount++;
             return $"data {loadCount}";
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
         // Advance time by 1 more millisecond (past expiry)
         fakeTime.Advance(TimeSpan.FromMilliseconds(1));
@@ -818,7 +818,7 @@ public class CachedResourceManagerTests
         {
             loadCount++;
             return $"data {loadCount}";
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("data 1", entry1.Data);
@@ -838,7 +838,7 @@ public class CachedResourceManagerTests
         using var manager = new CachedResourceManager<string>("TestResource", defaultTtlSeconds: 300, timeProvider: fakeTime);
 
         // Act - Load data
-        var entry = await manager.GetOrLoadAsync(async () => "test data");
+        var entry = await manager.GetOrLoadAsync(async () => "test data", cancellationToken: TestContext.Current.CancellationToken);
 
         // Advance time by 42 seconds
         fakeTime.Advance(TimeSpan.FromSeconds(42));
@@ -864,7 +864,8 @@ public class CachedResourceManagerTests
                 loadCount++;
                 return $"data {loadCount}";
             },
-            customTtl: TimeSpan.FromSeconds(10));
+            customTtl: TimeSpan.FromSeconds(10),
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Advance time by 9 seconds (within custom TTL)
         fakeTime.Advance(TimeSpan.FromSeconds(9));
@@ -872,7 +873,7 @@ public class CachedResourceManagerTests
         {
             loadCount++;
             return $"data {loadCount}";
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
         // Advance time by 2 more seconds (past custom TTL)
         fakeTime.Advance(TimeSpan.FromSeconds(2));
@@ -880,7 +881,7 @@ public class CachedResourceManagerTests
         {
             loadCount++;
             return $"data {loadCount}";
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("data 1", entry1.Data);
@@ -900,15 +901,15 @@ public class CachedResourceManagerTests
         var loadCount = 0;
 
         // Act - Load, expire, reload, expire, reload
-        var entry1 = await manager.GetOrLoadAsync(async () => $"data {++loadCount}");
+        var entry1 = await manager.GetOrLoadAsync(async () => $"data {++loadCount}", cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("data 1", entry1.Data);
 
         fakeTime.Advance(TimeSpan.FromSeconds(31));
-        var entry2 = await manager.GetOrLoadAsync(async () => $"data {++loadCount}");
+        var entry2 = await manager.GetOrLoadAsync(async () => $"data {++loadCount}", cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("data 2", entry2.Data);
 
         fakeTime.Advance(TimeSpan.FromSeconds(31));
-        var entry3 = await manager.GetOrLoadAsync(async () => $"data {++loadCount}");
+        var entry3 = await manager.GetOrLoadAsync(async () => $"data {++loadCount}", cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("data 3", entry3.Data);
 
         // Assert
@@ -925,7 +926,7 @@ public class CachedResourceManagerTests
         var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(startTime);
         using var manager = new CachedResourceManager<string>("TestResource", defaultTtlSeconds: 300, timeProvider: fakeTime);
 
-        var entry = await manager.GetOrLoadAsync(async () => "test data");
+        var entry = await manager.GetOrLoadAsync(async () => "test data", cancellationToken: TestContext.Current.CancellationToken);
 
         // Advance time by 120 seconds
         fakeTime.Advance(TimeSpan.FromSeconds(120));

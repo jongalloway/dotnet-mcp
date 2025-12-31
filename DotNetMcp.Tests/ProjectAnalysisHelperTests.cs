@@ -28,7 +28,7 @@ public class ProjectAnalysisHelperTests
         Assert.NotNull(result);
         var json = JsonDocument.Parse(result);
         Assert.False(json.RootElement.GetProperty("success").GetBoolean());
-        Assert.True(json.RootElement.GetProperty("error").GetString()!.Contains("not found"));
+        Assert.Contains("not found", json.RootElement.GetProperty("error").GetString()!);
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public class ProjectAnalysisHelperTests
         Assert.NotNull(result);
         var json = JsonDocument.Parse(result);
         Assert.False(json.RootElement.GetProperty("success").GetBoolean());
-        Assert.True(json.RootElement.GetProperty("error").GetString()!.Contains("not found"));
+        Assert.Contains("not found", json.RootElement.GetProperty("error").GetString()!);
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public class ProjectAnalysisHelperTests
         Assert.NotNull(result);
         var json = JsonDocument.Parse(result);
         Assert.False(json.RootElement.GetProperty("success").GetBoolean());
-        Assert.True(json.RootElement.GetProperty("error").GetString()!.Contains("not found"));
+        Assert.Contains("not found", json.RootElement.GetProperty("error").GetString()!);
     }
 
     [Fact]
