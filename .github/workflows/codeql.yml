@@ -106,8 +106,8 @@ jobs:
       with:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
-        # For C# on PRs, exclude test files to speed up analysis
-        # On main branch and scheduled runs, analyze everything
+        # For C# on PRs, use security-focused queries for faster analysis
+        # On main branch and scheduled runs, use default queries (more comprehensive)
         queries: ${{ github.event_name == 'pull_request' && matrix.language == 'csharp' && 'security-and-quality' || '' }}
         # If you wish to specify custom queries, you can do so here or in a config file.
         # By default, queries listed here will override any specified in a config file.
