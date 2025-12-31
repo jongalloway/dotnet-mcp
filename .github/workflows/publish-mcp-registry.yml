@@ -126,7 +126,23 @@ jobs:
               shell: bash
               run: |
                   set -euo pipefail
-                  curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+                  os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+                  arch="$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
+                  url="https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_${os}_${arch}.tar.gz"
+
+                  echo "Downloading mcp-publisher from: ${url}"
+                  curl -fsSL "${url}" -o mcp-publisher.tar.gz
+
+                  # Verify checksum if provided
+                  if [ -n "${MCP_PUBLISHER_SHA256:-}" ]; then
+                    echo "Verifying checksum for mcp-publisher.tar.gz"
+                    echo "${MCP_PUBLISHER_SHA256}  mcp-publisher.tar.gz" | sha256sum -c -
+                  else
+                    echo "⚠️  WARNING: MCP_PUBLISHER_SHA256 environment variable is not set. Skipping checksum verification."
+                    echo "For enhanced security, consider setting this variable with the expected SHA256 checksum."
+                  fi
+
+                  tar xzf mcp-publisher.tar.gz mcp-publisher
                   chmod +x mcp-publisher
                   ./mcp-publisher --version
 
@@ -159,8 +175,9 @@ jobs:
                       exit 0
                     fi
 
-                    # Retry only for the known eventual-consistency error.
-                    if grep -q "exists but version" publish.log; then
+                    # Retry only for known eventual-consistency style errors from the MCP registry.
+                    # Match multiple common phrasings in a case-insensitive way to avoid relying on a single exact string.
+                    if grep -Ei '(exists but version|version.*not.*available|eventual consistency|propagate|propagation delay)' publish.log; then
                       if [ "$attempt" -lt "$max_attempts" ]; then
                         echo "⚠️  Registry cannot see NuGet version yet; retrying after ${sleep_seconds}s"
                         sleep "$sleep_seconds"
