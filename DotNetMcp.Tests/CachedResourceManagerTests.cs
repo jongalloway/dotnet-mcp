@@ -88,8 +88,9 @@ public class CachedResourceManagerTests
     [Fact]
     public async Task GetOrLoadAsync_ReloadsData_AfterCacheExpires()
     {
-        // Arrange - Cache with 1 second TTL
-        using var manager = new CachedResourceManager<string>("TestResource", defaultTtlSeconds: 1);
+        // Arrange - Cache with 1 second TTL using FakeTimeProvider for deterministic testing
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(DateTimeOffset.UtcNow);
+        using var manager = new CachedResourceManager<string>("TestResource", defaultTtlSeconds: 1, timeProvider: fakeTime);
         var loadCount = 0;
 
         // Act - Load once
@@ -99,8 +100,8 @@ public class CachedResourceManagerTests
             return $"data {loadCount}";
         });
 
-        // Wait for cache to expire
-        await Task.Delay(1100, TestContext.Current.CancellationToken);
+        // Advance time past cache expiry (no need for Task.Delay!)
+        fakeTime.Advance(TimeSpan.FromSeconds(1.1));
 
         // Load again
         var entry2 = await manager.GetOrLoadAsync(async () =>
@@ -511,8 +512,9 @@ public class CachedResourceManagerTests
     [Fact]
     public async Task GetOrLoadAsync_ConcurrentCallsOnExpiry_LoadsOnlyOnce()
     {
-        // Arrange - Cache with 1 second TTL
-        using var manager = new CachedResourceManager<string>("TestResource", defaultTtlSeconds: 1);
+        // Arrange - Cache with 1 second TTL using FakeTimeProvider
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(DateTimeOffset.UtcNow);
+        using var manager = new CachedResourceManager<string>("TestResource", defaultTtlSeconds: 1, timeProvider: fakeTime);
         var loadCount = 0;
         var loadStarted = new TaskCompletionSource<bool>();
         var loadCanComplete = new TaskCompletionSource<bool>();
@@ -520,8 +522,8 @@ public class CachedResourceManagerTests
         // First load to populate cache
         await manager.GetOrLoadAsync(async () => "initial data");
 
-        // Wait for cache to expire
-        await Task.Delay(1100, TestContext.Current.CancellationToken);
+        // Advance time past cache expiry (no Task.Delay needed!)
+        fakeTime.Advance(TimeSpan.FromSeconds(1.1));
 
         // Act - Start multiple concurrent calls when cache is expired
         var task1 = Task.Run(async () =>
@@ -614,8 +616,9 @@ public class CachedResourceManagerTests
     [Fact]
     public async Task GetOrLoadAsync_WithCancellableLoader_ConcurrentCallsOnExpiry_LoadsOnlyOnce()
     {
-        // Arrange - Cache with 1 second TTL
-        using var manager = new CachedResourceManager<string>("TestResource", defaultTtlSeconds: 1);
+        // Arrange - Cache with 1 second TTL using FakeTimeProvider
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(DateTimeOffset.UtcNow);
+        using var manager = new CachedResourceManager<string>("TestResource", defaultTtlSeconds: 1, timeProvider: fakeTime);
         var loadCount = 0;
         var loadStarted = new TaskCompletionSource<bool>();
         var loadCanComplete = new TaskCompletionSource<bool>();
@@ -623,8 +626,8 @@ public class CachedResourceManagerTests
         // First load to populate cache
         await manager.GetOrLoadAsync(async (ct) => "initial data", cancellationToken: TestContext.Current.CancellationToken);
 
-        // Wait for cache to expire
-        await Task.Delay(1100, TestContext.Current.CancellationToken);
+        // Advance time past cache expiry (no Task.Delay needed!)
+        fakeTime.Advance(TimeSpan.FromSeconds(1.1));
 
         // Act - Start multiple concurrent calls when cache is expired
         var task1 = Task.Run(async () =>
@@ -712,5 +715,225 @@ public class CachedResourceManagerTests
         // Cleanup
         loadCanComplete.SetResult(true);
         await reloadTask;
+    }
+
+    // Deterministic tests using FakeTimeProvider
+
+    [Fact]
+    public async Task GetOrLoadAsync_WithFakeTimeProvider_CacheHitBeforeExpiry()
+    {
+        // Arrange
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(DateTimeOffset.UtcNow);
+        using var manager = new CachedResourceManager<string>("TestResource", defaultTtlSeconds: 60, timeProvider: fakeTime);
+        var loadCount = 0;
+
+        // Act - First load
+        var entry1 = await manager.GetOrLoadAsync(async () =>
+        {
+            loadCount++;
+            return $"data {loadCount}";
+        });
+
+        // Advance time by 30 seconds (still within 60-second TTL)
+        fakeTime.Advance(TimeSpan.FromSeconds(30));
+
+        // Second load should hit cache
+        var entry2 = await manager.GetOrLoadAsync(async () =>
+        {
+            loadCount++;
+            return $"data {loadCount}";
+        });
+
+        // Assert
+        Assert.Equal("data 1", entry1.Data);
+        Assert.Equal("data 1", entry2.Data); // Should be cached
+        Assert.Equal(1, loadCount); // Should only load once
+        Assert.Equal(1, manager.Metrics.Misses);
+        Assert.Equal(1, manager.Metrics.Hits);
+    }
+
+    [Fact]
+    public async Task GetOrLoadAsync_WithFakeTimeProvider_CacheMissAfterExpiry()
+    {
+        // Arrange
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(DateTimeOffset.UtcNow);
+        using var manager = new CachedResourceManager<string>("TestResource", defaultTtlSeconds: 60, timeProvider: fakeTime);
+        var loadCount = 0;
+
+        // Act - First load
+        var entry1 = await manager.GetOrLoadAsync(async () =>
+        {
+            loadCount++;
+            return $"data {loadCount}";
+        });
+
+        // Advance time by 61 seconds (past the 60-second TTL)
+        fakeTime.Advance(TimeSpan.FromSeconds(61));
+
+        // Second load should reload due to expiry
+        var entry2 = await manager.GetOrLoadAsync(async () =>
+        {
+            loadCount++;
+            return $"data {loadCount}";
+        });
+
+        // Assert
+        Assert.Equal("data 1", entry1.Data);
+        Assert.Equal("data 2", entry2.Data); // Should be reloaded
+        Assert.Equal(2, loadCount); // Should load twice
+        Assert.Equal(2, manager.Metrics.Misses);
+        Assert.Equal(0, manager.Metrics.Hits);
+    }
+
+    [Fact]
+    public async Task GetOrLoadAsync_WithFakeTimeProvider_ExactExpiryBoundary()
+    {
+        // Arrange
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(DateTimeOffset.UtcNow);
+        using var manager = new CachedResourceManager<string>("TestResource", defaultTtlSeconds: 60, timeProvider: fakeTime);
+        var loadCount = 0;
+
+        // Act - First load
+        var entry1 = await manager.GetOrLoadAsync(async () =>
+        {
+            loadCount++;
+            return $"data {loadCount}";
+        });
+
+        // Advance time to exactly 60 seconds (at expiry boundary)
+        fakeTime.Advance(TimeSpan.FromSeconds(60));
+
+        // Second load should hit cache (not expired at exactly TTL)
+        var entry2 = await manager.GetOrLoadAsync(async () =>
+        {
+            loadCount++;
+            return $"data {loadCount}";
+        });
+
+        // Advance time by 1 more millisecond (past expiry)
+        fakeTime.Advance(TimeSpan.FromMilliseconds(1));
+
+        // Third load should reload
+        var entry3 = await manager.GetOrLoadAsync(async () =>
+        {
+            loadCount++;
+            return $"data {loadCount}";
+        });
+
+        // Assert
+        Assert.Equal("data 1", entry1.Data);
+        Assert.Equal("data 1", entry2.Data); // Should be cached
+        Assert.Equal("data 2", entry3.Data); // Should be reloaded
+        Assert.Equal(2, loadCount);
+        Assert.Equal(2, manager.Metrics.Misses);
+        Assert.Equal(1, manager.Metrics.Hits);
+    }
+
+    [Fact]
+    public async Task CachedEntry_CacheAgeSeconds_WithFakeTimeProvider()
+    {
+        // Arrange
+        var startTime = new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(startTime);
+        using var manager = new CachedResourceManager<string>("TestResource", defaultTtlSeconds: 300, timeProvider: fakeTime);
+
+        // Act - Load data
+        var entry = await manager.GetOrLoadAsync(async () => "test data");
+
+        // Advance time by 42 seconds
+        fakeTime.Advance(TimeSpan.FromSeconds(42));
+
+        var age = entry.CacheAgeSeconds(fakeTime.GetUtcNow());
+
+        // Assert
+        Assert.Equal(42, age);
+    }
+
+    [Fact]
+    public async Task GetOrLoadAsync_WithFakeTimeProvider_CustomTtl()
+    {
+        // Arrange
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(DateTimeOffset.UtcNow);
+        using var manager = new CachedResourceManager<string>("TestResource", defaultTtlSeconds: 300, timeProvider: fakeTime);
+        var loadCount = 0;
+
+        // Act - Load with custom 10-second TTL
+        var entry1 = await manager.GetOrLoadAsync(
+            async () =>
+            {
+                loadCount++;
+                return $"data {loadCount}";
+            },
+            customTtl: TimeSpan.FromSeconds(10));
+
+        // Advance time by 9 seconds (within custom TTL)
+        fakeTime.Advance(TimeSpan.FromSeconds(9));
+        var entry2 = await manager.GetOrLoadAsync(async () =>
+        {
+            loadCount++;
+            return $"data {loadCount}";
+        });
+
+        // Advance time by 2 more seconds (past custom TTL)
+        fakeTime.Advance(TimeSpan.FromSeconds(2));
+        var entry3 = await manager.GetOrLoadAsync(async () =>
+        {
+            loadCount++;
+            return $"data {loadCount}";
+        });
+
+        // Assert
+        Assert.Equal("data 1", entry1.Data);
+        Assert.Equal("data 1", entry2.Data); // Should be cached
+        Assert.Equal("data 2", entry3.Data); // Should be reloaded after custom TTL expired
+        Assert.Equal(2, loadCount);
+        Assert.Equal(2, manager.Metrics.Misses);
+        Assert.Equal(1, manager.Metrics.Hits);
+    }
+
+    [Fact]
+    public async Task GetOrLoadAsync_WithFakeTimeProvider_MultipleExpirations()
+    {
+        // Arrange
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(DateTimeOffset.UtcNow);
+        using var manager = new CachedResourceManager<string>("TestResource", defaultTtlSeconds: 30, timeProvider: fakeTime);
+        var loadCount = 0;
+
+        // Act - Load, expire, reload, expire, reload
+        var entry1 = await manager.GetOrLoadAsync(async () => $"data {++loadCount}");
+        Assert.Equal("data 1", entry1.Data);
+
+        fakeTime.Advance(TimeSpan.FromSeconds(31));
+        var entry2 = await manager.GetOrLoadAsync(async () => $"data {++loadCount}");
+        Assert.Equal("data 2", entry2.Data);
+
+        fakeTime.Advance(TimeSpan.FromSeconds(31));
+        var entry3 = await manager.GetOrLoadAsync(async () => $"data {++loadCount}");
+        Assert.Equal("data 3", entry3.Data);
+
+        // Assert
+        Assert.Equal(3, loadCount);
+        Assert.Equal(3, manager.Metrics.Misses);
+        Assert.Equal(0, manager.Metrics.Hits);
+    }
+
+    [Fact]
+    public async Task GetJsonResponse_WithFakeTimeProvider_ShowsCorrectCacheAge()
+    {
+        // Arrange
+        var startTime = new DateTimeOffset(2025, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(startTime);
+        using var manager = new CachedResourceManager<string>("TestResource", defaultTtlSeconds: 300, timeProvider: fakeTime);
+
+        var entry = await manager.GetOrLoadAsync(async () => "test data");
+
+        // Advance time by 120 seconds
+        fakeTime.Advance(TimeSpan.FromSeconds(120));
+
+        // Act
+        var json = manager.GetJsonResponse(entry, new { value = "test" }, fakeTime.GetUtcNow());
+
+        // Assert
+        Assert.Contains("\"cacheAgeSeconds\": 120", json);
     }
 }
