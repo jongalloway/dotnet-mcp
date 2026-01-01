@@ -1,0 +1,36 @@
+name: 'Install MCP Publisher'
+description: 'Downloads and installs the MCP Publisher tool with optional checksum verification'
+
+inputs:
+  checksum:
+    description: 'Optional SHA256 checksum for verifying the downloaded binary'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install MCP Publisher
+      shell: bash
+      run: |
+        set -euo pipefail
+        os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+        arch="$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
+        url="https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_${os}_${arch}.tar.gz"
+
+        echo "Downloading mcp-publisher from: ${url}"
+        curl -fsSL "${url}" -o mcp-publisher.tar.gz
+
+        # Verify checksum if provided
+        checksum="${{ inputs.checksum }}"
+        if [ -n "${checksum:-}" ]; then
+          echo "Verifying checksum for mcp-publisher.tar.gz"
+          echo "${checksum}  mcp-publisher.tar.gz" | sha256sum -c -
+        else
+          echo "⚠️  WARNING: No checksum provided. Skipping checksum verification."
+          echo "For enhanced security, consider providing a checksum via the 'checksum' input."
+        fi
+
+        tar xzf mcp-publisher.tar.gz mcp-publisher
+        chmod +x mcp-publisher
+        ./mcp-publisher --version
