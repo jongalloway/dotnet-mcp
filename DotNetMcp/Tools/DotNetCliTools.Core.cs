@@ -82,10 +82,9 @@ public sealed partial class DotNetCliTools
         //4. Modern C# pattern matching (c is '-' or '_' ...) is concise and self-documenting.
         // If additional safe characters are ever required, extend the pattern below and update the comment.
         // Rejected shell/metacharacters: &, |, ;, <, >, `, $, (, ), {, }, [, ], \, ", '
-        foreach (var c in options)
+        foreach (var c in options.Where(c => !(char.IsLetterOrDigit(c) || c is '-' or '_' or '.' or ' ' or '=')))
         {
-            if (!(char.IsLetterOrDigit(c) || c is '-' or '_' or '.' or ' ' or '='))
-                return false;
+            return false;
         }
         return true;
     }

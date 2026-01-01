@@ -100,7 +100,7 @@ public sealed partial class DotNetCliTools
         result.AppendLine();
 
         result.AppendLine("FEATURES:");
-        result.AppendLine("  • 52 MCP Tools across 13 categories");
+        result.AppendLine("  • 67 MCP Tools across 14 categories");
         result.AppendLine("  • 4 MCP Resources (SDK, Runtime, Templates, Frameworks)");
         result.AppendLine("  • Direct .NET SDK integration via NuGet packages");
         result.AppendLine("  • Template Engine integration with caching (5-min TTL)");
@@ -110,19 +110,20 @@ public sealed partial class DotNetCliTools
         result.AppendLine();
 
         result.AppendLine("TOOL CATEGORIES:");
-        result.AppendLine("  • Template (5 tools): List, search, info, cache management");
+        result.AppendLine("  • Template (5 tools): List, search, info, cache management, metrics");
         result.AppendLine("  • Project (10 tools): New, build, run, test, publish, clean, restore, analyze, dependencies, validate");
-        result.AppendLine("  • Package (6 tools): Add, remove, update, list, search, pack");
+        result.AppendLine("  • Package (7 tools): Add, remove, update, list, search, pack, nuget locals");
         result.AppendLine("  • Solution (4 tools): Create, add, remove, list");
         result.AppendLine("  • Reference (3 tools): Add, remove, list");
-        result.AppendLine("  • Tool (7 tools): Install, uninstall, update, list, search, restore, run");
+        result.AppendLine("  • Tool (8 tools): Install, uninstall, update, list, search, restore, run, manifest create");
         result.AppendLine("  • Watch (3 tools): Watch run, watch test, watch build");
-        result.AppendLine("  • SDK (4 tools): Version, info, list SDKs, list runtimes");
-        result.AppendLine("  • Security (4 tools): Certificate trust, check, clean, export");
+        result.AppendLine("  • SDK (5 tools): Version, info, list SDKs, list runtimes, framework info");
+        result.AppendLine("  • Security (9 tools): Certificate (trust, check, clean, export), Secrets (init, set, list, remove, clear)");
+        result.AppendLine("  • Entity Framework (9 tools): Migrations (add, list, remove, script), Database (update, drop), DbContext (list, info, scaffold)");
         result.AppendLine("  • Framework (1 tool): Framework information and LTS status");
         result.AppendLine("  • Format (1 tool): Code formatting");
         result.AppendLine("  • NuGet (1 tool): Cache management");
-        result.AppendLine("  • Help (2 tools): Command help, server capabilities");
+        result.AppendLine("  • Help (3 tools): Command help, server capabilities, server info");
         result.AppendLine();
 
         result.AppendLine("CONCURRENCY SAFETY:");

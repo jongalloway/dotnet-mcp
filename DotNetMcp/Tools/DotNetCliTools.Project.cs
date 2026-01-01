@@ -9,6 +9,10 @@ namespace DotNetMcp;
 /// </summary>
 public sealed partial class DotNetCliTools
 {
+    /// <summary>
+    /// Create a new .NET project from a template using the <c>dotnet new</c> command.
+    /// Common templates: console, classlib, web, webapi, mvc, blazor, xunit, nunit, mstest.
+    /// </summary>
     /// <param name="template">The template to use (e.g., 'console', 'classlib', 'webapi')</param>
     /// <param name="name">The name for the project</param>
     /// <param name="output">The output directory</param>
