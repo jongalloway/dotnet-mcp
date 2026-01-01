@@ -1,5 +1,6 @@
 using DotNetMcp;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace DotNetMcp.Tests;
@@ -29,6 +30,11 @@ public class SdkAndServerInfoToolsTests
         // Assert
         Assert.NotNull(result);
         Assert.DoesNotContain("Error:", result);
+        // SDK info should contain version or runtime information
+        Assert.True(result.Contains("SDK", StringComparison.OrdinalIgnoreCase) || 
+                    result.Contains("Runtime", StringComparison.OrdinalIgnoreCase) ||
+                    result.Contains("Version", StringComparison.OrdinalIgnoreCase),
+                    "Result should contain SDK information");
     }
 
     [Fact]
@@ -51,6 +57,8 @@ public class SdkAndServerInfoToolsTests
         // Assert
         Assert.NotNull(result);
         Assert.DoesNotContain("Error:", result);
+        // Version should contain numeric version information
+        Assert.Matches(@"\d+\.\d+", result); // Should match version pattern like "8.0" or "10.0.100"
     }
 
     [Fact]
@@ -73,6 +81,11 @@ public class SdkAndServerInfoToolsTests
         // Assert
         Assert.NotNull(result);
         Assert.DoesNotContain("Error:", result);
+        // Should list SDK versions
+        Assert.True(result.Contains("SDK", StringComparison.OrdinalIgnoreCase) || 
+                    result.Contains("Version", StringComparison.OrdinalIgnoreCase) ||
+                    Regex.IsMatch(result, @"\d+\.\d+"),
+                    "Result should contain SDK version information");
     }
 
     [Fact]
@@ -95,6 +108,11 @@ public class SdkAndServerInfoToolsTests
         // Assert
         Assert.NotNull(result);
         Assert.DoesNotContain("Error:", result);
+        // Should list runtime information
+        Assert.True(result.Contains("Runtime", StringComparison.OrdinalIgnoreCase) || 
+                    result.Contains("Microsoft.NETCore.App", StringComparison.OrdinalIgnoreCase) ||
+                    Regex.IsMatch(result, @"\d+\.\d+"),
+                    "Result should contain runtime information");
     }
 
     [Fact]

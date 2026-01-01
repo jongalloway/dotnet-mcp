@@ -28,6 +28,11 @@ public class TemplateToolsTests
         Assert.NotNull(result);
         // Should contain template information (either from cache or SDK)
         Assert.DoesNotContain("Error:", result);
+        // Template listings typically contain these keywords
+        Assert.True(result.Contains("Template", StringComparison.OrdinalIgnoreCase) || 
+                    result.Contains("Short Name", StringComparison.OrdinalIgnoreCase) ||
+                    result.Contains("console", StringComparison.OrdinalIgnoreCase),
+                    "Result should contain template-related information");
     }
 
     [Fact]
@@ -116,6 +121,11 @@ public class TemplateToolsTests
         Assert.Contains("Templates:", result);
         Assert.Contains("SDK Info:", result);
         Assert.Contains("Runtime Info:", result);
+        // Metrics should contain hit/miss statistics
+        Assert.True(result.Contains("Hits:", StringComparison.OrdinalIgnoreCase) || 
+                    result.Contains("Misses:", StringComparison.OrdinalIgnoreCase) ||
+                    result.Contains("Hit Rate:", StringComparison.OrdinalIgnoreCase),
+                    "Result should contain cache statistics");
     }
 
     [Fact]

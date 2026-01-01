@@ -362,6 +362,8 @@ public class MiscellaneousToolsTests
         Assert.Contains(".NET Core Frameworks", result);
         Assert.Contains("Latest Recommended", result);
         Assert.Contains("Latest LTS", result);
+        // Should contain at least one framework version
+        Assert.Matches(@"net\d+\.\d+", result);
     }
 
     [Fact]
@@ -401,7 +403,8 @@ public class MiscellaneousToolsTests
         // Assert
         Assert.NotNull(result);
         Assert.DoesNotContain("Error:", result);
-        // Should return general dotnet help
+        // Help output should mention dotnet and commands
+        Assert.Contains("dotnet", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -413,7 +416,8 @@ public class MiscellaneousToolsTests
         // Assert
         Assert.NotNull(result);
         Assert.DoesNotContain("Error:", result);
-        // Should return help for dotnet build command
+        // Help for build command should mention build
+        Assert.Contains("build", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
