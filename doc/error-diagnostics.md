@@ -185,15 +185,23 @@ dotnet build
 
 **Documentation:** [NETSDK1004 on Microsoft Learn](https://learn.microsoft.com/en-us/dotnet/core/tools/sdk-errors/netsdk1004)
 
-## Pattern Detection (Future Enhancement)
+## Pattern Detection
 
-The system currently parses individual error codes. Future enhancements will include pattern detection for:
+The error dictionary provides pattern detection through comprehensive error code coverage:
 
-- **Missing package references** - Detect when import statements have no corresponding package
-- **Wrong target framework** - Identify framework compatibility issues
-- **Missing SDK workload** - Detect MAUI, iOS, Android workload requirements
-- **Version conflicts** - Identify package version conflicts
-- **Platform-specific issues** - Detect platform-specific API usage
+- **Missing package references** - Detected via NU1101, NU1102, CS0246 error codes
+- **Wrong target framework** - Detected via NETSDK1045, NU1201 error codes
+- **Missing SDK workload** - Detected via NETSDK1141, NETSDK1100 error codes
+- **Version conflicts** - Detected via NU1605, NU1106, NU1107, MSB3277 error codes
+- **Platform-specific issues** - Detected via NETSDK1082, NETSDK1100 error codes
+
+Each of these error codes provides:
+- Plain English explanation of the specific issue
+- Common causes for that type of problem
+- Suggested fixes with specific commands
+- Links to official documentation
+
+Future enhancements may include more advanced heuristic-based pattern detection beyond individual error codes.
 
 ## Benefits for AI Assistants
 
