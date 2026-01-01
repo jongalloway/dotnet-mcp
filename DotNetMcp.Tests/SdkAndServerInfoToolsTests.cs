@@ -28,6 +28,7 @@ public class SdkAndServerInfoToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -38,6 +39,7 @@ public class SdkAndServerInfoToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -48,6 +50,7 @@ public class SdkAndServerInfoToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -58,6 +61,7 @@ public class SdkAndServerInfoToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -68,6 +72,7 @@ public class SdkAndServerInfoToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -78,6 +83,7 @@ public class SdkAndServerInfoToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -88,6 +94,7 @@ public class SdkAndServerInfoToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -98,6 +105,7 @@ public class SdkAndServerInfoToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     // Server Info Tools

@@ -32,6 +32,7 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -46,6 +47,7 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -61,6 +63,7 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -73,6 +76,7 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     // Template Tests - Multiple Calls
@@ -116,6 +120,7 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -130,6 +135,7 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     // Solution Management Edge Cases
@@ -144,6 +150,7 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     // Certificate/Security Edge Cases
@@ -200,6 +207,7 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     // User Secrets Edge Cases
@@ -212,6 +220,7 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -226,6 +235,7 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -238,6 +248,7 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -251,6 +262,7 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -263,6 +275,7 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     // Tool Management Edge Cases
@@ -278,6 +291,7 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -290,6 +304,7 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -304,6 +319,7 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -317,6 +333,7 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -327,6 +344,7 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -340,6 +358,7 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -356,6 +375,7 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -369,6 +389,7 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     // Framework Info Edge Cases

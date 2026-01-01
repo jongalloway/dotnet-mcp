@@ -26,6 +26,7 @@ public class SolutionToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -38,6 +39,7 @@ public class SolutionToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -50,6 +52,7 @@ public class SolutionToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -62,6 +65,7 @@ public class SolutionToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -89,6 +93,7 @@ public class SolutionToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -101,6 +106,7 @@ public class SolutionToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -113,6 +119,7 @@ public class SolutionToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -152,6 +159,7 @@ public class SolutionToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -162,6 +170,7 @@ public class SolutionToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -174,6 +183,7 @@ public class SolutionToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -186,6 +196,7 @@ public class SolutionToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -198,6 +209,7 @@ public class SolutionToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -237,5 +249,6 @@ public class SolutionToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 }

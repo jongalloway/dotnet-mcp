@@ -26,6 +26,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -38,6 +39,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -50,6 +52,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -62,6 +65,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -74,6 +78,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -84,6 +89,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -94,6 +100,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -104,6 +111,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -114,6 +122,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -124,6 +133,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -134,6 +144,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -146,6 +157,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -158,6 +170,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -168,6 +181,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -180,6 +194,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -192,6 +207,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -204,6 +220,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -214,6 +231,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -226,6 +244,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -238,6 +257,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -250,6 +270,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -262,6 +283,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -278,6 +300,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -288,6 +311,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -298,6 +322,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -308,6 +333,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -318,6 +344,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -328,6 +355,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -338,6 +366,7 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -354,5 +383,6 @@ public class PackageToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 }

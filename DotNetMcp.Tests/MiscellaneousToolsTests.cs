@@ -152,6 +152,7 @@ public class MiscellaneousToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -162,6 +163,7 @@ public class MiscellaneousToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -172,6 +174,7 @@ public class MiscellaneousToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -182,6 +185,7 @@ public class MiscellaneousToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -192,6 +196,7 @@ public class MiscellaneousToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -202,6 +207,7 @@ public class MiscellaneousToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -218,6 +224,7 @@ public class MiscellaneousToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     // NuGet Locals Tool Tests
@@ -232,6 +239,7 @@ public class MiscellaneousToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -244,6 +252,7 @@ public class MiscellaneousToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -256,6 +265,7 @@ public class MiscellaneousToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -268,6 +278,7 @@ public class MiscellaneousToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -280,6 +291,7 @@ public class MiscellaneousToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -292,6 +304,7 @@ public class MiscellaneousToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -387,6 +400,7 @@ public class MiscellaneousToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
         // Should return general dotnet help
     }
 
@@ -398,6 +412,7 @@ public class MiscellaneousToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
         // Should return help for dotnet build command
     }
 
@@ -411,5 +426,6 @@ public class MiscellaneousToolsTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.DoesNotContain("Error:", result);
     }
 }

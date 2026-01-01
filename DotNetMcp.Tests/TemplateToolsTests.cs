@@ -27,6 +27,7 @@ public class TemplateToolsTests
         // Assert
         Assert.NotNull(result);
         // Should contain template information (either from cache or SDK)
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -38,6 +39,7 @@ public class TemplateToolsTests
         // Assert
         Assert.NotNull(result);
         // Should bypass cache and reload templates
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -49,6 +51,7 @@ public class TemplateToolsTests
         // Assert
         Assert.NotNull(result);
         // Should return templates matching "console"
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -60,6 +63,7 @@ public class TemplateToolsTests
         // Assert
         Assert.NotNull(result);
         // Should bypass cache and search for "web" templates
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -71,6 +75,7 @@ public class TemplateToolsTests
         // Assert
         Assert.NotNull(result);
         // Should return detailed information about the console template
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
@@ -82,6 +87,7 @@ public class TemplateToolsTests
         // Assert
         Assert.NotNull(result);
         // Should bypass cache and return template details
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]

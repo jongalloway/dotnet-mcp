@@ -83,7 +83,7 @@ dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release
 bash:
 
 ```bash
-DOTNET_MCP_INTERACTIVE_TESTS=1 dotnet test --project DotnetMcp.Tests/DotNetMcp.Tests.csproj -c Release
+DOTNET_MCP_INTERACTIVE_TESTS=1 dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release
 ```
 
 If interactive tests are disabled, they will appear as skipped with a message explaining how to enable them.
