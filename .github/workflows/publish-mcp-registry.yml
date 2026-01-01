@@ -4,30 +4,22 @@ env:
     PACKAGE_ID: Community.Mcp.DotNet
 
 on:
-    workflow_run:
-        # IMPORTANT: This must match the `name:` of the NuGet publish workflow in publish-nuget.yml.
-        # If that workflow is renamed, update this list to keep the trigger working.
-        workflows: ["Publish NuGet Package"]
-        types:
-            - completed
-    workflow_dispatch:
-        inputs:
-            packageVersion:
-                description: "NuGet package version to publish (optional; defaults to tag version if available)"
-                required: false
-                type: string
+  workflow_dispatch:
+    inputs:
+      packageVersion:
+        description: "NuGet package version to publish (required for manual runs, e.g. 1.2.3)"
+        required: true
+        type: string
 
 jobs:
     publish-registry:
-        # Only run automatically if the NuGet publish workflow succeeded
-        if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
         runs-on: ubuntu-latest
         permissions:
             contents: read
             id-token: write # Required for GitHub OIDC login (mcp-publisher)
 
         concurrency:
-            group: publish-mcp-registry-${{ github.repository }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+            group: "publish-mcp-registry-${{ github.repository }}-${{ github.ref }}"
             cancel-in-progress: false
 
         steps:
@@ -35,8 +27,6 @@ jobs:
               uses: actions/checkout@v6
               with:
                   fetch-depth: 0
-                  # For workflow_run, check out the exact commit that was published to NuGet.
-                  ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
             - name: Prepare package (wait, download, extract server.json)
               id: prepare
@@ -136,7 +126,23 @@ jobs:
               shell: bash
               run: |
                   set -euo pipefail
-                  curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+                  os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+                  arch="$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
+                  url="https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_${os}_${arch}.tar.gz"
+
+                  echo "Downloading mcp-publisher from: ${url}"
+                  curl -fsSL "${url}" -o mcp-publisher.tar.gz
+
+                  # Verify checksum if provided
+                  if [ -n "${MCP_PUBLISHER_SHA256:-}" ]; then
+                    echo "Verifying checksum for mcp-publisher.tar.gz"
+                    echo "${MCP_PUBLISHER_SHA256}  mcp-publisher.tar.gz" | sha256sum -c -
+                  else
+                    echo "⚠️  WARNING: MCP_PUBLISHER_SHA256 environment variable is not set. Skipping checksum verification."
+                    echo "For enhanced security, consider setting this variable with the expected SHA256 checksum."
+                  fi
+
+                  tar xzf mcp-publisher.tar.gz mcp-publisher
                   chmod +x mcp-publisher
                   ./mcp-publisher --version
 
@@ -169,8 +175,9 @@ jobs:
                       exit 0
                     fi
 
-                    # Retry only for the known eventual-consistency error.
-                    if grep -q "exists but version" publish.log; then
+                    # Retry only for known eventual-consistency style errors from the MCP registry.
+                    # Match multiple common phrasings in a case-insensitive way to avoid relying on a single exact string.
+                    if grep -Ei '(exists but version|version.*not.*available|eventual consistency|propagate|propagation delay)' publish.log; then
                       if [ "$attempt" -lt "$max_attempts" ]; then
                         echo "⚠️  Registry cannot see NuGet version yet; retrying after ${sleep_seconds}s"
                         sleep "$sleep_seconds"

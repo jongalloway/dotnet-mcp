@@ -21,7 +21,7 @@ on:
 
 # Cancel in-progress runs for the same branch to save CI resources
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: "${{ github.workflow }}-${{ github.ref }}"
   cancel-in-progress: true
 
 jobs:

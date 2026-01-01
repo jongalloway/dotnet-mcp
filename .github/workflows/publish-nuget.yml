@@ -1,5 +1,8 @@
 name: Publish NuGet Package
 
+env:
+  PACKAGE_ID: Community.Mcp.DotNet
+
 on:
   push:
     tags:
@@ -9,6 +12,9 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    outputs:
+      package_id: ${{ steps.package.outputs.package_id }}
+      version: ${{ steps.package.outputs.version }}
     permissions:
       contents: read
       id-token: write # Required for OIDC token issuance (Trusted Publishing)
@@ -33,6 +39,38 @@ jobs:
 
       - name: Pack
         run: dotnet pack DotNetMcp/DotNetMcp.csproj --configuration Release --no-build --output ./artifacts
+
+      - name: Detect package artifact
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          nupkg=$(ls -1 ./artifacts/*.nupkg | head -n 1)
+          if [ -z "${nupkg:-}" ] || [ ! -f "$nupkg" ]; then
+            echo "❌ ERROR: No .nupkg found in ./artifacts"
+            ls -la ./artifacts || true
+            exit 1
+          fi
+
+          filename=$(basename "$nupkg")
+          package_id="${{ env.PACKAGE_ID }}"
+          if [[ "$filename" != "$package_id".*.nupkg ]]; then
+            echo "❌ ERROR: Unexpected package file name: $filename"
+            echo "Expected prefix: ${package_id}.<version>.nupkg"
+            exit 1
+          fi
+
+          version="${filename#${package_id}.}"
+          version="${version%.nupkg}"
+
+          echo "Package: $nupkg"
+          echo "Package ID: $package_id"
+          echo "Version: $version"
+
+          echo "nupkg=$nupkg" >> "$GITHUB_OUTPUT"
+          echo "package_id=$package_id" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Validate server.json in package
         run: |
@@ -158,3 +196,147 @@ jobs:
           fi
 
           echo "✅ NuGet push completed"
+
+      - name: Upload package artifact (for registry publish)
+        uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-mcp-nupkg
+          path: ./artifacts/*.nupkg
+
+  publish-registry:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Required for GitHub OIDC login (mcp-publisher)
+
+    concurrency:
+      group: "publish-mcp-registry-${{ github.repository }}-${{ github.ref }}"
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Download package artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dotnet-mcp-nupkg
+          path: ./artifacts
+
+      - name: Extract server.json from package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # First, verify the artifact was downloaded
+          nupkg=$(ls -1 ./artifacts/*.nupkg | head -n 1)
+          if [ -z "${nupkg:-}" ] || [ ! -f "$nupkg" ]; then
+            echo "❌ ERROR: No .nupkg found in ./artifacts"
+            ls -la ./artifacts || true
+            exit 1
+          fi
+
+          # Then validate we received the package metadata from the publish job
+          package_id="${{ needs.publish.outputs.package_id }}"
+          version="${{ needs.publish.outputs.version }}"
+
+          if [ -z "${package_id:-}" ] || [ -z "${version:-}" ]; then
+            echo "❌ ERROR: Package ID or version not provided by publish job"
+            echo "Package ID: ${package_id:-<empty>}"
+            echo "Version: ${version:-<empty>}"
+            exit 1
+          fi
+
+          echo "Package: $nupkg"
+          echo "Package ID: $package_id"
+          echo "Version: $version"
+
+          if ! unzip -p "$nupkg" ".mcp/server.json" > /tmp/server.json; then
+            echo "❌ ERROR: Failed to extract .mcp/server.json from package"
+            exit 1
+          fi
+
+          if [ ! -s /tmp/server.json ]; then
+            echo "❌ ERROR: Extracted server.json is empty"
+            exit 1
+          fi
+
+          cp /tmp/server.json ./server.json
+
+      - name: Install MCP Publisher
+        shell: bash
+        run: |
+          set -euo pipefail
+          os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+          arch="$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
+          url="https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_${os}_${arch}.tar.gz"
+
+          echo "Downloading mcp-publisher from: ${url}"
+          curl -fsSL "${url}" -o mcp-publisher.tar.gz
+
+          # Verify checksum if provided
+          if [ -n "${MCP_PUBLISHER_SHA256:-}" ]; then
+            echo "Verifying checksum for mcp-publisher.tar.gz"
+            echo "${MCP_PUBLISHER_SHA256}  mcp-publisher.tar.gz" | sha256sum -c -
+          else
+            echo "⚠️  WARNING: MCP_PUBLISHER_SHA256 environment variable is not set. Skipping checksum verification."
+            echo "For enhanced security, consider setting this variable with the expected SHA256 checksum."
+          fi
+
+          tar xzf mcp-publisher.tar.gz mcp-publisher
+          chmod +x mcp-publisher
+          ./mcp-publisher --version
+
+      - name: Login to MCP Registry
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish to MCP Registry (with retry)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Retry configuration: 8 attempts with exponential backoff starting at 15s, capped at 180s.
+          # With this configuration, worst-case total wait time is ~12.75 minutes (~765 seconds).
+          # This window gives the MCP registry enough time to observe the newly published
+          # NuGet package while keeping the workflow bounded.
+          max_attempts=8
+          sleep_seconds=15
+          max_sleep_seconds=180
+
+          for attempt in $(seq 1 $max_attempts); do
+            echo "Attempt $attempt/$max_attempts to publish to MCP registry"
+
+            set +e
+            ./mcp-publisher publish 2>&1 | tee publish.log
+            exit_code=${PIPESTATUS[0]}
+            set -e
+
+            if [ "$exit_code" -eq 0 ]; then
+              echo "✅ MCP registry publish succeeded"
+              exit 0
+            fi
+
+            # Retry only for known eventual-consistency style errors from the MCP registry.
+            # Match multiple common phrasings in a case-insensitive way to avoid relying on a single exact string.
+            if grep -Ei '(exists but version|version.*not.*available|eventual consistency|propagate|propagation delay)' publish.log; then
+              if [ "$attempt" -lt "$max_attempts" ]; then
+                echo "⚠️  Registry cannot see NuGet version yet; retrying after ${sleep_seconds}s"
+                sleep "$sleep_seconds"
+                # Apply exponential backoff with cap
+                sleep_seconds=$(( sleep_seconds * 2 ))
+                if [ "$sleep_seconds" -gt "$max_sleep_seconds" ]; then
+                  sleep_seconds="$max_sleep_seconds"
+                fi
+                continue
+              else
+                echo "⚠️  Registry cannot see NuGet version yet; no retries remaining, failing without additional delay"
+                exit 1
+              fi
+            fi
+
+            echo "❌ Publish failed with non-retryable error"
+            exit "$exit_code"
+          done
