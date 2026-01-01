@@ -301,8 +301,8 @@ The error diagnostics system includes comprehensive tests:
 
 Run tests with:
 ```bash
-dotnet test --filter-class "*ErrorCodeDictionary*"
-dotnet test --filter-class "*ErrorResultFactory*"
+dotnet test --filter "FullyQualifiedName~ErrorCodeDictionary"
+dotnet test --filter "FullyQualifiedName~ErrorResultFactory"
 ```
 
 ## Performance
