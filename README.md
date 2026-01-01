@@ -6,6 +6,7 @@
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-blue.svg)](https://github.com/jongalloway/dotnet-mcp/blob/main/.github/dependabot.yml)
 [![NuGet](https://img.shields.io/nuget/v/Community.Mcp.DotNet.svg)](https://www.nuget.org/packages/Community.Mcp.DotNet/)
 [![Published to MCP Registry](https://img.shields.io/badge/Published-MCP%20Registry-brightgreen)](https://registry.modelcontextprotocol.io/?q=io.github.jongalloway%2Fdotnet-mcp)
+[![CodeQL Advanced](https://github.com/jongalloway/dotnet-mcp/actions/workflows/codeql.yml/badge.svg)](https://github.com/jongalloway/dotnet-mcp/actions/workflows/codeql.yml)
 
 Give your AI assistant superpowers for .NET development! This MCP server connects GitHub Copilot, Claude, and other AI assistants directly to the .NET SDK, enabling them to create projects, manage packages, run builds, and more—all through natural language.
 
