@@ -95,7 +95,7 @@ public class ErrorCodeDictionaryTests
 
         // Assert
         Assert.True(count > 0);
-        // We should have at least 20 error codes based on the requirements (we have 29)
+        // We should have at least 20 error codes based on the requirements (currently 52 unique error codes)
         Assert.True(count >= 20);
     }
 

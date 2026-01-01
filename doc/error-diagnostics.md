@@ -12,9 +12,9 @@ The .NET MCP Server provides enhanced error diagnostics that go beyond simple er
 The server recognizes and provides enhanced diagnostics for errors from:
 
 - **C# Compiler** (CS#### codes) - 23 error codes
-- **MSBuild** (MSB#### codes) - 12 error codes
+- **MSBuild** (MSB#### codes) - 10 error codes
 - **NuGet** (NU#### codes) - 10 error codes
-- **NET SDK** (NETSDK#### codes) - 7 error codes
+- **.NET SDK** (NETSDK#### codes) - 9 error codes
 
 Total: **52 common error codes** with detailed explanations.
 
@@ -295,8 +295,8 @@ The error dictionary can be extended by:
 
 The error diagnostics system includes comprehensive tests:
 
-- **26 tests** for error dictionary functionality
-- **8 tests** for enhanced error parsing
+- **16 tests** for error dictionary functionality (including 1 Theory test with 11 InlineData cases)
+- **7 tests** for enhanced error parsing
 - **100% test coverage** of error code lookup and parsing
 
 Run tests with:

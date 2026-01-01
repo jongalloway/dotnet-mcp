@@ -527,25 +527,6 @@
       ],
       "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/core/tools/sdk-errors/netsdk1141"
     },
-    "NETSDK1004": {
-      "title": "Assets file 'project.assets.json' not found",
-      "explanation": "The NuGet assets file is missing, which is required for the build. This file is generated during package restore.",
-      "category": "SDK",
-      "commonCauses": [
-        "NuGet packages not restored",
-        "obj folder was deleted",
-        "Restore command failed",
-        "First time building after cloning repository"
-      ],
-      "suggestedFixes": [
-        "Run: dotnet restore",
-        "Clean and restore: dotnet clean && dotnet restore",
-        "For new clones: dotnet restore before dotnet build",
-        "Check for restore errors in previous output",
-        "Verify network access to NuGet sources"
-      ],
-      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/core/tools/sdk-errors/netsdk1004"
-    },
     "CS0119": {
       "title": "Invalid expression term",
       "explanation": "A type name or namespace is being used where a variable, value, or method is expected.",
