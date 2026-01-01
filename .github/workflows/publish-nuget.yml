@@ -198,7 +198,7 @@ jobs:
           echo "✅ NuGet push completed"
 
       - name: Upload package artifact (for registry publish)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: dotnet-mcp-nupkg
           path: ./artifacts/*.nupkg
