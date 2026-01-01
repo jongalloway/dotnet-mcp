@@ -57,8 +57,11 @@ jobs:
           package_id="${{ env.PACKAGE_ID }}"
           
           # Validate filename matches package ID with semantic version format
+          # Semantic versioning: MAJOR.MINOR.PATCH[-PRERELEASE][+BUILD]
+          # - Prerelease and build metadata use alphanumeric identifiers separated by dots
+          # - Individual identifiers cannot be empty or contain consecutive dots
           escaped_package_id=${package_id//./\\.}
-          semver_regex="^${escaped_package_id}\.[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?\.nupkg$"
+          semver_regex="^${escaped_package_id}\.[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?\.nupkg$"
           if [[ ! "$filename" =~ $semver_regex ]]; then
             echo "❌ ERROR: Unexpected package file name: $filename"
             echo "Expected format: ${package_id}.<semantic-version>.nupkg (e.g., ${package_id}.1.0.0.nupkg)"
