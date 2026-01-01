@@ -1,6 +1,13 @@
 # Testing
 
-This repository uses an xUnit test project to validate the MCP server’s behavior, schema validation, and command-building logic.
+This repository uses an xUnit test project to validate the MCP server's behavior, schema validation, and command-building logic.
+
+## Test Coverage Summary
+
+- **Total Tests**: 551 passing tests (8 skipped interactive/integration tests)
+- **Tool Coverage**: All 67 MCP tools have comprehensive unit tests
+- **Code Coverage**: 73.2% line coverage
+- **Test Organization**: Tests are organized by category (Templates, Packages, Projects, Solutions, References, etc.)
 
 ## Quick start
 
@@ -31,7 +38,21 @@ The Cobertura XML will be written under the test output folder, typically:
 ## Test project layout
 
 - `DotNetMcp.Tests/` contains the test suite.
-- Most tests are “pure” unit tests (no network, no machine state changes).
+- Most tests are "pure" unit tests (no network, no machine state changes).
+
+### Test Files by Category
+
+- `TemplateToolsTests.cs` - Template-related tools (list, search, info, cache)
+- `PackageToolsTests.cs` - Package management tools (add, remove, update, search, pack)
+- `ProjectToolsTests.cs` - Project operations (restore, clean)
+- `ReferenceToolsTests.cs` - Project reference management
+- `SolutionToolsTests.cs` - Solution file operations
+- `MiscellaneousToolsTests.cs` - Watch, format, NuGet, help, and framework tools
+- `SdkAndServerInfoToolsTests.cs` - SDK info and server capability tools
+- `EdgeCaseAndIntegrationTests.cs` - Comprehensive edge cases and parameter combinations
+- `DotNetCliToolsTests.cs` - Core CLI tools (build, test, run, publish, certificates, secrets, tools)
+- `EntityFrameworkCoreToolsTests.cs` - EF Core migration and database tools
+- Plus helper/infrastructure tests for caching, concurrency, error handling, etc.
 
 ## Integration and environment-dependent tests
 
@@ -70,4 +91,4 @@ If interactive tests are disabled, they will appear as skipped with a message ex
 ## Tips
 
 - Prefer `-c Release` for CI parity.
-- If you’re iterating on a single area, use Microsoft Testing Platform filters after `--`, for example: `dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release -- --filter-class DotNetMcp.Tests.CacheMetricsTests`.
+- If you're iterating on a single area, use Microsoft Testing Platform filters after `--`, for example: `dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release -- --filter-class DotNetMcp.Tests.CacheMetricsTests`.
