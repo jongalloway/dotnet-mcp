@@ -39,6 +39,8 @@
     <!-- Keep the checked-in server.json as the source-of-truth (with placeholders), but pack a generated copy from obj/ that has the real version injected. -->
     <None Include=".mcp/server.json" Pack="false" />
     <None Include="$(IntermediateOutputPath)mcp/server.json" Pack="true" PackagePath="/.mcp/" Visible="false" />
+    <!-- Include ErrorCodes.json as embedded resource -->
+    <EmbeddedResource Include="ErrorCodes.json" />
   </ItemGroup>
 
   <ItemGroup>
