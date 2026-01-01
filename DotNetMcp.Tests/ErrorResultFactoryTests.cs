@@ -547,4 +547,226 @@ Program.cs(15,10): error CS1001: Identifier expected";
         Assert.Null(parsedError.Data.Stderr);
         Assert.Equal(exitCode, parsedError.Data.ExitCode);
     }
+
+    [Fact]
+    public void CreateResult_WithCS0103_IncludesEnhancedErrorInfo()
+    {
+        // Arrange
+        var output = "";
+        var error = "Program.cs(10,5): error CS0103: The name 'foo' does not exist in the current context";
+        var exitCode = 1;
+        var command = "dotnet build";
+
+        // Act
+        var result = ErrorResultFactory.CreateResult(output, error, exitCode, command);
+
+        // Assert
+        Assert.IsType<ErrorResponse>(result);
+        var errorResponse = (ErrorResponse)result;
+        Assert.Single(errorResponse.Errors);
+        
+        var parsedError = errorResponse.Errors[0];
+        Assert.Equal("CS0103", parsedError.Code);
+        Assert.Equal("Compilation", parsedError.Category);
+        
+        // Check enhanced error information from dictionary
+        Assert.NotNull(parsedError.Explanation);
+        Assert.Contains("identifier", parsedError.Explanation, StringComparison.OrdinalIgnoreCase);
+        
+        Assert.NotNull(parsedError.DocumentationUrl);
+        Assert.StartsWith("https://", parsedError.DocumentationUrl);
+        Assert.Contains("microsoft.com", parsedError.DocumentationUrl);
+        
+        Assert.NotNull(parsedError.SuggestedFixes);
+        Assert.NotEmpty(parsedError.SuggestedFixes);
+        Assert.True(parsedError.SuggestedFixes.Count >= 3);
+    }
+
+    [Fact]
+    public void CreateResult_WithMSB3644_IncludesSDKInstallationGuidance()
+    {
+        // Arrange
+        var output = "";
+        var error = "error MSB3644: The reference assemblies for .NETFramework,Version=v5.0 were not found";
+        var exitCode = 1;
+
+        // Act
+        var result = ErrorResultFactory.CreateResult(output, error, exitCode);
+
+        // Assert
+        Assert.IsType<ErrorResponse>(result);
+        var errorResponse = (ErrorResponse)result;
+        Assert.Single(errorResponse.Errors);
+        
+        var parsedError = errorResponse.Errors[0];
+        Assert.Equal("MSB3644", parsedError.Code);
+        Assert.Equal("Build", parsedError.Category);
+        
+        // Check enhanced error information
+        Assert.NotNull(parsedError.Explanation);
+        Assert.Contains("reference assemblies", parsedError.Explanation, StringComparison.OrdinalIgnoreCase);
+        
+        Assert.NotNull(parsedError.SuggestedFixes);
+        Assert.Contains(parsedError.SuggestedFixes, fix => 
+            fix.Contains("Install", StringComparison.OrdinalIgnoreCase) &&
+            fix.Contains("SDK", StringComparison.OrdinalIgnoreCase));
+        
+        Assert.NotNull(parsedError.DocumentationUrl);
+        Assert.Contains("dotnet", parsedError.DocumentationUrl, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void CreateResult_WithNU1101_IncludesPackageSearchSuggestions()
+    {
+        // Arrange
+        var output = "";
+        var error = "error NU1101: Unable to find package NonExistentPackage. No packages exist with this id in source(s): nuget.org";
+        var exitCode = 1;
+
+        // Act
+        var result = ErrorResultFactory.CreateResult(output, error, exitCode);
+
+        // Assert
+        Assert.IsType<ErrorResponse>(result);
+        var errorResponse = (ErrorResponse)result;
+        Assert.Single(errorResponse.Errors);
+        
+        var parsedError = errorResponse.Errors[0];
+        Assert.Equal("NU1101", parsedError.Code);
+        Assert.Equal("Package", parsedError.Category);
+        
+        // Check enhanced error information
+        Assert.NotNull(parsedError.Explanation);
+        Assert.Contains("package", parsedError.Explanation, StringComparison.OrdinalIgnoreCase);
+        
+        Assert.NotNull(parsedError.SuggestedFixes);
+        Assert.Contains(parsedError.SuggestedFixes, fix => 
+            fix.Contains("search", StringComparison.OrdinalIgnoreCase));
+        
+        Assert.NotNull(parsedError.DocumentationUrl);
+        Assert.StartsWith("https://", parsedError.DocumentationUrl);
+    }
+
+    [Fact]
+    public void CreateResult_WithNETSDK1045_IncludesFrameworkVersionGuidance()
+    {
+        // Arrange
+        var output = "";
+        var error = "error NETSDK1045: The current .NET SDK does not support targeting .NET 6.0";
+        var exitCode = 1;
+
+        // Act
+        var result = ErrorResultFactory.CreateResult(output, error, exitCode);
+
+        // Assert
+        Assert.IsType<ErrorResponse>(result);
+        var errorResponse = (ErrorResponse)result;
+        Assert.Single(errorResponse.Errors);
+        
+        var parsedError = errorResponse.Errors[0];
+        Assert.Equal("NETSDK1045", parsedError.Code);
+        Assert.Equal("SDK", parsedError.Category);
+        
+        // Check enhanced error information
+        Assert.NotNull(parsedError.Explanation);
+        Assert.Contains("SDK", parsedError.Explanation, StringComparison.OrdinalIgnoreCase);
+        
+        Assert.NotNull(parsedError.SuggestedFixes);
+        Assert.Contains(parsedError.SuggestedFixes, fix => 
+            fix.Contains("SDK", StringComparison.OrdinalIgnoreCase) ||
+            fix.Contains("framework", StringComparison.OrdinalIgnoreCase));
+        
+        Assert.NotNull(parsedError.DocumentationUrl);
+        Assert.Contains("netsdk", parsedError.DocumentationUrl, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void CreateResult_WithNETSDK1004_IncludesRestoreGuidance()
+    {
+        // Arrange
+        var output = "";
+        var error = "error NETSDK1004: Assets file 'project.assets.json' not found. Run a NuGet package restore to generate this file.";
+        var exitCode = 1;
+
+        // Act
+        var result = ErrorResultFactory.CreateResult(output, error, exitCode);
+
+        // Assert
+        Assert.IsType<ErrorResponse>(result);
+        var errorResponse = (ErrorResponse)result;
+        Assert.Single(errorResponse.Errors);
+        
+        var parsedError = errorResponse.Errors[0];
+        Assert.Equal("NETSDK1004", parsedError.Code);
+        
+        // Check enhanced error information
+        Assert.NotNull(parsedError.SuggestedFixes);
+        Assert.Contains(parsedError.SuggestedFixes, fix => 
+            fix.Contains("dotnet restore", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void CreateResult_WithUnknownError_DoesNotIncludeEnhancedInfo()
+    {
+        // Arrange
+        var output = "";
+        var error = "Some unknown error occurred";
+        var exitCode = 1;
+
+        // Act
+        var result = ErrorResultFactory.CreateResult(output, error, exitCode);
+
+        // Assert
+        Assert.IsType<ErrorResponse>(result);
+        var errorResponse = (ErrorResponse)result;
+        Assert.Single(errorResponse.Errors);
+        
+        var parsedError = errorResponse.Errors[0];
+        Assert.Equal("EXIT_1", parsedError.Code);
+        
+        // Unknown errors should not have enhanced info
+        Assert.Null(parsedError.Explanation);
+        Assert.Null(parsedError.DocumentationUrl);
+        Assert.Null(parsedError.SuggestedFixes);
+    }
+
+    [Fact]
+    public void ToJson_WithEnhancedErrorInfo_IncludesAllFields()
+    {
+        // Arrange
+        var errorResponse = new ErrorResponse
+        {
+            Success = false,
+            ExitCode = 1,
+            Errors = new List<ErrorResult>
+            {
+                new ErrorResult
+                {
+                    Code = "CS0103",
+                    Message = "The name 'foo' does not exist",
+                    Category = "Compilation",
+                    Hint = "Check for typos",
+                    Explanation = "The compiler cannot find the specified identifier",
+                    DocumentationUrl = "https://learn.microsoft.com/dotnet/csharp/cs0103",
+                    SuggestedFixes = new List<string> 
+                    { 
+                        "Check for typos",
+                        "Add using directive",
+                        "Add package reference"
+                    }
+                }
+            }
+        };
+
+        // Act
+        var json = ErrorResultFactory.ToJson(errorResponse);
+
+        // Assert
+        Assert.NotNull(json);
+        Assert.Contains("\"explanation\"", json);
+        Assert.Contains("\"documentationUrl\"", json);
+        Assert.Contains("\"suggestedFixes\"", json);
+        Assert.Contains("compiler cannot find", json);
+        Assert.Contains("learn.microsoft.com", json);
+    }
 }

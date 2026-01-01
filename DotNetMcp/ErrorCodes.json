@@ -1,0 +1,922 @@
+{
+  "errorCodes": {
+    "CS0103": {
+      "title": "The name does not exist in the current context",
+      "explanation": "The compiler cannot find the specified identifier. This usually means you're trying to use a variable, method, or type that hasn't been defined or isn't accessible in the current scope.",
+      "category": "Compilation",
+      "commonCauses": [
+        "Typo in variable, method, or type name",
+        "Missing using directive for a namespace",
+        "Missing assembly or package reference",
+        "Variable declared in a different scope",
+        "Incorrect capitalization (C# is case-sensitive)"
+      ],
+      "suggestedFixes": [
+        "Check for typos in the identifier name",
+        "Add the required 'using' directive at the top of the file",
+        "Add a package reference using 'dotnet add package'",
+        "Verify the identifier is declared in the current scope",
+        "Check capitalization - C# is case-sensitive"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs0103"
+    },
+    "CS0246": {
+      "title": "Type or namespace not found",
+      "explanation": "The compiler cannot find a type or namespace. This typically occurs when a required package isn't referenced or a using directive is missing.",
+      "category": "Compilation",
+      "commonCauses": [
+        "Missing NuGet package reference",
+        "Missing using directive",
+        "Typo in type or namespace name",
+        "Package not restored",
+        "Wrong target framework for the package"
+      ],
+      "suggestedFixes": [
+        "Add the NuGet package: dotnet add package <PackageName>",
+        "Add using directive for the namespace",
+        "Run 'dotnet restore' to restore packages",
+        "Verify the package supports your target framework",
+        "Check for typos in type or namespace name"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs0246"
+    },
+    "CS1001": {
+      "title": "Identifier expected",
+      "explanation": "The compiler expected an identifier but found something else. This is usually a syntax error.",
+      "category": "Compilation",
+      "commonCauses": [
+        "Missing variable or parameter name",
+        "Incorrect syntax in declaration",
+        "Missing identifier after keyword",
+        "Extra or misplaced punctuation"
+      ],
+      "suggestedFixes": [
+        "Review the syntax at the error location",
+        "Ensure all declarations have proper identifiers",
+        "Check for missing or extra punctuation",
+        "Verify keyword usage is correct"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/misc/cs1001"
+    },
+    "CS1002": {
+      "title": "Expected semicolon",
+      "explanation": "A semicolon is required but missing. In C#, most statements must end with a semicolon.",
+      "category": "Compilation",
+      "commonCauses": [
+        "Forgot to add semicolon at end of statement",
+        "Incomplete statement",
+        "Syntax error on previous line"
+      ],
+      "suggestedFixes": [
+        "Add a semicolon at the end of the statement",
+        "Check the previous line for syntax errors",
+        "Ensure all statements are properly terminated"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/misc/cs1002"
+    },
+    "CS1513": {
+      "title": "Expected closing brace",
+      "explanation": "A closing brace '}' is expected but not found. This indicates mismatched braces in your code.",
+      "category": "Compilation",
+      "commonCauses": [
+        "Missing closing brace for class, method, or block",
+        "Extra opening brace",
+        "Nested braces not properly balanced"
+      ],
+      "suggestedFixes": [
+        "Add the missing closing brace",
+        "Use IDE brace matching to find unmatched braces",
+        "Review code structure for proper nesting",
+        "Format code to identify structural issues"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/misc/cs1513"
+    },
+    "CS0116": {
+      "title": "Namespace does not directly contain members",
+      "explanation": "Types must be declared inside a namespace or class, not directly in a namespace without being wrapped in a type declaration.",
+      "category": "Compilation",
+      "commonCauses": [
+        "Code placed directly in namespace without class/struct/enum",
+        "Missing class declaration wrapper",
+        "Misplaced closing brace"
+      ],
+      "suggestedFixes": [
+        "Wrap code in a class, struct, or other type declaration",
+        "Check for misplaced or missing braces",
+        "Move executable code inside a type definition"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs0116"
+    },
+    "MSB3644": {
+      "title": "Reference assemblies not found",
+      "explanation": "The .NET reference assemblies for the target framework are not installed. This prevents the project from building.",
+      "category": "Build",
+      "commonCauses": [
+        "Target framework not installed",
+        "Missing .NET SDK or targeting pack",
+        "Incorrect target framework specified",
+        "SDK installation incomplete"
+      ],
+      "suggestedFixes": [
+        "Install the .NET SDK for the target framework",
+        "Install the targeting pack: dotnet install sdk <version>",
+        "Change target framework to an installed version",
+        "Verify SDK installation: dotnet --info",
+        "Download SDK from: https://dotnet.microsoft.com/download"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/core/tools/sdk-errors/msb3644"
+    },
+    "MSB4236": {
+      "title": "SDK not found",
+      "explanation": "MSBuild cannot locate the specified SDK. This is typically a .NET SDK installation issue.",
+      "category": "Build",
+      "commonCauses": [
+        ".NET SDK not installed",
+        "SDK not in PATH",
+        "global.json specifies unavailable SDK version",
+        "Corrupted SDK installation"
+      ],
+      "suggestedFixes": [
+        "Install .NET SDK from: https://dotnet.microsoft.com/download",
+        "Verify SDK is in PATH: dotnet --version",
+        "Check global.json for SDK version requirements",
+        "Remove global.json or update SDK version requirement",
+        "Reinstall .NET SDK if corrupted"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/core/tools/sdk-errors/msb4236"
+    },
+    "MSB1003": {
+      "title": "Project or solution file not found",
+      "explanation": "MSBuild cannot find a project or solution file in the specified location or current directory.",
+      "category": "Build",
+      "commonCauses": [
+        "No .csproj or .sln file in current directory",
+        "Incorrect path to project file",
+        "Typo in project file name",
+        "Running command from wrong directory"
+      ],
+      "suggestedFixes": [
+        "Specify project file explicitly: dotnet build <path>",
+        "Navigate to directory containing .csproj or .sln file",
+        "Verify project file exists at specified path",
+        "Check for typos in file path",
+        "Create a new project: dotnet new <template>"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/core/tools/sdk-errors/msb1003"
+    },
+    "NU1101": {
+      "title": "Unable to find package",
+      "explanation": "NuGet cannot locate the specified package in any configured package source. The package may not exist or the name may be incorrect.",
+      "category": "Package",
+      "commonCauses": [
+        "Package name is misspelled",
+        "Package doesn't exist on NuGet.org",
+        "Package source not configured",
+        "Private feed authentication issue",
+        "Network connectivity problem"
+      ],
+      "suggestedFixes": [
+        "Verify package name spelling",
+        "Search for package: dotnet package search <name>",
+        "Check package exists on NuGet.org",
+        "Configure package source in NuGet.config",
+        "Check network connectivity and firewall",
+        "Authenticate to private feed if required"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/nuget/reference/errors-and-warnings/nu1101"
+    },
+    "NU1102": {
+      "title": "Unable to find package with version",
+      "explanation": "NuGet can find the package but not the specific version requested. The version may not exist or may have been unlisted.",
+      "category": "Package",
+      "commonCauses": [
+        "Specified version doesn't exist",
+        "Version has been unlisted",
+        "Typo in version number",
+        "Version only available in prerelease",
+        "Package source doesn't have that version"
+      ],
+      "suggestedFixes": [
+        "Check available versions on NuGet.org",
+        "Remove version constraint to get latest",
+        "Use --prerelease flag for prerelease versions",
+        "Verify version number format (e.g., 1.2.3)",
+        "Search package versions: dotnet package search <name> --take 10"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/nuget/reference/errors-and-warnings/nu1102"
+    },
+    "NU1103": {
+      "title": "Unable to find stable package",
+      "explanation": "NuGet can only find prerelease versions of the package, but a stable version was requested.",
+      "category": "Package",
+      "commonCauses": [
+        "Only prerelease versions available",
+        "Package hasn't released stable version yet",
+        "Stable version constraint too restrictive"
+      ],
+      "suggestedFixes": [
+        "Use --prerelease flag to allow prerelease versions",
+        "Remove version constraints",
+        "Check if package has any stable releases",
+        "Accept prerelease: dotnet add package <name> --prerelease"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/nuget/reference/errors-and-warnings/nu1103"
+    },
+    "NU1605": {
+      "title": "Package downgrade detected",
+      "explanation": "Installing this package would downgrade a package that's already referenced at a higher version. This can cause assembly binding issues.",
+      "category": "Package",
+      "commonCauses": [
+        "Dependency version conflict",
+        "Package references different versions",
+        "Transitive dependency requires newer version",
+        "Multiple projects with different package versions"
+      ],
+      "suggestedFixes": [
+        "Update the package to the higher version",
+        "Review package versions across solution",
+        "Use version ranges for compatibility",
+        "Consolidate package versions in Directory.Packages.props",
+        "Update all projects to use consistent versions"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/nuget/reference/errors-and-warnings/nu1605"
+    },
+    "NETSDK1045": {
+      "title": "Current SDK does not support target framework",
+      "explanation": "The installed .NET SDK version is too old to support the target framework specified in the project file.",
+      "category": "SDK",
+      "commonCauses": [
+        "SDK version is older than target framework",
+        "Project targets newer framework than SDK supports",
+        "global.json restricts SDK to older version"
+      ],
+      "suggestedFixes": [
+        "Install newer SDK: https://dotnet.microsoft.com/download",
+        "Update to latest SDK: dotnet sdk update",
+        "Change target framework to supported version",
+        "Check global.json for SDK version constraints",
+        "Remove or update global.json file"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/core/tools/sdk-errors/netsdk1045"
+    },
+    "NETSDK1004": {
+      "title": "Assets file not found",
+      "explanation": "The project.assets.json file is missing. This file is generated during restore and is required for building.",
+      "category": "SDK",
+      "commonCauses": [
+        "Project not restored",
+        "Restore failed previously",
+        "obj folder deleted",
+        "Restore interrupted"
+      ],
+      "suggestedFixes": [
+        "Run: dotnet restore",
+        "Clean and rebuild: dotnet clean && dotnet restore && dotnet build",
+        "Delete bin and obj folders, then restore",
+        "Check for restore errors in previous commands",
+        "Verify NuGet package sources are accessible"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/core/tools/sdk-errors/netsdk1004"
+    },
+    "NETSDK1005": {
+      "title": "Assets file is missing target",
+      "explanation": "The project.assets.json file doesn't contain the target framework. This indicates a restore issue.",
+      "category": "SDK",
+      "commonCauses": [
+        "Target framework changed after restore",
+        "Incomplete restore",
+        "assets file corrupted"
+      ],
+      "suggestedFixes": [
+        "Run: dotnet restore",
+        "Clean restore: dotnet clean && dotnet restore",
+        "Delete obj folder and restore",
+        "Verify target framework in .csproj is valid"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/core/tools/sdk-errors/netsdk1005"
+    },
+    "NETSDK1022": {
+      "title": "Duplicate items included",
+      "explanation": "Files are being included in the project multiple times, causing build conflicts.",
+      "category": "SDK",
+      "commonCauses": [
+        "Explicit ItemGroup includes default SDK includes",
+        "File matched by multiple globs",
+        "Migrated project has explicit includes"
+      ],
+      "suggestedFixes": [
+        "Remove explicit Compile items (SDK includes by default)",
+        "Use <EnableDefaultCompileItems>false</EnableDefaultCompileItems>",
+        "Review .csproj for duplicate ItemGroup entries",
+        "Update to SDK-style project format"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/core/tools/sdk-errors/netsdk1022"
+    },
+    "MSB3202": {
+      "title": "Project file could not be loaded",
+      "explanation": "The project file is invalid or corrupted and cannot be loaded by MSBuild.",
+      "category": "Build",
+      "commonCauses": [
+        "Invalid XML in project file",
+        "Missing closing tags",
+        "Invalid MSBuild properties",
+        "Encoding issues"
+      ],
+      "suggestedFixes": [
+        "Validate XML syntax in .csproj file",
+        "Check for matching opening/closing tags",
+        "Compare with working project file",
+        "Restore from source control if corrupted",
+        "Create new project and migrate content"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/visualstudio/msbuild/errors/msb3202"
+    },
+    "CS0234": {
+      "title": "Type or namespace does not exist in namespace",
+      "explanation": "The specified type or namespace cannot be found within the parent namespace.",
+      "category": "Compilation",
+      "commonCauses": [
+        "Missing package reference",
+        "Wrong namespace specified",
+        "Package doesn't contain expected type",
+        "API removed in newer version"
+      ],
+      "suggestedFixes": [
+        "Verify package reference is added",
+        "Check package documentation for correct namespace",
+        "Ensure using correct package version",
+        "Search for type in package documentation"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs0234"
+    },
+    "CS1061": {
+      "title": "Type does not contain definition",
+      "explanation": "The type doesn't have the specified method, property, or member.",
+      "category": "Compilation",
+      "commonCauses": [
+        "Member name misspelled",
+        "Member is in different class/interface",
+        "Extension method namespace not imported",
+        "Member added in newer version of library",
+        "Wrong type being used"
+      ],
+      "suggestedFixes": [
+        "Check member name spelling",
+        "Verify you're using correct type",
+        "Add using directive for extension method namespace",
+        "Update package to version with member",
+        "Check API documentation for member availability"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs1061"
+    },
+    "CS0029": {
+      "title": "Cannot implicitly convert type",
+      "explanation": "An implicit type conversion is not possible between the two types.",
+      "category": "Compilation",
+      "commonCauses": [
+        "Assigning incompatible types",
+        "Missing cast",
+        "Wrong return type",
+        "Nullable vs non-nullable mismatch"
+      ],
+      "suggestedFixes": [
+        "Add explicit cast if conversion is valid",
+        "Change variable type to match assignment",
+        "Use conversion method (e.g., ToString(), ToInt32())",
+        "Handle nullable types appropriately",
+        "Verify method return type matches usage"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs0029"
+    },
+    "CS8600": {
+      "title": "Converting null literal or possible null value to non-nullable type",
+      "explanation": "Attempting to assign a nullable value to a non-nullable reference type (nullable reference types enabled).",
+      "category": "Compilation",
+      "commonCauses": [
+        "Assigning null to non-nullable variable",
+        "Method returning null for non-nullable type",
+        "Nullable reference types enabled in project"
+      ],
+      "suggestedFixes": [
+        "Add null check before assignment",
+        "Use null-coalescing operator (??)",
+        "Change variable to nullable type (T?)",
+        "Use null-forgiving operator (!) if null is impossible",
+        "Disable nullable reference types if not needed"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/nullable-warnings#possible-null-assigned-to-a-nonnullable-reference"
+    },
+    "NU1213": {
+      "title": "Package version constraint conflict",
+      "explanation": "Multiple packages have conflicting version constraints that cannot be satisfied simultaneously.",
+      "category": "Package",
+      "commonCauses": [
+        "Incompatible package version requirements",
+        "Conflicting transitive dependencies",
+        "Package A requires B v1, Package C requires B v2"
+      ],
+      "suggestedFixes": [
+        "Update packages to compatible versions",
+        "Use version ranges instead of specific versions",
+        "Check for package updates that resolve conflict",
+        "Remove one of the conflicting packages if possible"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/nuget/reference/errors-and-warnings/nu1213"
+    },
+    "NETSDK1013": {
+      "title": "TargetFramework value not recognized",
+      "explanation": "The TargetFramework specified in the project file is not a valid Target Framework Moniker (TFM).",
+      "category": "SDK",
+      "commonCauses": [
+        "Typo in target framework",
+        "Invalid TFM format",
+        "Unsupported framework version"
+      ],
+      "suggestedFixes": [
+        "Use valid TFM: net8.0, net6.0, netstandard2.1, etc.",
+        "Check TFM spelling and format",
+        "List valid frameworks: dotnet --info",
+        "Use framework info: dotnet framework-info"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/core/tools/sdk-errors/netsdk1013"
+    },
+    "MSB4019": {
+      "title": "Imported project not found",
+      "explanation": "MSBuild cannot find an imported project file (.props or .targets).",
+      "category": "Build",
+      "commonCauses": [
+        "Missing NuGet package with build assets",
+        "Path to imported file is incorrect",
+        "Package not restored",
+        "Case-sensitive path on Linux/Mac"
+      ],
+      "suggestedFixes": [
+        "Run: dotnet restore",
+        "Verify imported file path is correct",
+        "Install missing NuGet package",
+        "Check file path casing on case-sensitive systems"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/visualstudio/msbuild/errors/msb4019"
+    },
+    "CS0120": {
+      "title": "Object reference required for non-static field, method, or property",
+      "explanation": "Attempting to access an instance member without an object instance.",
+      "category": "Compilation",
+      "commonCauses": [
+        "Calling instance method from static context",
+        "Missing object instantiation",
+        "Trying to access instance member in static method"
+      ],
+      "suggestedFixes": [
+        "Create an instance of the class first",
+        "Make the member static if appropriate",
+        "Pass object instance to static method",
+        "Use 'new ClassName()' to create instance"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs0120"
+    },
+    "CS0019": {
+      "title": "Operator cannot be applied to operands",
+      "explanation": "The operator cannot be used with the provided operand types.",
+      "category": "Compilation",
+      "commonCauses": [
+        "Invalid operator for type",
+        "Type mismatch in operation",
+        "Comparing incompatible types"
+      ],
+      "suggestedFixes": [
+        "Convert operands to compatible types",
+        "Use appropriate operator for the types",
+        "Implement operator overload if needed",
+        "Check type compatibility"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs0019"
+    },
+    "NU1107": {
+      "title": "Version conflict detected",
+      "explanation": "Different projects in the solution reference different versions of the same package, causing a version conflict.",
+      "category": "Package",
+      "commonCauses": [
+        "Projects reference different package versions",
+        "Transitive dependencies cause conflicts",
+        "Manual package updates in some projects only"
+      ],
+      "suggestedFixes": [
+        "Consolidate package versions across solution",
+        "Use Central Package Management (Directory.Packages.props)",
+        "Update all projects to same package version",
+        "Use version ranges for flexibility"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/nuget/reference/errors-and-warnings/nu1107"
+    },
+    "NETSDK1141": {
+      "title": "Unable to resolve SDK",
+      "explanation": "The specified SDK resolver cannot resolve the SDK. This may indicate the workload is not installed.",
+      "category": "SDK",
+      "commonCauses": [
+        "Required workload not installed",
+        "MAUI, iOS, Android workload missing",
+        "Workload installation corrupted"
+      ],
+      "suggestedFixes": [
+        "Install required workload: dotnet workload install <workload-name>",
+        "List available workloads: dotnet workload list",
+        "For MAUI: dotnet workload install maui",
+        "Restore workloads: dotnet workload restore",
+        "Update workloads: dotnet workload update"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/core/tools/sdk-errors/netsdk1141"
+    },
+    "CS0119": {
+      "title": "Invalid expression term",
+      "explanation": "A type name or namespace is being used where a variable, value, or method is expected.",
+      "category": "Compilation",
+      "commonCauses": [
+        "Using type name instead of variable",
+        "Missing 'new' keyword for object creation",
+        "Using namespace where value expected"
+      ],
+      "suggestedFixes": [
+        "Create an instance with 'new ClassName()'",
+        "Use a variable or property instead of type name",
+        "Check if you meant to call a static method"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs0119"
+    },
+    "CS0128": {
+      "title": "Local variable already defined",
+      "explanation": "A variable with the same name has already been declared in the current scope.",
+      "category": "Compilation",
+      "commonCauses": [
+        "Duplicate variable declaration",
+        "Variable declared in nested scope",
+        "Parameter name conflicts with local variable"
+      ],
+      "suggestedFixes": [
+        "Rename one of the variables",
+        "Remove duplicate declaration",
+        "Use different scopes appropriately"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/misc/cs0128"
+    },
+    "CS1503": {
+      "title": "Argument type mismatch",
+      "explanation": "The argument type doesn't match the parameter type expected by the method.",
+      "category": "Compilation",
+      "commonCauses": [
+        "Wrong argument type passed to method",
+        "Missing type conversion",
+        "Nullable vs non-nullable mismatch"
+      ],
+      "suggestedFixes": [
+        "Cast argument to correct type",
+        "Use appropriate conversion method",
+        "Verify method signature requirements",
+        "Handle nullable types properly"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs1503"
+    },
+    "CS7036": {
+      "title": "Missing required argument",
+      "explanation": "A required parameter is not provided when calling a method.",
+      "category": "Compilation",
+      "commonCauses": [
+        "Forgot to pass required argument",
+        "Method signature changed",
+        "Wrong method overload called"
+      ],
+      "suggestedFixes": [
+        "Provide all required arguments",
+        "Check method documentation for parameters",
+        "Verify you're calling correct method overload"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs7036"
+    },
+    "CS0539": {
+      "title": "Member in interface implementation not found",
+      "explanation": "The member being implemented is not found in the base class or interface.",
+      "category": "Compilation",
+      "commonCauses": [
+        "Interface method signature mismatch",
+        "Typo in member name",
+        "Wrong interface implemented"
+      ],
+      "suggestedFixes": [
+        "Check interface definition for correct signature",
+        "Verify member name spelling",
+        "Use IDE refactoring to implement interface"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/misc/cs0539"
+    },
+    "CS0188": {
+      "title": "Variable used before assigned",
+      "explanation": "A local variable is being used before it has been assigned a value.",
+      "category": "Compilation",
+      "commonCauses": [
+        "Forgot to initialize variable",
+        "Conditional assignment not all paths",
+        "Variable assigned in different branch"
+      ],
+      "suggestedFixes": [
+        "Initialize variable at declaration",
+        "Assign value before use",
+        "Ensure all code paths assign value"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/misc/cs0188"
+    },
+    "CS0165": {
+      "title": "Use of unassigned local variable",
+      "explanation": "A local variable is referenced before being definitely assigned.",
+      "category": "Compilation",
+      "commonCauses": [
+        "Variable declared but not initialized",
+        "Conditional initialization incomplete",
+        "Try-catch doesn't assign in all paths"
+      ],
+      "suggestedFixes": [
+        "Initialize variable when declared",
+        "Assign default value",
+        "Ensure all code paths assign value"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs0165"
+    },
+    "MSB4062": {
+      "title": "Task could not be loaded",
+      "explanation": "MSBuild cannot load a custom task from an assembly.",
+      "category": "Build",
+      "commonCauses": [
+        "Assembly containing task not found",
+        "Task class not public",
+        "Wrong assembly version",
+        "Package with build tasks not restored"
+      ],
+      "suggestedFixes": [
+        "Run: dotnet restore",
+        "Verify NuGet package is installed",
+        "Check task assembly path is correct",
+        "Ensure task class is public"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/visualstudio/msbuild/errors/msb4062"
+    },
+    "MSB3073": {
+      "title": "Command exited with error code",
+      "explanation": "A custom build command failed with a non-zero exit code.",
+      "category": "Build",
+      "commonCauses": [
+        "Pre-build or post-build event failed",
+        "External tool returned error",
+        "Script execution failed"
+      ],
+      "suggestedFixes": [
+        "Check command output for specific error",
+        "Verify command path and arguments",
+        "Test command manually",
+        "Check required tools are installed"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/visualstudio/msbuild/errors/msb3073"
+    },
+    "MSB3275": {
+      "title": "Primary reference could not be resolved",
+      "explanation": "A referenced assembly could not be found or loaded.",
+      "category": "Build",
+      "commonCauses": [
+        "Missing NuGet package",
+        "Wrong framework version",
+        "Assembly not in expected location",
+        "Package not restored"
+      ],
+      "suggestedFixes": [
+        "Run: dotnet restore",
+        "Verify package reference in .csproj",
+        "Check target framework compatibility",
+        "Clean and rebuild solution"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/visualstudio/msbuild/errors/msb3275"
+    },
+    "MSB3321": {
+      "title": "Importing keyfile failed",
+      "explanation": "Cannot import the key file for strong-name signing.",
+      "category": "Build",
+      "commonCauses": [
+        "Key file missing or corrupted",
+        "Incorrect key file path",
+        "Permissions issue",
+        "Key file format invalid"
+      ],
+      "suggestedFixes": [
+        "Verify key file exists at specified path",
+        "Check file permissions",
+        "Regenerate key file if corrupted",
+        "Use correct strong-name key format"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/visualstudio/msbuild/errors/msb3321"
+    },
+    "NU1201": {
+      "title": "Project not compatible with framework",
+      "explanation": "The project or package doesn't support the target framework.",
+      "category": "Package",
+      "commonCauses": [
+        "Package doesn't support target framework",
+        "Project targets incompatible framework",
+        "Framework moniker mismatch"
+      ],
+      "suggestedFixes": [
+        "Update package to version supporting your framework",
+        "Change target framework in .csproj",
+        "Use multi-targeting if needed",
+        "Check package documentation for supported frameworks"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/nuget/reference/errors-and-warnings/nu1201"
+    },
+    "NU1403": {
+      "title": "Package content verification failed",
+      "explanation": "The package's signature or hash verification failed.",
+      "category": "Package",
+      "commonCauses": [
+        "Corrupted package download",
+        "Package tampering",
+        "Network issues during download",
+        "Signature validation failure"
+      ],
+      "suggestedFixes": [
+        "Clear NuGet cache: dotnet nuget locals all --clear",
+        "Re-download package",
+        "Check network connection",
+        "Verify package source is trusted"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/nuget/reference/errors-and-warnings/nu1403"
+    },
+    "NU1106": {
+      "title": "Dependency constraint conflict",
+      "explanation": "Package version constraints from different dependencies conflict.",
+      "category": "Package",
+      "commonCauses": [
+        "Multiple packages require different versions",
+        "Version range conflicts",
+        "Transitive dependency conflicts"
+      ],
+      "suggestedFixes": [
+        "Update packages to compatible versions",
+        "Use version ranges for flexibility",
+        "Add direct package reference with specific version",
+        "Check dependency graph: dotnet list package --include-transitive"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/nuget/reference/errors-and-warnings/nu1106"
+    },
+    "NETSDK1064": {
+      "title": "Package not found",
+      "explanation": "A NuGet package specified in PackageReference could not be found.",
+      "category": "SDK",
+      "commonCauses": [
+        "Package name misspelled",
+        "Package version doesn't exist",
+        "Package source not configured",
+        "Private feed authentication issue"
+      ],
+      "suggestedFixes": [
+        "Verify package name on NuGet.org",
+        "Check package version exists",
+        "Configure package sources in NuGet.config",
+        "Run: dotnet restore"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/core/tools/sdk-errors/netsdk1064"
+    },
+    "NETSDK1082": {
+      "title": "No .NET runtimes found",
+      "explanation": "No compatible .NET runtime was found on the system.",
+      "category": "SDK",
+      "commonCauses": [
+        ".NET runtime not installed",
+        "Wrong runtime version",
+        "Runtime installation corrupted"
+      ],
+      "suggestedFixes": [
+        "Install .NET runtime from: https://dotnet.microsoft.com/download",
+        "Verify runtime version: dotnet --list-runtimes",
+        "Install matching runtime for target framework",
+        "Reinstall .NET runtime if corrupted"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/core/tools/sdk-errors/netsdk1082"
+    },
+    "NETSDK1100": {
+      "title": "Windows desktop components not installed",
+      "explanation": "Windows desktop SDK components (WinForms/WPF) are not installed.",
+      "category": "SDK",
+      "commonCauses": [
+        "Windows desktop development workload not installed",
+        "Targeting Windows desktop without components",
+        "SDK installation incomplete"
+      ],
+      "suggestedFixes": [
+        "Install Windows desktop workload",
+        "Download from: https://dotnet.microsoft.com/download",
+        "For WinForms/WPF: Install desktop SDK",
+        "Verify with: dotnet --info"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/core/tools/sdk-errors/netsdk1100"
+    },
+    "CS0122": {
+      "title": "Member is inaccessible due to protection level",
+      "explanation": "Attempting to access a member (method, property, field) that is private or protected.",
+      "category": "Compilation",
+      "commonCauses": [
+        "Trying to access private member from outside class",
+        "Protected member access from non-derived class",
+        "Internal member accessed from different assembly"
+      ],
+      "suggestedFixes": [
+        "Change member to public if appropriate",
+        "Access through public property or method",
+        "Use correct access modifiers",
+        "Verify you're in correct scope/class"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs0122"
+    },
+    "CS0161": {
+      "title": "Not all code paths return a value",
+      "explanation": "A method that should return a value has code paths that don't return anything.",
+      "category": "Compilation",
+      "commonCauses": [
+        "Missing return statement",
+        "Conditional return incomplete",
+        "Switch statement missing cases"
+      ],
+      "suggestedFixes": [
+        "Add return statement to all code paths",
+        "Add default return at method end",
+        "Ensure all branches return a value",
+        "Add return in switch default case"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs0161"
+    },
+    "CS0115": {
+      "title": "No suitable method found to override",
+      "explanation": "Attempting to override a method that doesn't exist in the base class or interface.",
+      "category": "Compilation",
+      "commonCauses": [
+        "Method signature doesn't match base",
+        "Base method is not virtual",
+        "Wrong method name",
+        "Parameter mismatch"
+      ],
+      "suggestedFixes": [
+        "Verify base class has virtual/abstract method",
+        "Check method signature matches exactly",
+        "Remove 'override' keyword if not overriding",
+        "Use IDE tools to implement base method correctly"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/misc/cs0115"
+    },
+    "CS0507": {
+      "title": "Cannot change access modifiers when overriding",
+      "explanation": "The access modifier on an override member is different from the base member.",
+      "category": "Compilation",
+      "commonCauses": [
+        "Override has different accessibility",
+        "Trying to make override more restrictive",
+        "Trying to make override more accessible"
+      ],
+      "suggestedFixes": [
+        "Match access modifier of base member",
+        "Remove access modifier from override (inherits from base)",
+        "Check base class member accessibility"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/misc/cs0507"
+    },
+    "NU1603": {
+      "title": "Package dependency could not be resolved",
+      "explanation": "A package dependency cannot be satisfied due to version constraints or availability issues.",
+      "category": "Package",
+      "commonCauses": [
+        "Dependency version unavailable",
+        "Conflicting version requirements",
+        "Package removed from feed",
+        "Network issues"
+      ],
+      "suggestedFixes": [
+        "Update package to newer version",
+        "Clear NuGet cache: dotnet nuget locals all --clear",
+        "Check package sources are accessible",
+        "Review dependency constraints"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/nuget/reference/errors-and-warnings/nu1603"
+    },
+    "MSB3277": {
+      "title": "Found conflicts between different versions of the same assembly",
+      "explanation": "Multiple versions of the same assembly are referenced, causing a conflict.",
+      "category": "Build",
+      "commonCauses": [
+        "Different packages reference different assembly versions",
+        "Direct and transitive references conflict",
+        "Manual assembly references conflict with NuGet"
+      ],
+      "suggestedFixes": [
+        "Add binding redirect in app.config",
+        "Update packages to use same assembly version",
+        "Use package reference instead of assembly reference",
+        "Check with: dotnet list package --include-transitive"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/visualstudio/msbuild/errors/msb3277"
+    }
+  }
+}

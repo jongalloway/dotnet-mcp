@@ -32,6 +32,24 @@ public sealed class ErrorResult
     public string? Hint { get; init; }
 
     /// <summary>
+    /// Plain English explanation of what this error means
+    /// </summary>
+    [JsonPropertyName("explanation")]
+    public string? Explanation { get; init; }
+
+    /// <summary>
+    /// URL to official documentation for this error
+    /// </summary>
+    [JsonPropertyName("documentationUrl")]
+    public string? DocumentationUrl { get; init; }
+
+    /// <summary>
+    /// List of suggested fixes for this error
+    /// </summary>
+    [JsonPropertyName("suggestedFixes")]
+    public List<string>? SuggestedFixes { get; init; }
+
+    /// <summary>
     /// Original raw output for reference (sanitized to remove sensitive data)
     /// </summary>
     [JsonPropertyName("rawOutput")]

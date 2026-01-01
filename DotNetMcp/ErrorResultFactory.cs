@@ -93,6 +93,7 @@ public static partial class ErrorResultFactory
             var code = compilerMatch.Groups["code"].Value;
             var category = GetCategory(code);
             var mcpErrorCode = McpErrorCodes.GetMcpErrorCode(code, category, exitCode);
+            var errorInfo = ErrorCodeDictionary.GetErrorInfo(code);
             
             return new ErrorResult
             {
@@ -100,6 +101,9 @@ public static partial class ErrorResultFactory
                 Message = compilerMatch.Groups["message"].Value.Trim(),
                 Category = category,
                 Hint = GetHint(code),
+                Explanation = errorInfo?.Explanation,
+                DocumentationUrl = errorInfo?.DocumentationUrl,
+                SuggestedFixes = errorInfo?.SuggestedFixes,
                 RawOutput = SanitizeOutput(line),
                 McpErrorCode = mcpErrorCode,
                 Data = CreateErrorData(command, exitCode, stderr)
@@ -113,6 +117,7 @@ public static partial class ErrorResultFactory
             var code = nugetMatch.Groups["code"].Value;
             var category = "Package";
             var mcpErrorCode = McpErrorCodes.GetMcpErrorCode(code, category, exitCode);
+            var errorInfo = ErrorCodeDictionary.GetErrorInfo(code);
             
             return new ErrorResult
             {
@@ -120,6 +125,9 @@ public static partial class ErrorResultFactory
                 Message = nugetMatch.Groups["message"].Value.Trim(),
                 Category = category,
                 Hint = GetHint(code),
+                Explanation = errorInfo?.Explanation,
+                DocumentationUrl = errorInfo?.DocumentationUrl,
+                SuggestedFixes = errorInfo?.SuggestedFixes,
                 RawOutput = SanitizeOutput(line),
                 McpErrorCode = mcpErrorCode,
                 Data = CreateErrorData(command, exitCode, stderr)
@@ -133,6 +141,7 @@ public static partial class ErrorResultFactory
             var code = genericMatch.Groups["code"].Value;
             var category = GetCategory(code);
             var mcpErrorCode = McpErrorCodes.GetMcpErrorCode(code, category, exitCode);
+            var errorInfo = ErrorCodeDictionary.GetErrorInfo(code);
             
             return new ErrorResult
             {
@@ -140,6 +149,9 @@ public static partial class ErrorResultFactory
                 Message = genericMatch.Groups["message"].Value.Trim(),
                 Category = category,
                 Hint = GetHint(code),
+                Explanation = errorInfo?.Explanation,
+                DocumentationUrl = errorInfo?.DocumentationUrl,
+                SuggestedFixes = errorInfo?.SuggestedFixes,
                 RawOutput = SanitizeOutput(line),
                 McpErrorCode = mcpErrorCode,
                 Data = CreateErrorData(command, exitCode, stderr)

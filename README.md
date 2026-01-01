@@ -84,10 +84,19 @@ The .NET MCP Server provides **context and intelligence** that raw CLI execution
 - **With MCP**: AI can search NuGet.org to find exact package names and versions
 - **Without MCP**: AI guesses package names, often suggesting outdated or incorrect ones
 
-#### **6. Structured Error Handling**
+#### **6. Structured Error Handling with Enhanced Diagnostics**
 
-- **With MCP**: Errors are parsed and returned in structured format the AI can understand
+- **With MCP**: Errors are parsed and enriched with explanations, documentation links, and suggested fixes
 - **Without MCP**: AI gets raw stderr output and may misinterpret errors
+
+The server provides **enhanced error diagnostics** for 52 common error codes:
+
+- Plain English explanations of what went wrong
+- Direct links to official Microsoft documentation
+- Specific suggested fixes with commands to resolve issues
+- Support for CS####, MSB####, NU####, and NETSDK#### error codes
+
+See [Error Diagnostics Documentation](doc/error-diagnostics.md) for details.
 
 #### **7. MCP Resources**
 
