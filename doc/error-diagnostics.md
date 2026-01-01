@@ -11,12 +11,12 @@ The .NET MCP Server provides enhanced error diagnostics that go beyond simple er
 
 The server recognizes and provides enhanced diagnostics for errors from:
 
-- **C# Compiler** (CS#### codes) - 21 error codes
-- **MSBuild** (MSB#### codes) - 11 error codes
-- **NuGet** (NU#### codes) - 9 error codes
-- **NET SDK** (NETSDK#### codes) - 10 error codes
+- **C# Compiler** (CS#### codes) - 23 error codes
+- **MSBuild** (MSB#### codes) - 12 error codes
+- **NuGet** (NU#### codes) - 10 error codes
+- **NET SDK** (NETSDK#### codes) - 7 error codes
 
-Total: **51+ common error codes** with detailed explanations.
+Total: **52 common error codes** with detailed explanations.
 
 ## How It Works
 

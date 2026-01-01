@@ -89,7 +89,7 @@ The .NET MCP Server provides **context and intelligence** that raw CLI execution
 - **With MCP**: Errors are parsed and enriched with explanations, documentation links, and suggested fixes
 - **Without MCP**: AI gets raw stderr output and may misinterpret errors
 
-The server provides **enhanced error diagnostics** for 51+ common error codes:
+The server provides **enhanced error diagnostics** for 52 common error codes:
 
 - Plain English explanations of what went wrong
 - Direct links to official Microsoft documentation

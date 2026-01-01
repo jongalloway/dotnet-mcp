@@ -546,25 +546,6 @@
       ],
       "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/core/tools/sdk-errors/netsdk1004"
     },
-    "CS0246": {
-      "title": "The type or namespace name could not be found",
-      "explanation": "The compiler cannot find the specified type or namespace. This is often due to missing using directives or package references.",
-      "category": "Compilation",
-      "commonCauses": [
-        "Missing using directive",
-        "Missing NuGet package reference",
-        "Typo in type or namespace name",
-        "Package not restored"
-      ],
-      "suggestedFixes": [
-        "Add using directive for the namespace",
-        "Add package reference: dotnet add package <PackageName>",
-        "Run dotnet restore",
-        "Check spelling of type/namespace",
-        "Verify package version supports your framework"
-      ],
-      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs0246"
-    },
     "CS0119": {
       "title": "Invalid expression term",
       "explanation": "A type name or namespace is being used where a variable, value, or method is expected.",
@@ -902,6 +883,75 @@
         "Add return in switch default case"
       ],
       "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs0161"
+    },
+    "CS0115": {
+      "title": "No suitable method found to override",
+      "explanation": "Attempting to override a method that doesn't exist in the base class or interface.",
+      "category": "Compilation",
+      "commonCauses": [
+        "Method signature doesn't match base",
+        "Base method is not virtual",
+        "Wrong method name",
+        "Parameter mismatch"
+      ],
+      "suggestedFixes": [
+        "Verify base class has virtual/abstract method",
+        "Check method signature matches exactly",
+        "Remove 'override' keyword if not overriding",
+        "Use IDE tools to implement base method correctly"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/misc/cs0115"
+    },
+    "CS0507": {
+      "title": "Cannot change access modifiers when overriding",
+      "explanation": "The access modifier on an override member is different from the base member.",
+      "category": "Compilation",
+      "commonCauses": [
+        "Override has different accessibility",
+        "Trying to make override more restrictive",
+        "Trying to make override more accessible"
+      ],
+      "suggestedFixes": [
+        "Match access modifier of base member",
+        "Remove access modifier from override (inherits from base)",
+        "Check base class member accessibility"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/misc/cs0507"
+    },
+    "NU1603": {
+      "title": "Package dependency could not be resolved",
+      "explanation": "A package dependency cannot be satisfied due to version constraints or availability issues.",
+      "category": "Package",
+      "commonCauses": [
+        "Dependency version unavailable",
+        "Conflicting version requirements",
+        "Package removed from feed",
+        "Network issues"
+      ],
+      "suggestedFixes": [
+        "Update package to newer version",
+        "Clear NuGet cache: dotnet nuget locals all --clear",
+        "Check package sources are accessible",
+        "Review dependency constraints"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/nuget/reference/errors-and-warnings/nu1603"
+    },
+    "MSB3277": {
+      "title": "Found conflicts between different versions of the same assembly",
+      "explanation": "Multiple versions of the same assembly are referenced, causing a conflict.",
+      "category": "Build",
+      "commonCauses": [
+        "Different packages reference different assembly versions",
+        "Direct and transitive references conflict",
+        "Manual assembly references conflict with NuGet"
+      ],
+      "suggestedFixes": [
+        "Add binding redirect in app.config",
+        "Update packages to use same assembly version",
+        "Use package reference instead of assembly reference",
+        "Check with: dotnet list package --include-transitive"
+      ],
+      "documentationUrl": "https://learn.microsoft.com/en-us/visualstudio/msbuild/errors/msb3277"
     }
   }
 }
