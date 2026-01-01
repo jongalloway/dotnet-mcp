@@ -1,0 +1,77 @@
+name: 'Publish to MCP Registry with Retry'
+description: 'Publishes to MCP Registry with exponential backoff retry logic for eventual consistency issues'
+
+inputs:
+  max-attempts:
+    description: 'Maximum number of retry attempts'
+    required: false
+    default: '8'
+  initial-sleep:
+    description: 'Initial sleep duration in seconds between retries'
+    required: false
+    default: '15'
+  max-sleep:
+    description: 'Maximum sleep duration in seconds between retries'
+    required: false
+    default: '180'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Login to MCP Registry
+      shell: bash
+      run: ./mcp-publisher login github-oidc
+
+    - name: Publish to MCP Registry (with retry)
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        # Retry configuration: exponential backoff with configurable parameters.
+        # With default configuration (8 attempts, 15s initial, 180s max):
+        # worst-case total wait time is ~12.75 minutes (~765 seconds).
+        # This window gives the MCP registry enough time to observe the newly published
+        # NuGet package while keeping the workflow bounded.
+        max_attempts=${{ inputs.max-attempts }}
+        sleep_seconds=${{ inputs.initial-sleep }}
+        max_sleep_seconds=${{ inputs.max-sleep }}
+
+        for attempt in $(seq 1 $max_attempts); do
+          echo "Attempt $attempt/$max_attempts to publish to MCP registry"
+
+          set +e
+          ./mcp-publisher publish 2>&1 | tee publish.log
+          exit_code=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$exit_code" -eq 0 ]; then
+            echo "✅ MCP registry publish succeeded"
+            exit 0
+          fi
+
+          # Retry only for known eventual-consistency style errors from the MCP registry.
+          # Match multiple common phrasings in a case-insensitive way to avoid relying on a single exact string.
+          if grep -Ei '(exists but version|version.*not.*available|eventual consistency|propagate|propagation delay)' publish.log; then
+            if [ "$attempt" -lt "$max_attempts" ]; then
+              echo "⚠️  Registry cannot see NuGet version yet; retrying after ${sleep_seconds}s"
+              sleep "$sleep_seconds"
+              # Apply exponential backoff with cap
+              sleep_seconds=$(( sleep_seconds * 2 ))
+              if [ "$sleep_seconds" -gt "$max_sleep_seconds" ]; then
+                sleep_seconds="$max_sleep_seconds"
+              fi
+              continue
+            else
+              echo "⚠️  Registry cannot see NuGet version yet; no retries remaining, failing without additional delay"
+              exit 1
+            fi
+          fi
+
+          echo "❌ Publish failed with non-retryable error"
+          exit "$exit_code"
+        done
+
+        # Defensive guard: in practice, all code paths above should exit from within the loop.
+        # If we ever reach this point, treat it as an unexpected failure.
+        echo "❌ Reached end of retry loop without a successful publish or explicit failure; failing defensively."
+        exit 1
