@@ -625,6 +625,8 @@ maui-tizen        .NET MAUI SDK for Tizen
 dotnet workload install maui-android maui-ios
 ```
 
+> **Note**: The command above shows the raw `dotnet` CLI syntax, which uses space-separated workload IDs. When calling the .NET MCP workload install tool, pass workload IDs as a single comma-separated parameter, for example: `workloadIds: "maui-android,maui-ios"`. The MCP server will translate this into the equivalent CLI command.
+
 *Workloads installed! Let's verify:*
 
 ```bash

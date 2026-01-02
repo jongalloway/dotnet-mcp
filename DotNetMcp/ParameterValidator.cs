@@ -249,13 +249,12 @@ public static partial class ParameterValidator
             return false;
         }
 
-        foreach (var c in workloadId)
+        // Use explicit Where to filter invalid characters
+        var invalidChar = workloadId.Where(c => !(char.IsLetterOrDigit(c) || c is '-' or '_')).FirstOrDefault();
+        if (invalidChar != default(char))
         {
-            if (!(char.IsLetterOrDigit(c) || c is '-' or '_'))
-            {
-                errorMessage = $"Invalid workload ID '{workloadId}'. Workload IDs must contain only alphanumeric characters, hyphens, and underscores.";
-                return false;
-            }
+            errorMessage = $"Invalid workload ID '{workloadId}'. Workload IDs must contain only alphanumeric characters, hyphens, and underscores.";
+            return false;
         }
 
         return true;
@@ -287,14 +286,12 @@ public static partial class ParameterValidator
             return false;
         }
 
-        // Validate each ID
-        foreach (var id in ids)
+        // Use explicit Where to find first invalid ID
+        var invalidId = ids.Where(id => !ValidateWorkloadId(id, out _)).FirstOrDefault();
+        if (invalidId != null)
         {
-            if (!ValidateWorkloadId(id, out var idError))
-            {
-                errorMessage = idError;
-                return false;
-            }
+            ValidateWorkloadId(invalidId, out errorMessage);
+            return false;
         }
 
         parsedIds = ids;
