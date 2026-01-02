@@ -114,6 +114,13 @@ public sealed class SuccessResult
     public bool Success { get; init; } = true;
 
     /// <summary>
+    /// The command that was executed (e.g., "dotnet build MyProject.csproj").
+    /// Included for machine-readable output to support logging and diagnostics.
+    /// </summary>
+    [JsonPropertyName("command")]
+    public string? Command { get; init; }
+
+    /// <summary>
     /// Output from the command
     /// </summary>
     [JsonPropertyName("output")]

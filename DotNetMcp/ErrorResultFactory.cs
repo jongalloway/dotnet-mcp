@@ -34,6 +34,7 @@ public static partial class ErrorResultFactory
             return new SuccessResult
             {
                 Success = true,
+                Command = string.IsNullOrWhiteSpace(command) ? null : SanitizeOutput(command),
                 Output = SanitizeOutput(output),
                 ExitCode = 0
             };
@@ -53,14 +54,14 @@ public static partial class ErrorResultFactory
         if (errors.Count == 0)
         {
             // Truncate long error messages to avoid verbose fallback errors
-            var errorMessage = string.IsNullOrWhiteSpace(error) 
-                ? "Command failed with no error output" 
+            var errorMessage = string.IsNullOrWhiteSpace(error)
+                ? "Command failed with no error output"
                 : error.Length > 500 ? error[..500] + "..." : error.Trim();
-            
+
             var genericCode = $"EXIT_{exitCode}";
             var category = "Unknown";
             var mcpErrorCode = McpErrorCodes.GetMcpErrorCode(genericCode, category, exitCode);
-            
+
             errors.Add(new ErrorResult
             {
                 Code = genericCode,
@@ -94,7 +95,7 @@ public static partial class ErrorResultFactory
             var category = GetCategory(code);
             var mcpErrorCode = McpErrorCodes.GetMcpErrorCode(code, category, exitCode);
             var errorInfo = ErrorCodeDictionary.GetErrorInfo(code);
-            
+
             return new ErrorResult
             {
                 Code = code,
@@ -118,7 +119,7 @@ public static partial class ErrorResultFactory
             var category = "Package";
             var mcpErrorCode = McpErrorCodes.GetMcpErrorCode(code, category, exitCode);
             var errorInfo = ErrorCodeDictionary.GetErrorInfo(code);
-            
+
             return new ErrorResult
             {
                 Code = code,
@@ -142,7 +143,7 @@ public static partial class ErrorResultFactory
             var category = GetCategory(code);
             var mcpErrorCode = McpErrorCodes.GetMcpErrorCode(code, category, exitCode);
             var errorInfo = ErrorCodeDictionary.GetErrorInfo(code);
-            
+
             return new ErrorResult
             {
                 Code = code,
@@ -231,7 +232,7 @@ public static partial class ErrorResultFactory
     /// Maximum length for stderr in structured error data before truncation.
     /// </summary>
     private const int MaxStderrLength = 1000;
-    
+
     /// <summary>
     /// Truncation suffix appended to truncated stderr messages.
     /// </summary>
@@ -278,7 +279,7 @@ public static partial class ErrorResultFactory
         var code = "CONCURRENCY_CONFLICT";
         var category = "Concurrency";
         var mcpErrorCode = McpErrorCodes.GetMcpErrorCode(code, category, -1);
-        
+
         return new ErrorResponse
         {
             Success = false,

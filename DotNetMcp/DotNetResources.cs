@@ -30,12 +30,13 @@ public sealed class DotNetResources
     private static readonly CachedResourceManager<List<RuntimeInfo>> _runtimeCacheManager =
         new("Runtime", defaultTtlSeconds: 300);
 
-    private static async Task<List<SdkInfo>> LoadSdksAsync(ILogger logger)
+    internal static List<SdkInfo> ParseSdkListOutput(string sdkListOutput)
     {
-        var result = await DotNetCommandExecutor.ExecuteCommandForResourceAsync("--list-sdks", logger);
+        if (string.IsNullOrWhiteSpace(sdkListOutput))
+            return [];
 
         // Parse the SDK list output and sort by version
-        var lines = result.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var lines = sdkListOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries);
 
         static Version ParseForSorting(string sdkVersion)
         {
@@ -52,7 +53,7 @@ public sealed class DotNetResources
 
         static bool IsPrerelease(string sdkVersion) => sdkVersion.Contains('-', StringComparison.Ordinal);
 
-        var sdks = lines
+        return lines
             .Select(line => line.Split('[', 2))
             .Where(parts => parts.Length == 2)
             .Select(parts =>
@@ -65,8 +66,41 @@ public sealed class DotNetResources
             // If the numeric version is the same, put prereleases before stable so the stable appears as the latest.
             .ThenBy(sdk => IsPrerelease(sdk.Version) ? 0 : 1)
             .ToList();
+    }
 
-        return sdks;
+    internal static List<RuntimeInfo> ParseRuntimeListOutput(string runtimeListOutput)
+    {
+        if (string.IsNullOrWhiteSpace(runtimeListOutput))
+            return [];
+
+        // Parse the runtime list output
+        var lines = runtimeListOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+        return lines
+            .Select(line => line.Split('[', 2))
+            .Where(parts => parts.Length == 2)
+            .Select(parts =>
+            {
+                var nameAndVersion = parts[0].Trim().Split(' ', 2);
+                if (nameAndVersion.Length == 2)
+                {
+                    var name = nameAndVersion[0];
+                    var version = nameAndVersion[1];
+                    var path = parts[1].TrimEnd(']').Trim();
+                    return new RuntimeInfo(name, version, Path.Combine(path, version));
+                }
+
+                return null;
+            })
+            .OfType<RuntimeInfo>()
+            .ToList();
+    }
+
+    private static async Task<List<SdkInfo>> LoadSdksAsync(ILogger logger)
+    {
+        var result = await DotNetCommandExecutor.ExecuteCommandForResourceAsync("--list-sdks", logger);
+
+        return ParseSdkListOutput(result);
     }
 
     private static bool TryGetSdkMajorVersion(string sdkVersion, out int major)
@@ -77,6 +111,20 @@ public sealed class DotNetResources
 
         var firstSegment = sdkVersion.Split('.', 2, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
         return int.TryParse(firstSegment, out major);
+    }
+
+    internal static List<string> GetSupportedModernFrameworksForResources(IEnumerable<SdkInfo> installedSdks)
+    {
+        var supportedModernFrameworks = FrameworkHelper.GetSupportedModernFrameworks().ToList();
+
+        // Only surface preview TFMs when the corresponding SDK major version is installed.
+        // This avoids suggesting frameworks users can't actually target.
+        if (installedSdks.Any(sdk => TryGetSdkMajorVersion(sdk.Version, out var major) && major == 11))
+        {
+            supportedModernFrameworks.Insert(0, DotNetSdkConstants.TargetFrameworks.Net110);
+        }
+
+        return supportedModernFrameworks;
     }
 
     public DotNetResources(ILogger<DotNetResources> logger)
@@ -158,29 +206,7 @@ public sealed class DotNetResources
             var entry = await _runtimeCacheManager.GetOrLoadAsync(async () =>
             {
                 var result = await DotNetCommandExecutor.ExecuteCommandForResourceAsync("--list-runtimes", _logger);
-
-                // Parse the runtime list output
-                var lines = result.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-
-                var runtimes = lines
-                    .Select(line => line.Split('[', 2))
-                    .Where(parts => parts.Length == 2)
-                    .Select(parts =>
-                    {
-                        var nameAndVersion = parts[0].Trim().Split(' ', 2);
-                        if (nameAndVersion.Length == 2)
-                        {
-                            var name = nameAndVersion[0];
-                            var version = nameAndVersion[1];
-                            var path = parts[1].TrimEnd(']').Trim();
-                            return new RuntimeInfo(name, version, Path.Combine(path, version));
-                        }
-                        return null;
-                    })
-                    .OfType<RuntimeInfo>()
-                    .ToList();
-
-                return runtimes;
+                return ParseRuntimeListOutput(result);
             });
 
             var responseData = new { runtimes = entry.Data };
@@ -248,15 +274,8 @@ public sealed class DotNetResources
         _logger.LogDebug("Reading framework information");
         try
         {
-            var supportedModernFrameworks = FrameworkHelper.GetSupportedModernFrameworks().ToList();
-
-            // Only surface preview TFMs when the corresponding SDK major version is installed.
-            // This avoids suggesting frameworks users can't actually target.
             var sdkEntry = await _sdkCacheManager.GetOrLoadAsync(() => LoadSdksAsync(_logger));
-            if (sdkEntry.Data.Any(sdk => TryGetSdkMajorVersion(sdk.Version, out var major) && major == 11))
-            {
-                supportedModernFrameworks.Insert(0, DotNetSdkConstants.TargetFrameworks.Net110);
-            }
+            var supportedModernFrameworks = GetSupportedModernFrameworksForResources(sdkEntry.Data);
 
             var modernFrameworks = supportedModernFrameworks
                 .Select(fw => new

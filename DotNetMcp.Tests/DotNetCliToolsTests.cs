@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using DotNetMcp;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -21,15 +23,17 @@ public class DotNetCliToolsTests
     [Fact]
     public async Task DotnetProjectTest_WithBasicParameters_BuildsCorrectCommand()
     {
-        // This test validates that the method exists and can be called with basic parameters
-        // The actual command execution would require the dotnet CLI to be available
+        // This test validates that the command is composed correctly.
         var result = await _tools.DotnetProjectTest(
             project: "test.csproj",
             configuration: "Debug",
-            filter: "FullyQualifiedName~MyTest");
+            filter: "FullyQualifiedName~MyTest",
+            machineReadable: true);
 
-        // The result should contain output (even if it's an error about missing project)
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(
+            result,
+            "dotnet test \"test.csproj\" -c Debug --filter \"FullyQualifiedName~MyTest\"");
     }
 
     [Fact]
@@ -37,9 +41,11 @@ public class DotNetCliToolsTests
     {
         // Validates that the collect parameter is accepted
         var result = await _tools.DotnetProjectTest(
-            collect: "XPlat Code Coverage");
+            collect: "XPlat Code Coverage",
+            machineReadable: true);
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet test --collect \"XPlat Code Coverage\"");
     }
 
     [Fact]
@@ -47,9 +53,11 @@ public class DotNetCliToolsTests
     {
         // Validates that the resultsDirectory parameter is accepted
         var result = await _tools.DotnetProjectTest(
-            resultsDirectory: "/tmp/test-results");
+            resultsDirectory: "/tmp/test-results",
+            machineReadable: true);
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet test --results-directory \"/tmp/test-results\"");
     }
 
     [Fact]
@@ -57,9 +65,11 @@ public class DotNetCliToolsTests
     {
         // Validates that the logger parameter is accepted
         var result = await _tools.DotnetProjectTest(
-            logger: "trx");
+            logger: "trx",
+            machineReadable: true);
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet test --logger \"trx\"");
     }
 
     [Fact]
@@ -67,9 +77,11 @@ public class DotNetCliToolsTests
     {
         // Validates that the noBuild parameter is accepted
         var result = await _tools.DotnetProjectTest(
-            noBuild: true);
+            noBuild: true,
+            machineReadable: true);
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet test --no-build");
     }
 
     [Fact]
@@ -77,9 +89,11 @@ public class DotNetCliToolsTests
     {
         // Validates that the noRestore parameter is accepted
         var result = await _tools.DotnetProjectTest(
-            noRestore: true);
+            noRestore: true,
+            machineReadable: true);
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet test --no-restore");
     }
 
     [Fact]
@@ -87,9 +101,11 @@ public class DotNetCliToolsTests
     {
         // Validates that the verbosity parameter is accepted
         var result = await _tools.DotnetProjectTest(
-            verbosity: "detailed");
+            verbosity: "detailed",
+            machineReadable: true);
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet test --verbosity detailed");
     }
 
     [Fact]
@@ -97,9 +113,11 @@ public class DotNetCliToolsTests
     {
         // Validates that the framework parameter is accepted
         var result = await _tools.DotnetProjectTest(
-            framework: "net8.0");
+            framework: "net8.0",
+            machineReadable: true);
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet test --framework net8.0");
     }
 
     [Fact]
@@ -107,9 +125,11 @@ public class DotNetCliToolsTests
     {
         // Validates that the blame parameter is accepted
         var result = await _tools.DotnetProjectTest(
-            blame: true);
+            blame: true,
+            machineReadable: true);
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet test --blame");
     }
 
     [Fact]
@@ -117,9 +137,11 @@ public class DotNetCliToolsTests
     {
         // Validates that the listTests parameter is accepted
         var result = await _tools.DotnetProjectTest(
-            listTests: true);
+            listTests: true,
+            machineReadable: true);
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet test --list-tests");
     }
 
     [Fact]
@@ -138,9 +160,13 @@ public class DotNetCliToolsTests
             verbosity: "minimal",
             framework: "net10.0",
             blame: true,
-            listTests: false);
+            listTests: false,
+            machineReadable: true);
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(
+            result,
+            "dotnet test \"test.csproj\" -c Release --filter \"Category=Unit\" --collect \"XPlat Code Coverage\" --results-directory \"/tmp/results\" --logger \"trx;LogFileName=test-results.trx\" --no-build --no-restore --verbosity minimal --framework net10.0 --blame");
     }
 
     [InteractiveFact]
@@ -425,9 +451,10 @@ public class DotNetCliToolsTests
     public async Task DotnetToolList_WithoutGlobalFlag_ExecutesCommand()
     {
         // Validates that local tool list works
-        var result = await _tools.DotnetToolList();
+        var result = await _tools.DotnetToolList(machineReadable: true);
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet tool list");
     }
 
     [Fact]
@@ -435,9 +462,11 @@ public class DotNetCliToolsTests
     {
         // Validates that global tool list works
         var result = await _tools.DotnetToolList(
-            global: true);
+            global: true,
+            machineReadable: true);
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet tool list --global");
     }
 
     [Fact]
@@ -527,41 +556,95 @@ public class DotNetCliToolsTests
     [Fact]
     public async Task DotnetToolManifestCreate_WithoutParameters_ExecutesCommand()
     {
-        // Validates that tool manifest create without parameters works
-        var result = await _tools.DotnetToolManifestCreate();
+        // Use an isolated output directory to avoid writing into the repo.
+        var tempDirectory = Path.Combine(Path.GetTempPath(), "dotnet-mcp-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDirectory);
 
-        Assert.NotNull(result);
+        try
+        {
+            var result = await _tools.DotnetToolManifestCreate(
+                output: tempDirectory,
+                machineReadable: true);
+
+            Assert.NotNull(result);
+            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, $"dotnet new tool-manifest -o \"{tempDirectory}\"");
+        }
+        finally
+        {
+            if (Directory.Exists(tempDirectory))
+                Directory.Delete(tempDirectory, recursive: true);
+        }
     }
 
     [Fact]
     public async Task DotnetToolManifestCreate_WithOutput_ExecutesCommand()
     {
         // Validates that tool manifest create with output directory works
-        var result = await _tools.DotnetToolManifestCreate(
-            output: "./test-dir");
+        var tempDirectory = Path.Combine(Path.GetTempPath(), "dotnet-mcp-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDirectory);
 
-        Assert.NotNull(result);
+        try
+        {
+            var result = await _tools.DotnetToolManifestCreate(
+                output: tempDirectory,
+                machineReadable: true);
+
+            Assert.NotNull(result);
+            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, $"dotnet new tool-manifest -o \"{tempDirectory}\"");
+        }
+        finally
+        {
+            if (Directory.Exists(tempDirectory))
+                Directory.Delete(tempDirectory, recursive: true);
+        }
     }
 
     [Fact]
     public async Task DotnetToolManifestCreate_WithForce_ExecutesCommand()
     {
         // Validates that tool manifest create with force flag works
-        var result = await _tools.DotnetToolManifestCreate(
-            force: true);
+        var tempDirectory = Path.Combine(Path.GetTempPath(), "dotnet-mcp-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDirectory);
 
-        Assert.NotNull(result);
+        try
+        {
+            var result = await _tools.DotnetToolManifestCreate(
+                output: tempDirectory,
+                force: true,
+                machineReadable: true);
+
+            Assert.NotNull(result);
+            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, $"dotnet new tool-manifest -o \"{tempDirectory}\" --force");
+        }
+        finally
+        {
+            if (Directory.Exists(tempDirectory))
+                Directory.Delete(tempDirectory, recursive: true);
+        }
     }
 
     [Fact]
     public async Task DotnetToolManifestCreate_WithAllParameters_ExecutesCommand()
     {
         // Validates that all parameters work together
-        var result = await _tools.DotnetToolManifestCreate(
-            output: "./test-dir",
-            force: true);
+        var tempDirectory = Path.Combine(Path.GetTempPath(), "dotnet-mcp-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDirectory);
 
-        Assert.NotNull(result);
+        try
+        {
+            var result = await _tools.DotnetToolManifestCreate(
+                output: tempDirectory,
+                force: true,
+                machineReadable: true);
+
+            Assert.NotNull(result);
+            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, $"dotnet new tool-manifest -o \"{tempDirectory}\" --force");
+        }
+        finally
+        {
+            if (Directory.Exists(tempDirectory))
+                Directory.Delete(tempDirectory, recursive: true);
+        }
     }
 
     [Fact]
