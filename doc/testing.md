@@ -4,10 +4,11 @@ This repository uses an xUnit test project to validate the MCP server's behavior
 
 ## Test Coverage Summary
 
-- **Total Tests**: 551 passing tests (8 skipped interactive/integration tests)
+- **Total Tests**: 703 passing tests (9 skipped interactive/integration tests)
 - **Tool Coverage**: All 67 MCP tools have comprehensive unit tests
 - **Code Coverage**: 73.2% line coverage
 - **Test Organization**: Tests are organized by category (Templates, Packages, Projects, Solutions, References, etc.)
+- **MCP Conformance**: 16 conformance tests validate MCP protocol compliance
 
 ## Quick start
 
@@ -22,6 +23,46 @@ Run tests from the solution:
 ```bash
 dotnet test --solution DotNetMcp.slnx -c Release
 ```
+
+## MCP Conformance Tests
+
+The repository includes conformance tests that validate the server's compliance with the Model Context Protocol (MCP) specification.
+
+### Running Conformance Tests
+
+To run only the conformance tests:
+
+```bash
+dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release -- --filter-class "*McpConformanceTests"
+```
+
+### What Conformance Tests Validate
+
+The conformance tests verify:
+
+- **Server Initialization**: Handshake protocol, server info, capabilities, and protocol version negotiation
+- **Tool Discovery**: Tool listing with proper metadata (names, descriptions, input schemas)
+- **Tool Invocation**: Successful tool execution and response format
+- **Error Handling**: Proper MCP error responses with error codes and messages
+- **Resource Listing**: Resource discovery API (if resources are provided)
+
+### Conformance Test Architecture
+
+The conformance tests use an **in-process stdio** approach:
+
+- Tests start the actual DotNetMcp server binary as a child process
+- Communication happens via stdin/stdout using the MCP SDK's `StdioClientTransport`
+- Tests are deterministic and require no external services
+- The same server binary used in production is tested for conformance
+
+This approach ensures that:
+- Tests validate the actual deployed server behavior
+- No mocking or test doubles are used for the core server
+- Protocol conformance is verified end-to-end
+
+### CI Integration
+
+Conformance tests run automatically in GitHub Actions as part of the `build.yml` workflow. They run before the full test suite to provide early feedback on protocol compliance issues.
 
 ## Code coverage
 
@@ -42,6 +83,7 @@ The Cobertura XML will be written under the test output folder, typically:
 
 ### Test Files by Category
 
+- `McpConformanceTests.cs` - **MCP protocol conformance validation** (handshake, tool listing/invocation, error handling)
 - `TemplateToolsTests.cs` - Template-related tools (list, search, info, cache)
 - `PackageToolsTests.cs` - Package management tools (add, remove, update, search, pack)
 - `ProjectToolsTests.cs` - Project operations (restore, clean)
