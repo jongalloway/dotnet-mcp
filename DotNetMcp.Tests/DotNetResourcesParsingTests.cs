@@ -1,3 +1,4 @@
+using System.IO;
 using DotNetMcp;
 using Xunit;
 
@@ -29,9 +30,9 @@ public class DotNetResourcesParsingTests
         Assert.Equal("11.0.100-preview.1", sdks[1].Version);
         Assert.Equal("11.0.100", sdks[2].Version);
 
-        Assert.Equal("C:\\Program Files\\dotnet\\sdk\\10.0.101", sdks[0].Path);
-        Assert.Equal("C:\\Program Files\\dotnet\\sdk\\11.0.100-preview.1", sdks[1].Path);
-        Assert.Equal("C:\\Program Files\\dotnet\\sdk\\11.0.100", sdks[2].Path);
+        Assert.Equal(Path.Combine("C:\\Program Files\\dotnet\\sdk", "10.0.101"), sdks[0].Path);
+        Assert.Equal(Path.Combine("C:\\Program Files\\dotnet\\sdk", "11.0.100-preview.1"), sdks[1].Path);
+        Assert.Equal(Path.Combine("C:\\Program Files\\dotnet\\sdk", "11.0.100"), sdks[2].Path);
     }
 
     [Fact]
@@ -49,11 +50,11 @@ public class DotNetResourcesParsingTests
         Assert.Equal(2, runtimes.Count);
         Assert.Equal("Microsoft.NETCore.App", runtimes[0].Name);
         Assert.Equal("10.0.1", runtimes[0].Version);
-        Assert.Equal("C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.1", runtimes[0].Path);
+        Assert.Equal(Path.Combine("C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App", "10.0.1"), runtimes[0].Path);
 
         Assert.Equal("Microsoft.AspNetCore.App", runtimes[1].Name);
         Assert.Equal("10.0.1", runtimes[1].Version);
-        Assert.Equal("C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App\\10.0.1", runtimes[1].Path);
+        Assert.Equal(Path.Combine("C:\\Program Files\\dotnet\\shared\\Microsoft.AspNetCore.App", "10.0.1"), runtimes[1].Path);
     }
 
     [Fact]
