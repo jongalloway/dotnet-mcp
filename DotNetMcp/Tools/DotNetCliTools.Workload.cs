@@ -23,6 +23,18 @@ public sealed partial class DotNetCliTools
         => await ExecuteDotNetCommand("workload list", machineReadable);
 
     /// <summary>
+    /// Get detailed information about installed .NET workloads.
+    /// Shows comprehensive details including manifest versions, installation paths, and installation sources for each workload.
+    /// </summary>
+    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
+    [McpServerTool]
+    [McpMeta("category", "workload")]
+    [McpMeta("priority", 6.0)]
+    [McpMeta("tags", JsonValue = """["workload","info","details","installed","manifest"]""")]
+    public async partial Task<string> DotnetWorkloadInfo(bool machineReadable = false)
+        => await ExecuteDotNetCommand("workload --info", machineReadable);
+
+    /// <summary>
     /// Search for available .NET workloads by name or description.
     /// Finds workloads for mobile (iOS, Android), MAUI, Blazor WebAssembly, and other platform-specific development.
     /// </summary>

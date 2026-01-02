@@ -47,6 +47,34 @@ public class WorkloadToolsTests
     }
 
     [Fact]
+    public async Task DotnetWorkloadInfo_ReturnsDetailedWorkloadInformation()
+    {
+        // Act
+        var result = await _tools.DotnetWorkloadInfo();
+
+        // Assert
+        Assert.NotNull(result);
+        // Should contain detailed workload information
+        Assert.True(
+            result.Contains("Workload", StringComparison.OrdinalIgnoreCase) ||
+            result.Contains("Manifest", StringComparison.OrdinalIgnoreCase) ||
+            result.Contains("Installation", StringComparison.OrdinalIgnoreCase) ||
+            result.Contains("version", StringComparison.OrdinalIgnoreCase),
+            "Result should contain detailed workload information");
+    }
+
+    [Fact]
+    public async Task DotnetWorkloadInfo_WithMachineReadable_ReturnsStructuredOutput()
+    {
+        // Act
+        var result = await _tools.DotnetWorkloadInfo(machineReadable: true);
+
+        // Assert
+        Assert.NotNull(result);
+        // Should return machine-readable format
+    }
+
+    [Fact]
     public async Task DotnetWorkloadSearch_WithoutSearchTerm_ReturnsAllWorkloads()
     {
         // Act

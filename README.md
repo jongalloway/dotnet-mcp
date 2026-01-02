@@ -765,6 +765,7 @@ Entity Framework Core tools require the `dotnet-ef` tool to be installed (`dotne
 ### Tools - Workload Management
 
 - **dotnet_workload_list** - List installed workloads with versions and manifest information
+- **dotnet_workload_info** - Get detailed workload information including manifest paths and installation sources
 - **dotnet_workload_search** - Search for available workloads (mobile, MAUI, WASM, etc.)
 - **dotnet_workload_install** - Install workloads for specialized development (may require elevation, can download GB of data)
 - **dotnet_workload_update** - Update all installed workloads to latest versions (long-running operation)
