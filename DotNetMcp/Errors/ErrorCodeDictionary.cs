@@ -50,7 +50,7 @@ public static class ErrorCodeDictionary
         {
             // Load from embedded resource
             var assembly = typeof(ErrorCodeDictionary).Assembly;
-            var resourceName = "DotNetMcp.ErrorCodes.json";
+            var resourceName = "DotNetMcp.Errors.ErrorCodes.json";
 
             using var stream = assembly.GetManifestResourceStream(resourceName);
             if (stream != null)
