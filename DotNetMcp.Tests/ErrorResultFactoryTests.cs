@@ -861,10 +861,10 @@ Program.cs(15,10): error CS1001: Identifier expected";
         Assert.NotNull(error.Data);
         Assert.Equal(-1, error.Data.ExitCode);
         Assert.NotNull(error.Data.AdditionalData);
-        Assert.True(error.Data.AdditionalData.ContainsKey("feature"));
-        Assert.True(error.Data.AdditionalData.ContainsKey("reason"));
-        Assert.Equal(feature, error.Data.AdditionalData["feature"]);
-        Assert.Equal(reason, error.Data.AdditionalData["reason"]);
+        Assert.True(error.Data.AdditionalData.TryGetValue("feature", out var actualFeature));
+        Assert.Equal(feature, actualFeature);
+        Assert.True(error.Data.AdditionalData.TryGetValue("reason", out var actualReason));
+        Assert.Equal(reason, actualReason);
     }
 
     [Fact]
