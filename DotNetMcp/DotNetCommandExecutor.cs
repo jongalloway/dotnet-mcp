@@ -83,31 +83,7 @@ public static class DotNetCommandExecutor
         {
             process.Start();
         }
-        catch (Win32Exception ex)
-        {
-            logger?.LogError(ex, "Failed to start dotnet process");
-
-            if (machineReadable)
-            {
-                var alternatives = new[]
-                {
-                    "Install the .NET SDK from https://dotnet.microsoft.com/download",
-                    "Verify 'dotnet' is on PATH (try: dotnet --info)",
-                    "If using global.json, ensure the requested SDK is installed"
-                };
-
-                var result = ErrorResultFactory.ReturnCapabilityNotAvailable(
-                    feature: "dotnet CLI",
-                    alternatives: alternatives,
-                    command: $"dotnet {arguments}",
-                    details: ex.Message);
-
-                return ErrorResultFactory.ToJson(result);
-            }
-
-            return $"dotnet command could not be started: {ex.Message}";
-        }
-        catch (InvalidOperationException ex)
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
         {
             logger?.LogError(ex, "Failed to start dotnet process");
 
