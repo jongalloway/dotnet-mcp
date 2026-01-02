@@ -24,11 +24,12 @@ public class ReferenceToolsTests
         // Act
         var result = await _tools.DotnetReferenceAdd(
             project: "MyProject.csproj",
-            reference: "MyLibrary.csproj");
+            reference: "MyLibrary.csproj",
+            machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add \"MyProject.csproj\" reference \"MyLibrary.csproj\"");
     }
 
     [Fact]
@@ -42,29 +43,29 @@ public class ReferenceToolsTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add \"MyProject.csproj\" reference \"MyLibrary.csproj\"");
     }
 
     [Fact]
     public async Task DotnetReferenceList_WithoutParameters_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetReferenceList();
+        var result = await _tools.DotnetReferenceList(machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet list reference");
     }
 
     [Fact]
     public async Task DotnetReferenceList_WithProject_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetReferenceList(project: "MyProject.csproj");
+        var result = await _tools.DotnetReferenceList(project: "MyProject.csproj", machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet list \"MyProject.csproj\" reference");
     }
 
     [Fact]
@@ -75,7 +76,7 @@ public class ReferenceToolsTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet list reference");
     }
 
     [Fact]
@@ -84,11 +85,12 @@ public class ReferenceToolsTests
         // Act
         var result = await _tools.DotnetReferenceRemove(
             project: "MyProject.csproj",
-            reference: "MyLibrary.csproj");
+            reference: "MyLibrary.csproj",
+            machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet remove \"MyProject.csproj\" reference \"MyLibrary.csproj\"");
     }
 
     [Fact]
@@ -102,6 +104,6 @@ public class ReferenceToolsTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet remove \"MyProject.csproj\" reference \"MyLibrary.csproj\"");
     }
 }

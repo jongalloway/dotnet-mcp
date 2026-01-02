@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using DotNetMcp;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -7,6 +9,7 @@ namespace DotNetMcp.Tests;
 /// <summary>
 /// Tests for watch, format, NuGet, and other miscellaneous MCP tools
 /// </summary>
+[Collection("ProcessWideStateTests")]
 public class MiscellaneousToolsTests
 {
     private readonly DotNetCliTools _tools;
@@ -16,6 +19,25 @@ public class MiscellaneousToolsTests
     {
         _concurrencyManager = new ConcurrencyManager();
         _tools = new DotNetCliTools(NullLogger<DotNetCliTools>.Instance, _concurrencyManager);
+    }
+
+    private static async Task<string> ExecuteInTempDirectoryAsync(Func<Task<string>> action)
+    {
+        var originalDirectory = Environment.CurrentDirectory;
+        var tempDirectory = Path.Combine(Path.GetTempPath(), "dotnet-mcp-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDirectory);
+
+        try
+        {
+            Environment.CurrentDirectory = tempDirectory;
+            return await action();
+        }
+        finally
+        {
+            Environment.CurrentDirectory = originalDirectory;
+            if (Directory.Exists(tempDirectory))
+                Directory.Delete(tempDirectory, recursive: true);
+        }
     }
 
     // Watch Tools Tests
@@ -148,66 +170,66 @@ public class MiscellaneousToolsTests
     public async Task DotnetFormat_WithoutParameters_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetFormat();
+        var result = await ExecuteInTempDirectoryAsync(() => _tools.DotnetFormat(machineReadable: true));
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet format");
     }
 
     [Fact]
     public async Task DotnetFormat_WithProject_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetFormat(project: "MyProject.csproj");
+        var result = await _tools.DotnetFormat(project: "MyProject.csproj", machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet format \"MyProject.csproj\"");
     }
 
     [Fact]
     public async Task DotnetFormat_WithVerify_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetFormat(verify: true);
+        var result = await _tools.DotnetFormat(verify: true, machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet format --verify-no-changes");
     }
 
     [Fact]
     public async Task DotnetFormat_WithIncludeGenerated_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetFormat(includeGenerated: true);
+        var result = await _tools.DotnetFormat(includeGenerated: true, machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet format --include-generated");
     }
 
     [Fact]
     public async Task DotnetFormat_WithDiagnostics_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetFormat(diagnostics: "IDE0005,CA1304");
+        var result = await _tools.DotnetFormat(diagnostics: "IDE0005,CA1304", machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet format --diagnostics IDE0005,CA1304");
     }
 
     [Fact]
     public async Task DotnetFormat_WithSeverity_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetFormat(severity: "warn");
+        var result = await _tools.DotnetFormat(severity: "warn", machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet format --severity warn");
     }
 
     [Fact]
@@ -224,7 +246,9 @@ public class MiscellaneousToolsTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(
+            result,
+            "dotnet format \"MyProject.csproj\" --verify-no-changes --include-generated --diagnostics IDE0005 --severity error");
     }
 
     // NuGet Locals Tool Tests
@@ -235,24 +259,26 @@ public class MiscellaneousToolsTests
         // Act
         var result = await _tools.DotnetNugetLocals(
             cacheLocation: "all",
-            list: true);
+            list: true,
+            machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet nuget locals all --list");
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetNugetLocals_WithClearAll_BuildsCorrectCommand()
     {
         // Act
         var result = await _tools.DotnetNugetLocals(
             cacheLocation: "all",
-            clear: true);
+            clear: true,
+            machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet nuget locals all --clear");
     }
 
     [Fact]
@@ -261,11 +287,12 @@ public class MiscellaneousToolsTests
         // Act
         var result = await _tools.DotnetNugetLocals(
             cacheLocation: "http-cache",
-            list: true);
+            list: true,
+            machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet nuget locals http-cache --list");
     }
 
     [Fact]
@@ -274,11 +301,12 @@ public class MiscellaneousToolsTests
         // Act
         var result = await _tools.DotnetNugetLocals(
             cacheLocation: "global-packages",
-            list: true);
+            list: true,
+            machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet nuget locals global-packages --list");
     }
 
     [Fact]
@@ -287,11 +315,12 @@ public class MiscellaneousToolsTests
         // Act
         var result = await _tools.DotnetNugetLocals(
             cacheLocation: "temp",
-            list: true);
+            list: true,
+            machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet nuget locals temp --list");
     }
 
     [Fact]
@@ -300,11 +329,12 @@ public class MiscellaneousToolsTests
         // Act
         var result = await _tools.DotnetNugetLocals(
             cacheLocation: "plugins-cache",
-            list: true);
+            list: true,
+            machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet nuget locals plugins-cache --list");
     }
 
     [Fact]
@@ -430,6 +460,6 @@ public class MiscellaneousToolsTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet test --help");
     }
 }

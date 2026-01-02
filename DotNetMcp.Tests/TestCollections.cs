@@ -26,3 +26,12 @@ namespace DotNetMcp.Tests;
 public class CachingIntegrationTestsCollection
 {
 }
+
+/// <summary>
+/// Collection for tests that temporarily change process-wide state (e.g., Environment.CurrentDirectory).
+/// Tests in this collection run sequentially to avoid interference with other tests.
+/// </summary>
+[CollectionDefinition("ProcessWideStateTests", DisableParallelization = true)]
+public class ProcessWideStateTestsCollection
+{
+}

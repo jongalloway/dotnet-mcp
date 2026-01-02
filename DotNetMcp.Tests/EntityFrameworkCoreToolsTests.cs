@@ -28,11 +28,11 @@ public class EntityFrameworkCoreToolsTests
     [Fact]
     public async Task DotnetEfMigrationsAdd_WithName_BuildsCorrectCommand()
     {
-        // Validates that the method exists and accepts basic parameters
         var result = await _tools.DotnetEfMigrationsAdd(
-            name: "InitialCreate");
+            name: "InitialCreate",
+            machineReadable: true);
 
-        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef migrations add \"InitialCreate\"");
     }
 
     [Fact]
@@ -48,50 +48,54 @@ public class EntityFrameworkCoreToolsTests
     [Fact]
     public async Task DotnetEfMigrationsAdd_WithAllParameters_BuildsCorrectCommand()
     {
-        // Validates that all parameters are accepted
         var result = await _tools.DotnetEfMigrationsAdd(
             name: "AddProductEntity",
             project: "MyProject.csproj",
             startupProject: "MyApi.csproj",
             context: "ApplicationDbContext",
             outputDir: "Migrations",
-            framework: "net10.0");
+            framework: "net10.0",
+            machineReadable: true);
 
-        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(
+            result,
+            "dotnet ef migrations add \"AddProductEntity\" --project \"MyProject.csproj\" --startup-project \"MyApi.csproj\" --context \"ApplicationDbContext\" --output-dir \"Migrations\" --framework net10.0");
     }
 
     [Fact]
     public async Task DotnetEfMigrationsList_WithBasicParameters_BuildsCorrectCommand()
     {
-        var result = await _tools.DotnetEfMigrationsList();
+        var result = await _tools.DotnetEfMigrationsList(machineReadable: true);
 
-        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef migrations list");
     }
 
     [Fact]
     public async Task DotnetEfMigrationsList_WithProject_BuildsCorrectCommand()
     {
         var result = await _tools.DotnetEfMigrationsList(
-            project: "MyProject.csproj");
+            project: "MyProject.csproj",
+            machineReadable: true);
 
-        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef migrations list --project \"MyProject.csproj\"");
     }
 
     [Fact]
     public async Task DotnetEfMigrationsRemove_WithForce_BuildsCorrectCommand()
     {
         var result = await _tools.DotnetEfMigrationsRemove(
-            force: true);
+            force: true,
+            machineReadable: true);
 
-        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef migrations remove --force");
     }
 
     [Fact]
     public async Task DotnetEfMigrationsScript_WithBasicParameters_BuildsCorrectCommand()
     {
-        var result = await _tools.DotnetEfMigrationsScript();
+        var result = await _tools.DotnetEfMigrationsScript(machineReadable: true);
 
-        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef migrations script");
     }
 
     [Fact]
@@ -99,9 +103,20 @@ public class EntityFrameworkCoreToolsTests
     {
         var result = await _tools.DotnetEfMigrationsScript(
             from: "InitialCreate",
-            to: "AddProductEntity");
+            to: "AddProductEntity",
+            machineReadable: true);
 
-        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef migrations script \"InitialCreate\" \"AddProductEntity\"");
+    }
+
+    [Fact]
+    public async Task DotnetEfMigrationsScript_WithToOnly_UsesEmptyFrom_BuildsCorrectCommand()
+    {
+        var result = await _tools.DotnetEfMigrationsScript(
+            to: "AddProductEntity",
+            machineReadable: true);
+
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef migrations script \"\" \"AddProductEntity\"");
     }
 
     [Fact]
@@ -109,9 +124,10 @@ public class EntityFrameworkCoreToolsTests
     {
         var result = await _tools.DotnetEfMigrationsScript(
             idempotent: true,
-            output: "migration.sql");
+            output: "migration.sql",
+            machineReadable: true);
 
-        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef migrations script --output \"migration.sql\" --idempotent");
     }
 
     #endregion
@@ -121,18 +137,19 @@ public class EntityFrameworkCoreToolsTests
     [Fact]
     public async Task DotnetEfDatabaseUpdate_WithBasicParameters_BuildsCorrectCommand()
     {
-        var result = await _tools.DotnetEfDatabaseUpdate();
+        var result = await _tools.DotnetEfDatabaseUpdate(machineReadable: true);
 
-        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef database update");
     }
 
     [Fact]
     public async Task DotnetEfDatabaseUpdate_WithMigration_BuildsCorrectCommand()
     {
         var result = await _tools.DotnetEfDatabaseUpdate(
-            migration: "AddProductEntity");
+            migration: "AddProductEntity",
+            machineReadable: true);
 
-        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef database update \"AddProductEntity\"");
     }
 
     [Fact]
@@ -140,27 +157,30 @@ public class EntityFrameworkCoreToolsTests
     {
         // Test rollback to initial state
         var result = await _tools.DotnetEfDatabaseUpdate(
-            migration: "0");
+            migration: "0",
+            machineReadable: true);
 
-        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef database update \"0\"");
     }
 
     [Fact]
     public async Task DotnetEfDatabaseDrop_WithForce_BuildsCorrectCommand()
     {
         var result = await _tools.DotnetEfDatabaseDrop(
-            force: true);
+            force: true,
+            machineReadable: true);
 
-        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef database drop --force");
     }
 
     [Fact]
     public async Task DotnetEfDatabaseDrop_WithDryRun_BuildsCorrectCommand()
     {
         var result = await _tools.DotnetEfDatabaseDrop(
-            dryRun: true);
+            dryRun: true,
+            machineReadable: true);
 
-        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef database drop --dry-run");
     }
 
     #endregion
@@ -170,35 +190,37 @@ public class EntityFrameworkCoreToolsTests
     [Fact]
     public async Task DotnetEfDbContextList_WithBasicParameters_BuildsCorrectCommand()
     {
-        var result = await _tools.DotnetEfDbContextList();
+        var result = await _tools.DotnetEfDbContextList(machineReadable: true);
 
-        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef dbcontext list");
     }
 
     [Fact]
     public async Task DotnetEfDbContextList_WithProject_BuildsCorrectCommand()
     {
         var result = await _tools.DotnetEfDbContextList(
-            project: "MyProject.csproj");
+            project: "MyProject.csproj",
+            machineReadable: true);
 
-        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef dbcontext list --project \"MyProject.csproj\"");
     }
 
     [Fact]
     public async Task DotnetEfDbContextInfo_WithBasicParameters_BuildsCorrectCommand()
     {
-        var result = await _tools.DotnetEfDbContextInfo();
+        var result = await _tools.DotnetEfDbContextInfo(machineReadable: true);
 
-        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef dbcontext info");
     }
 
     [Fact]
     public async Task DotnetEfDbContextInfo_WithContext_BuildsCorrectCommand()
     {
         var result = await _tools.DotnetEfDbContextInfo(
-            context: "ApplicationDbContext");
+            context: "ApplicationDbContext",
+            machineReadable: true);
 
-        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef dbcontext info --context \"ApplicationDbContext\"");
     }
 
     [Fact]
@@ -206,9 +228,12 @@ public class EntityFrameworkCoreToolsTests
     {
         var result = await _tools.DotnetEfDbContextScaffold(
             connection: "Server=localhost;Database=MyDb;",
-            provider: "Microsoft.EntityFrameworkCore.SqlServer");
+            provider: "Microsoft.EntityFrameworkCore.SqlServer",
+            machineReadable: true);
 
-        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(
+            result,
+            "dotnet ef dbcontext scaffold \"Server=localhost;Database=MyDb;\" \"Microsoft.EntityFrameworkCore.SqlServer\"");
     }
 
     [Fact]
@@ -243,9 +268,12 @@ public class EntityFrameworkCoreToolsTests
             tables: "Products,Categories",
             schemas: "dbo",
             useDatabaseNames: true,
-            force: true);
+            force: true,
+            machineReadable: true);
 
-        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(
+            result,
+            "dotnet ef dbcontext scaffold \"Server=localhost;Database=MyDb;\" \"Microsoft.EntityFrameworkCore.SqlServer\" --project \"MyProject.csproj\" --output-dir \"Models\" --context-dir \"Data\" --table \"Products\" --table \"Categories\" --schema \"dbo\" --use-database-names --force");
     }
 
     #endregion

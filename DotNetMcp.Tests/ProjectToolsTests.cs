@@ -22,22 +22,22 @@ public class ProjectToolsTests
     public async Task DotnetProjectRestore_WithoutParameters_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetProjectRestore();
+        var result = await _tools.DotnetProjectRestore(machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet restore");
     }
 
     [Fact]
     public async Task DotnetProjectRestore_WithProject_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetProjectRestore(project: "MyProject.csproj");
+        var result = await _tools.DotnetProjectRestore(project: "MyProject.csproj", machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet restore \"MyProject.csproj\"");
     }
 
     [Fact]
@@ -48,40 +48,40 @@ public class ProjectToolsTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet restore");
     }
 
     [Fact]
     public async Task DotnetProjectClean_WithoutParameters_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetProjectClean();
+        var result = await _tools.DotnetProjectClean(machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet clean");
     }
 
     [Fact]
     public async Task DotnetProjectClean_WithProject_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetProjectClean(project: "MyProject.csproj");
+        var result = await _tools.DotnetProjectClean(project: "MyProject.csproj", machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet clean \"MyProject.csproj\"");
     }
 
     [Fact]
     public async Task DotnetProjectClean_WithConfiguration_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetProjectClean(configuration: "Release");
+        var result = await _tools.DotnetProjectClean(configuration: "Release", machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet clean -c Release");
     }
 
     [Fact]
@@ -95,6 +95,6 @@ public class ProjectToolsTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet clean \"MyProject.csproj\" -c Release");
     }
 }
