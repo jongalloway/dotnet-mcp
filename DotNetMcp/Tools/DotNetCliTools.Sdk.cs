@@ -47,9 +47,10 @@ public sealed partial class DotNetCliTools
                     supportedModernFrameworks.Insert(0, DotNetSdkConstants.TargetFrameworks.Net110);
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 // If SDK discovery fails, fall back to stable list.
+                _logger.LogDebug(ex, "Failed to discover installed .NET SDKs. Falling back to stable framework list.");
             }
 
             result.AppendLine("Modern .NET Frameworks (5.0+):");
