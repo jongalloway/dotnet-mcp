@@ -63,8 +63,8 @@ jobs:
           cp "${coverage_file}" coverage.cobertura.xml
 
       - name: Upload coverage to Codecov
-        # Secrets aren't available to workflows triggered from forks.
-        if: secrets.CODECOV_TOKEN
+        # Only upload from pushes (PR workflows from forks don't have secrets).
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         uses: codecov/codecov-action@v5
         with:
           files: coverage.cobertura.xml
