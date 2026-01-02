@@ -367,6 +367,53 @@ public static partial class ErrorResultFactory
     }
 
     /// <summary>
+    /// Create a capability not available error result.
+    /// Used when a feature exists but cannot be executed due to missing dependencies,
+    /// feature flags being disabled, OS limitations, or not yet being implemented.
+    /// </summary>
+    /// <param name="feature">The feature or capability that is not available</param>
+    /// <param name="reason">Why the capability is not available (e.g., "Not yet implemented", "Requires Windows", "Feature flag disabled")</param>
+    /// <param name="alternatives">List of alternative actions or tools to use instead</param>
+    /// <returns>ErrorResponse with CAPABILITY_NOT_AVAILABLE error</returns>
+    public static ErrorResponse ReturnCapabilityNotAvailable(string feature, string reason, List<string>? alternatives = null)
+    {
+        var code = "CAPABILITY_NOT_AVAILABLE";
+        var category = "Capability";
+        var mcpErrorCode = McpErrorCodes.GetMcpErrorCode(code, category, -1);
+
+        return new ErrorResponse
+        {
+            Success = false,
+            Errors = new List<ErrorResult>
+            {
+                new ErrorResult
+                {
+                    Code = code,
+                    Message = $"The '{feature}' capability is not available: {reason}",
+                    Category = category,
+                    Hint = alternatives?.Count > 0 
+                        ? "Consider using one of the suggested alternatives." 
+                        : "This feature is not currently supported in this environment.",
+                    Explanation = "This tool/feature exists but cannot be executed in the current environment or configuration. This may be due to missing dependencies, disabled feature flags, OS limitations, or features that are planned but not yet implemented.",
+                    Alternatives = alternatives,
+                    RawOutput = string.Empty,
+                    McpErrorCode = mcpErrorCode,
+                    Data = new ErrorData
+                    {
+                        ExitCode = -1,
+                        AdditionalData = new Dictionary<string, string>
+                        {
+                            ["feature"] = SanitizeOutput(feature),
+                            ["reason"] = SanitizeOutput(reason)
+                        }
+                    }
+                }
+            },
+            ExitCode = -1
+        };
+    }
+
+    /// <summary>
     /// Format result as JSON string.
     /// </summary>
     public static string ToJson(object result)

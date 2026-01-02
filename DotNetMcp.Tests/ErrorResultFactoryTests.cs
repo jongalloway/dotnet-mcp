@@ -823,7 +823,7 @@ Program.cs(15,10): error CS1001: Identifier expected";
         // Assert
         Assert.False(result.Success);
         Assert.Single(result.Errors);
-        
+
         var error = result.Errors[0];
         Assert.Equal("CAPABILITY_NOT_AVAILABLE", error.Code);
         Assert.Null(error.Alternatives);
@@ -847,7 +847,7 @@ Program.cs(15,10): error CS1001: Identifier expected";
         // Assert
         Assert.False(result.Success);
         Assert.Single(result.Errors);
-        
+
         var error = result.Errors[0];
         Assert.Equal("CAPABILITY_NOT_AVAILABLE", error.Code);
         Assert.Null(error.Alternatives);
@@ -862,7 +862,7 @@ Program.cs(15,10): error CS1001: Identifier expected";
         var result1 = ErrorResultFactory.ReturnCapabilityNotAvailable(
             feature: null!,
             alternatives: new[] { "alternative 1" });
-        
+
         var result2 = ErrorResultFactory.ReturnCapabilityNotAvailable(
             feature: "   ",
             alternatives: new[] { "alternative 1" });
@@ -870,7 +870,7 @@ Program.cs(15,10): error CS1001: Identifier expected";
         // Assert
         var error1 = result1.Errors[0];
         var error2 = result2.Errors[0];
-        
+
         Assert.Contains("capability", error1.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("capability", error2.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -879,8 +879,8 @@ Program.cs(15,10): error CS1001: Identifier expected";
     public void ReturnCapabilityNotAvailable_WithWhitespaceOnlyAlternatives_FiltersThemOut()
     {
         // Arrange
-        var alternatives = new[] 
-        { 
+        var alternatives = new[]
+        {
             "Valid alternative",
             "   ",
             "",
