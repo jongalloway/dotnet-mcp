@@ -3,6 +3,7 @@
 <!-- mcp-name: io.github.jongalloway/dotnet-mcp -->
 
 [![Build and Test](https://github.com/jongalloway/dotnet-mcp/actions/workflows/build.yml/badge.svg)](https://github.com/jongalloway/dotnet-mcp/actions/workflows/build.yml)
+[![Coverage](https://codecov.io/gh/jongalloway/dotnet-mcp/branch/main/graph/badge.svg)](https://codecov.io/gh/jongalloway/dotnet-mcp)
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-blue.svg)](https://github.com/jongalloway/dotnet-mcp/blob/main/.github/dependabot.yml)
 [![NuGet](https://img.shields.io/nuget/v/Community.Mcp.DotNet.svg)](https://www.nuget.org/packages/Community.Mcp.DotNet/)
 [![Published to MCP Registry](https://img.shields.io/badge/Published-MCP%20Registry-brightgreen)](https://registry.modelcontextprotocol.io/?q=io.github.jongalloway%2Fdotnet-mcp)
@@ -737,35 +738,38 @@ The server communicates via stdio transport and is designed to be invoked by MCP
 
 ## Project Structure
 
+This project has grown beyond the point where a complete file-by-file listing stays useful.
+Instead, this section highlights the key entry points and the main areas of the repo.
+
 ```text
 dotnet-mcp/
-├── DotNetMcp/                      # Main MCP server project
-│   ├── DotNetMcp.csproj            # Project file with NuGet dependencies
-│   ├── Program.cs                  # MCP server setup and hosting
-│   ├── DotNetCliTools.cs           # MCP tool implementations (44 tools)
-│   ├── DotNetResources.cs          # MCP resource implementations (SDK, runtime, templates, frameworks)
-│   ├── DotNetCommandExecutor.cs    # Command execution helper with logging
-│   ├── DotNetSdkConstants.cs       # Strongly-typed SDK constants (TFMs, configurations, runtimes)
-│   ├── TemplateEngineHelper.cs     # Template Engine integration with caching
-│   └── FrameworkHelper.cs          # Framework validation and metadata helpers
-├── DotNetMcp.Tests/                # Unit test project
-│   ├── DotNetMcp.Tests.csproj      # Test project file (xUnit, FluentAssertions, Moq)
-│   ├── FrameworkHelperTests.cs     # Tests for framework validation and metadata
-│   └── DotNetSdkConstantsTests.cs  # Tests for SDK constants validation
-├── doc/
-│   ├── sdk-integration.md          # SDK integration architecture documentation
-│   ├── advanced-topics.md          # Performance, logging, and security details
-│   ├── concurrency.md              # Concurrency safety and orchestration guidance
-│   └── testing.md                  # How to run tests (including opt-in interactive tests)
-├── .github/
-│   ├── copilot-instructions.md     # Development guidelines for GitHub Copilot
-│   ├── dependabot.yml              # Automated dependency updates
-│   └── workflows/
-│       └── build.yml               # CI/CD build and test workflow
-├── DotNetMcp.slnx                  # Solution file (XML-based .slnx format)
-├── LICENSE                         # MIT License
-└── README.md                       # This file
+├── DotNetMcp/                  # Main MCP server project (packed as a .NET tool)
+│   ├── Program.cs              # Hosting + MCP server wiring
+│   ├── DotNetMcp.csproj        # NuGet/package metadata (PackAsTool, server.json packing)
+│   ├── .mcp/server.json        # MCP server metadata (packed into the NuGet package)
+│   ├── DotNetResources.cs      # MCP resources (SDK/runtime/templates/frameworks)
+│   ├── DotNetCliTools.cs       # Tool surface area (split into partials in Tools/)
+│   └── Tools/                  # Tool implementations grouped by domain (project, package, EF, etc.)
+├── DotNetMcp.Tests/            # Unit + integration tests
+├── doc/                        # Long-form documentation (architecture, concurrency, testing, etc.)
+├── docs/                       # Project website / published docs assets
+├── scripts/                    # Maintenance & validation scripts
+├── artifacts*/                 # Build outputs (CI + local)
+├── issues/                     # Issue templates / triage notes
+├── .github/                    # CI workflows and repo automation
+├── DotNetMcp.slnx              # Solution file (.slnx)
+├── global.json                 # SDK pinning for consistent builds
+├── dotnet-tools.json           # Local tool manifest
+└── LICENSE                     # MIT License
 ```
+
+Key files to start with:
+
+- `DotNetMcp/Program.cs` - server startup and registration
+- `DotNetMcp/DotNetCliTools.cs` and `DotNetMcp/Tools/` - MCP tool implementations
+- `DotNetMcp/DotNetResources.cs` - read-only MCP resources
+- `DotNetMcp/.mcp/server.json` - packaged MCP server metadata
+- `DotNetMcp.Tests/` - tests (including server.json validation and XML doc coverage)
 
 ## Technology Stack
 
