@@ -207,15 +207,45 @@ public sealed partial class DotNetCliTools
         bool machineReadable = false)
     {
         if (!list && !clear)
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    "Either 'list' or 'clear' must be true.",
+                    parameterName: "list/clear",
+                    reason: "at least one required");
+                return ErrorResultFactory.ToJson(error);
+            }
             return "Error: Either 'list' or 'clear' must be true.";
+        }
 
         if (list && clear)
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    "Cannot specify both 'list' and 'clear'.",
+                    parameterName: "list/clear",
+                    reason: "mutually exclusive");
+                return ErrorResultFactory.ToJson(error);
+            }
             return "Error: Cannot specify both 'list' and 'clear'.";
+        }
 
         var validLocations = new[] { "all", "http-cache", "global-packages", "temp", "plugins-cache" };
         var normalizedCacheLocation = cacheLocation.ToLowerInvariant();
         if (!validLocations.Contains(normalizedCacheLocation))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    $"Invalid cache location. Must be one of: {string.Join(", ", validLocations)}",
+                    parameterName: "cacheLocation",
+                    reason: "invalid value");
+                return ErrorResultFactory.ToJson(error);
+            }
             return $"Error: Invalid cache location. Must be one of: {string.Join(", ", validLocations)}";
+        }
 
         var args = $"nuget locals {normalizedCacheLocation}";
         if (list) args += " --list";

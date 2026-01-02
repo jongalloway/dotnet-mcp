@@ -35,7 +35,17 @@ public sealed partial class DotNetCliTools
         bool machineReadable = false)
     {
         if (string.IsNullOrWhiteSpace(name))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    "name parameter is required.",
+                    parameterName: "name",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
             return "Error: name parameter is required.";
+        }
 
         var args = new StringBuilder($"ef migrations add \"{name}\"");
         if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
@@ -339,10 +349,30 @@ public sealed partial class DotNetCliTools
         bool machineReadable = false)
     {
         if (string.IsNullOrWhiteSpace(connection))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    "connection parameter is required.",
+                    parameterName: "connection",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
             return "Error: connection parameter is required.";
+        }
 
         if (string.IsNullOrWhiteSpace(provider))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    "provider parameter is required.",
+                    parameterName: "provider",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
             return "Error: provider parameter is required.";
+        }
 
         var args = new StringBuilder($"ef dbcontext scaffold \"{connection}\" \"{provider}\"");
         if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");

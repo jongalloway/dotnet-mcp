@@ -62,7 +62,17 @@ public sealed partial class DotNetCliTools
         bool machineReadable = false)
     {
         if (string.IsNullOrWhiteSpace(path))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    "path parameter is required.",
+                    parameterName: "path",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
             return "Error: path parameter is required.";
+        }
 
         // Validate and normalize format if provided
         string? normalizedFormat = null;
@@ -70,7 +80,17 @@ public sealed partial class DotNetCliTools
         {
             normalizedFormat = format.ToLowerInvariant();
             if (normalizedFormat != "pfx" && normalizedFormat != "pem")
+            {
+                if (machineReadable)
+                {
+                    var error = ErrorResultFactory.CreateValidationError(
+                        "format must be either 'pfx' or 'pem' (case-insensitive).",
+                        parameterName: "format",
+                        reason: "invalid value");
+                    return ErrorResultFactory.ToJson(error);
+                }
                 return "Error: format must be either 'pfx' or 'pem' (case-insensitive).";
+            }
         }
 
         // Security Note: The password must be passed as a command-line argument to dotnet dev-certs,
@@ -133,10 +153,30 @@ public sealed partial class DotNetCliTools
         bool machineReadable = false)
     {
         if (string.IsNullOrWhiteSpace(key))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    "key parameter is required.",
+                    parameterName: "key",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
             return "Error: key parameter is required.";
+        }
 
         if (string.IsNullOrWhiteSpace(value))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    "value parameter is required.",
+                    parameterName: "value",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
             return "Error: value parameter is required.";
+        }
 
         // Security Note: The secret value must be passed as a command-line argument to dotnet user-secrets,
         // which is the standard .NET CLI behavior. While this stores the value temporarily in memory
@@ -187,7 +227,17 @@ public sealed partial class DotNetCliTools
         bool machineReadable = false)
     {
         if (string.IsNullOrWhiteSpace(key))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    "key parameter is required.",
+                    parameterName: "key",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
             return "Error: key parameter is required.";
+        }
 
         var args = new StringBuilder($"user-secrets remove \"{key}\"");
         if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
