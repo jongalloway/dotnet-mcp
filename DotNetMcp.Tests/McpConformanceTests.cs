@@ -1,9 +1,6 @@
-using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using ModelContextProtocol;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
@@ -225,8 +222,8 @@ public class McpConformanceTests : IAsyncLifetime
         Assert.NotEmpty(textContent.Text);
         
         // Should be valid JSON for this specific tool
-        var parsed = JsonDocument.Parse(textContent.Text);
-        // JsonDocument is a struct, so we just verify it parses successfully
+        using var _ = JsonDocument.Parse(textContent.Text);
+        // JsonDocument is disposed to release pooled memory
     }
 
     [Fact]
