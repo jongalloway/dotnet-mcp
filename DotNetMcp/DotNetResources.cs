@@ -323,4 +323,36 @@ public sealed class DotNetResources
             return JsonSerializer.Serialize(new { error = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Example resource demonstrating CAPABILITY_NOT_AVAILABLE usage when a resource is conditionally disabled.
+    /// This shows how to handle feature flags or environment-specific limitations.
+    /// </summary>
+    /// <returns>JSON error response indicating telemetry collection is not yet implemented, with suggested alternatives</returns>
+    [McpServerResource(
+        UriTemplate = "dotnet://telemetry-data",
+        Name = "Telemetry Data",
+        Title = "Server telemetry and usage analytics (not yet available)",
+        MimeType = "application/json")]
+    [McpMeta("category", "telemetry")]
+    [McpMeta("planned", true)]
+    public Task<string> GetTelemetryData()
+    {
+        _logger.LogDebug("Telemetry data resource requested");
+        
+        // This resource is not yet implemented
+        var alternatives = new List<string>
+        {
+            "Use dotnet://sdk-info to get SDK version information",
+            "Use dotnet://runtime-info for runtime details",
+            "Check server logs for basic usage patterns"
+        };
+
+        var error = ErrorResultFactory.ReturnCapabilityNotAvailable(
+            "telemetry data resource",
+            "Telemetry collection not yet implemented",
+            alternatives);
+
+        return Task.FromResult(ErrorResultFactory.ToJson(error));
+    }
 }

@@ -57,6 +57,7 @@ public class McpErrorCodesTests
     [Theory]
     [InlineData("OPERATION_CANCELLED", "Cancellation", -1, -32603)]
     [InlineData("CONCURRENCY_CONFLICT", "Concurrency", -1, -32603)]
+    [InlineData("CAPABILITY_NOT_AVAILABLE", "Capability", -1, -32603)]
     [InlineData("EXIT_1", "Unknown", 1, -32603)]
     public void GetMcpErrorCode_WithInternalErrorScenarios_ReturnsInternalError(
         string errorCode, string category, int exitCode, int expectedMcpCode)
