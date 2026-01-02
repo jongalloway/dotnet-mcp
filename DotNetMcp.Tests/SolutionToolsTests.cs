@@ -156,19 +156,24 @@ public class SolutionToolsTests
         var tempDirectory = Path.Combine(Path.GetTempPath(), "dotnet-mcp-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDirectory);
 
-        // Act
-        var result = await _tools.DotnetSolutionCreate(
-            name: "MySolution",
-            output: tempDirectory,
-            format: "slnx",
-            machineReadable: true);
+        try
+        {
+            // Act
+            var result = await _tools.DotnetSolutionCreate(
+                name: "MySolution",
+                output: tempDirectory,
+                format: "slnx",
+                machineReadable: true);
 
-        // Assert
-        Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, $"dotnet new sln -n \"MySolution\" -o \"{tempDirectory}\" --format slnx");
-
-        if (Directory.Exists(tempDirectory))
-            Directory.Delete(tempDirectory, recursive: true);
+            // Assert
+            Assert.NotNull(result);
+            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, $"dotnet new sln -n \"MySolution\" -o \"{tempDirectory}\" --format slnx");
+        }
+        finally
+        {
+            if (Directory.Exists(tempDirectory))
+                Directory.Delete(tempDirectory, recursive: true);
+        }
     }
 
     [Fact]
