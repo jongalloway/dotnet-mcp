@@ -196,4 +196,33 @@ public sealed partial class DotNetCliTools
         if (!string.IsNullOrEmpty(severity)) args.Append($" --severity {severity}");
         return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
+
+    /// <summary>
+    /// Enable telemetry reporting for .NET SDK usage analytics. This feature is planned but not yet implemented.
+    /// </summary>
+    /// <param name="enable">Whether to enable or disable telemetry</param>
+    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
+    [McpServerTool]
+    [McpMeta("category", "telemetry")]
+    [McpMeta("priority", 2.0)]
+    [McpMeta("planned", true)]
+    public partial Task<string> DotnetTelemetry(
+        bool enable = true,
+        bool machineReadable = false)
+    {
+        // This feature is not yet implemented
+        var alternatives = new List<string>
+        {
+            "Use dotnet_server_capabilities to check current feature support",
+            "Monitor SDK usage manually through build logs",
+            "Use external telemetry tools like Application Insights"
+        };
+
+        var error = ErrorResultFactory.ReturnCapabilityNotAvailable(
+            "telemetry reporting",
+            "Not yet implemented - planned for future release",
+            alternatives);
+
+        return Task.FromResult(ErrorResultFactory.ToJson(error));
+    }
 }
