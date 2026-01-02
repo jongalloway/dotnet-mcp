@@ -32,7 +32,17 @@ public sealed partial class DotNetCliTools
         if (!string.IsNullOrEmpty(format))
         {
             if (format != "sln" && format != "slnx")
+            {
+                if (machineReadable)
+                {
+                    var error = ErrorResultFactory.CreateValidationError(
+                        "format must be either 'sln' or 'slnx'.",
+                        parameterName: "format",
+                        reason: "invalid value");
+                    return ErrorResultFactory.ToJson(error);
+                }
                 return "Error: format must be either 'sln' or 'slnx'.";
+            }
             args.Append($" --format {format}");
         }
         return await ExecuteDotNetCommand(args.ToString(), machineReadable);
@@ -53,7 +63,17 @@ public sealed partial class DotNetCliTools
         bool machineReadable = false)
     {
         if (projects == null || projects.Length == 0)
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    "at least one project path is required.",
+                    parameterName: "projects",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
             return "Error: at least one project path is required.";
+        }
 
         var args = new StringBuilder($"solution \"{solution}\" add");
         foreach (var project in projects)
@@ -91,7 +111,17 @@ public sealed partial class DotNetCliTools
         bool machineReadable = false)
     {
         if (projects == null || projects.Length == 0)
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    "at least one project path is required.",
+                    parameterName: "projects",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
             return "Error: at least one project path is required.";
+        }
 
         var args = new StringBuilder($"solution \"{solution}\" remove");
         foreach (var project in projects)

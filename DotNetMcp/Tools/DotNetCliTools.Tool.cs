@@ -30,7 +30,17 @@ public sealed partial class DotNetCliTools
         bool machineReadable = false)
     {
         if (string.IsNullOrWhiteSpace(packageName))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    "packageName parameter is required.",
+                    parameterName: "packageName",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
             return "Error: packageName parameter is required.";
+        }
 
         var args = new StringBuilder($"tool install \"{packageName}\"");
         if (global) args.Append(" --global");
@@ -75,7 +85,17 @@ public sealed partial class DotNetCliTools
         bool machineReadable = false)
     {
         if (string.IsNullOrWhiteSpace(packageName))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    "packageName parameter is required.",
+                    parameterName: "packageName",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
             return "Error: packageName parameter is required.";
+        }
 
         var args = new StringBuilder($"tool update \"{packageName}\"");
         if (global) args.Append(" --global");
@@ -99,7 +119,17 @@ public sealed partial class DotNetCliTools
         bool machineReadable = false)
     {
         if (string.IsNullOrWhiteSpace(packageName))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    "packageName parameter is required.",
+                    parameterName: "packageName",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
             return "Error: packageName parameter is required.";
+        }
 
         var args = new StringBuilder($"tool uninstall \"{packageName}\"");
         if (global) args.Append(" --global");
@@ -160,7 +190,17 @@ public sealed partial class DotNetCliTools
         bool machineReadable = false)
     {
         if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    "searchTerm parameter is required.",
+                    parameterName: "searchTerm",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
             return "Error: searchTerm parameter is required.";
+        }
 
         var args = new StringBuilder($"tool search \"{searchTerm}\"");
         if (detail) args.Append(" --detail");
@@ -186,10 +226,30 @@ public sealed partial class DotNetCliTools
         bool machineReadable = false)
     {
         if (string.IsNullOrWhiteSpace(toolName))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    "toolName parameter is required.",
+                    parameterName: "toolName",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
             return "Error: toolName parameter is required.";
+        }
 
         if (!string.IsNullOrEmpty(args) && !IsValidAdditionalOptions(args))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    "args contains invalid characters. Only alphanumeric characters, hyphens, underscores, dots, spaces, and equals signs are allowed.",
+                    parameterName: "args",
+                    reason: "invalid characters");
+                return ErrorResultFactory.ToJson(error);
+            }
             return "Error: args contains invalid characters. Only alphanumeric characters, hyphens, underscores, dots, spaces, and equals signs are allowed.";
+        }
 
         var commandArgs = new StringBuilder($"tool run \"{toolName}\"");
         if (!string.IsNullOrEmpty(args)) commandArgs.Append($" -- {args}");

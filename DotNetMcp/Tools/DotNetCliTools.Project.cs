@@ -34,16 +34,46 @@ public sealed partial class DotNetCliTools
     {
         // Validate additionalOptions first (security check before any other validation)
         if (!string.IsNullOrEmpty(additionalOptions) && !IsValidAdditionalOptions(additionalOptions))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    "additionalOptions contains invalid characters. Only alphanumeric characters, hyphens, underscores, dots, spaces, and equals signs are allowed.",
+                    parameterName: "additionalOptions",
+                    reason: "invalid characters");
+                return ErrorResultFactory.ToJson(error);
+            }
             return "Error: additionalOptions contains invalid characters. Only alphanumeric characters, hyphens, underscores, dots, spaces, and equals signs are allowed.";
+        }
 
         // Validate template
         var templateValidation = await ParameterValidator.ValidateTemplateAsync(template, _logger);
         if (!templateValidation.IsValid)
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    templateValidation.ErrorMessage!,
+                    parameterName: "template",
+                    reason: string.IsNullOrWhiteSpace(template) ? "required" : "not found");
+                return ErrorResultFactory.ToJson(error);
+            }
             return $"Error: {templateValidation.ErrorMessage}";
+        }
 
         // Validate framework
         if (!ParameterValidator.ValidateFramework(framework, out var frameworkError))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    frameworkError!,
+                    parameterName: "framework",
+                    reason: "invalid format");
+                return ErrorResultFactory.ToJson(error);
+            }
             return $"Error: {frameworkError}";
+        }
 
         var args = new StringBuilder($"new {template}");
         if (!string.IsNullOrEmpty(name)) args.Append($" -n \"{name}\"");
@@ -69,7 +99,17 @@ public sealed partial class DotNetCliTools
     {
         // Validate project path if provided
         if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    projectError!,
+                    parameterName: "project",
+                    reason: "invalid extension");
+                return ErrorResultFactory.ToJson(error);
+            }
             return $"Error: {projectError}";
+        }
 
         var args = "restore";
         if (!string.IsNullOrEmpty(project)) args += $" \"{project}\"";
@@ -97,7 +137,17 @@ public sealed partial class DotNetCliTools
     {
         // Validate project path if provided
         if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    projectError!,
+                    parameterName: "project",
+                    reason: "invalid extension");
+                return ErrorResultFactory.ToJson(error);
+            }
             return $"Error: {projectError}";
+        }
 
         // Validate configuration
         if (!ParameterValidator.ValidateConfiguration(configuration, out var configError))

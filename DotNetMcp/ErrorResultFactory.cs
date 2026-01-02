@@ -414,6 +414,55 @@ public static partial class ErrorResultFactory
     }
 
     /// <summary>
+    /// Create a validation error result for invalid method parameters.
+    /// Used when parameters fail validation before command execution.
+    /// </summary>
+    /// <param name="message">Human-readable error message</param>
+    /// <param name="parameterName">Optional name of the parameter that failed validation</param>
+    /// <param name="reason">Optional reason why the parameter is invalid (e.g., "required", "invalid format")</param>
+    /// <returns>ErrorResponse with INVALID_PARAMS error code</returns>
+    public static ErrorResponse CreateValidationError(string message, string? parameterName = null, string? reason = null)
+    {
+        var code = "INVALID_PARAMS";
+        var category = "Validation";
+        var mcpErrorCode = McpErrorCodes.InvalidParams;
+
+        var additionalData = new Dictionary<string, string>();
+        if (!string.IsNullOrWhiteSpace(parameterName))
+        {
+            additionalData["parameter"] = SanitizeOutput(parameterName);
+        }
+        if (!string.IsNullOrWhiteSpace(reason))
+        {
+            additionalData["reason"] = SanitizeOutput(reason);
+        }
+
+        return new ErrorResponse
+        {
+            Success = false,
+            Errors = new List<ErrorResult>
+            {
+                new ErrorResult
+                {
+                    Code = code,
+                    Message = SanitizeOutput(message),
+                    Category = category,
+                    Hint = "Verify the parameter values and try again.",
+                    RawOutput = string.Empty,
+                    McpErrorCode = mcpErrorCode,
+                    Data = new ErrorData
+                    {
+                        Command = null, // No command executed for validation errors
+                        ExitCode = -1,
+                        AdditionalData = additionalData.Count > 0 ? additionalData : null
+                    }
+                }
+            },
+            ExitCode = -1
+        };
+    }
+
+    /// <summary>
     /// Format result as JSON string.
     /// </summary>
     public static string ToJson(object result)
