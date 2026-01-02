@@ -30,19 +30,16 @@ internal static class MachineReadableCommandAssertions
         // Fallback: ErrorResponse includes the command on errors[*].data.command.
         if (root.TryGetProperty("errors", out var errorsElement) && errorsElement.ValueKind == JsonValueKind.Array)
         {
-            var errors = errorsElement.EnumerateArray()
-                .Where(error => error.TryGetProperty("data", out var dataElement)
-                    && dataElement.ValueKind == JsonValueKind.Object
-                    && dataElement.TryGetProperty("command", out var errorCommandElement)
-                    && errorCommandElement.ValueKind == JsonValueKind.String
-                    && !string.IsNullOrWhiteSpace(errorCommandElement.GetString()));
-
-            foreach (var error in errors)
+            foreach (var error in errorsElement.EnumerateArray()
+                .Where(e => e.TryGetProperty("data", out var d)
+                    && d.ValueKind == JsonValueKind.Object
+                    && d.TryGetProperty("command", out var c)
+                    && c.ValueKind == JsonValueKind.String))
             {
-                if (error.TryGetProperty("data", out var dataElement)
-                    && dataElement.TryGetProperty("command", out var errorCommandElement))
+                var command = error.GetProperty("data").GetProperty("command").GetString();
+                if (!string.IsNullOrWhiteSpace(command))
                 {
-                    return errorCommandElement.GetString()!;
+                    return command!;
                 }
             }
         }
