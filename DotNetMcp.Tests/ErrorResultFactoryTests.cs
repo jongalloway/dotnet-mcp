@@ -6,6 +6,43 @@ namespace DotNetMcp.Tests;
 public class ErrorResultFactoryTests
 {
     [Fact]
+    public void ReturnCapabilityNotAvailable_IncludesAlternativesAndMcpErrorCode()
+    {
+        // Arrange
+        var alternatives = new[]
+        {
+            "Install the .NET SDK",
+            "Verify 'dotnet' is on PATH",
+            "Install the .NET SDK" // duplicate (should be de-duped)
+        };
+
+        // Act
+        var result = ErrorResultFactory.ReturnCapabilityNotAvailable(
+            feature: "dotnet CLI",
+            alternatives: alternatives,
+            command: "dotnet --info",
+            details: "dotnet was not found");
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(-1, result.ExitCode);
+
+        var error = Assert.Single(result.Errors);
+        Assert.Equal("CAPABILITY_NOT_AVAILABLE", error.Code);
+        Assert.Equal("Capability", error.Category);
+        Assert.Equal(McpErrorCodes.CapabilityNotAvailable, error.McpErrorCode);
+
+        Assert.NotNull(error.Alternatives);
+        Assert.Equal(2, error.Alternatives.Count); // Exactly 2 after deduplication
+        Assert.DoesNotContain(error.Alternatives, a => string.IsNullOrWhiteSpace(a));
+        Assert.Contains(error.Alternatives, a => a.Contains("PATH", StringComparison.OrdinalIgnoreCase));
+
+        Assert.NotNull(error.Data);
+        Assert.Equal("dotnet --info", error.Data.Command);
+        Assert.Equal(-1, error.Data.ExitCode);
+    }
+
+    [Fact]
     public void CreateResult_WithExitCode0_ReturnsSuccessResult()
     {
         // Arrange
@@ -771,161 +808,126 @@ Program.cs(15,10): error CS1001: Identifier expected";
     }
 
     [Fact]
-    public void ReturnCapabilityNotAvailable_WithFeatureAndReason_ReturnsCorrectStructure()
+    public void ReturnCapabilityNotAvailable_WithNullAlternatives_ReturnsNullAlternativesList()
     {
         // Arrange
-        var feature = "telemetry reporting";
-        var reason = "Not yet implemented";
-        var alternatives = new List<string>
+        IEnumerable<string>? nullAlternatives = null;
+
+        // Act
+        var result = ErrorResultFactory.ReturnCapabilityNotAvailable(
+            feature: "test feature",
+            alternatives: nullAlternatives,
+            command: "dotnet test",
+            details: "test details");
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Single(result.Errors);
+
+        var error = result.Errors[0];
+        Assert.Equal("CAPABILITY_NOT_AVAILABLE", error.Code);
+        Assert.Null(error.Alternatives);
+        Assert.NotNull(error.Hint);
+        Assert.DoesNotContain("alternatives", error.Hint, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ReturnCapabilityNotAvailable_WithEmptyAlternatives_ReturnsNullAlternativesList()
+    {
+        // Arrange
+        var emptyAlternatives = Array.Empty<string>();
+
+        // Act
+        var result = ErrorResultFactory.ReturnCapabilityNotAvailable(
+            feature: "test feature",
+            alternatives: emptyAlternatives,
+            command: "dotnet test",
+            details: "test details");
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Single(result.Errors);
+
+        var error = result.Errors[0];
+        Assert.Equal("CAPABILITY_NOT_AVAILABLE", error.Code);
+        Assert.Null(error.Alternatives);
+        Assert.NotNull(error.Hint);
+        Assert.DoesNotContain("alternatives", error.Hint, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ReturnCapabilityNotAvailable_WithNullOrWhitespaceFeature_UsesDefaultFeatureName()
+    {
+        // Arrange & Act
+        var result1 = ErrorResultFactory.ReturnCapabilityNotAvailable(
+            feature: null!,
+            alternatives: new[] { "alternative 1" });
+
+        var result2 = ErrorResultFactory.ReturnCapabilityNotAvailable(
+            feature: "   ",
+            alternatives: new[] { "alternative 1" });
+
+        // Assert
+        var error1 = result1.Errors[0];
+        var error2 = result2.Errors[0];
+
+        Assert.Contains("capability", error1.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("capability", error2.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ReturnCapabilityNotAvailable_WithWhitespaceOnlyAlternatives_FiltersThemOut()
+    {
+        // Arrange
+        var alternatives = new[]
         {
-            "Use external logging framework like Serilog",
-            "Manually track metrics with custom code"
+            "Valid alternative",
+            "   ",
+            "",
+            null!,
+            "Another valid alternative"
         };
 
         // Act
-        var result = ErrorResultFactory.ReturnCapabilityNotAvailable(feature, reason, alternatives);
+        var result = ErrorResultFactory.ReturnCapabilityNotAvailable(
+            feature: "test feature",
+            alternatives: alternatives);
 
         // Assert
-        Assert.False(result.Success);
-        Assert.Equal(-1, result.ExitCode);
-        Assert.Single(result.Errors);
-
         var error = result.Errors[0];
-        Assert.Equal("CAPABILITY_NOT_AVAILABLE", error.Code);
-        Assert.Equal("Capability", error.Category);
-        Assert.Contains(feature, error.Message);
-        Assert.Contains(reason, error.Message);
-        Assert.NotNull(error.Hint);
-        Assert.Contains("alternatives", error.Hint, StringComparison.OrdinalIgnoreCase);
-        Assert.NotNull(error.Explanation);
-        Assert.Contains("cannot be executed", error.Explanation, StringComparison.OrdinalIgnoreCase);
         Assert.NotNull(error.Alternatives);
         Assert.Equal(2, error.Alternatives.Count);
-        Assert.Contains("Serilog", error.Alternatives[0]);
-        Assert.Contains("metrics", error.Alternatives[1]);
+        Assert.Contains("Valid alternative", error.Alternatives);
+        Assert.Contains("Another valid alternative", error.Alternatives);
     }
 
     [Fact]
-    public void ReturnCapabilityNotAvailable_WithNoAlternatives_ReturnsCorrectStructure()
+    public void ReturnCapabilityNotAvailable_WithNullDetails_DoesNotIncludeDetailsInMessage()
     {
-        // Arrange
-        var feature = "Windows-specific feature";
-        var reason = "Requires Windows operating system";
-
-        // Act
-        var result = ErrorResultFactory.ReturnCapabilityNotAvailable(feature, reason);
+        // Arrange & Act
+        var result = ErrorResultFactory.ReturnCapabilityNotAvailable(
+            feature: "test feature",
+            alternatives: new[] { "alt1" },
+            command: "dotnet test",
+            details: null);
 
         // Assert
-        Assert.False(result.Success);
-        Assert.Single(result.Errors);
-
         var error = result.Errors[0];
-        Assert.Equal("CAPABILITY_NOT_AVAILABLE", error.Code);
-        Assert.Contains(feature, error.Message);
-        Assert.Contains(reason, error.Message);
-        Assert.NotNull(error.Hint);
-        Assert.DoesNotContain("alternatives", error.Hint, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("not currently supported", error.Hint, StringComparison.OrdinalIgnoreCase);
-        Assert.Null(error.Alternatives);
+        Assert.NotNull(error.Message);
+        Assert.DoesNotContain("Details:", error.Message);
+        Assert.Contains("test feature", error.Message);
     }
 
     [Fact]
-    public void ReturnCapabilityNotAvailable_IncludesMcpErrorCode()
+    public void ReturnCapabilityNotAvailable_AlwaysIncludesMcpErrorCode()
     {
-        // Arrange
-        var feature = "advanced diagnostics";
-        var reason = "Feature flag disabled";
-
-        // Act
-        var result = ErrorResultFactory.ReturnCapabilityNotAvailable(feature, reason);
+        // Arrange & Act
+        var result = ErrorResultFactory.ReturnCapabilityNotAvailable(
+            feature: "test feature");
 
         // Assert
-        Assert.Single(result.Errors);
         var error = result.Errors[0];
         Assert.NotNull(error.McpErrorCode);
-        Assert.Equal(-32603, error.McpErrorCode); // InternalError
-    }
-
-    [Fact]
-    public void ReturnCapabilityNotAvailable_IncludesStructuredData()
-    {
-        // Arrange
-        var feature = "live reload";
-        var reason = "Not supported in current SDK version";
-
-        // Act
-        var result = ErrorResultFactory.ReturnCapabilityNotAvailable(feature, reason);
-
-        // Assert
-        var error = result.Errors[0];
-        Assert.NotNull(error.Data);
-        Assert.Equal(-1, error.Data.ExitCode);
-        Assert.NotNull(error.Data.AdditionalData);
-        Assert.True(error.Data.AdditionalData.TryGetValue("feature", out var actualFeature));
-        Assert.Equal(feature, actualFeature);
-        Assert.True(error.Data.AdditionalData.TryGetValue("reason", out var actualReason));
-        Assert.Equal(reason, actualReason);
-    }
-
-    [Fact]
-    public void ReturnCapabilityNotAvailable_SanitizesSensitiveInformation()
-    {
-        // Arrange
-        var feature = "secure upload";
-        var reason = "API key password=secret123 not configured";
-
-        // Act
-        var result = ErrorResultFactory.ReturnCapabilityNotAvailable(feature, reason);
-
-        // Assert
-        var error = result.Errors[0];
-        Assert.NotNull(error.Data);
-        Assert.NotNull(error.Data.AdditionalData);
-
-        // Verify the reason in AdditionalData is sanitized
-        var sanitizedReason = error.Data.AdditionalData["reason"];
-        Assert.DoesNotContain("secret123", sanitizedReason);
-        Assert.Contains("[REDACTED]", sanitizedReason);
-    }
-
-    [Fact]
-    public void ToJson_WithCapabilityNotAvailable_ProducesValidJson()
-    {
-        // Arrange
-        var result = ErrorResultFactory.ReturnCapabilityNotAvailable(
-            "remote debugging",
-            "Requires VS Code extension",
-            new List<string> { "Use local debugging", "Attach to process manually" });
-
-        // Act
-        var json = ErrorResultFactory.ToJson(result);
-
-        // Assert
-        Assert.NotNull(json);
-        Assert.NotEmpty(json);
-        Assert.Contains("\"code\": \"CAPABILITY_NOT_AVAILABLE\"", json);
-        Assert.Contains("\"category\": \"Capability\"", json);
-        Assert.Contains("\"alternatives\"", json);
-        Assert.Contains("\"mcpErrorCode\": -32603", json);
-        Assert.Contains("local debugging", json);
-        Assert.Contains("Attach to process", json);
-    }
-
-    [Fact]
-    public void ReturnCapabilityNotAvailable_WithEmptyAlternativesList_TreatsAsNoAlternatives()
-    {
-        // Arrange
-        var feature = "test feature";
-        var reason = "test reason";
-        var emptyAlternatives = new List<string>();
-
-        // Act
-        var result = ErrorResultFactory.ReturnCapabilityNotAvailable(feature, reason, emptyAlternatives);
-
-        // Assert
-        var error = result.Errors[0];
-        Assert.NotNull(error.Alternatives);
-        Assert.Empty(error.Alternatives);
-        Assert.DoesNotContain("alternatives", error.Hint, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(McpErrorCodes.CapabilityNotAvailable, error.McpErrorCode);
     }
 }

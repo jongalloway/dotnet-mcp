@@ -1,10 +1,79 @@
 using DotNetMcp;
+using System.Text.Json;
 using Xunit;
 
 namespace DotNetMcp.Tests;
 
 public class ErrorCodeDictionaryTests
 {
+    private const string ErrorCodesResourceName = "DotNetMcp.ErrorCodes.json";
+
+    private static JsonDocument LoadEmbeddedErrorCodesJson()
+    {
+        var assembly = typeof(ErrorCodeDictionary).Assembly;
+        using var stream = assembly.GetManifestResourceStream(ErrorCodesResourceName);
+        Assert.NotNull(stream);
+
+        return JsonDocument.Parse(stream);
+    }
+
+    private static IReadOnlyList<string> GetAllErrorCodesFromEmbeddedJson()
+    {
+        using var doc = LoadEmbeddedErrorCodesJson();
+
+        Assert.True(doc.RootElement.TryGetProperty("errorCodes", out var errorCodesElement));
+        Assert.Equal(JsonValueKind.Object, errorCodesElement.ValueKind);
+
+        return errorCodesElement.EnumerateObject()
+            .Select(p => p.Name)
+            .ToArray();
+    }
+
+    [Fact]
+    public void ErrorCodes_EmbeddedResource_IsPresent()
+    {
+        var assembly = typeof(ErrorCodeDictionary).Assembly;
+        using var stream = assembly.GetManifestResourceStream(ErrorCodesResourceName);
+        Assert.NotNull(stream);
+    }
+
+    [Fact]
+    public void Count_MatchesEmbeddedErrorCodesJson()
+    {
+        var codes = GetAllErrorCodesFromEmbeddedJson();
+        Assert.NotEmpty(codes);
+
+        Assert.Equal(codes.Count, ErrorCodeDictionary.Count);
+    }
+
+    [Fact]
+    public void GetErrorInfo_AllEmbeddedEntries_AreWellFormed()
+    {
+        var codes = GetAllErrorCodesFromEmbeddedJson();
+
+        foreach (var code in codes)
+        {
+            var info = ErrorCodeDictionary.GetErrorInfo(code);
+
+            Assert.NotNull(info);
+            Assert.False(string.IsNullOrWhiteSpace(info.Title), $"{code} should have a title");
+            Assert.False(string.IsNullOrWhiteSpace(info.Explanation), $"{code} should have an explanation");
+            Assert.False(string.IsNullOrWhiteSpace(info.Category), $"{code} should have a category");
+
+            Assert.NotEmpty(info.CommonCauses);
+            Assert.DoesNotContain(info.CommonCauses, c => string.IsNullOrWhiteSpace(c));
+
+            Assert.NotEmpty(info.SuggestedFixes);
+            Assert.DoesNotContain(info.SuggestedFixes, f => string.IsNullOrWhiteSpace(f));
+
+            if (!string.IsNullOrWhiteSpace(info.DocumentationUrl))
+            {
+                Assert.StartsWith("https://", info.DocumentationUrl);
+                Assert.Contains("microsoft.com", info.DocumentationUrl, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+    }
+
     [Fact]
     public void GetErrorInfo_WithValidCode_ReturnsInfo()
     {
@@ -30,6 +99,20 @@ public class ErrorCodeDictionaryTests
     {
         // Arrange
         var errorCode = "cs0103"; // lowercase
+
+        // Act
+        var info = ErrorCodeDictionary.GetErrorInfo(errorCode);
+
+        // Assert
+        Assert.NotNull(info);
+        Assert.Equal("The name does not exist in the current context", info.Title);
+    }
+
+    [Fact]
+    public void GetErrorInfo_WithLeadingOrTrailingWhitespace_ReturnsInfo()
+    {
+        // Arrange
+        var errorCode = "  CS0103\t\r\n";
 
         // Act
         var info = ErrorCodeDictionary.GetErrorInfo(errorCode);
@@ -66,6 +149,19 @@ public class ErrorCodeDictionaryTests
     {
         // Arrange
         var errorCode = "CS0103";
+
+        // Act
+        var hasInfo = ErrorCodeDictionary.HasErrorInfo(errorCode);
+
+        // Assert
+        Assert.True(hasInfo);
+    }
+
+    [Fact]
+    public void HasErrorInfo_WithLeadingOrTrailingWhitespace_ReturnsTrue()
+    {
+        // Arrange
+        var errorCode = "\n\t CS0103  ";
 
         // Act
         var hasInfo = ErrorCodeDictionary.HasErrorInfo(errorCode);
@@ -183,8 +279,8 @@ public class ErrorCodeDictionaryTests
     public void GetErrorInfo_AllEntries_HaveValidUrls()
     {
         // Arrange
-        var errorCodes = new[] 
-        { 
+        var errorCodes = new[]
+        {
             "CS0103", "CS0246", "CS1001", "CS1002", "CS1513",
             "MSB3644", "MSB4236", "MSB1003",
             "NU1101", "NU1102", "NU1103", "NU1605",
@@ -208,8 +304,8 @@ public class ErrorCodeDictionaryTests
     public void GetErrorInfo_AllEntries_HaveMultipleSuggestedFixes()
     {
         // Arrange - Test a sample of different error types
-        var errorCodes = new[] 
-        { 
+        var errorCodes = new[]
+        {
             "CS0103", "MSB3644", "NU1101", "NETSDK1045"
         };
 
@@ -220,7 +316,7 @@ public class ErrorCodeDictionaryTests
 
             // Assert
             Assert.NotNull(info);
-            Assert.True(info.SuggestedFixes.Count >= 3, 
+            Assert.True(info.SuggestedFixes.Count >= 3,
                 $"{code} should have at least 3 suggested fixes, but has {info.SuggestedFixes.Count}");
         }
     }
@@ -233,7 +329,7 @@ public class ErrorCodeDictionaryTests
 
         // Assert
         Assert.NotNull(info);
-        Assert.Contains(info.SuggestedFixes, fix => 
+        Assert.Contains(info.SuggestedFixes, fix =>
             fix.Contains("dotnet add package", StringComparison.OrdinalIgnoreCase) ||
             fix.Contains("NuGet", StringComparison.OrdinalIgnoreCase));
     }
@@ -246,7 +342,7 @@ public class ErrorCodeDictionaryTests
 
         // Assert
         Assert.NotNull(info);
-        Assert.Contains(info.SuggestedFixes, fix => 
+        Assert.Contains(info.SuggestedFixes, fix =>
             fix.Contains("dotnet restore", StringComparison.OrdinalIgnoreCase));
     }
 }

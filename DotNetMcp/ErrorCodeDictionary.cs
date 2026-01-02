@@ -21,7 +21,7 @@ public static class ErrorCodeDictionary
             return null;
 
         // Normalize to uppercase for lookup
-        var normalizedCode = errorCode.ToUpperInvariant();
+        var normalizedCode = errorCode.Trim().ToUpperInvariant();
         return _errorCodes.Value.TryGetValue(normalizedCode, out var info) ? info : null;
     }
 
@@ -35,7 +35,7 @@ public static class ErrorCodeDictionary
         if (string.IsNullOrWhiteSpace(errorCode))
             return false;
 
-        var normalizedCode = errorCode.ToUpperInvariant();
+        var normalizedCode = errorCode.Trim().ToUpperInvariant();
         return _errorCodes.Value.ContainsKey(normalizedCode);
     }
 

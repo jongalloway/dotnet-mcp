@@ -8,6 +8,63 @@ namespace DotNetMcp;
 /// </summary>
 public static partial class ErrorResultFactory
 {
+    /// <summary>
+    /// Create a standardized error response for when a capability exists but is not available
+    /// due to environment limitations, feature flags, or unimplemented functionality.
+    /// </summary>
+    /// <param name="feature">The capability/feature name (e.g., "dotnet CLI", "telemetry")</param>
+    /// <param name="alternatives">Optional alternative suggestions for how to proceed</param>
+    /// <param name="command">Optional command context (e.g., "dotnet build")</param>
+    /// <param name="details">Optional additional details (e.g., exception message)</param>
+    public static ErrorResponse ReturnCapabilityNotAvailable(
+        string feature,
+        IEnumerable<string>? alternatives = null,
+        string? command = null,
+        string? details = null)
+    {
+        var safeFeature = string.IsNullOrWhiteSpace(feature) ? "capability" : feature.Trim();
+
+        var altList = alternatives
+            ?.Where(a => !string.IsNullOrWhiteSpace(a))
+            .Select(a => a.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        // Set to null if the list is empty after filtering
+        if (altList?.Count == 0)
+        {
+            altList = null;
+        }
+
+        var message = $"Capability '{safeFeature}' is not available in the current environment.";
+        if (!string.IsNullOrWhiteSpace(details))
+        {
+            message += $" Details: {details.Trim()}";
+        }
+
+        return new ErrorResponse
+        {
+            Success = false,
+            Errors = new List<ErrorResult>
+            {
+                new ErrorResult
+                {
+                    Code = "CAPABILITY_NOT_AVAILABLE",
+                    Message = message,
+                    Category = "Capability",
+                    Hint = altList?.Count > 0 
+                        ? "Try one of the alternatives or adjust the environment to enable this capability."
+                        : "Adjust the environment to enable this capability.",
+                    Alternatives = altList,
+                    RawOutput = string.Empty,
+                    McpErrorCode = McpErrorCodes.CapabilityNotAvailable,
+                    Data = CreateErrorData(command, exitCode: -1, stderr: details ?? string.Empty)
+                }
+            },
+            ExitCode = -1
+        };
+    }
+
     // Regular expressions for parsing common error patterns
     [GeneratedRegex(@"(?<file>[^(]+)\((?<line>\d+),(?<col>\d+)\):\s+(?<severity>error|warning)\s+(?<code>[A-Z]+\d+):\s+(?<message>.+)")]
     private static partial Regex CompilerErrorRegex();

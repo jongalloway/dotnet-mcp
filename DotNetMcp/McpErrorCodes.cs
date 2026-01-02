@@ -38,6 +38,12 @@ public static class McpErrorCodes
     public const int ResourceNotFound = -32002;
 
     /// <summary>
+    /// Capability not available - The tool/feature exists but is unavailable in the current environment (MCP-specific: -32001)
+    /// Used when a feature is not yet implemented, disabled, or unsupported due to environment limitations.
+    /// </summary>
+    public const int CapabilityNotAvailable = -32001;
+
+    /// <summary>
     /// Server error range start - Reserved for implementation-defined server errors (-32000)
     /// </summary>
     public const int ServerErrorRangeStart = -32000;
