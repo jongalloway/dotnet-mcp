@@ -231,4 +231,70 @@ public static partial class ParameterValidator
 
         return true;
     }
+
+    /// <summary>
+    /// Validate a workload ID.
+    /// Workload IDs should only contain alphanumeric characters, hyphens, and underscores.
+    /// </summary>
+    /// <param name="workloadId">The workload ID to validate</param>
+    /// <param name="errorMessage">Output error message if validation fails</param>
+    /// <returns>True if valid, false otherwise</returns>
+    public static bool ValidateWorkloadId(string? workloadId, out string? errorMessage)
+    {
+        errorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(workloadId))
+        {
+            errorMessage = "Workload ID cannot be null or empty.";
+            return false;
+        }
+
+        // Use explicit Where to filter invalid characters
+        var invalidChar = workloadId.Where(c => !(char.IsLetterOrDigit(c) || c is '-' or '_')).FirstOrDefault();
+        if (invalidChar != default(char))
+        {
+            errorMessage = $"Invalid workload ID '{workloadId}'. Workload IDs must contain only alphanumeric characters, hyphens, and underscores.";
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Parse and validate a comma-separated list of workload IDs.
+    /// </summary>
+    /// <param name="workloadIds">Comma-separated workload IDs</param>
+    /// <param name="parsedIds">Output array of parsed and trimmed IDs</param>
+    /// <param name="errorMessage">Output error message if validation fails</param>
+    /// <returns>True if all IDs are valid, false otherwise</returns>
+    public static bool ParseWorkloadIds(string workloadIds, out string[] parsedIds, out string? errorMessage)
+    {
+        errorMessage = null;
+        parsedIds = Array.Empty<string>();
+
+        if (string.IsNullOrWhiteSpace(workloadIds))
+        {
+            errorMessage = "At least one workload ID must be provided.";
+            return false;
+        }
+
+        // Split and validate workload IDs
+        var ids = workloadIds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (ids.Length == 0)
+        {
+            errorMessage = "At least one workload ID must be provided.";
+            return false;
+        }
+
+        // Use explicit Where to find first invalid ID
+        var invalidId = ids.Where(id => !ValidateWorkloadId(id, out _)).FirstOrDefault();
+        if (invalidId != null)
+        {
+            ValidateWorkloadId(invalidId, out errorMessage);
+            return false;
+        }
+
+        parsedIds = ids;
+        return true;
+    }
 }
