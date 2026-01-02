@@ -244,19 +244,32 @@ public class ParameterValidatorTests
     }
 
     [Fact]
-    public void ValidateProjectPath_WithNonExistentFile_ReturnsFalse()
+    public void ValidateProjectPath_WithNonExistentFile_ReturnsTrue()
     {
-        // Arrange
+        // Arrange - Non-existent but valid extension
         var nonExistentPath = "/path/to/nonexistent/project.csproj";
 
         // Act
         var isValid = ParameterValidator.ValidateProjectPath(nonExistentPath, out var errorMessage);
 
+        // Assert - Should pass validation (CLI will check existence)
+        Assert.True(isValid);
+        Assert.Null(errorMessage);
+    }
+
+    [Fact]
+    public void ValidateProjectPath_WithInvalidExtension_ReturnsFalse()
+    {
+        // Arrange
+        var invalidPath = "/path/to/project.txt";
+
+        // Act
+        var isValid = ParameterValidator.ValidateProjectPath(invalidPath, out var errorMessage);
+
         // Assert
         Assert.False(isValid);
         Assert.NotNull(errorMessage);
-        Assert.Contains("Project file not found", errorMessage);
-        Assert.Contains(nonExistentPath, errorMessage);
+        Assert.Contains("Invalid project file extension", errorMessage);
     }
 
     [Fact]

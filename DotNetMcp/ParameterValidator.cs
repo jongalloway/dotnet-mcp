@@ -143,7 +143,8 @@ public static class ParameterValidator
     }
 
     /// <summary>
-    /// Validate a project file path (must be .csproj, .fsproj, .vbproj, or .sln).
+    /// Validate a project file path (must be .csproj, .fsproj, .vbproj, or .sln if extension is provided).
+    /// Does not check if file exists - the CLI will handle that.
     /// </summary>
     /// <param name="projectPath">The project file path to validate</param>
     /// <param name="errorMessage">Output error message if validation fails</param>
@@ -156,18 +157,12 @@ public static class ParameterValidator
         if (string.IsNullOrWhiteSpace(projectPath))
             return true;
 
-        // Check if file exists
-        if (!File.Exists(projectPath))
-        {
-            errorMessage = $"Project file not found: {projectPath}. Ensure the path points to a valid .csproj, .fsproj, .vbproj, or .sln file.";
-            return false;
-        }
-
-        // Check extension
+        // Check extension if the path has one
         var extension = Path.GetExtension(projectPath).ToLowerInvariant();
-        if (extension != ".csproj" && extension != ".fsproj" && extension != ".vbproj" && extension != ".sln")
+        if (!string.IsNullOrEmpty(extension) &&
+            extension != ".csproj" && extension != ".fsproj" && extension != ".vbproj" && extension != ".sln" && extension != ".slnx")
         {
-            errorMessage = $"Invalid project file: {projectPath}. Project must be a .csproj, .fsproj, .vbproj, or .sln file.";
+            errorMessage = $"Invalid project file extension: {projectPath}. Project files must have .csproj, .fsproj, .vbproj, .sln, or .slnx extension.";
             return false;
         }
 
