@@ -62,6 +62,12 @@ jobs:
           echo "Found coverage file: ${coverage_file}"
           cp "${coverage_file}" coverage.cobertura.xml
 
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage.cobertura.xml
+          fail_ci_if_error: false
+
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v6
         with:
