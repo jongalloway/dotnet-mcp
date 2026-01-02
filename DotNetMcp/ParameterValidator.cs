@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 
 namespace DotNetMcp;
@@ -15,8 +16,14 @@ public readonly record struct ValidationResult(bool IsValid, string? ErrorMessag
 /// Helper class for validating parameters before executing CLI commands.
 /// Provides pre-CLI validation to catch errors early with better error messages.
 /// </summary>
-public static class ParameterValidator
+public static partial class ParameterValidator
 {
+    /// <summary>
+    /// Source-generated regex for validating Runtime Identifiers (RIDs).
+    /// Matches patterns like: win-x64, linux-x64, osx-arm64, win10-x64, linux-musl-x64
+    /// </summary>
+    [GeneratedRegex(@"^(win|linux|osx|android|ios|iossimulator)(10|11)?(-musl)?-(x64|x86|arm|arm64)$", RegexOptions.IgnoreCase)]
+    private static partial Regex RuntimeIdentifierRegex();
     /// <summary>
     /// Validate a framework parameter against known Target Framework Monikers.
     /// </summary>
@@ -209,15 +216,10 @@ public static class ParameterValidator
         if (string.IsNullOrWhiteSpace(runtime))
             return true;
 
-        // Check if it matches common RID patterns
+        // Check if it matches common RID patterns using source-generated regex
         // RIDs follow pattern: <os>-<arch> or <os>.<version>-<arch>
         // Examples: win-x64, linux-x64, osx-arm64, win10-x64
-        var ridPattern = System.Text.RegularExpressions.Regex.IsMatch(
-            runtime,
-            @"^(win|linux|osx|android|ios|iossimulator)(10|11)?(-musl)?-(x64|x86|arm|arm64)$",
-            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-
-        if (!ridPattern)
+        if (!RuntimeIdentifierRegex().IsMatch(runtime))
         {
             errorMessage = $"Invalid runtime identifier '{runtime}'. " +
                           $"Runtime identifiers follow the pattern <os>-<arch>. " +
