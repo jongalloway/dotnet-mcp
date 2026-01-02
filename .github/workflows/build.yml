@@ -47,6 +47,9 @@ jobs:
       - name: Validate server.json
         run: pwsh -File scripts/validate-server-json.ps1
 
+      - name: Run MCP Conformance Tests
+        run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-class "*McpConformanceTests"
+
       - name: Test
         run: dotnet test --solution DotNetMcp.slnx --no-build --configuration Release --verbosity normal -- --coverage --coverage-output-format cobertura
 
