@@ -64,7 +64,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         # Secrets aren't available to workflows triggered from forks.
-        if: ${{ secrets.CODECOV_TOKEN != '' }}
+        if: secrets.CODECOV_TOKEN
         uses: codecov/codecov-action@v5
         with:
           files: coverage.cobertura.xml
