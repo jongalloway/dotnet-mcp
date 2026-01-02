@@ -24,6 +24,7 @@ public static partial class ParameterValidator
     /// </summary>
     [GeneratedRegex(@"^(win|linux|osx|android|ios|iossimulator)(10|11)?(-musl)?-(x64|x86|arm|arm64)$", RegexOptions.IgnoreCase)]
     private static partial Regex RuntimeIdentifierRegex();
+
     /// <summary>
     /// Validate a framework parameter against known Target Framework Monikers.
     /// </summary>
