@@ -21,6 +21,7 @@ public sealed partial class DotNetCliTools
     //   - Tools/DotNetCliTools.Watch.cs - File watching operations
     //   - Tools/DotNetCliTools.Solution.cs - Solution file management
     //   - Tools/DotNetCliTools.Tool.cs - Tool management
+    //   - Tools/DotNetCliTools.Workload.cs - Workload management (mobile, MAUI, WASM)
     //   - Tools/DotNetCliTools.Security.cs - Certificates and user secrets
     //   - Tools/DotNetCliTools.EntityFramework.cs - Entity Framework Core
     //   - Tools/DotNetCliTools.Project.cs - Project operations

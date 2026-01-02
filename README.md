@@ -595,6 +595,66 @@ var apiKey = builder.Configuration["Azure:OpenAI:ApiKey"];
 
 *Note: User secrets are for **development only**. Use Azure Key Vault or environment variables for production.*
 
+### Mobile and MAUI Development Setup
+
+**User**: *"I want to develop a .NET MAUI app for Android and iOS"*
+
+**AI**: *I'll help you set up the necessary workloads for MAUI development...*
+
+```bash
+# First, let's see what MAUI workloads are available
+dotnet workload search maui
+```
+
+*Found workloads:*
+
+```text
+Workload ID       Description              
+-------------------------------------------
+maui-android      .NET MAUI SDK for Android
+maui-ios          .NET MAUI SDK for iOS    
+maui-windows      .NET MAUI SDK for Windows
+maui-tizen        .NET MAUI SDK for Tizen  
+```
+
+*Now I'll install the workloads you need:*
+
+```bash
+# Install MAUI workloads for Android and iOS
+# Warning: This will download several GB of SDKs and tools
+dotnet workload install maui-android maui-ios
+```
+
+*Workloads installed! Let's verify:*
+
+```bash
+# List installed workloads
+dotnet workload list
+```
+
+*Output:*
+
+```text
+Installed Workload Id    Manifest Version      Installation Source
+----------------------------------------------------------------------
+maui-android            10.0.100/10.0.100     SDK 10.0.100        
+maui-ios                10.0.100/10.0.100     SDK 10.0.100        
+```
+
+*Now you can create a MAUI project:*
+
+```bash
+# Create a new MAUI app
+dotnet new maui -n MyMauiApp
+```
+
+*Your MAUI development environment is ready! When SDK updates are available, update your workloads:*
+
+```bash
+# Update all installed workloads
+dotnet workload update
+```
+
 ## Available Tools
 
 The server provides comprehensive .NET development capabilities through MCP tools and resources:
@@ -701,6 +761,14 @@ Entity Framework Core tools require the `dotnet-ef` tool to be installed (`dotne
 - **dotnet_secrets_list** - List all user secrets for a project
 - **dotnet_secrets_remove** - Remove a specific user secret by key
 - **dotnet_secrets_clear** - Clear all user secrets for a project
+
+### Tools - Workload Management
+
+- **dotnet_workload_list** - List installed workloads with versions and manifest information
+- **dotnet_workload_search** - Search for available workloads (mobile, MAUI, WASM, etc.)
+- **dotnet_workload_install** - Install workloads for specialized development (may require elevation, can download GB of data)
+- **dotnet_workload_update** - Update all installed workloads to latest versions (long-running operation)
+- **dotnet_workload_uninstall** - Uninstall workloads to free disk space
 
 ### Tools - Utilities
 
