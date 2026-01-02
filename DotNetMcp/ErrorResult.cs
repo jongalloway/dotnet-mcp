@@ -50,6 +50,13 @@ public sealed class ErrorResult
     public List<string>? SuggestedFixes { get; init; }
 
     /// <summary>
+    /// Optional list of alternative approaches when a capability is unavailable.
+    /// This is primarily used for CAPABILITY_NOT_AVAILABLE responses.
+    /// </summary>
+    [JsonPropertyName("alternatives")]
+    public List<string>? Alternatives { get; init; }
+
+    /// <summary>
     /// Original raw output for reference (sanitized to remove sensitive data)
     /// </summary>
     [JsonPropertyName("rawOutput")]

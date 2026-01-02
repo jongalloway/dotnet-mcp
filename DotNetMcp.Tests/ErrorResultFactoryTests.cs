@@ -6,6 +6,43 @@ namespace DotNetMcp.Tests;
 public class ErrorResultFactoryTests
 {
     [Fact]
+    public void ReturnCapabilityNotAvailable_IncludesAlternativesAndMcpErrorCode()
+    {
+        // Arrange
+        var alternatives = new[]
+        {
+            "Install the .NET SDK",
+            "Verify 'dotnet' is on PATH",
+            "Install the .NET SDK" // duplicate (should be de-duped)
+        };
+
+        // Act
+        var result = ErrorResultFactory.ReturnCapabilityNotAvailable(
+            feature: "dotnet CLI",
+            alternatives: alternatives,
+            command: "dotnet --info",
+            details: "dotnet was not found");
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(-1, result.ExitCode);
+
+        var error = Assert.Single(result.Errors);
+        Assert.Equal("CAPABILITY_NOT_AVAILABLE", error.Code);
+        Assert.Equal("Capability", error.Category);
+        Assert.Equal(McpErrorCodes.CapabilityNotAvailable, error.McpErrorCode);
+
+        Assert.NotNull(error.Alternatives);
+        Assert.True(error.Alternatives.Count >= 2);
+        Assert.DoesNotContain(error.Alternatives, a => string.IsNullOrWhiteSpace(a));
+        Assert.Contains(error.Alternatives, a => a.Contains("PATH", StringComparison.OrdinalIgnoreCase));
+
+        Assert.NotNull(error.Data);
+        Assert.Equal("dotnet --info", error.Data.Command);
+        Assert.Equal(-1, error.Data.ExitCode);
+    }
+
+    [Fact]
     public void CreateResult_WithExitCode0_ReturnsSuccessResult()
     {
         // Arrange
