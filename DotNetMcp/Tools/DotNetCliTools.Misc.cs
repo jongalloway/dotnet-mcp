@@ -213,7 +213,7 @@ public sealed partial class DotNetCliTools
     {
         // This feature is not yet implemented
         // Parameters are preserved for future implementation and API consistency
-        var alternatives = new List<string>
+        var alternatives = new[]
         {
             "Use dotnet_server_capabilities to check current feature support",
             "Monitor SDK usage manually through build logs",
@@ -221,9 +221,9 @@ public sealed partial class DotNetCliTools
         };
 
         var error = ErrorResultFactory.ReturnCapabilityNotAvailable(
-            "telemetry reporting",
-            "Not yet implemented - planned for future release",
-            alternatives);
+            feature: "telemetry reporting",
+            alternatives: alternatives,
+            details: "Not yet implemented - planned for future release");
 
         return Task.FromResult(ErrorResultFactory.ToJson(error));
     }

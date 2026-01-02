@@ -83,10 +83,15 @@ public static class McpErrorCodes
 
         // Internal errors for unexpected failures
         if (errorCode == "OPERATION_CANCELLED" || 
-            errorCode == "CONCURRENCY_CONFLICT" ||
-            errorCode == "CAPABILITY_NOT_AVAILABLE")
+            errorCode == "CONCURRENCY_CONFLICT")
         {
             return InternalError;
+        }
+
+        // Capability not available should use the dedicated error code
+        if (errorCode == "CAPABILITY_NOT_AVAILABLE")
+        {
+            return CapabilityNotAvailable;
         }
 
         // For generic failures, use InternalError

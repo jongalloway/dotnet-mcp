@@ -15,8 +15,9 @@ public class McpErrorCodesTests
         Assert.Equal(-32602, McpErrorCodes.InvalidParams);
         Assert.Equal(-32603, McpErrorCodes.InternalError);
         
-        // MCP-specific error code
+        // MCP-specific error codes
         Assert.Equal(-32002, McpErrorCodes.ResourceNotFound);
+        Assert.Equal(-32001, McpErrorCodes.CapabilityNotAvailable);
         
         // Server error range
         Assert.Equal(-32000, McpErrorCodes.ServerErrorRangeStart);
@@ -57,9 +58,21 @@ public class McpErrorCodesTests
     [Theory]
     [InlineData("OPERATION_CANCELLED", "Cancellation", -1, -32603)]
     [InlineData("CONCURRENCY_CONFLICT", "Concurrency", -1, -32603)]
-    [InlineData("CAPABILITY_NOT_AVAILABLE", "Capability", -1, -32603)]
     [InlineData("EXIT_1", "Unknown", 1, -32603)]
     public void GetMcpErrorCode_WithInternalErrorScenarios_ReturnsInternalError(
+        string errorCode, string category, int exitCode, int expectedMcpCode)
+    {
+        // Act
+        var mcpCode = McpErrorCodes.GetMcpErrorCode(errorCode, category, exitCode);
+
+        // Assert
+        Assert.NotNull(mcpCode);
+        Assert.Equal(expectedMcpCode, mcpCode.Value);
+    }
+
+    [Theory]
+    [InlineData("CAPABILITY_NOT_AVAILABLE", "Capability", -1, -32001)]
+    public void GetMcpErrorCode_WithCapabilityNotAvailableScenario_ReturnsCapabilityNotAvailable(
         string errorCode, string category, int exitCode, int expectedMcpCode)
     {
         // Act

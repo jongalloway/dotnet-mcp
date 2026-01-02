@@ -341,7 +341,7 @@ public sealed class DotNetResources
         _logger.LogDebug("Telemetry data resource requested");
         
         // This resource is not yet implemented
-        var alternatives = new List<string>
+        var alternatives = new[]
         {
             "Use dotnet://sdk-info to get SDK version information",
             "Use dotnet://runtime-info for runtime details",
@@ -349,9 +349,9 @@ public sealed class DotNetResources
         };
 
         var error = ErrorResultFactory.ReturnCapabilityNotAvailable(
-            "telemetry data resource",
-            "Telemetry collection not yet implemented",
-            alternatives);
+            feature: "telemetry data resource",
+            alternatives: alternatives,
+            details: "Telemetry collection not yet implemented");
 
         return Task.FromResult(ErrorResultFactory.ToJson(error));
     }
