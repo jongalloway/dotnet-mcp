@@ -69,22 +69,17 @@ public sealed partial class DotNetCliTools
         string? configFile = null,
         bool machineReadable = false)
     {
-        if (string.IsNullOrWhiteSpace(workloadIds))
-            return "Error: workloadIds parameter is required. Specify one or more workload IDs (comma-separated for multiple).";
-
-        // Split and validate workload IDs
-        var ids = workloadIds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (ids.Length == 0)
-            return "Error: At least one workload ID must be provided.";
+        // Parse and validate workload IDs
+        if (!ParameterValidator.ParseWorkloadIds(workloadIds, out var ids, out var errorMessage))
+        {
+            return $"Error: {errorMessage}";
+        }
 
         var args = new StringBuilder("workload install");
         
         // Add each workload ID
         foreach (var id in ids)
         {
-            if (!IsValidWorkloadId(id))
-                return $"Error: Invalid workload ID '{id}'. Workload IDs must contain only alphanumeric characters, hyphens, and underscores.";
-            
             args.Append($" {id}");
         }
 
@@ -139,42 +134,20 @@ public sealed partial class DotNetCliTools
         string workloadIds,
         bool machineReadable = false)
     {
-        if (string.IsNullOrWhiteSpace(workloadIds))
-            return "Error: workloadIds parameter is required. Specify one or more workload IDs (comma-separated for multiple).";
-
-        // Split and validate workload IDs
-        var ids = workloadIds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (ids.Length == 0)
-            return "Error: At least one workload ID must be provided.";
+        // Parse and validate workload IDs
+        if (!ParameterValidator.ParseWorkloadIds(workloadIds, out var ids, out var errorMessage))
+        {
+            return $"Error: {errorMessage}";
+        }
 
         var args = new StringBuilder("workload uninstall");
         
         // Add each workload ID
         foreach (var id in ids)
         {
-            if (!IsValidWorkloadId(id))
-                return $"Error: Invalid workload ID '{id}'. Workload IDs must contain only alphanumeric characters, hyphens, and underscores.";
-            
             args.Append($" {id}");
         }
 
         return await ExecuteDotNetCommand(args.ToString(), machineReadable);
-    }
-
-    /// <summary>
-    /// Validates that a workload ID contains only safe characters.
-    /// Workload IDs should only contain alphanumeric characters, hyphens, and underscores.
-    /// </summary>
-    private static bool IsValidWorkloadId(string workloadId)
-    {
-        if (string.IsNullOrWhiteSpace(workloadId))
-            return false;
-
-        foreach (var c in workloadId)
-        {
-            if (!(char.IsLetterOrDigit(c) || c is '-' or '_'))
-                return false;
-        }
-        return true;
     }
 }

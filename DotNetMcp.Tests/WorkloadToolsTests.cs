@@ -94,7 +94,7 @@ public class WorkloadToolsTests
         // Assert
         Assert.NotNull(result);
         Assert.Contains("Error:", result);
-        Assert.Contains("workloadIds", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("workload", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -106,6 +106,7 @@ public class WorkloadToolsTests
         // Assert
         Assert.NotNull(result);
         Assert.Contains("Error:", result);
+        Assert.Contains("workload", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -229,7 +230,7 @@ public class WorkloadToolsTests
         // Assert
         Assert.NotNull(result);
         Assert.Contains("Error:", result);
-        Assert.Contains("workloadIds", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("workload", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -241,6 +242,7 @@ public class WorkloadToolsTests
         // Assert
         Assert.NotNull(result);
         Assert.Contains("Error:", result);
+        Assert.Contains("workload", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
