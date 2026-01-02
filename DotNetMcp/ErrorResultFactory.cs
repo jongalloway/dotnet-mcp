@@ -30,6 +30,12 @@ public static partial class ErrorResultFactory
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
+        // Set to null if the list is empty after filtering
+        if (altList?.Count == 0)
+        {
+            altList = null;
+        }
+
         var message = $"Capability '{safeFeature}' is not available in the current environment.";
         if (!string.IsNullOrWhiteSpace(details))
         {
@@ -46,7 +52,9 @@ public static partial class ErrorResultFactory
                     Code = "CAPABILITY_NOT_AVAILABLE",
                     Message = message,
                     Category = "Capability",
-                    Hint = "Try one of the alternatives or adjust the environment to enable this capability.",
+                    Hint = altList?.Count > 0 
+                        ? "Try one of the alternatives or adjust the environment to enable this capability."
+                        : "Adjust the environment to enable this capability.",
                     Alternatives = altList,
                     RawOutput = string.Empty,
                     McpErrorCode = McpErrorCodes.CapabilityNotAvailable,

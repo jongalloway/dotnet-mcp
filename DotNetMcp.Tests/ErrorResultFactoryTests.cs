@@ -33,7 +33,7 @@ public class ErrorResultFactoryTests
         Assert.Equal(McpErrorCodes.CapabilityNotAvailable, error.McpErrorCode);
 
         Assert.NotNull(error.Alternatives);
-        Assert.True(error.Alternatives.Count >= 2);
+        Assert.Equal(2, error.Alternatives.Count); // Exactly 2 after deduplication
         Assert.DoesNotContain(error.Alternatives, a => string.IsNullOrWhiteSpace(a));
         Assert.Contains(error.Alternatives, a => a.Contains("PATH", StringComparison.OrdinalIgnoreCase));
 
@@ -805,5 +805,129 @@ Program.cs(15,10): error CS1001: Identifier expected";
         Assert.Contains("\"suggestedFixes\"", json);
         Assert.Contains("compiler cannot find", json);
         Assert.Contains("learn.microsoft.com", json);
+    }
+
+    [Fact]
+    public void ReturnCapabilityNotAvailable_WithNullAlternatives_ReturnsNullAlternativesList()
+    {
+        // Arrange
+        IEnumerable<string>? nullAlternatives = null;
+
+        // Act
+        var result = ErrorResultFactory.ReturnCapabilityNotAvailable(
+            feature: "test feature",
+            alternatives: nullAlternatives,
+            command: "dotnet test",
+            details: "test details");
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Single(result.Errors);
+        
+        var error = result.Errors[0];
+        Assert.Equal("CAPABILITY_NOT_AVAILABLE", error.Code);
+        Assert.Null(error.Alternatives);
+        Assert.NotNull(error.Hint);
+        Assert.DoesNotContain("alternatives", error.Hint, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ReturnCapabilityNotAvailable_WithEmptyAlternatives_ReturnsNullAlternativesList()
+    {
+        // Arrange
+        var emptyAlternatives = Array.Empty<string>();
+
+        // Act
+        var result = ErrorResultFactory.ReturnCapabilityNotAvailable(
+            feature: "test feature",
+            alternatives: emptyAlternatives,
+            command: "dotnet test",
+            details: "test details");
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Single(result.Errors);
+        
+        var error = result.Errors[0];
+        Assert.Equal("CAPABILITY_NOT_AVAILABLE", error.Code);
+        Assert.Null(error.Alternatives);
+        Assert.NotNull(error.Hint);
+        Assert.DoesNotContain("alternatives", error.Hint, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ReturnCapabilityNotAvailable_WithNullOrWhitespaceFeature_UsesDefaultFeatureName()
+    {
+        // Arrange & Act
+        var result1 = ErrorResultFactory.ReturnCapabilityNotAvailable(
+            feature: null!,
+            alternatives: new[] { "alternative 1" });
+        
+        var result2 = ErrorResultFactory.ReturnCapabilityNotAvailable(
+            feature: "   ",
+            alternatives: new[] { "alternative 1" });
+
+        // Assert
+        var error1 = result1.Errors[0];
+        var error2 = result2.Errors[0];
+        
+        Assert.Contains("capability", error1.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("capability", error2.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ReturnCapabilityNotAvailable_WithWhitespaceOnlyAlternatives_FiltersThemOut()
+    {
+        // Arrange
+        var alternatives = new[] 
+        { 
+            "Valid alternative",
+            "   ",
+            "",
+            null!,
+            "Another valid alternative"
+        };
+
+        // Act
+        var result = ErrorResultFactory.ReturnCapabilityNotAvailable(
+            feature: "test feature",
+            alternatives: alternatives);
+
+        // Assert
+        var error = result.Errors[0];
+        Assert.NotNull(error.Alternatives);
+        Assert.Equal(2, error.Alternatives.Count);
+        Assert.Contains("Valid alternative", error.Alternatives);
+        Assert.Contains("Another valid alternative", error.Alternatives);
+    }
+
+    [Fact]
+    public void ReturnCapabilityNotAvailable_WithNullDetails_DoesNotIncludeDetailsInMessage()
+    {
+        // Arrange & Act
+        var result = ErrorResultFactory.ReturnCapabilityNotAvailable(
+            feature: "test feature",
+            alternatives: new[] { "alt1" },
+            command: "dotnet test",
+            details: null);
+
+        // Assert
+        var error = result.Errors[0];
+        Assert.NotNull(error.Message);
+        Assert.DoesNotContain("Details:", error.Message);
+        Assert.Contains("test feature", error.Message);
+    }
+
+    [Fact]
+    public void ReturnCapabilityNotAvailable_AlwaysIncludesMcpErrorCode()
+    {
+        // Arrange & Act
+        var result = ErrorResultFactory.ReturnCapabilityNotAvailable(
+            feature: "test feature");
+
+        // Assert
+        var error = result.Errors[0];
+        Assert.NotNull(error.McpErrorCode);
+        Assert.Equal(McpErrorCodes.CapabilityNotAvailable, error.McpErrorCode);
     }
 }
