@@ -1,3 +1,4 @@
+using System.IO;
 using DotNetMcp;
 using Xunit;
 
