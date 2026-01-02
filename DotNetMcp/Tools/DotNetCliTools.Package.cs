@@ -28,6 +28,14 @@ public sealed partial class DotNetCliTools
         bool includeSource = false,
         bool machineReadable = false)
     {
+        // Validate project path if provided
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+
+        // Validate configuration
+        if (!ParameterValidator.ValidateConfiguration(configuration, out var configError))
+            return $"Error: {configError}";
+
         var args = new StringBuilder("pack");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
@@ -57,6 +65,10 @@ public sealed partial class DotNetCliTools
         bool prerelease = false,
         bool machineReadable = false)
     {
+        // Validate project path if provided
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+
         var args = new StringBuilder("add");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         args.Append($" package {packageName}");
@@ -81,6 +93,10 @@ public sealed partial class DotNetCliTools
         bool deprecated = false,
         bool machineReadable = false)
     {
+        // Validate project path if provided
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+
         var args = new StringBuilder("list");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         args.Append(" package");
@@ -103,6 +119,10 @@ public sealed partial class DotNetCliTools
         string? project = null,
         bool machineReadable = false)
     {
+        // Validate project path if provided
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+
         var args = new StringBuilder("remove");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         args.Append($" package {packageName}");
@@ -158,6 +178,10 @@ public sealed partial class DotNetCliTools
         bool prerelease = false,
         bool machineReadable = false)
     {
+        // Validate project path if provided
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+
         var args = new StringBuilder("add");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         args.Append($" package {packageName}");

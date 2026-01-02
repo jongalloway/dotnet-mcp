@@ -32,12 +32,18 @@ public sealed partial class DotNetCliTools
         string? additionalOptions = null,
         bool machineReadable = false)
     {
-        if (string.IsNullOrWhiteSpace(template))
-            return "Error: template parameter is required.";
-
-        // Validate additionalOptions to prevent injection attempts
+        // Validate additionalOptions first (security check before any other validation)
         if (!string.IsNullOrEmpty(additionalOptions) && !IsValidAdditionalOptions(additionalOptions))
             return "Error: additionalOptions contains invalid characters. Only alphanumeric characters, hyphens, underscores, dots, spaces, and equals signs are allowed.";
+
+        // Validate template
+        var templateValidation = await ParameterValidator.ValidateTemplateAsync(template, _logger);
+        if (!templateValidation.IsValid)
+            return $"Error: {templateValidation.ErrorMessage}";
+
+        // Validate framework
+        if (!ParameterValidator.ValidateFramework(framework, out var frameworkError))
+            return $"Error: {frameworkError}";
 
         var args = new StringBuilder($"new {template}");
         if (!string.IsNullOrEmpty(name)) args.Append($" -n \"{name}\"");
@@ -61,6 +67,10 @@ public sealed partial class DotNetCliTools
         string? project = null,
         bool machineReadable = false)
     {
+        // Validate project path if provided
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+
         var args = "restore";
         if (!string.IsNullOrEmpty(project)) args += $" \"{project}\"";
         return await ExecuteDotNetCommand(args, machineReadable);
@@ -85,6 +95,18 @@ public sealed partial class DotNetCliTools
         string? framework = null,
         bool machineReadable = false)
     {
+        // Validate project path if provided
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+
+        // Validate configuration
+        if (!ParameterValidator.ValidateConfiguration(configuration, out var configError))
+            return $"Error: {configError}";
+
+        // Validate framework
+        if (!ParameterValidator.ValidateFramework(framework, out var frameworkError))
+            return $"Error: {frameworkError}";
+
         var args = new StringBuilder("build");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
@@ -112,6 +134,14 @@ public sealed partial class DotNetCliTools
         string? appArgs = null,
         bool machineReadable = false)
     {
+        // Validate project path if provided
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+
+        // Validate configuration
+        if (!ParameterValidator.ValidateConfiguration(configuration, out var configError))
+            return $"Error: {configError}";
+
         var args = new StringBuilder("run");
         if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
@@ -157,6 +187,22 @@ public sealed partial class DotNetCliTools
         bool listTests = false,
         bool machineReadable = false)
     {
+        // Validate project path if provided
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+
+        // Validate configuration
+        if (!ParameterValidator.ValidateConfiguration(configuration, out var configError))
+            return $"Error: {configError}";
+
+        // Validate verbosity
+        if (!ParameterValidator.ValidateVerbosity(verbosity, out var verbosityError))
+            return $"Error: {verbosityError}";
+
+        // Validate framework
+        if (!ParameterValidator.ValidateFramework(framework, out var frameworkError))
+            return $"Error: {frameworkError}";
+
         var args = new StringBuilder("test");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
@@ -193,6 +239,18 @@ public sealed partial class DotNetCliTools
         string? runtime = null,
         bool machineReadable = false)
     {
+        // Validate project path if provided
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+
+        // Validate configuration
+        if (!ParameterValidator.ValidateConfiguration(configuration, out var configError))
+            return $"Error: {configError}";
+
+        // Validate runtime identifier
+        if (!ParameterValidator.ValidateRuntimeIdentifier(runtime, out var runtimeError))
+            return $"Error: {runtimeError}";
+
         var args = new StringBuilder("publish");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
@@ -216,6 +274,14 @@ public sealed partial class DotNetCliTools
         string? configuration = null,
         bool machineReadable = false)
     {
+        // Validate project path if provided
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+
+        // Validate configuration
+        if (!ParameterValidator.ValidateConfiguration(configuration, out var configError))
+            return $"Error: {configError}";
+
         var args = new StringBuilder("clean");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
@@ -235,6 +301,10 @@ public sealed partial class DotNetCliTools
     [McpMeta("tags", JsonValue = """["project","analyze","introspection","metadata"]""")]
     public async partial Task<string> DotnetProjectAnalyze(string projectPath)
     {
+        // Validate project path
+        if (!ParameterValidator.ValidateProjectPath(projectPath, out var projectError))
+            return $"Error: {projectError}";
+
         _logger.LogDebug("Analyzing project file: {ProjectPath}", projectPath);
         return await ProjectAnalysisHelper.AnalyzeProjectAsync(projectPath, _logger);
     }
@@ -251,6 +321,10 @@ public sealed partial class DotNetCliTools
     [McpMeta("tags", JsonValue = """["project","dependencies","analyze","packages"]""")]
     public async partial Task<string> DotnetProjectDependencies(string projectPath)
     {
+        // Validate project path
+        if (!ParameterValidator.ValidateProjectPath(projectPath, out var projectError))
+            return $"Error: {projectError}";
+
         _logger.LogDebug("Analyzing dependencies for: {ProjectPath}", projectPath);
         return await ProjectAnalysisHelper.AnalyzeDependenciesAsync(projectPath, _logger);
     }
@@ -267,6 +341,10 @@ public sealed partial class DotNetCliTools
     [McpMeta("tags", JsonValue = """["project","validate","health-check","diagnostics"]""")]
     public async partial Task<string> DotnetProjectValidate(string projectPath)
     {
+        // Validate project path
+        if (!ParameterValidator.ValidateProjectPath(projectPath, out var projectError))
+            return $"Error: {projectError}";
+
         _logger.LogDebug("Validating project: {ProjectPath}", projectPath);
         return await ProjectAnalysisHelper.ValidateProjectAsync(projectPath, _logger);
     }
