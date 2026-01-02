@@ -328,6 +328,7 @@ public sealed class DotNetResources
     /// Example resource demonstrating CAPABILITY_NOT_AVAILABLE usage when a resource is conditionally disabled.
     /// This shows how to handle feature flags or environment-specific limitations.
     /// </summary>
+    /// <returns>JSON error response indicating telemetry collection is not yet implemented, with suggested alternatives</returns>
     [McpServerResource(
         UriTemplate = "dotnet://telemetry-data",
         Name = "Telemetry Data",

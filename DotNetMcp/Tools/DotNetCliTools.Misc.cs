@@ -200,8 +200,9 @@ public sealed partial class DotNetCliTools
     /// <summary>
     /// Enable telemetry reporting for .NET SDK usage analytics. This feature is planned but not yet implemented.
     /// </summary>
-    /// <param name="enable">Whether to enable or disable telemetry</param>
+    /// <param name="enable">Whether to enable or disable telemetry (preserved for future implementation)</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
+    /// <returns>JSON error response indicating the feature is not yet available</returns>
     [McpServerTool]
     [McpMeta("category", "telemetry")]
     [McpMeta("priority", 2.0)]
@@ -211,6 +212,7 @@ public sealed partial class DotNetCliTools
         bool machineReadable = false)
     {
         // This feature is not yet implemented
+        // The 'enable' parameter is preserved for future implementation
         var alternatives = new List<string>
         {
             "Use dotnet_server_capabilities to check current feature support",
