@@ -930,4 +930,82 @@ Program.cs(15,10): error CS1001: Identifier expected";
         Assert.NotNull(error.McpErrorCode);
         Assert.Equal(McpErrorCodes.CapabilityNotAvailable, error.McpErrorCode);
     }
+
+    [Fact]
+    public void CreateValidationError_WithParameterAndReason_ReturnsCorrectStructure()
+    {
+        // Arrange & Act
+        var result = ErrorResultFactory.CreateValidationError(
+            message: "packageName parameter is required.",
+            parameterName: "packageName",
+            reason: "required");
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(-1, result.ExitCode);
+
+        var error = Assert.Single(result.Errors);
+        Assert.Equal("INVALID_PARAMS", error.Code);
+        Assert.Equal("Validation", error.Category);
+        Assert.Equal(McpErrorCodes.InvalidParams, error.McpErrorCode);
+        Assert.Equal("packageName parameter is required.", error.Message);
+        Assert.NotNull(error.Hint);
+        Assert.Contains("parameter values", error.Hint);
+
+        Assert.NotNull(error.Data);
+        Assert.Null(error.Data.Command); // No command executed for validation errors
+        Assert.Equal(-1, error.Data.ExitCode);
+
+        Assert.NotNull(error.Data.AdditionalData);
+        Assert.Equal("packageName", error.Data.AdditionalData["parameter"]);
+        Assert.Equal("required", error.Data.AdditionalData["reason"]);
+    }
+
+    [Fact]
+    public void CreateValidationError_WithoutParameterAndReason_ReturnsBasicStructure()
+    {
+        // Arrange & Act
+        var result = ErrorResultFactory.CreateValidationError(
+            message: "Invalid operation.");
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(-1, result.ExitCode);
+
+        var error = Assert.Single(result.Errors);
+        Assert.Equal("INVALID_PARAMS", error.Code);
+        Assert.Equal("Validation", error.Category);
+        Assert.Equal(McpErrorCodes.InvalidParams, error.McpErrorCode);
+        Assert.Equal("Invalid operation.", error.Message);
+
+        Assert.NotNull(error.Data);
+        Assert.Null(error.Data.Command);
+        Assert.Equal(-1, error.Data.ExitCode);
+        Assert.Null(error.Data.AdditionalData); // No additional data when parameters not provided
+    }
+
+    [Fact]
+    public void CreateValidationError_SerializesToValidJson()
+    {
+        // Arrange
+        var result = ErrorResultFactory.CreateValidationError(
+            message: "Test validation error",
+            parameterName: "testParam",
+            reason: "invalid value");
+
+        // Act
+        var json = ErrorResultFactory.ToJson(result);
+
+        // Assert
+        Assert.NotNull(json);
+        Assert.NotEmpty(json);
+        Assert.Contains("\"success\": false", json);
+        Assert.Contains("\"code\": \"INVALID_PARAMS\"", json);
+        Assert.Contains("\"category\": \"Validation\"", json);
+        Assert.Contains("\"mcpErrorCode\": -32602", json); // InvalidParams code
+        Assert.Contains("\"message\": \"Test validation error\"", json);
+        Assert.Contains("\"parameter\": \"testParam\"", json);
+        Assert.Contains("\"reason\": \"invalid value\"", json);
+    }
 }
+
