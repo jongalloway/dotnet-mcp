@@ -190,10 +190,12 @@ dotnet add package Serilog.Sinks.File
 **What the AI Does:**
 ```bash
 # List outdated packages first
-dotnet package list --outdated
+dotnet list package --outdated
 
-# Update all packages
-dotnet package update
+# Update each outdated package to the latest compatible version
+# The AI uses dotnet_package_update tool which internally runs:
+dotnet add package <PackageName>
+# This is repeated for each outdated package found
 ```
 
 **Best Practice:**
@@ -240,7 +242,7 @@ dotnet add MyCompany.Products.Tests reference MyCompany.Products.Data
 **What the AI Does:**
 ```bash
 # 1. Ensure dotnet-ef tool is installed
-dotnet tool list --global | grep dotnet-ef || dotnet tool install dotnet-ef --global
+dotnet tool install dotnet-ef --global
 
 # 2. Create migration
 dotnet ef migrations add InitialCreate
@@ -400,7 +402,7 @@ dotnet new aspire-apphost -n MicroserviceDemo.AppHost
 dotnet new aspire-servicedefaults -n MicroserviceDemo.ServiceDefaults
 
 # 4. Create projects
-dotnet new webapi -n MicroserviceDemo.ProductApi --use-minimal-apis
+dotnet new webapi -n MicroserviceDemo.ProductApi
 dotnet new worker -n MicroserviceDemo.OrderProcessor
 dotnet new blazor -n MicroserviceDemo.Web
 dotnet new classlib -n MicroserviceDemo.Shared
@@ -411,7 +413,15 @@ dotnet new xunit -n MicroserviceDemo.OrderProcessor.Tests
 dotnet new xunit -n MicroserviceDemo.Web.Tests
 
 # 6. Add all to solution
-dotnet sln add **/*.csproj
+dotnet sln add MicroserviceDemo.AppHost/MicroserviceDemo.AppHost.csproj
+dotnet sln add MicroserviceDemo.ServiceDefaults/MicroserviceDemo.ServiceDefaults.csproj
+dotnet sln add MicroserviceDemo.ProductApi/MicroserviceDemo.ProductApi.csproj
+dotnet sln add MicroserviceDemo.OrderProcessor/MicroserviceDemo.OrderProcessor.csproj
+dotnet sln add MicroserviceDemo.Web/MicroserviceDemo.Web.csproj
+dotnet sln add MicroserviceDemo.Shared/MicroserviceDemo.Shared.csproj
+dotnet sln add MicroserviceDemo.ProductApi.Tests/MicroserviceDemo.ProductApi.Tests.csproj
+dotnet sln add MicroserviceDemo.OrderProcessor.Tests/MicroserviceDemo.OrderProcessor.Tests.csproj
+dotnet sln add MicroserviceDemo.Web.Tests/MicroserviceDemo.Web.Tests.csproj
 
 # 7. Add project references
 # Each service references ServiceDefaults and Shared
@@ -665,7 +675,7 @@ AI Response:
   "Yes, EF Core 9.0 supports .NET 8. However, note that:
    - You're using an older .NET version (8) with a newer EF version (9)
    - Consider upgrading to .NET 10 for best compatibility
-   - EF Core 9.0 requires C# 12 features"
+   - EF Core 9.0 targets .NET 8, which uses C# 12 by default"
 
 AI (via .NET MCP): 
   dotnet add package Microsoft.EntityFrameworkCore --version 9.0.0
@@ -764,7 +774,7 @@ AI (via NuGet MCP):
 
 # Phase 2: Project Creation (.NET MCP)
 AI (via .NET MCP):
-  dotnet new webapi -n ProductCatalog --use-minimal-apis
+  dotnet new webapi -n ProductCatalog
   dotnet add package Microsoft.EntityFrameworkCore.SqlServer
   dotnet add package StackExchange.Redis
   dotnet ef migrations add InitialCreate
