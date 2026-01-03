@@ -10,8 +10,8 @@ This project is an MCP (Model Context Protocol) server that integrates with the 
 - **Model Context Protocol SDK**: Version 0.5.0-preview.1
 - **Stdio Transport**: Communication via standard input/output
 - **Microsoft.Extensions.Hosting**: For application lifecycle management
-- **Microsoft.TemplateEngine.\***: Direct integration with .NET Template Engine (v9.0.306)
-- **Microsoft.Build.\***: MSBuild integration for framework validation (v17.14.x)
+- **Microsoft.TemplateEngine.\***: Direct integration with .NET Template Engine (v10.0.101)
+- **Microsoft.Build.\***: MSBuild integration for framework validation (v18.0.2)
 
 ## Architecture
 
@@ -59,7 +59,7 @@ The server uses a **hybrid architecture**:
 When building the project, always use the full path to the project file:
 
 ```bash
-dotnet build C:\Users\jonga\Documents\GitHub\dotnet-mcp\DotNetMcp\DotNetMcp.csproj
+dotnet build /path/to/dotnet-mcp/DotNetMcp/DotNetMcp.csproj
 ```
 
 **Important**: If a build fails due to inability to find the project file, pass the full path to the `.csproj` file. Do not rely on relative paths or current directory assumptions.
@@ -183,9 +183,13 @@ Framework validation and information.
 
 ## Testing
 
-- Build the project: `dotnet build --project [full path to .csproj]`
-- Run the server: `dotnet run --project [full path to .csproj]`
-- Test with MCP Inspector or Claude Desktop
+- **Automated tests**: Run the test suite with `dotnet test --solution DotNetMcp.slnx`
+  - 703 passing tests covering all 74 MCP tools
+  - MCP conformance tests validate protocol compliance
+  - See [doc/testing.md](../doc/testing.md) for details
+- **Build the project**: `dotnet build --project [full path to .csproj]`
+- **Run the server**: `dotnet run --project [full path to .csproj]`
+- **Manual testing**: Test with MCP Inspector or Claude Desktop
 - Verify all commands work with various parameter combinations
 - **Test SDK integration**: Try the new template and framework info tools
 
@@ -275,8 +279,12 @@ When adding features:
 
 - GitHub Actions runs on push and PR
 - Builds in Release configuration
-- No tests currently (add when needed)
-- Ensures code compiles before merge
+- Runs comprehensive test suite:
+  - MCP conformance tests (protocol compliance)
+  - Unit tests with code coverage (Cobertura format)
+  - Performance smoke tests (informational)
+- Uploads coverage to Codecov
+- Ensures code compiles and tests pass before merge
 
 ## Package Management
 

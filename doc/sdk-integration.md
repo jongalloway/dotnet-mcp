@@ -15,8 +15,8 @@ This approach provides rich metadata access, type-safe operations, and validatio
 
 ### Template Engine
 
-- **Microsoft.TemplateEngine.Abstractions** (v9.0.306)
-- **Microsoft.TemplateEngine.Edge** (v9.0.306)
+- **Microsoft.TemplateEngine.Abstractions** (v10.0.101)
+- **Microsoft.TemplateEngine.Edge** (v10.0.101)
 
 Provides programmatic access to the .NET template system:
 
@@ -27,8 +27,8 @@ Provides programmatic access to the .NET template system:
 
 ### MSBuild
 
-- **Microsoft.Build.Utilities.Core** (v17.14.x)
-- **Microsoft.Build** (v17.14.x)
+- **Microsoft.Build.Utilities.Core** (v18.0.2)
+- **Microsoft.Build** (v18.0.2)
 
 Provides framework validation, metadata, and project analysis:
 

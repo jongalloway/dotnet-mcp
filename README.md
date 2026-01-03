@@ -849,8 +849,8 @@ Key files to start with:
 - **Runtime**: .NET 10.0 (target framework)
 - **Transport**: stdio (standard input/output)
 - **NuGet Packages**:
-  - `Microsoft.TemplateEngine.Abstractions` & `Edge` - Template metadata
-  - `Microsoft.Build.Utilities.Core` & `Microsoft.Build` - Project validation
+  - `Microsoft.TemplateEngine.Abstractions` & `Edge` (v10.0.101) - Template metadata
+  - `Microsoft.Build.Utilities.Core` & `Microsoft.Build` (v18.0.2) - Project validation
 
 ## Documentation
 
