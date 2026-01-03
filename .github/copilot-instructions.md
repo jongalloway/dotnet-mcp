@@ -10,8 +10,8 @@ This project is an MCP (Model Context Protocol) server that integrates with the 
 - **Model Context Protocol SDK**: Version 0.5.0-preview.1
 - **Stdio Transport**: Communication via standard input/output
 - **Microsoft.Extensions.Hosting**: For application lifecycle management
-- **Microsoft.TemplateEngine.\***: Direct integration with .NET Template Engine (v9.0.306)
-- **Microsoft.Build.\***: MSBuild integration for framework validation (v17.14.x)
+- **Microsoft.TemplateEngine.\***: Direct integration with .NET Template Engine (v10.0.101)
+- **Microsoft.Build.\***: MSBuild integration for framework validation (v18.0.2)
 
 ## Architecture
 
