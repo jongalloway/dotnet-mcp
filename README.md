@@ -854,6 +854,7 @@ Key files to start with:
 
 ## Documentation
 
+- 📖 [Machine-Readable JSON Contract](doc/machine-readable-contract.md) - **v1.0 stable contract for programmatic tool consumption**
 - 📖 [SDK Integration Details](doc/sdk-integration.md) - Technical architecture and SDK usage
 - 📖 [Advanced Topics](doc/advanced-topics.md) - Performance, logging, and security details
 - 📖 [Concurrency Safety](doc/concurrency.md) - Parallel execution guidance for AI orchestrators
