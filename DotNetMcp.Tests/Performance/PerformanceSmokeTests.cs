@@ -146,14 +146,13 @@ public class PerformanceSmokeTests
             ? (measurements[measurements.Count / 2 - 1] + measurements[measurements.Count / 2]) / 2.0
             : measurements[measurements.Count / 2];
         
-        // Calculate percentiles
-        var p50Index = (int)(measurements.Count * 0.50);
-        var p95Index = (int)(measurements.Count * 0.95);
-        var p99Index = (int)(measurements.Count * 0.99);
+        // Calculate percentiles using proper statistical formulas
+        // P95 = value at position (n * 0.95), rounded up
+        var p95Index = Math.Min((int)Math.Ceiling(measurements.Count * 0.95) - 1, measurements.Count - 1);
+        var p99Index = Math.Min((int)Math.Ceiling(measurements.Count * 0.99) - 1, measurements.Count - 1);
         
-        var p50 = measurements[Math.Min(p50Index, measurements.Count - 1)];
-        var p95 = measurements[Math.Min(p95Index, measurements.Count - 1)];
-        var p99 = measurements[Math.Min(p99Index, measurements.Count - 1)];
+        var p95 = measurements[p95Index];
+        var p99 = measurements[p99Index];
         
         // Calculate standard deviation
         var variance = measurements.Select(m => Math.Pow(m - mean, 2)).Average();
@@ -166,7 +165,6 @@ public class PerformanceSmokeTests
             Max = max,
             Mean = mean,
             Median = median,
-            P50 = p50,
             P95 = p95,
             P99 = p99,
             StdDev = stdDev
@@ -189,7 +187,6 @@ public class PerformanceSmokeTests
         report.AppendLine($"Std Dev:        {stats.StdDev:F2} ms");
         report.AppendLine($"Min:            {stats.Min:F2} ms");
         report.AppendLine($"Max:            {stats.Max:F2} ms");
-        report.AppendLine($"P50:            {stats.P50:F2} ms");
         report.AppendLine($"P95:            {stats.P95:F2} ms (expected: <{expectedP95:F0} ms)");
         report.AppendLine($"P99:            {stats.P99:F2} ms");
         report.AppendLine($"───────────────────────────────────────────────────────────────");
@@ -224,7 +221,6 @@ public class PerformanceSmokeTests
         public double Max { get; init; }
         public double Mean { get; init; }
         public double Median { get; init; }
-        public double P50 { get; init; }
         public double P95 { get; init; }
         public double P99 { get; init; }
         public double StdDev { get; init; }

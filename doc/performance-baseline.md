@@ -25,7 +25,8 @@ For comprehensive performance testing and regression detection, see [Issue #151]
 ### Configuration
 - **Warmup iterations**: 3 (to stabilize JIT compilation and caching)
 - **Measurement iterations**: 10
-- **Statistics**: Min, Max, Mean, Median, StdDev, P50, P95, P99
+- **Statistics**: Min, Max, Mean, Median, StdDev, P95, P99
+  - Note: P50 (50th percentile) is the same as the median, so we report median only
 
 ### Test Cases
 
