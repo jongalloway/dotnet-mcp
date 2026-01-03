@@ -183,9 +183,13 @@ Framework validation and information.
 
 ## Testing
 
-- Build the project: `dotnet build --project [full path to .csproj]`
-- Run the server: `dotnet run --project [full path to .csproj]`
-- Test with MCP Inspector or Claude Desktop
+- **Automated tests**: Run the test suite with `dotnet test --solution DotNetMcp.slnx`
+  - 703 passing tests covering all 67 MCP tools
+  - MCP conformance tests validate protocol compliance
+  - See [doc/testing.md](../doc/testing.md) for details
+- **Build the project**: `dotnet build --project [full path to .csproj]`
+- **Run the server**: `dotnet run --project [full path to .csproj]`
+- **Manual testing**: Test with MCP Inspector or Claude Desktop
 - Verify all commands work with various parameter combinations
 - **Test SDK integration**: Try the new template and framework info tools
 
@@ -275,8 +279,12 @@ When adding features:
 
 - GitHub Actions runs on push and PR
 - Builds in Release configuration
-- No tests currently (add when needed)
-- Ensures code compiles before merge
+- Runs comprehensive test suite:
+  - MCP conformance tests (protocol compliance)
+  - Unit tests with code coverage (Cobertura format)
+  - Performance smoke tests (informational)
+- Uploads coverage to Codecov
+- Ensures code compiles and tests pass before merge
 
 ## Package Management
 
