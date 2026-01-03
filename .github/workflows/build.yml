@@ -79,3 +79,25 @@ jobs:
         with:
           name: coverage-cobertura
           path: coverage.cobertura.xml
+
+      - name: Run Performance Smoke Tests
+        # Performance tests are informational only and should not block CI
+        # Results are uploaded as artifacts for review
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -uo pipefail
+          echo "Running performance smoke tests..."
+          dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj \
+            --no-build --configuration Release \
+            --verbosity detailed \
+            -- --filter-namespace "*Performance*" > performance-results.txt 2>&1 || true
+          echo "Performance smoke tests completed"
+          cat performance-results.txt
+
+      - name: Upload performance results artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: performance-results
+          path: performance-results.txt
+          if-no-files-found: warn
