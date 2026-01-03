@@ -16,7 +16,7 @@ namespace DotNetMcp.Tests.Performance;
 /// - Use real tool invocations (not mocks) for realistic measurements
 /// - Include warmup iterations to stabilize JIT compilation and caching
 /// - Run multiple iterations for statistical validity
-/// - Report basic statistics (mean, min, max, p50, p95)
+/// - Report basic statistics (mean, min, max, median, p95, p99, stddev)
 /// - Non-blocking: tests report results but don't fail builds
 /// 
 /// Future work tracked in: https://github.com/jongalloway/dotnet-mcp/issues/151
@@ -146,13 +146,10 @@ public class PerformanceSmokeTests
             ? (measurements[measurements.Count / 2 - 1] + measurements[measurements.Count / 2]) / 2.0
             : measurements[measurements.Count / 2];
         
-        // Calculate percentiles using proper statistical formulas
-        // P95 = value at position (n * 0.95), rounded up
-        var p95Index = Math.Min((int)Math.Ceiling(measurements.Count * 0.95) - 1, measurements.Count - 1);
-        var p99Index = Math.Min((int)Math.Ceiling(measurements.Count * 0.99) - 1, measurements.Count - 1);
-        
-        var p95 = measurements[p95Index];
-        var p99 = measurements[p99Index];
+        // Calculate percentiles using linear interpolation method (more accurate for small samples)
+        // This matches the method used by Excel, R, and most statistical packages
+        var p95 = CalculatePercentile(measurements, 0.95);
+        var p99 = CalculatePercentile(measurements, 0.99);
         
         // Calculate standard deviation
         var variance = measurements.Select(m => Math.Pow(m - mean, 2)).Average();
@@ -169,6 +166,35 @@ public class PerformanceSmokeTests
             P99 = p99,
             StdDev = stdDev
         };
+    }
+    
+    /// <summary>
+    /// Calculate a percentile using linear interpolation (Excel PERCENTILE.INC method)
+    /// This provides more accurate results than nearest-rank for small samples
+    /// </summary>
+    private static double CalculatePercentile(List<double> sortedValues, double percentile)
+    {
+        if (sortedValues.Count == 0)
+            throw new ArgumentException("Cannot calculate percentile of empty list", nameof(sortedValues));
+        
+        if (sortedValues.Count == 1)
+            return sortedValues[0];
+        
+        // Position in the sorted array (1-based)
+        var position = percentile * (sortedValues.Count - 1);
+        var lowerIndex = (int)Math.Floor(position);
+        var upperIndex = (int)Math.Ceiling(position);
+        
+        // If position is exactly on an index, return that value
+        if (lowerIndex == upperIndex)
+            return sortedValues[lowerIndex];
+        
+        // Otherwise, interpolate between the two adjacent values
+        var lowerValue = sortedValues[lowerIndex];
+        var upperValue = sortedValues[upperIndex];
+        var fraction = position - lowerIndex;
+        
+        return lowerValue + (upperValue - lowerValue) * fraction;
     }
     
     /// <summary>
