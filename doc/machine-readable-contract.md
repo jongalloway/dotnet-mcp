@@ -237,7 +237,7 @@ Command execution errors occur when the dotnet CLI command runs but fails.
         "Try searching: dotnet package search NonExistentPackage"
       ],
       "rawOutput": "error NU1101: Unable to find package 'NonExistentPackage'...",
-      "mcpErrorCode": -32603,
+      "mcpErrorCode": -32002,
       "data": {
         "command": "dotnet add package NonExistentPackage",
         "exitCode": 1,
@@ -268,7 +268,6 @@ Command execution errors occur when the dotnet CLI command runs but fails.
         "Verify the namespace is referenced"
       ],
       "rawOutput": "Program.cs(5,9): error CS0103: The name 'Console' does not exist...",
-      "mcpErrorCode": -32603,
       "data": {
         "command": "dotnet build MyProject.csproj",
         "exitCode": 1,
@@ -299,7 +298,6 @@ Command execution errors occur when the dotnet CLI command runs but fails.
         "Install Visual Studio with .NET Framework development workload"
       ],
       "rawOutput": "error MSB3644: The reference assemblies for .NETFramework,Version=v4.7.2...",
-      "mcpErrorCode": -32603,
       "data": {
         "command": "dotnet build LegacyProject.csproj",
         "exitCode": 1,
@@ -319,9 +317,10 @@ Capability errors occur when a feature exists but cannot be executed in the curr
 - Error code: `CAPABILITY_NOT_AVAILABLE`
 - Category: `Capability`
 - Exit code: `-1`
-- MCP error code: `-32603` (InternalError)
+- MCP error code: `-32001` (CapabilityNotAvailable) or `-32603` (InternalError), depending on the factory method overload used
 - `alternatives` array provides actionable suggestions
-- `data.additionalData` contains `feature` and `reason`
+- `data.additionalData` contains `feature` and `reason` (when using the reason-based overload)
+- `data.command` and `data.stderr` may be present (when using the command/details overload)
 
 **Example: Feature Not Yet Implemented**
 
@@ -372,7 +371,7 @@ Capability errors occur when a feature exists but cannot be executed in the curr
         "If using global.json, ensure the requested SDK is installed"
       ],
       "rawOutput": "",
-      "mcpErrorCode": -32603,
+      "mcpErrorCode": -32001,
       "data": {
         "command": "dotnet --version",
         "exitCode": -1,
@@ -437,6 +436,7 @@ Concurrency errors occur when a resource is locked by another operation.
       "category": "Concurrency",
       "hint": "Wait for the conflicting operation to complete, or cancel it before retrying this operation.",
       "rawOutput": "",
+      "mcpErrorCode": -32603,
       "data": {
         "exitCode": -1,
         "additionalData": {
@@ -488,15 +488,19 @@ Cancellation errors occur when a user cancels a long-running operation.
 
 Machine-readable responses map to JSON-RPC 2.0 error codes for MCP compatibility:
 
-| Error Category | MCP Error Code | Description |
-|----------------|----------------|-------------|
+| Error Category | MCP Error Code(s) | Description |
+|----------------|-------------------|-------------|
 | Validation (`INVALID_PARAMS`) | `-32602` | InvalidParams - Invalid method parameters |
-| Capability Not Available | `-32603` | InternalError - Server-side limitation |
+| Capability Not Available | `-32001`, `-32603` | CapabilityNotAvailable (`-32001`) or InternalError (`-32603`) depending on factory method |
 | Concurrency Conflict | `-32603` | InternalError - Resource temporarily unavailable |
 | Cancellation | `-32603` | InternalError - Operation interrupted |
-| Command Execution Failures | `-32603` | InternalError - Command failed to execute |
+| Command Execution Failures | `-32603` or `-32002` | InternalError for generic failures, ResourceNotFound for missing resources (e.g., NU1101, MSB1003) |
 
-Not all errors have MCP error codes. The `mcpErrorCode` field is optional and only set when applicable.
+**Notes:**
+- Not all errors have MCP error codes. The `mcpErrorCode` field is optional and only set when applicable.
+- `CAPABILITY_NOT_AVAILABLE` may surface as either `-32001` (when using the factory overload that accepts feature, alternatives, command, and details) or `-32603` (when using the overload with feature, reason, and alternatives). Clients should treat both codes as representing the same high-level capability-not-available condition.
+- Resource-not-found errors (NU1101, NU1102, MSB1003, NETSDK1004, MSB4236) use `-32002` (ResourceNotFound).
+- Compilation and build errors that are not resource-related (e.g., CS0103, MSB3644) typically have no MCP error code (`null`).
 
 ## Security and Redaction
 

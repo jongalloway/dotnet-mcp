@@ -382,21 +382,4 @@ public class MachineReadableContractComplianceTests
     }
 
     #endregion
-
-    #region Category Coverage Tests
-
-    [Theory]
-    [InlineData("INVALID_PARAMS", "Validation")]
-    [InlineData("CAPABILITY_NOT_AVAILABLE", "Capability")]
-    [InlineData("CONCURRENCY_CONFLICT", "Concurrency")]
-    [InlineData("OPERATION_CANCELLED", "Cancellation")]
-    public void ErrorCategories_AreCorrectlyMapped(string errorCode, string expectedCategory)
-    {
-        // This is a meta-test to document the expected category mappings
-        // The actual validation happens in the specific error scenario tests
-        Assert.NotNull(errorCode);
-        Assert.NotNull(expectedCategory);
-    }
-
-    #endregion
 }
