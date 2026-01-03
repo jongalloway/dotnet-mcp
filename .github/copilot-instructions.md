@@ -184,7 +184,7 @@ Framework validation and information.
 ## Testing
 
 - **Automated tests**: Run the test suite with `dotnet test --solution DotNetMcp.slnx`
-  - 703 passing tests covering all 67 MCP tools
+  - 703 passing tests covering all 74 MCP tools
   - MCP conformance tests validate protocol compliance
   - See [doc/testing.md](../doc/testing.md) for details
 - **Build the project**: `dotnet build --project [full path to .csproj]`
