@@ -59,7 +59,7 @@ The server uses a **hybrid architecture**:
 When building the project, always use the full path to the project file:
 
 ```bash
-dotnet build C:\Users\jonga\Documents\GitHub\dotnet-mcp\DotNetMcp\DotNetMcp.csproj
+dotnet build /path/to/dotnet-mcp/DotNetMcp/DotNetMcp.csproj
 ```
 
 **Important**: If a build fails due to inability to find the project file, pass the full path to the `.csproj` file. Do not rely on relative paths or current directory assumptions.
