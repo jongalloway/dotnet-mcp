@@ -6,7 +6,7 @@ namespace DotNetMcp.Tests;
 
 public class ErrorCodeDictionaryTests
 {
-    private const string ErrorCodesResourceName = "DotNetMcp.ErrorCodes.json";
+    private const string ErrorCodesResourceName = "DotNetMcp.Errors.ErrorCodes.json";
 
     private static JsonDocument LoadEmbeddedErrorCodesJson()
     {
