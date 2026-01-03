@@ -140,7 +140,11 @@ public class PerformanceSmokeTests
         var min = measurements[0];
         var max = measurements[^1];
         var mean = measurements.Average();
-        var median = measurements[measurements.Count / 2];
+        
+        // Correct median calculation: average the two middle elements for even-sized arrays
+        var median = measurements.Count % 2 == 0
+            ? (measurements[measurements.Count / 2 - 1] + measurements[measurements.Count / 2]) / 2.0
+            : measurements[measurements.Count / 2];
         
         // Calculate percentiles
         var p50Index = (int)(measurements.Count * 0.50);

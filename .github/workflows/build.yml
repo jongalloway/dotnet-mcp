@@ -90,8 +90,8 @@ jobs:
           echo "Running performance smoke tests..."
           dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj \
             --no-build --configuration Release \
-            --filter-namespace "*Performance*" \
-            --output Detailed > performance-results.txt 2>&1 || true
+            --verbosity detailed \
+            -- --filter-namespace "*Performance*" > performance-results.txt 2>&1 || true
           echo "Performance smoke tests completed"
           cat performance-results.txt
 
