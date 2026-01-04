@@ -366,9 +366,7 @@ public class EdgeCaseAndIntegrationTests
         finally
         {
             if (Directory.Exists(tempDirectory))
-            {
                 Directory.Delete(tempDirectory, recursive: true);
-            }
         }
 
         // Assert
