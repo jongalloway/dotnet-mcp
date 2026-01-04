@@ -351,10 +351,22 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetToolManifestCreate_WithMachineReadable_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetToolManifestCreate(
-            output: "./tools",
-            force: true,
-            machineReadable: true);
+        // Use an isolated output directory to avoid relying on current working directory state.
+        var tempDirectory = Directory.CreateTempSubdirectory("dotnet-mcp-tests");
+
+        string result;
+        try
+        {
+            result = await _tools.DotnetToolManifestCreate(
+                output: tempDirectory.FullName,
+                force: true,
+                machineReadable: true);
+        }
+        finally
+        {
+            if (tempDirectory.Exists)
+                tempDirectory.Delete(recursive: true);
+        }
 
         // Assert
         Assert.NotNull(result);
