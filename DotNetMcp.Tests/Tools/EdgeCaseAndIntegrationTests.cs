@@ -352,21 +352,20 @@ public class EdgeCaseAndIntegrationTests
     {
         // Act
         // Use an isolated output directory to avoid relying on current working directory state.
-        var tempDirectory = Path.Combine(Path.GetTempPath(), "dotnet-mcp-tests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(tempDirectory);
+        var tempDirectory = Directory.CreateTempSubdirectory("dotnet-mcp-tests");
 
         string result;
         try
         {
             result = await _tools.DotnetToolManifestCreate(
-                output: tempDirectory,
+                output: tempDirectory.FullName,
                 force: true,
                 machineReadable: true);
         }
         finally
         {
-            if (Directory.Exists(tempDirectory))
-                Directory.Delete(tempDirectory, recursive: true);
+            if (tempDirectory.Exists)
+                tempDirectory.Delete(recursive: true);
         }
 
         // Assert
