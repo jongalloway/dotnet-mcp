@@ -1,6 +1,45 @@
 namespace DotNetMcp.Actions;
 
 /// <summary>
+/// Action enums for consolidated .NET MCP tools.
+/// 
+/// These enums define the available actions for each consolidated tool domain.
+/// Use with the ParameterValidator.ValidateAction() method for validation and
+/// ErrorResultFactory.CreateActionValidationError() for consistent error handling.
+/// 
+/// Example usage:
+/// <code>
+/// // In a consolidated tool method
+/// if (!ParameterValidator.ValidateAction(action, out var errorMessage))
+/// {
+///     if (machineReadable)
+///     {
+///         var validActions = Enum.GetNames(typeof(DotnetProjectAction));
+///         var error = ErrorResultFactory.CreateActionValidationError(
+///             action?.ToString() ?? "",
+///             validActions,
+///             toolName: "dotnet_project");
+///         return ErrorResultFactory.ToJson(error);
+///     }
+///     return $"Error: {errorMessage}";
+/// }
+/// </code>
+/// 
+/// McpMeta attribute usage for consolidated tools:
+/// <code>
+/// [McpServerTool]
+/// [Description("Manage .NET project lifecycle...")]
+/// [McpMeta("category", "project")]
+/// [McpMeta("priority", 10.0)]
+/// [McpMeta("commonlyUsed", true)]
+/// [McpMeta("consolidatedTool", true)]
+/// [McpMeta("actions", JsonValue = """["new","build","run","test","clean","publish"]""")]
+/// public async Task&lt;string&gt; DotnetProject(DotnetProjectAction action, ...)
+/// </code>
+/// </summary>
+
+
+/// <summary>
 /// Actions for the consolidated dotnet_project tool.
 /// Manages .NET project lifecycle including creation, building, testing, running, and publishing.
 /// </summary>
