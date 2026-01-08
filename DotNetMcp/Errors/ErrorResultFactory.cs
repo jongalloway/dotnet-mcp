@@ -476,14 +476,14 @@ public static partial class ErrorResultFactory
         var category = "Validation";
         var mcpErrorCode = McpErrorCodes.InvalidParams;
 
-        var validActionsList = validActions.ToList();
+        var validActionsList = validActions.Select(a => SanitizeOutput(a)).ToList();
         var message = string.IsNullOrWhiteSpace(action)
             ? "Action parameter is required."
             : $"Invalid action '{SanitizeOutput(action)}'.";
 
         if (!string.IsNullOrWhiteSpace(toolName))
         {
-            message = $"{message} For tool '{toolName}'.";
+            message = $"{message} For tool '{SanitizeOutput(toolName)}'.";
         }
 
         var hint = validActionsList.Count > 0
@@ -547,7 +547,7 @@ public static partial class ErrorResultFactory
         
         if (!string.IsNullOrWhiteSpace(toolName))
         {
-            message = $"{message} For tool '{toolName}'.";
+            message = $"{message} For tool '{SanitizeOutput(toolName)}'.";
         }
 
         var additionalData = new Dictionary<string, string>

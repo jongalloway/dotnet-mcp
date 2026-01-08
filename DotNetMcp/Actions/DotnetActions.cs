@@ -33,7 +33,7 @@ namespace DotNetMcp.Actions;
 /// [McpMeta("priority", 10.0)]
 /// [McpMeta("commonlyUsed", true)]
 /// [McpMeta("consolidatedTool", true)]
-/// [McpMeta("actions", JsonValue = """["new","build","run","test","clean","publish"]""")]
+/// [McpMeta("actions", JsonValue = """["New","Build","Run","Test","Clean","Publish"]""")]
 /// public async Task&lt;string&gt; DotnetProject(DotnetProjectAction action, ...)
 /// </code>
 /// </summary>
