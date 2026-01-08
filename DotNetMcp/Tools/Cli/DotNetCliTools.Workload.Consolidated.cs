@@ -29,7 +29,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("consolidatedTool", true)]
     [McpMeta("actions", JsonValue = """["List","Info","Search","Install","Update","Uninstall"]""")]
     [McpMeta("tags", JsonValue = """["workload","consolidated","sdk","mobile","maui","wasm"]""")]
-    public async Task<string> DotnetWorkload(
+    public async partial Task<string> DotnetWorkload(
         DotnetWorkloadAction action,
         string? searchTerm = null,
         string[]? workloadIds = null,
