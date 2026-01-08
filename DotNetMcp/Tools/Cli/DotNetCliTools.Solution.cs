@@ -181,12 +181,7 @@ public sealed partial class DotNetCliTools
             DotnetSolutionAction.Add => await HandleAddAction(solution, projects, machineReadable),
             DotnetSolutionAction.List => await HandleListAction(solution, machineReadable),
             DotnetSolutionAction.Remove => await HandleRemoveAction(solution, projects, machineReadable),
-            _ => machineReadable
-                ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateActionValidationError(
-                    action.ToString(),
-                    Enum.GetNames(typeof(DotnetSolutionAction)),
-                    toolName: "dotnet_solution"))
-                : $"Error: Unsupported action '{action}'"
+            _ => throw new InvalidOperationException($"Unsupported action '{action}'. This should have been caught by validation.")
         };
     }
 
