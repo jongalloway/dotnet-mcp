@@ -61,6 +61,11 @@ The server uses a **hybrid architecture**:
 
 ## Build and Compilation
 
+### Local Tool Manifest
+
+- This repo uses the standard .NET local tool manifest location: `.config/dotnet-tools.json`.
+- Avoid creating or editing a root-level `dotnet-tools.json` (it is not the default manifest path for `dotnet tool restore`).
+
 ### Building the Project
 
 When building the project, always use the full path to the project file:
