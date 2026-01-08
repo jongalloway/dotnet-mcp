@@ -137,7 +137,7 @@ public sealed partial class DotNetCliTools
     /// This is a consolidated tool that routes to specific solution operations based on the action parameter.
     /// </summary>
     /// <param name="action">The solution operation to perform: Create, Add, List, or Remove</param>
-    /// <param name="solution">Path to solution file. Optional for 'create' action (uses name parameter). For other actions, defaults to searching current directory.</param>
+    /// <param name="solution">Path to solution file. Required for 'add', 'list', and 'remove' actions. Not used for 'create' action (which uses the name parameter).</param>
     /// <param name="name">Solution name (required for 'create' action)</param>
     /// <param name="output">Output directory for solution file (optional, used with 'create' action)</param>
     /// <param name="format">Solution file format: 'sln' (classic) or 'slnx' (XML-based). Default is 'sln'. (optional, used with 'create' action)</param>
