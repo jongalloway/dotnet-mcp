@@ -31,9 +31,16 @@ The server uses a **hybrid architecture**:
 
 ### Attribute Usage
 - Mark tool classes with `[McpServerToolType]`
-- Mark tool methods with `[McpServerTool]` and `[Description("...")]`
-- Mark parameters with `[Description("...")]`
+- Mark tool methods with `[McpServerTool]`
+- Prefer XML doc comments (`/// <summary>`, `/// <param>`) for tool and parameter descriptions
+- Tool methods should be `partial` so the MCP SDK analyzers can generate tool `Description` metadata from XML docs
+- Avoid manual `[Description("...")]` on tools/parameters unless explicitly required for compatibility
 - Keep descriptions clear and concise
+
+**Important (generator compatibility):**
+- Consolidated tools commonly take action enums from `DotNetMcp.Actions`.
+- The MCP XML-doc generator emits partial method signatures that reference parameter types by simple name.
+- Ensure action enums resolve by keeping `DotNetMcp.Actions` in scope (this repo uses `DotNetMcp/GlobalUsings.cs` with `global using DotNetMcp.Actions;`).
 - **Use `[McpMeta]` attributes** to provide additional metadata for AI assistants:
   - **Category tags**: `[McpMeta("category", "template")]` - Groups related tools (template, project, package, solution, sdk, etc.)
   - **Priority hints**: `[McpMeta("priority", 10.0)]` - Suggests relative importance (1.0-10.0 scale)
@@ -108,8 +115,8 @@ When adding a new .NET CLI tool:
 
 1. Add a new method to the `DotNetCliTools` class
 2. Follow the naming convention: `Dotnet{Noun}{Verb}` (e.g., `DotnetProjectBuild`, `DotnetPackageAdd`)
-3. Apply `[McpServerTool, Description("...")]` attributes
-4. Use `[Description("...")]` on all parameters
+3. Add XML doc comments (`/// <summary>`, `/// <param>`) for the tool and all parameters
+4. Make the tool method `partial` so the MCP XML-doc generator can emit tool `Description` metadata
 5. Use nullable types for optional parameters with default values
 6. Build the command string carefully, escaping paths with quotes
 7. Call `ExecuteDotNetCommand(args)` to execute
@@ -139,21 +146,60 @@ Following the `dotnet_{noun}_{verb}` pattern:
 
 ### Example: SDK Integration + CLI Execution
 ```csharp
-[McpServerTool, Description("Create project with validation")]
-public async Task<string> DotnetProjectNewValidated(
-    [Description("Template short name")]
-    string template)
+using System.Text;
+using ModelContextProtocol.Server;
+
+namespace DotNetMcp;
+
+public sealed partial class DotNetCliTools
 {
-    // 1. SDK Integration: Validate template exists
-    if (!await TemplateEngineHelper.ValidateTemplateExistsAsync(template))
+    /// <summary>
+    /// Create a new .NET project from a template, validating inputs before executing.
+    /// Uses SDK integration for validation and CLI execution for the actual operation.
+    /// </summary>
+    /// <param name="template">Template short name (e.g., 'console', 'webapi', 'classlib')</param>
+    /// <param name="name">Project name</param>
+    /// <param name="output">Output directory</param>
+    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
+    [McpServerTool]
+    [McpMeta("category", "project")]
+    [McpMeta("priority", 10.0)]
+    [McpMeta("commonlyUsed", true)]
+    public async partial Task<string> DotnetProjectNewValidated(
+      string? template = null,
+      string? name = null,
+      string? output = null,
+      bool machineReadable = false)
     {
-        return $"Template '{template}' not found. Use dotnet_template_list to see available templates.";
+      // 1. SDK Integration: Validate template exists (fast + type-safe)
+      var templateValidation = await ParameterValidator.ValidateTemplateAsync(template);
+      if (!templateValidation.IsValid)
+      {
+        if (machineReadable)
+        {
+          var error = ErrorResultFactory.CreateValidationError(
+            templateValidation.ErrorMessage!,
+            parameterName: "template",
+            reason: string.IsNullOrWhiteSpace(template) ? "required" : "not found");
+          return ErrorResultFactory.ToJson(error);
+        }
+
+        return $"Error: {templateValidation.ErrorMessage}";
+      }
+
+      // 2. CLI Execution: Actually create the project
+      var args = new StringBuilder($"new {template}");
+      if (!string.IsNullOrEmpty(name)) args.Append($" -n \"{name}\"");
+      if (!string.IsNullOrEmpty(output)) args.Append($" -o \"{output}\"");
+
+      return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
-    
-    // 2. CLI Execution: Actually create the project
-    return await ExecuteDotNetCommand($"new {template}");
+
+    // ...other tool methods and helpers...
 }
 ```
+
+Note: Prefer XML docs over `[Description]` attributes for new tools. If you add a new tool method, make it `partial` and document it with `/// <summary>` and `/// <param>` so descriptions stay consistent in tool listing and tests.
 
 ## Helper Classes Documentation
 
