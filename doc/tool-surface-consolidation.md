@@ -4,7 +4,7 @@
 
 The .NET MCP Server currently exposes **74 individual tools** that provide comprehensive .NET SDK functionality. While this 1:1 mapping to `dotnet` CLI commands offers excellent fidelity, it creates challenges for AI orchestration, human discoverability, and long-term maintainability.
 
-This document proposes a **strategic consolidation** that reduces the tool count from 74 to **6-7 high-level domain tools** while preserving full functionality. The new design uses enum-driven subcommands, semantic grouping, and consistent parameter patterns—aligning with modern MCP best practices and improving the developer experience for both AI assistants and human contributors.
+This document proposes a **strategic consolidation** that reduces the tool count from 74 to **10 consolidated tools** (8 high-level domain tools plus 2 utility tools) while preserving full functionality. The new design uses enum-driven subcommands, semantic grouping, and consistent parameter patterns—aligning with modern MCP best practices and improving the developer experience for both AI assistants and human contributors.
 
 **Key Benefits:**
 - **Improved AI Orchestration**: Smaller tool surface increases model accuracy in tool selection
@@ -37,7 +37,7 @@ The current 74 tools are distributed across 11 functional categories:
 | Category | Tool Count | Examples |
 |----------|-----------|----------|
 | **Templates & Frameworks** | 6 | `dotnet_template_list`, `dotnet_template_search`, `dotnet_template_info`, `dotnet_template_clear_cache`, `dotnet_cache_metrics`, `dotnet_framework_info` |
-| **Project Management** | 13 | `dotnet_project_new`, `dotnet_project_build`, `dotnet_project_run`, `dotnet_project_test`, `dotnet_project_restore`, `dotnet_project_publish`, `dotnet_project_clean`, `dotnet_project_analyze`, `dotnet_project_dependencies`, `dotnet_project_validate`, `dotnet_pack_create`, `dotnet_watch_run`, `dotnet_watch_test`, `dotnet_watch_build` |
+| **Project Management** | 15 | `dotnet_project_new`, `dotnet_project_build`, `dotnet_project_run`, `dotnet_project_test`, `dotnet_project_restore`, `dotnet_project_publish`, `dotnet_project_clean`, `dotnet_project_analyze`, `dotnet_project_dependencies`, `dotnet_project_validate`, `dotnet_pack_create`, `dotnet_watch_run`, `dotnet_watch_test`, `dotnet_watch_build`, `dotnet_format` |
 | **Package Management** | 8 | `dotnet_package_add`, `dotnet_package_remove`, `dotnet_package_search`, `dotnet_package_update`, `dotnet_package_list`, `dotnet_reference_add`, `dotnet_reference_remove`, `dotnet_reference_list` |
 | **Solution Management** | 4 | `dotnet_solution_create`, `dotnet_solution_add`, `dotnet_solution_list`, `dotnet_solution_remove` |
 | **Entity Framework** | 9 | `dotnet_ef_migrations_add`, `dotnet_ef_migrations_list`, `dotnet_ef_migrations_remove`, `dotnet_ef_migrations_script`, `dotnet_ef_database_update`, `dotnet_ef_database_drop`, `dotnet_ef_dbcontext_list`, `dotnet_ef_dbcontext_info`, `dotnet_ef_dbcontext_scaffold` |
@@ -124,24 +124,26 @@ Adding new capabilities requires:
 Group tools by **semantic domain** and expose an `action` enum parameter for each domain:
 
 ```yaml
-Consolidated Tool Surface (6 tools + 2 utilities):
+Consolidated Tool Surface (8 domain tools + 2 utilities):
   1. dotnet_project      # Project lifecycle: new, build, run, test, clean, publish, etc.
   2. dotnet_package      # Package/reference management: add, remove, search, update, list
   3. dotnet_solution     # Solution operations: create, add, list, remove
   4. dotnet_ef           # Entity Framework: migrations, database, dbcontext operations
   5. dotnet_workload     # Workload management: install, update, list, search, uninstall
   6. dotnet_dev_certs    # Developer certificates and secrets
+  7. dotnet_sdk          # SDK, runtime, template, and framework information
+  8. dotnet_tool         # Tool management: install, update, uninstall, search, run
   
   Utilities (unchanged):
-  7. dotnet_help         # Get help for dotnet commands
-  8. dotnet_server_capabilities  # Server metadata and concurrency info
+  9. dotnet_help         # Get help for dotnet commands
+  10. dotnet_server_capabilities  # Server metadata and concurrency info
 ```
 
 ### Why This Approach?
 
 **✅ Models Handle Enums Extremely Well**
 - Modern LLMs excel at selecting from enumerated options
-- Reduces tool selection from 74 choices to 6 domain choices + 1 action enum
+- Reduces tool selection from 74 choices to 8 domain choices + 1 action enum
 - Clear hierarchy: "I need to work with projects → use dotnet_project → what action?"
 
 **✅ Clear Semantic Grouping**
@@ -1108,7 +1110,7 @@ public async Task<string> DotnetProject(
 
 ## Conclusion
 
-This consolidation proposal reduces the .NET MCP Server's tool surface from **74 tools to 8 consolidated tools** (6 domain tools + 2 utilities), while preserving full functionality and providing a clear migration path.
+This consolidation proposal reduces the .NET MCP Server's tool surface from **74 tools to 10 consolidated tools** (8 domain tools + 2 utilities), while preserving full functionality and providing a clear migration path.
 
 **Key Outcomes:**
 - ✅ **Improved AI orchestration** through reduced tool count and enum-driven actions
