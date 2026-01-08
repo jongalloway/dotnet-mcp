@@ -261,8 +261,8 @@ public enum DotnetSdkAction
     /// <summary>Get framework information</summary>
     FrameworkInfo,
     
-    /// <summary>Manage NuGet local caches</summary>
-    NuGetLocals
+    /// <summary>Get cache performance metrics</summary>
+    CacheMetrics
 }
 
 /// <summary>
