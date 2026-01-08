@@ -100,66 +100,17 @@ public sealed partial class DotNetCliTools
         string? configFile,
         bool machineReadable)
     {
-        // Validate workloadIds is provided and not empty
-        if (workloadIds == null || workloadIds.Length == 0)
+        // Validate workload IDs using shared validation
+        var validationError = ValidateWorkloadIds(workloadIds, "Install", machineReadable);
+        if (validationError != null)
         {
-            var errorMessage = "The 'workloadIds' parameter is required for Install action and must contain at least one workload ID.";
-            if (machineReadable)
-            {
-                var error = new ErrorResponse
-                {
-                    Success = false,
-                    Errors = new List<ErrorResult>
-                    {
-                        new ErrorResult
-                        {
-                            Code = "MISSING_PARAMETER",
-                            Message = errorMessage,
-                            Category = "Validation",
-                            Hint = "Provide one or more workload IDs to install (e.g., ['maui-android', 'wasm-tools'])",
-                            McpErrorCode = McpErrorCodes.InvalidParams
-                        }
-                    },
-                    ExitCode = -1
-                };
-                return ErrorResultFactory.ToJson(error);
-            }
-            return $"Error: {errorMessage}";
-        }
-
-        // Validate each workload ID
-        foreach (var id in workloadIds)
-        {
-            if (!ParameterValidator.ValidateWorkloadId(id, out var validationError))
-            {
-                if (machineReadable)
-                {
-                    var error = new ErrorResponse
-                    {
-                        Success = false,
-                        Errors = new List<ErrorResult>
-                        {
-                            new ErrorResult
-                            {
-                                Code = "INVALID_PARAMETER",
-                                Message = validationError!,
-                                Category = "Validation",
-                                Hint = "Workload IDs must contain only alphanumeric characters, hyphens, and underscores",
-                                McpErrorCode = McpErrorCodes.InvalidParams
-                            }
-                        },
-                        ExitCode = -1
-                    };
-                    return ErrorResultFactory.ToJson(error);
-                }
-                return $"Error: {validationError}";
-            }
+            return validationError;
         }
 
         var args = new StringBuilder("workload install");
         
         // Add each workload ID
-        foreach (var id in workloadIds)
+        foreach (var id in workloadIds!)
         {
             args.Append($" {id}");
         }
@@ -189,10 +140,37 @@ public sealed partial class DotNetCliTools
 
     private async Task<string> HandleUninstallAction(string[]? workloadIds, bool machineReadable)
     {
+        // Validate workload IDs using shared validation
+        var validationError = ValidateWorkloadIds(workloadIds, "Uninstall", machineReadable);
+        if (validationError != null)
+        {
+            return validationError;
+        }
+
+        var args = new StringBuilder("workload uninstall");
+        
+        // Add each workload ID
+        foreach (var id in workloadIds!)
+        {
+            args.Append($" {id}");
+        }
+
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+    }
+
+    /// <summary>
+    /// Validates workload IDs array and returns error message if validation fails.
+    /// </summary>
+    /// <param name="workloadIds">Array of workload IDs to validate</param>
+    /// <param name="actionName">Name of the action (for error messages)</param>
+    /// <param name="machineReadable">Whether to return JSON-formatted errors</param>
+    /// <returns>Error message if validation fails, null if validation succeeds</returns>
+    private string? ValidateWorkloadIds(string[]? workloadIds, string actionName, bool machineReadable)
+    {
         // Validate workloadIds is provided and not empty
         if (workloadIds == null || workloadIds.Length == 0)
         {
-            var errorMessage = "The 'workloadIds' parameter is required for Uninstall action and must contain at least one workload ID.";
+            var errorMessage = $"The 'workloadIds' parameter is required for {actionName} action and must contain at least one workload ID.";
             if (machineReadable)
             {
                 var error = new ErrorResponse
@@ -205,7 +183,7 @@ public sealed partial class DotNetCliTools
                             Code = "MISSING_PARAMETER",
                             Message = errorMessage,
                             Category = "Validation",
-                            Hint = "Provide one or more workload IDs to uninstall (e.g., ['maui-android', 'wasm-tools'])",
+                            Hint = "Provide one or more workload IDs (e.g., ['maui-android', 'wasm-tools'])",
                             McpErrorCode = McpErrorCodes.InvalidParams
                         }
                     },
@@ -245,14 +223,6 @@ public sealed partial class DotNetCliTools
             }
         }
 
-        var args = new StringBuilder("workload uninstall");
-        
-        // Add each workload ID
-        foreach (var id in workloadIds)
-        {
-            args.Append($" {id}");
-        }
-
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return null; // Validation succeeded
     }
 }
