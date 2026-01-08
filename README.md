@@ -856,6 +856,7 @@ Key files to start with:
 
 - 📖 [AI Assistant Best Practices Guide](doc/ai-assistant-guide.md) - **Workflows, prompts, integration patterns, and troubleshooting**
 - 📖 [Machine-Readable JSON Contract](doc/machine-readable-contract.md) - **v1.0 stable contract for programmatic tool consumption**
+- 📖 [Tool Surface Consolidation Proposal](doc/tool-surface-consolidation.md) - **Strategic proposal to reduce tool count from 74 to 8 while preserving functionality**
 - 📖 [SDK Integration Details](doc/sdk-integration.md) - Technical architecture and SDK usage
 - 📖 [Advanced Topics](doc/advanced-topics.md) - Performance, logging, and security details
 - 📖 [Concurrency Safety](doc/concurrency.md) - Parallel execution guidance for AI orchestrators
