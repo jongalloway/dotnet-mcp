@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Text;
 using DotNetMcp.Actions;
 using ModelContextProtocol.Server;
@@ -145,14 +144,13 @@ public sealed partial class DotNetCliTools
     /// <param name="projects">Array of project file paths (required for 'add' and 'remove' actions)</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpServerTool]
-    [Description("Manage solution files and project membership. A solution file organizes multiple related projects. This is a consolidated tool that routes to specific solution operations based on the action parameter.")]
     [McpMeta("category", "solution")]
     [McpMeta("priority", 10.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("consolidatedTool", true)]
     [McpMeta("actions", JsonValue = """["Create","Add","List","Remove"]""")]
     [McpMeta("tags", JsonValue = """["solution","consolidated","create","add","list","remove","organization","multi-project"]""")]
-    public async Task<string> DotnetSolution(
+    public async partial Task<string> DotnetSolution(
         DotnetSolutionAction action,
         string? solution = null,
         string? name = null,
