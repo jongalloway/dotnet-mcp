@@ -74,7 +74,7 @@ public sealed partial class DotNetCliTools
         // Route to appropriate handler based on action
         return action switch
         {
-            DotnetToolAction.Install => await HandleInstallAction(packageId, global ?? false, version, framework, machineReadable),
+            DotnetToolAction.Install => await HandleInstallAction(packageId, global ?? false, version, framework, toolPath, machineReadable),
             DotnetToolAction.List => await HandleListAction(global ?? false, machineReadable),
             DotnetToolAction.Update => await HandleUpdateAction(packageId, global ?? false, version, machineReadable),
             DotnetToolAction.Uninstall => await HandleUninstallAction(packageId, global ?? false, machineReadable),
@@ -91,7 +91,7 @@ public sealed partial class DotNetCliTools
         };
     }
 
-    private async Task<string> HandleInstallAction(string? packageId, bool global, string? version, string? framework, bool machineReadable)
+    private async Task<string> HandleInstallAction(string? packageId, bool global, string? version, string? framework, string? toolPath, bool machineReadable)
     {
         // Validate required parameters
         if (!ParameterValidator.ValidateRequiredParameter(packageId, "packageId", out var errorMessage))
@@ -111,6 +111,7 @@ public sealed partial class DotNetCliTools
         if (global) command.Append(" --global");
         if (!string.IsNullOrEmpty(version)) command.Append($" --version {version}");
         if (!string.IsNullOrEmpty(framework)) command.Append($" --framework {framework}");
+        if (!string.IsNullOrEmpty(toolPath)) command.Append($" --tool-path \"{toolPath}\"");
 
         return await ExecuteDotNetCommand(command.ToString(), machineReadable);
     }

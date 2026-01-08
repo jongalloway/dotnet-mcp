@@ -88,6 +88,18 @@ public class DotNetCliToolsConsolidatedToolTests
     }
 
     [Fact]
+    public async Task DotnetTool_Install_WithToolPath_ExecutesCommand()
+    {
+        // Test install with custom tool path
+        var result = await _tools.DotnetTool(
+            action: DotnetToolAction.Install,
+            packageId: "dotnet-ef",
+            toolPath: "/custom/path");
+
+        Assert.NotNull(result);
+    }
+
+    [Fact]
     public async Task DotnetTool_Install_WithoutPackageId_ReturnsError()
     {
         // Test that missing packageId returns error
