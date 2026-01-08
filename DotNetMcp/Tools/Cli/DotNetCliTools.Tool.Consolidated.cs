@@ -16,7 +16,7 @@ public sealed partial class DotNetCliTools
     /// updates, searching, running, and manifest management.
     /// </summary>
     /// <param name="action">The tool operation to perform</param>
-    /// <param name="packageId">Package ID/name for install/update/uninstall/run operations</param>
+    /// <param name="packageId">Package ID/name for install/update/uninstall operations</param>
     /// <param name="global">Install/update/uninstall as global tool (system-wide); otherwise operates on local tools</param>
     /// <param name="version">Specific version to install or update to</param>
     /// <param name="framework">Target framework for installation</param>
