@@ -463,6 +463,125 @@ public static partial class ErrorResultFactory
     }
 
     /// <summary>
+    /// Create a validation error for an invalid action parameter.
+    /// Used when an action enum value is invalid or not recognized.
+    /// </summary>
+    /// <param name="action">The invalid action value</param>
+    /// <param name="validActions">List of valid action values</param>
+    /// <param name="toolName">Optional name of the tool (for context)</param>
+    /// <returns>ErrorResponse with INVALID_PARAMS error code</returns>
+    public static ErrorResponse CreateActionValidationError(string action, IEnumerable<string> validActions, string? toolName = null)
+    {
+        var code = "INVALID_PARAMS";
+        var category = "Validation";
+        var mcpErrorCode = McpErrorCodes.InvalidParams;
+
+        var validActionsList = validActions.ToList();
+        var message = string.IsNullOrWhiteSpace(action)
+            ? "Action parameter is required."
+            : $"Invalid action '{SanitizeOutput(action)}'.";
+
+        if (!string.IsNullOrWhiteSpace(toolName))
+        {
+            message = $"{message} For tool '{toolName}'.";
+        }
+
+        var hint = validActionsList.Count > 0
+            ? $"Valid actions are: {string.Join(", ", validActionsList)}"
+            : "Check the tool documentation for valid actions.";
+
+        var additionalData = new Dictionary<string, string>
+        {
+            ["parameter"] = "action"
+        };
+
+        if (!string.IsNullOrWhiteSpace(action))
+        {
+            additionalData["providedValue"] = SanitizeOutput(action);
+        }
+
+        if (validActionsList.Count > 0)
+        {
+            additionalData["validActions"] = string.Join(", ", validActionsList);
+        }
+
+        return new ErrorResponse
+        {
+            Success = false,
+            Errors = new List<ErrorResult>
+            {
+                new ErrorResult
+                {
+                    Code = code,
+                    Message = message,
+                    Category = category,
+                    Hint = hint,
+                    RawOutput = string.Empty,
+                    McpErrorCode = mcpErrorCode,
+                    Data = new ErrorData
+                    {
+                        Command = null,
+                        ExitCode = -1,
+                        AdditionalData = additionalData
+                    }
+                }
+            },
+            ExitCode = -1
+        };
+    }
+
+    /// <summary>
+    /// Create a validation error for a missing required parameter.
+    /// Used when a required parameter is null, empty, or whitespace.
+    /// </summary>
+    /// <param name="parameterName">Name of the missing parameter</param>
+    /// <param name="toolName">Optional name of the tool (for context)</param>
+    /// <returns>ErrorResponse with INVALID_PARAMS error code</returns>
+    public static ErrorResponse CreateRequiredParameterError(string parameterName, string? toolName = null)
+    {
+        var code = "INVALID_PARAMS";
+        var category = "Validation";
+        var mcpErrorCode = McpErrorCodes.InvalidParams;
+
+        var message = $"The '{SanitizeOutput(parameterName)}' parameter is required and cannot be null or empty.";
+        
+        if (!string.IsNullOrWhiteSpace(toolName))
+        {
+            message = $"{message} For tool '{toolName}'.";
+        }
+
+        var additionalData = new Dictionary<string, string>
+        {
+            ["parameter"] = SanitizeOutput(parameterName),
+            ["reason"] = "required"
+        };
+
+        return new ErrorResponse
+        {
+            Success = false,
+            Errors = new List<ErrorResult>
+            {
+                new ErrorResult
+                {
+                    Code = code,
+                    Message = message,
+                    Category = category,
+                    Hint = "Provide a non-null, non-empty value for the required parameter.",
+                    RawOutput = string.Empty,
+                    McpErrorCode = mcpErrorCode,
+                    Data = new ErrorData
+                    {
+                        Command = null,
+                        ExitCode = -1,
+                        AdditionalData = additionalData
+                    }
+                }
+            },
+            ExitCode = -1
+        };
+    }
+
+    /// <summary>
     /// Format result as JSON string.
     /// </summary>
     public static string ToJson(object result)
