@@ -7,6 +7,7 @@ The .NET MCP Server currently exposes **74 individual tools** that provide compr
 This document proposes a **strategic consolidation** that reduces the tool count from 74 to **10 consolidated tools** (8 high-level domain tools plus 2 utility tools) while preserving full functionality. The new design uses enum-driven subcommands, semantic grouping, and consistent parameter patterns—aligning with modern MCP best practices and improving the developer experience for both AI assistants and human contributors.
 
 **Key Benefits:**
+
 - **Improved AI Orchestration**: Smaller tool surface increases model accuracy in tool selection
 - **Better Discoverability**: Tools grouped by domain (project, package, EF, workload, etc.)
 - **Enhanced Maintainability**: Consistent patterns, shared validation, reduced code duplication
@@ -35,7 +36,7 @@ This document proposes a **strategic consolidation** that reduces the tool count
 The current 74 tools are distributed across 11 functional categories:
 
 | Category | Tool Count | Examples |
-|----------|-----------|----------|
+| -------- | ---------- | -------- |
 | **Templates & Frameworks** | 6 | `dotnet_template_list`, `dotnet_template_search`, `dotnet_template_info`, `dotnet_template_clear_cache`, `dotnet_cache_metrics`, `dotnet_framework_info` |
 | **Project Management** | 15 | `dotnet_project_new`, `dotnet_project_build`, `dotnet_project_run`, `dotnet_project_test`, `dotnet_project_restore`, `dotnet_project_publish`, `dotnet_project_clean`, `dotnet_project_analyze`, `dotnet_project_dependencies`, `dotnet_project_validate`, `dotnet_pack_create`, `dotnet_watch_run`, `dotnet_watch_test`, `dotnet_watch_build`, `dotnet_format` |
 | **Package Management** | 8 | `dotnet_package_add`, `dotnet_package_remove`, `dotnet_package_search`, `dotnet_package_update`, `dotnet_package_list`, `dotnet_reference_add`, `dotnet_reference_remove`, `dotnet_reference_list` |
@@ -51,6 +52,7 @@ The current 74 tools are distributed across 11 functional categories:
 ### Current Naming Convention
 
 Tools follow the pattern `dotnet_{noun}_{verb}`:
+
 - **Noun**: Domain (project, package, solution, ef, workload, etc.)
 - **Verb**: Action (new, build, add, remove, list, etc.)
 
@@ -87,6 +89,7 @@ The server exposes 74 tools, many of which differ only by a single verb:
 ### 2. Reduced AI Orchestration Accuracy
 
 Large tool surfaces make it harder for language models to:
+
 - **Select the correct tool** from 74 options
 - **Remember tool capabilities** across conversation turns
 - **Understand relationships** between related operations
@@ -95,6 +98,7 @@ Large tool surfaces make it harder for language models to:
 ### 3. Human Discoverability Issues
 
 Contributors and users face challenges:
+
 - **Browsing**: Tool list is long and not semantically grouped in MCP clients
 - **Learning**: Hard to understand the full capability surface
 - **Contributing**: Adding new tools requires understanding 11+ files
@@ -102,6 +106,7 @@ Contributors and users face challenges:
 ### 4. Inconsistent Parameter Patterns
 
 Current tools have varying parameter shapes:
+
 - Some accept `machineReadable`, others don't
 - Some use `project`, others use `path` or have no path parameter
 - Some have `additionalOptions`, others have specific flags
@@ -110,6 +115,7 @@ Current tools have varying parameter shapes:
 ### 5. Difficult to Evolve
 
 Adding new capabilities requires:
+
 - Creating new top-level tools (increasing tool count)
 - Duplicating common parameter validation
 - Updating multiple documentation locations
@@ -141,27 +147,32 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 
 ### Why This Approach?
 
-**✅ Models Handle Enums Extremely Well**
+#### ✅ Models Handle Enums Extremely Well
+
 - Modern LLMs excel at selecting from enumerated options
 - Reduces tool selection from 74 choices to 8 domain choices + 1 action enum
 - Clear hierarchy: "I need to work with projects → use dotnet_project → what action?"
 
-**✅ Clear Semantic Grouping**
+#### ✅ Clear Semantic Grouping
+
 - Tools organized by developer intent, not CLI syntax
 - Related operations grouped together (e.g., all EF operations in one tool)
 - Natural workflow composition
 
-**✅ Easy to Extend**
+#### ✅ Easy to Extend
+
 - Adding new actions doesn't increase top-level tool count
 - Shared parameter validation and error handling
 - Consistent patterns across all tools
 
-**✅ Backward Compatible Migration Path**
+#### ✅ Backward Compatible Migration Path
+
 - Can deprecate old tools gradually
 - Wrapper functions can redirect old tool calls to new format
 - Clear migration guide for existing users
 
-**✅ Improved Parameter Design**
+#### ✅ Improved Parameter Design
+
 - Shared parameters across all tools: `machineReadable`, `workingDirectory`
 - Action-specific parameters clearly documented
 - Consistent validation and error handling
@@ -175,6 +186,7 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **Description**: Manage .NET project lifecycle including creation, building, testing, running, and publishing.
 
 **Parameters:**
+
 - `action` (required, enum): The project operation to perform
   - `new` - Create new project from template
   - `restore` - Restore project dependencies
@@ -196,6 +208,7 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **Action-Specific Parameters:**
 
 **For action="new":**
+
 - `template` (required): Template short name (e.g., 'console', 'webapi')
 - `name` (optional): Project name
 - `output` (optional): Output directory
@@ -203,21 +216,25 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 - `additionalOptions` (optional): Template-specific options
 
 **For action="build":**
+
 - `configuration` (optional): Debug or Release
 - `framework` (optional): Build specific framework
 
 **For action="run":**
+
 - `configuration` (optional): Debug or Release
 - `framework` (optional): Run specific framework
 - `noBuild` (optional, bool): Skip building
 
 **For action="test":**
+
 - `configuration` (optional): Debug or Release
 - `framework` (optional): Test specific framework
 - `filter` (optional): Test filter expression
 - `noBuild` (optional, bool): Skip building
 
 **For action="publish":**
+
 - `configuration` (optional): Debug or Release
 - `framework` (optional): Publish specific framework
 - `runtime` (optional): Target runtime identifier
@@ -225,10 +242,12 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 - `selfContained` (optional, bool): Include runtime
 
 **For action="watch":**
+
 - `watchAction` (required, enum): 'run', 'test', or 'build'
 - `configuration` (optional): Debug or Release
 
 **Replaces Current Tools:**
+
 - `dotnet_project_new`
 - `dotnet_project_restore`
 - `dotnet_project_build`
@@ -252,6 +271,7 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **Description**: Manage NuGet packages and project references.
 
 **Parameters:**
+
 - `action` (required, enum): The package operation to perform
   - `add` - Add NuGet package to project
   - `remove` - Remove NuGet package from project
@@ -270,39 +290,48 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **Action-Specific Parameters:**
 
 **For action="add":**
+
 - `packageId` (required): NuGet package ID
 - `version` (optional): Package version
 - `source` (optional): NuGet source URL
 - `framework` (optional): Target framework
 
 **For action="remove":**
+
 - `packageId` (required): Package ID to remove
 
 **For action="search":**
+
 - `searchTerm` (required): Search query
 - `take` (optional, int): Number of results (default: 20)
 - `prerelease` (optional, bool): Include prerelease versions
 
 **For action="update":**
+
 - `packageId` (optional): Specific package to update (if omitted, updates all)
 - `version` (optional): Target version
 - `prerelease` (optional, bool): Include prerelease versions
 
 **For action="list":**
+
 - `outdated` (optional, bool): Show only outdated packages
 - `deprecated` (optional, bool): Show only deprecated packages
 - `includeTransitive` (optional, bool): Include transitive dependencies
 
 **For action="add_reference":**
+
 - `referencePath` (required): Path to referenced project
 
 **For action="remove_reference":**
+
 - `referencePath` (required): Path to referenced project
 
 **For action="clear_cache":**
+
 - `cacheType` (optional, enum): 'http-cache', 'global-packages', 'temp', 'all' (default: 'all')
 
 **Replaces Current Tools:**
+
 - `dotnet_package_add`
 - `dotnet_package_remove`
 - `dotnet_package_search`
@@ -320,6 +349,7 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **Description**: Manage solution files and project membership.
 
 **Parameters:**
+
 - `action` (required, enum): The solution operation to perform
   - `create` - Create new solution file
   - `add` - Add projects to solution
@@ -332,17 +362,21 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **Action-Specific Parameters:**
 
 **For action="create":**
+
 - `name` (required): Solution name
 - `output` (optional): Output directory
 - `format` (optional, enum): 'sln' or 'slnx' (default: 'sln')
 
 **For action="add":**
+
 - `projects` (required, array): Array of project paths to add
 
 **For action="remove":**
+
 - `projects` (required, array): Array of project paths to remove
 
 **Replaces Current Tools:**
+
 - `dotnet_solution_create`
 - `dotnet_solution_add`
 - `dotnet_solution_remove`
@@ -355,6 +389,7 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **Description**: Entity Framework Core database and migration management.
 
 **Parameters:**
+
 - `action` (required, enum): The EF operation to perform
   - `migrations_add` - Create new migration
   - `migrations_list` - List all migrations
@@ -372,28 +407,34 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **Action-Specific Parameters:**
 
 **For action="migrations_add":**
+
 - `name` (required): Migration name
 - `outputDir` (optional): Migrations output directory
 
 **For action="migrations_script":**
+
 - `from` (optional): Starting migration
 - `to` (optional): Ending migration
 - `idempotent` (optional, bool): Generate idempotent script
 - `output` (optional): Output file path
 
 **For action="database_update":**
+
 - `migration` (optional): Target migration (defaults to latest)
 
 **For action="database_drop":**
+
 - `force` (required, bool): Confirm database deletion
 
 **For action="dbcontext_scaffold":**
+
 - `connectionString` (required): Database connection string
 - `provider` (required): EF provider (e.g., 'Microsoft.EntityFrameworkCore.SqlServer')
 - `outputDir` (optional): Output directory for entities
 - `contextName` (optional): DbContext class name
 
 **Replaces Current Tools:**
+
 - `dotnet_ef_migrations_add`
 - `dotnet_ef_migrations_list`
 - `dotnet_ef_migrations_remove`
@@ -411,6 +452,7 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **Description**: Manage .NET workloads for specialized development (MAUI, WASM, etc.).
 
 **Parameters:**
+
 - `action` (required, enum): The workload operation to perform
   - `list` - List installed workloads
   - `info` - Get detailed workload information
@@ -423,16 +465,20 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **Action-Specific Parameters:**
 
 **For action="search":**
+
 - `searchTerm` (optional): Filter workloads by name
 
 **For action="install":**
+
 - `workloadIds` (required, array): Array of workload IDs to install (e.g., ['maui-android', 'maui-ios'])
 - `skipManifestUpdate` (optional, bool): Skip manifest updates
 
 **For action="uninstall":**
+
 - `workloadIds` (required, array): Array of workload IDs to uninstall
 
 **Replaces Current Tools:**
+
 - `dotnet_workload_list`
 - `dotnet_workload_info`
 - `dotnet_workload_search`
@@ -447,6 +493,7 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **Description**: Manage developer certificates and user secrets for secure local development.
 
 **Parameters:**
+
 - `action` (required, enum): The operation to perform
   - `cert_trust` - Trust HTTPS development certificate
   - `cert_check` - Check certificate status
@@ -463,24 +510,30 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **Action-Specific Parameters:**
 
 **For action="cert_trust":**
+
 - None (may require elevation)
 
 **For action="cert_check":**
+
 - `trust` (optional, bool): Also check if certificate is trusted
 
 **For action="cert_export":**
+
 - `path` (required): Export file path
 - `password` (optional): Certificate password
 - `format` (optional, enum): 'pfx' or 'pem' (default: 'pfx')
 
 **For action="secrets_set":**
+
 - `key` (required): Secret key (supports hierarchical keys like "ConnectionStrings:Default")
 - `value` (required): Secret value
 
 **For action="secrets_remove":**
+
 - `key` (required): Secret key to remove
 
 **Replaces Current Tools:**
+
 - `dotnet_certificate_trust`
 - `dotnet_certificate_check`
 - `dotnet_certificate_clean`
@@ -498,6 +551,7 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **Description**: Query .NET SDK, runtime, template, and framework information.
 
 **Parameters:**
+
 - `action` (required, enum): The information to retrieve
   - `version` - Get SDK version
   - `info` - Get detailed SDK and runtime info
@@ -514,20 +568,25 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **Action-Specific Parameters:**
 
 **For action="template_search":**
+
 - `searchTerm` (required): Search query
 - `forceReload` (optional, bool): Bypass cache
 
 **For action="template_info":**
+
 - `templateShortName` (required): Template short name
 - `forceReload` (optional, bool): Bypass cache
 
 **For action="template_list":**
+
 - `forceReload` (optional, bool): Bypass cache
 
 **For action="framework_info":**
+
 - `framework` (optional): Specific framework to query (e.g., 'net10.0')
 
 **Replaces Current Tools:**
+
 - `dotnet_sdk_version`
 - `dotnet_sdk_info`
 - `dotnet_sdk_list`
@@ -546,6 +605,7 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **Description**: Manage .NET tools (global and local).
 
 **Parameters:**
+
 - `action` (required, enum): The tool operation to perform
   - `install` - Install tool globally or locally
   - `update` - Update tool
@@ -560,30 +620,37 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **Action-Specific Parameters:**
 
 **For action="install":**
+
 - `packageId` (required): Tool package ID
 - `version` (optional): Specific version
 - `global` (optional, bool): Install globally (default: false)
 - `toolPath` (optional): Custom tool installation path
 
 **For action="update":**
+
 - `packageId` (required): Tool package ID
 - `global` (optional, bool): Update global tool
 
 **For action="uninstall":**
+
 - `packageId` (required): Tool package ID
 - `global` (optional, bool): Uninstall global tool
 
 **For action="list":**
+
 - `global` (optional, bool): List global tools (default: false lists local)
 
 **For action="search":**
+
 - `searchTerm` (required): Search query
 
 **For action="run":**
+
 - `toolName` (required): Tool command name
 - `args` (optional): Arguments to pass to tool
 
 **Replaces Current Tools:**
+
 - `dotnet_tool_install`
 - `dotnet_tool_update`
 - `dotnet_tool_uninstall`
@@ -606,11 +673,13 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 ### Phase 1: Parallel Operation (v2.0.0)
 
 **Goals:**
+
 - Introduce new consolidated tools alongside existing tools
 - Mark old tools as deprecated in documentation
 - Provide migration guide
 
 **Implementation:**
+
 1. Create new consolidated tool methods that wrap existing logic
 2. Add `[Obsolete]` attributes to old tool methods with migration guidance
 3. Update README and documentation to show new tools as primary
@@ -619,6 +688,7 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **Timeline:** 1-2 months
 
 **Example Deprecation:**
+
 ```csharp
 [Obsolete("Use dotnet_project with action='build' instead. This tool will be removed in v3.0.0.")]
 [McpServerTool]
@@ -632,11 +702,13 @@ public async Task<string> DotnetProjectBuild(...)
 ### Phase 2: Deprecation Warning (v2.5.0)
 
 **Goals:**
+
 - Log warnings when deprecated tools are used
 - Collect usage metrics on old vs new tools
 - Communicate timeline for removal
 
 **Implementation:**
+
 1. Add logging to deprecated tool calls
 2. Update error messages to suggest new tool usage
 3. Provide CLI flag to disable deprecated tools for testing
@@ -647,11 +719,13 @@ public async Task<string> DotnetProjectBuild(...)
 ### Phase 3: Removal (v3.0.0)
 
 **Goals:**
+
 - Remove deprecated tools entirely
 - Clean up codebase
 - Finalize consolidated API
 
 **Implementation:**
+
 1. Remove all deprecated tool methods
 2. Clean up internal helper methods no longer needed
 3. Update all tests to use new tools
@@ -662,15 +736,18 @@ public async Task<string> DotnetProjectBuild(...)
 ### Backward Compatibility Considerations
 
 **MCP Client Impact:**
+
 - Clients using old tool names will receive deprecation warnings in v2.x
 - Clients have 6+ months to migrate before v3.0.0
 - Server.json will list both old and new tools during transition
 
 **Configuration Files:**
+
 - No changes required to client configuration
 - Tool selection happens at runtime
 
 **Documentation:**
+
 - Migration guide with before/after examples
 - Search/replace patterns for common workflows
 - Automated migration script (optional)
@@ -682,6 +759,7 @@ public async Task<string> DotnetProjectBuild(...)
 ### Example 1: Create and Build Web API Project
 
 **Before (Current - 2 separate tools):**
+
 ```typescript
 // Tool 1: Create project
 await mcp.callTool("dotnet_project_new", {
@@ -698,6 +776,7 @@ await mcp.callTool("dotnet_project_build", {
 ```
 
 **After (Consolidated - 1 tool, 2 calls):**
+
 ```typescript
 // Create project
 await mcp.callTool("dotnet_project", {
@@ -718,6 +797,7 @@ await mcp.callTool("dotnet_project", {
 ### Example 2: Package Management Workflow
 
 **Before (Current - 3 separate tools):**
+
 ```typescript
 // Search for package
 await mcp.callTool("dotnet_package_search", {
@@ -738,6 +818,7 @@ await mcp.callTool("dotnet_package_list", {
 ```
 
 **After (Consolidated - 1 tool, 3 calls):**
+
 ```typescript
 // Search for package
 await mcp.callTool("dotnet_package", {
@@ -763,6 +844,7 @@ await mcp.callTool("dotnet_package", {
 ### Example 3: Entity Framework Migrations
 
 **Before (Current - 3 separate tools):**
+
 ```typescript
 // Add migration
 await mcp.callTool("dotnet_ef_migrations_add", {
@@ -782,6 +864,7 @@ await mcp.callTool("dotnet_ef_database_update", {
 ```
 
 **After (Consolidated - 1 tool, 3 calls):**
+
 ```typescript
 // Add migration
 await mcp.callTool("dotnet_ef", {
@@ -806,6 +889,7 @@ await mcp.callTool("dotnet_ef", {
 ### Example 4: Solution Management
 
 **Before (Current - 3 separate tools):**
+
 ```typescript
 // Create solution
 await mcp.callTool("dotnet_solution_create", {
@@ -826,6 +910,7 @@ await mcp.callTool("dotnet_solution_list", {
 ```
 
 **After (Consolidated - 1 tool, 3 calls):**
+
 ```typescript
 // Create solution
 await mcp.callTool("dotnet_solution", {
@@ -853,7 +938,8 @@ await mcp.callTool("dotnet_solution", {
 **Scenario**: User asks: *"Create a Blazor app with authentication, add Serilog for logging, build it, and run tests"*
 
 **Before (Current - AI selects from 74 tools):**
-```
+
+```text
 AI reasoning:
 - Need to create project → dotnet_project_new
 - Need to add package → dotnet_package_add
@@ -863,7 +949,8 @@ AI reasoning:
 ```
 
 **After (Consolidated - AI selects from 8 tools):**
-```
+
+```text
 AI reasoning:
 - All project operations → dotnet_project tool
   - Create: action="new"
@@ -883,7 +970,8 @@ AI reasoning:
 ### Code Organization
 
 **Recommended Structure:**
-```
+
+```text
 DotNetMcp/Tools/
 ├── Cli/
 │   ├── DotNetCliTools.Core.cs              # Infrastructure
@@ -903,12 +991,14 @@ DotNetMcp/Tools/
 ### Parameter Validation
 
 **Shared Validation Helpers:**
+
 - `ValidateAction(string action, string[] allowedActions)` - Enum validation
 - `ValidateProject(string? project)` - Project path validation
 - `ValidateFramework(string? framework)` - Framework validation
 - `ValidateMachineReadable(bool machineReadable)` - Output format
 
 **Action-Specific Validation:**
+
 - Each action should validate its required parameters
 - Return clear error messages with suggested fixes
 - Use `ErrorResultFactory` for consistent error formatting
@@ -916,6 +1006,7 @@ DotNetMcp/Tools/
 ### Error Handling
 
 **Consistent Error Format:**
+
 ```csharp
 if (!IsValidAction(action, allowedActions))
 {
@@ -934,17 +1025,20 @@ if (!IsValidAction(action, allowedActions))
 ### Testing Strategy
 
 **Unit Tests:**
+
 - Test each action enum with valid/invalid values
 - Test required parameter validation
 - Test action-specific parameter validation
 - Test machine-readable vs plain text output
 
 **Integration Tests:**
+
 - Test complete workflows (create → build → test)
 - Test error scenarios
 - Test backward compatibility (v2.x)
 
 **Migration Tests:**
+
 - Verify old tools redirect to new tools
 - Verify deprecation warnings are logged
 - Test removal of old tools (v3.0.0)
@@ -952,20 +1046,24 @@ if (!IsValidAction(action, allowedActions))
 ### Documentation Updates
 
 **README.md:**
+
 - Update "Available Tools" section to show 8 consolidated tools
 - Add "Action Reference" subsection for each tool
 - Update usage examples to use new format
 - Add migration guide link
 
 **doc/tool-surface-consolidation.md:**
+
 - This document (implementation reference)
 
 **doc/migration-guide.md** (new):
+
 - Step-by-step migration from v1.x to v2.x
 - Search/replace patterns
 - Common pitfalls and solutions
 
 **server.json:**
+
 - Update tool descriptors to include action enums
 - Mark deprecated tools with "deprecated": true in v2.x
 - Remove deprecated tools in v3.0.0
@@ -973,6 +1071,7 @@ if (!IsValidAction(action, allowedActions))
 ### McpMeta Attributes
 
 **Recommended Metadata:**
+
 ```csharp
 [McpServerTool]
 [Description("Manage .NET project lifecycle...")]
@@ -990,16 +1089,19 @@ public async Task<string> DotnetProject(
 ### Performance Considerations
 
 **Action Dispatch:**
+
 - Use switch expression for action dispatch (fast, type-safe)
 - Avoid reflection-based dispatch
 - Cache validation results when appropriate
 
 **Parameter Parsing:**
+
 - Validate early, fail fast
 - Reuse validation logic across actions
 - Leverage existing SDK integration (TemplateEngineHelper, FrameworkHelper)
 
 **Backward Compatibility (v2.x):**
+
 - Deprecated tools should be thin wrappers with minimal overhead
 - Log deprecation warnings asynchronously to avoid blocking
 
@@ -1010,99 +1112,110 @@ public async Task<string> DotnetProject(
 ### Current Tools by Category (74 Total)
 
 #### Templates & Frameworks (6 tools)
+
 1. `dotnet_template_list` - List installed templates
-2. `dotnet_template_search` - Search templates
-3. `dotnet_template_info` - Get template details
-4. `dotnet_template_clear_cache` - Clear template cache
-5. `dotnet_cache_metrics` - Get cache metrics
-6. `dotnet_framework_info` - Framework information
+1. `dotnet_template_search` - Search templates
+1. `dotnet_template_info` - Get template details
+1. `dotnet_template_clear_cache` - Clear template cache
+1. `dotnet_cache_metrics` - Get cache metrics
+1. `dotnet_framework_info` - Framework information
 
 #### Project Management (15 tools)
-7. `dotnet_project_new` - Create project
-8. `dotnet_project_restore` - Restore dependencies
-9. `dotnet_project_build` - Build project
-10. `dotnet_project_run` - Run project
-11. `dotnet_project_test` - Run tests
-12. `dotnet_project_publish` - Publish project
-13. `dotnet_project_clean` - Clean build outputs
-14. `dotnet_project_analyze` - Analyze project file
-15. `dotnet_project_dependencies` - Show dependency graph
-16. `dotnet_project_validate` - Validate project health
-17. `dotnet_pack_create` - Create NuGet package
-18. `dotnet_watch_run` - Watch and run
-19. `dotnet_watch_test` - Watch and test
-20. `dotnet_watch_build` - Watch and build
-21. `dotnet_format` - Format code
+
+1. `dotnet_project_new` - Create project
+1. `dotnet_project_restore` - Restore dependencies
+1. `dotnet_project_build` - Build project
+1. `dotnet_project_run` - Run project
+1. `dotnet_project_test` - Run tests
+1. `dotnet_project_publish` - Publish project
+1. `dotnet_project_clean` - Clean build outputs
+1. `dotnet_project_analyze` - Analyze project file
+1. `dotnet_project_dependencies` - Show dependency graph
+1. `dotnet_project_validate` - Validate project health
+1. `dotnet_pack_create` - Create NuGet package
+1. `dotnet_watch_run` - Watch and run
+1. `dotnet_watch_test` - Watch and test
+1. `dotnet_watch_build` - Watch and build
+1. `dotnet_format` - Format code
 
 #### Package Management (8 tools)
-22. `dotnet_package_add` - Add package
-23. `dotnet_package_remove` - Remove package
-24. `dotnet_package_search` - Search packages
-25. `dotnet_package_update` - Update packages
-26. `dotnet_package_list` - List packages
-27. `dotnet_reference_add` - Add project reference
-28. `dotnet_reference_remove` - Remove project reference
-29. `dotnet_reference_list` - List project references
+
+1. `dotnet_package_add` - Add package
+1. `dotnet_package_remove` - Remove package
+1. `dotnet_package_search` - Search packages
+1. `dotnet_package_update` - Update packages
+1. `dotnet_package_list` - List packages
+1. `dotnet_reference_add` - Add project reference
+1. `dotnet_reference_remove` - Remove project reference
+1. `dotnet_reference_list` - List project references
 
 #### Solution Management (4 tools)
-30. `dotnet_solution_create` - Create solution
-31. `dotnet_solution_add` - Add projects to solution
-32. `dotnet_solution_list` - List solution projects
-33. `dotnet_solution_remove` - Remove projects from solution
+
+1. `dotnet_solution_create` - Create solution
+1. `dotnet_solution_add` - Add projects to solution
+1. `dotnet_solution_list` - List solution projects
+1. `dotnet_solution_remove` - Remove projects from solution
 
 #### Entity Framework (9 tools)
-34. `dotnet_ef_migrations_add` - Add migration
-35. `dotnet_ef_migrations_list` - List migrations
-36. `dotnet_ef_migrations_remove` - Remove migration
-37. `dotnet_ef_migrations_script` - Generate SQL script
-38. `dotnet_ef_database_update` - Update database
-39. `dotnet_ef_database_drop` - Drop database
-40. `dotnet_ef_dbcontext_list` - List DbContext classes
-41. `dotnet_ef_dbcontext_info` - Get DbContext info
-42. `dotnet_ef_dbcontext_scaffold` - Scaffold from database
+
+1. `dotnet_ef_migrations_add` - Add migration
+1. `dotnet_ef_migrations_list` - List migrations
+1. `dotnet_ef_migrations_remove` - Remove migration
+1. `dotnet_ef_migrations_script` - Generate SQL script
+1. `dotnet_ef_database_update` - Update database
+1. `dotnet_ef_database_drop` - Drop database
+1. `dotnet_ef_dbcontext_list` - List DbContext classes
+1. `dotnet_ef_dbcontext_info` - Get DbContext info
+1. `dotnet_ef_dbcontext_scaffold` - Scaffold from database
 
 #### Tool Management (8 tools)
-43. `dotnet_tool_install` - Install tool
-44. `dotnet_tool_list` - List tools
-45. `dotnet_tool_update` - Update tool
-46. `dotnet_tool_uninstall` - Uninstall tool
-47. `dotnet_tool_restore` - Restore tools
-48. `dotnet_tool_manifest_create` - Create tool manifest
-49. `dotnet_tool_search` - Search for tools
-50. `dotnet_tool_run` - Run tool
+
+1. `dotnet_tool_install` - Install tool
+1. `dotnet_tool_list` - List tools
+1. `dotnet_tool_update` - Update tool
+1. `dotnet_tool_uninstall` - Uninstall tool
+1. `dotnet_tool_restore` - Restore tools
+1. `dotnet_tool_manifest_create` - Create tool manifest
+1. `dotnet_tool_search` - Search for tools
+1. `dotnet_tool_run` - Run tool
 
 #### Workload Management (6 tools)
-51. `dotnet_workload_list` - List workloads
-52. `dotnet_workload_info` - Get workload info
-53. `dotnet_workload_search` - Search workloads
-54. `dotnet_workload_install` - Install workload
-55. `dotnet_workload_update` - Update workloads
-56. `dotnet_workload_uninstall` - Uninstall workload
+
+1. `dotnet_workload_list` - List workloads
+1. `dotnet_workload_info` - Get workload info
+1. `dotnet_workload_search` - Search workloads
+1. `dotnet_workload_install` - Install workload
+1. `dotnet_workload_update` - Update workloads
+1. `dotnet_workload_uninstall` - Uninstall workload
 
 #### Security & Certificates (9 tools)
-57. `dotnet_certificate_trust` - Trust certificate
-58. `dotnet_certificate_check` - Check certificate
-59. `dotnet_certificate_clean` - Clean certificates
-60. `dotnet_certificate_export` - Export certificate
-61. `dotnet_secrets_init` - Initialize secrets
-62. `dotnet_secrets_set` - Set secret
-63. `dotnet_secrets_list` - List secrets
-64. `dotnet_secrets_remove` - Remove secret
-65. `dotnet_secrets_clear` - Clear secrets
+
+1. `dotnet_certificate_trust` - Trust certificate
+1. `dotnet_certificate_check` - Check certificate
+1. `dotnet_certificate_clean` - Clean certificates
+1. `dotnet_certificate_export` - Export certificate
+1. `dotnet_secrets_init` - Initialize secrets
+1. `dotnet_secrets_set` - Set secret
+1. `dotnet_secrets_list` - List secrets
+1. `dotnet_secrets_remove` - Remove secret
+1. `dotnet_secrets_clear` - Clear secrets
 
 #### SDK Information (5 tools)
-66. `dotnet_sdk_version` - Get SDK version
-67. `dotnet_sdk_info` - Get SDK info
-68. `dotnet_sdk_list` - List SDKs
-69. `dotnet_runtime_list` - List runtimes
-70. `dotnet_nuget_locals` - Manage NuGet cache
+
+1. `dotnet_sdk_version` - Get SDK version
+1. `dotnet_sdk_info` - Get SDK info
+1. `dotnet_sdk_list` - List SDKs
+1. `dotnet_runtime_list` - List runtimes
+1. `dotnet_nuget_locals` - Manage NuGet cache
 
 #### Code Quality (1 tool)
-71. `dotnet_format` - Format code (duplicate - listed in Project Management)
+
+1. `dotnet_format` - Format code (duplicate - listed in Project Management)
 
 #### Utilities (2 tools)
-72. `dotnet_help` - Get help
-73. `dotnet_server_capabilities` - Server capabilities
+
+1. `dotnet_help` - Get help
+1. `dotnet_server_capabilities` - Server capabilities
 
 **Note:** `dotnet_format` appears in both Project Management and Code Quality categories in current implementation, but is functionally a single tool.
 
@@ -1113,6 +1226,7 @@ public async Task<string> DotnetProject(
 This consolidation proposal reduces the .NET MCP Server's tool surface from **74 tools to 10 consolidated tools** (8 domain tools + 2 utilities), while preserving full functionality and providing a clear migration path.
 
 **Key Outcomes:**
+
 - ✅ **Improved AI orchestration** through reduced tool count and enum-driven actions
 - ✅ **Better discoverability** through semantic grouping
 - ✅ **Enhanced maintainability** with consistent patterns and shared validation
@@ -1120,6 +1234,7 @@ This consolidation proposal reduces the .NET MCP Server's tool surface from **74
 - ✅ **Backward compatible migration** with 6+ month deprecation period
 
 **Next Steps:**
+
 1. Review and approve this proposal
 2. Create implementation plan with task breakdown
 3. Begin Phase 1: Parallel operation (v2.0.0)
@@ -1131,6 +1246,6 @@ Please comment on the associated GitHub issue or submit a pull request with sugg
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: 2026-01-08  
-**Status**: Proposal (Pending Review)
+- **Document Version**: 1.0
+- **Last Updated**: 2026-01-08
+- **Status**: Proposal (Pending Review)
