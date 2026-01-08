@@ -473,20 +473,24 @@ public class ConsolidatedWorkloadToolTests
         // Test that all enum values are handled
         var actions = Enum.GetValues<DotnetWorkloadAction>();
         
-        foreach (var action in actions)
+        // Act - test each action and verify it routes correctly
+        var results = await Task.WhenAll(actions.Select(async action => new
         {
-            // Act
-            var result = action switch
+            Action = action,
+            Result = action switch
             {
                 DotnetWorkloadAction.Install => await _tools.DotnetWorkload(action, workloadIds: new[] { "test-id" }),
                 DotnetWorkloadAction.Uninstall => await _tools.DotnetWorkload(action, workloadIds: new[] { "test-id" }),
                 _ => await _tools.DotnetWorkload(action)
-            };
+            }
+        }));
 
-            // Assert
-            Assert.NotNull(result);
+        // Assert
+        foreach (var item in results)
+        {
+            Assert.NotNull(item.Result);
             // Should not throw or return "Unsupported action"
-            Assert.DoesNotContain("Unsupported action", result);
+            Assert.DoesNotContain("Unsupported action", item.Result);
         }
     }
 
