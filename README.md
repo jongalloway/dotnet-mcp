@@ -830,7 +830,7 @@ dotnet-mcp/
 ├── .github/                    # CI workflows and repo automation
 ├── DotNetMcp.slnx              # Solution file (.slnx)
 ├── global.json                 # SDK pinning for consistent builds
-├── dotnet-tools.json           # Local tool manifest
+├── .config/dotnet-tools.json   # Local tool manifest (dotnet local tools)
 └── LICENSE                     # MIT License
 ```
 
