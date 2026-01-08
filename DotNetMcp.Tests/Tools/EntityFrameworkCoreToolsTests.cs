@@ -290,10 +290,10 @@ public class EntityFrameworkCoreToolsTests
             .Where(m => m.Name.StartsWith("DotnetEf"))
             .ToList();
 
-        // We expect 9 EF Core tools
-        Assert.Equal(9, methods.Count);
+        // We expect 10 EF Core tools (9 individual tools + 1 consolidated tool)
+        Assert.Equal(10, methods.Count);
 
-        // Verify method names
+        // Verify method names (9 individual tools)
         var expectedMethods = new[]
         {
             "DotnetEfMigrationsAdd",
@@ -304,7 +304,8 @@ public class EntityFrameworkCoreToolsTests
             "DotnetEfDatabaseDrop",
             "DotnetEfDbContextList",
             "DotnetEfDbContextInfo",
-            "DotnetEfDbContextScaffold"
+            "DotnetEfDbContextScaffold",
+            "DotnetEf"  // Consolidated tool
         };
 
         foreach (var expectedMethod in expectedMethods)
