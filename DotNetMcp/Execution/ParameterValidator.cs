@@ -297,4 +297,75 @@ public static partial class ParameterValidator
         parsedIds = ids;
         return true;
     }
+
+    /// <summary>
+    /// Validate that an action enum value is valid.
+    /// </summary>
+    /// <typeparam name="TAction">The enum type representing valid actions</typeparam>
+    /// <param name="action">The action value to validate</param>
+    /// <param name="errorMessage">Output error message if validation fails</param>
+    /// <returns>True if valid, false otherwise</returns>
+    public static bool ValidateAction<TAction>(TAction? action, out string? errorMessage) where TAction : struct, Enum
+    {
+        errorMessage = null;
+
+        // Null is not valid for action enums
+        if (action == null)
+        {
+            var validActions = string.Join(", ", Enum.GetNames(typeof(TAction)));
+            errorMessage = $"Action parameter is required. Valid actions: {validActions}";
+            return false;
+        }
+
+        // Check if the enum value is defined
+        if (!Enum.IsDefined(typeof(TAction), action.Value))
+        {
+            var validActions = string.Join(", ", Enum.GetNames(typeof(TAction)));
+            errorMessage = $"Invalid action '{action}'. Valid actions: {validActions}";
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Validate that a required parameter is present and not null/empty/whitespace.
+    /// </summary>
+    /// <param name="value">The parameter value to validate</param>
+    /// <param name="parameterName">The name of the parameter (for error message)</param>
+    /// <param name="errorMessage">Output error message if validation fails</param>
+    /// <returns>True if valid, false otherwise</returns>
+    public static bool ValidateRequiredParameter(string? value, string parameterName, out string? errorMessage)
+    {
+        errorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            errorMessage = $"The '{parameterName}' parameter is required and cannot be null or empty.";
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Validate that a required parameter of any type is present and not null.
+    /// </summary>
+    /// <typeparam name="T">The type of the parameter</typeparam>
+    /// <param name="value">The parameter value to validate</param>
+    /// <param name="parameterName">The name of the parameter (for error message)</param>
+    /// <param name="errorMessage">Output error message if validation fails</param>
+    /// <returns>True if valid, false otherwise</returns>
+    public static bool ValidateRequiredParameter<T>(T? value, string parameterName, out string? errorMessage) where T : class
+    {
+        errorMessage = null;
+
+        if (value == null)
+        {
+            errorMessage = $"The '{parameterName}' parameter is required and cannot be null.";
+            return false;
+        }
+
+        return true;
+    }
 }

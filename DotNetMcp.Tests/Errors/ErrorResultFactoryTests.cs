@@ -1007,5 +1007,211 @@ Program.cs(15,10): error CS1001: Identifier expected";
         Assert.Contains("\"parameter\": \"testParam\"", json);
         Assert.Contains("\"reason\": \"invalid value\"", json);
     }
+
+    #region CreateActionValidationError Tests
+
+    [Fact]
+    public void CreateActionValidationError_WithValidAction_ReturnsCorrectStructure()
+    {
+        // Arrange
+        var validActions = new[] { "build", "run", "test", "publish" };
+
+        // Act
+        var result = ErrorResultFactory.CreateActionValidationError(
+            action: "invalid-action",
+            validActions: validActions,
+            toolName: "dotnet_project");
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(-1, result.ExitCode);
+
+        var error = Assert.Single(result.Errors);
+        Assert.Equal("INVALID_PARAMS", error.Code);
+        Assert.Equal("Validation", error.Category);
+        Assert.Equal(McpErrorCodes.InvalidParams, error.McpErrorCode);
+        
+        Assert.Contains("Invalid action", error.Message);
+        Assert.Contains("invalid-action", error.Message);
+        Assert.Contains("dotnet_project", error.Message);
+
+        Assert.NotNull(error.Hint);
+        Assert.Contains("build", error.Hint);
+        Assert.Contains("run", error.Hint);
+        Assert.Contains("test", error.Hint);
+        Assert.Contains("publish", error.Hint);
+
+        Assert.NotNull(error.Data);
+        Assert.Null(error.Data.Command);
+        Assert.Equal(-1, error.Data.ExitCode);
+
+        Assert.NotNull(error.Data.AdditionalData);
+        Assert.Equal("action", error.Data.AdditionalData["parameter"]);
+        Assert.Equal("invalid-action", error.Data.AdditionalData["providedValue"]);
+        Assert.Contains("build", error.Data.AdditionalData["validActions"]);
+    }
+
+    [Fact]
+    public void CreateActionValidationError_WithEmptyAction_ReturnsRequiredMessage()
+    {
+        // Arrange
+        var validActions = new[] { "create", "update", "delete" };
+
+        // Act
+        var result = ErrorResultFactory.CreateActionValidationError(
+            action: "",
+            validActions: validActions);
+
+        // Assert
+        Assert.False(result.Success);
+        
+        var error = Assert.Single(result.Errors);
+        Assert.Contains("Action parameter is required", error.Message);
+        
+        Assert.NotNull(error.Data?.AdditionalData);
+        Assert.Equal("action", error.Data.AdditionalData["parameter"]);
+        Assert.DoesNotContain("providedValue", error.Data.AdditionalData.Keys);
+    }
+
+    [Fact]
+    public void CreateActionValidationError_WithoutToolName_OmitsToolNameFromMessage()
+    {
+        // Arrange
+        var validActions = new[] { "add", "remove" };
+
+        // Act
+        var result = ErrorResultFactory.CreateActionValidationError(
+            action: "invalid",
+            validActions: validActions);
+
+        // Assert
+        var error = Assert.Single(result.Errors);
+        Assert.Contains("Invalid action", error.Message);
+        Assert.DoesNotContain("For tool", error.Message);
+    }
+
+    [Fact]
+    public void CreateActionValidationError_WithNoValidActions_UsesGenericHint()
+    {
+        // Arrange
+        var validActions = Enumerable.Empty<string>();
+
+        // Act
+        var result = ErrorResultFactory.CreateActionValidationError(
+            action: "test",
+            validActions: validActions);
+
+        // Assert
+        var error = Assert.Single(result.Errors);
+        Assert.NotNull(error.Hint);
+        Assert.Contains("documentation", error.Hint);
+    }
+
+    [Fact]
+    public void CreateActionValidationError_SerializesToValidJson()
+    {
+        // Arrange
+        var validActions = new[] { "build", "run" };
+        var result = ErrorResultFactory.CreateActionValidationError(
+            action: "invalid",
+            validActions: validActions,
+            toolName: "test_tool");
+
+        // Act
+        var json = ErrorResultFactory.ToJson(result);
+
+        // Assert
+        Assert.NotNull(json);
+        Assert.Contains("\"success\": false", json);
+        Assert.Contains("\"code\": \"INVALID_PARAMS\"", json);
+        Assert.Contains("\"mcpErrorCode\": -32602", json);
+        Assert.Contains("\"parameter\": \"action\"", json);
+    }
+
+    #endregion
+
+    #region CreateRequiredParameterError Tests
+
+    [Fact]
+    public void CreateRequiredParameterError_WithParameterName_ReturnsCorrectStructure()
+    {
+        // Act
+        var result = ErrorResultFactory.CreateRequiredParameterError(
+            parameterName: "projectPath");
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(-1, result.ExitCode);
+
+        var error = Assert.Single(result.Errors);
+        Assert.Equal("INVALID_PARAMS", error.Code);
+        Assert.Equal("Validation", error.Category);
+        Assert.Equal(McpErrorCodes.InvalidParams, error.McpErrorCode);
+        
+        Assert.Contains("projectPath", error.Message);
+        Assert.Contains("required", error.Message);
+        Assert.Contains("cannot be null or empty", error.Message);
+
+        Assert.NotNull(error.Hint);
+        Assert.Contains("non-null", error.Hint);
+
+        Assert.NotNull(error.Data);
+        Assert.Null(error.Data.Command);
+        Assert.Equal(-1, error.Data.ExitCode);
+
+        Assert.NotNull(error.Data.AdditionalData);
+        Assert.Equal("projectPath", error.Data.AdditionalData["parameter"]);
+        Assert.Equal("required", error.Data.AdditionalData["reason"]);
+    }
+
+    [Fact]
+    public void CreateRequiredParameterError_WithToolName_IncludesToolInMessage()
+    {
+        // Act
+        var result = ErrorResultFactory.CreateRequiredParameterError(
+            parameterName: "packageName",
+            toolName: "dotnet_package");
+
+        // Assert
+        var error = Assert.Single(result.Errors);
+        Assert.Contains("packageName", error.Message);
+        Assert.Contains("dotnet_package", error.Message);
+    }
+
+    [Fact]
+    public void CreateRequiredParameterError_WithoutToolName_OmitsToolFromMessage()
+    {
+        // Act
+        var result = ErrorResultFactory.CreateRequiredParameterError(
+            parameterName: "name");
+
+        // Assert
+        var error = Assert.Single(result.Errors);
+        Assert.Contains("name", error.Message);
+        Assert.DoesNotContain("For tool", error.Message);
+    }
+
+    [Fact]
+    public void CreateRequiredParameterError_SerializesToValidJson()
+    {
+        // Arrange
+        var result = ErrorResultFactory.CreateRequiredParameterError(
+            parameterName: "testParam",
+            toolName: "test_tool");
+
+        // Act
+        var json = ErrorResultFactory.ToJson(result);
+
+        // Assert
+        Assert.NotNull(json);
+        Assert.Contains("\"success\": false", json);
+        Assert.Contains("\"code\": \"INVALID_PARAMS\"", json);
+        Assert.Contains("\"category\": \"Validation\"", json);
+        Assert.Contains("\"mcpErrorCode\": -32602", json);
+        Assert.Contains("\"parameter\": \"testParam\"", json);
+        Assert.Contains("\"reason\": \"required\"", json);
+    }
+
+    #endregion
 }
 

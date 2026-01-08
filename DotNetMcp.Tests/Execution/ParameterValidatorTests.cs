@@ -334,4 +334,130 @@ public class ParameterValidatorTests
         Assert.Contains("https://learn.microsoft.com", errorMessage);
         Assert.Contains("rid-catalog", errorMessage);
     }
+
+    #region ValidateAction Tests
+
+    // Test enum for action validation tests
+    private enum TestAction
+    {
+        Create,
+        Update,
+        Delete,
+        List
+    }
+
+    [Fact]
+    public void ValidateAction_WithValidAction_ReturnsTrue()
+    {
+        // Arrange
+        TestAction? action = TestAction.Create;
+
+        // Act
+        var isValid = ParameterValidator.ValidateAction(action, out var errorMessage);
+
+        // Assert
+        Assert.True(isValid);
+        Assert.Null(errorMessage);
+    }
+
+    [Fact]
+    public void ValidateAction_WithNullAction_ReturnsFalse()
+    {
+        // Arrange
+        TestAction? action = null;
+
+        // Act
+        var isValid = ParameterValidator.ValidateAction(action, out var errorMessage);
+
+        // Assert
+        Assert.False(isValid);
+        Assert.NotNull(errorMessage);
+        Assert.Contains("Action parameter is required", errorMessage);
+        Assert.Contains("Create", errorMessage);
+        Assert.Contains("Update", errorMessage);
+        Assert.Contains("Delete", errorMessage);
+        Assert.Contains("List", errorMessage);
+    }
+
+    [Fact]
+    public void ValidateAction_WithInvalidEnumValue_ReturnsFalse()
+    {
+        // Arrange - cast an invalid int to the enum
+        TestAction? action = (TestAction)999;
+
+        // Act
+        var isValid = ParameterValidator.ValidateAction(action, out var errorMessage);
+
+        // Assert
+        Assert.False(isValid);
+        Assert.NotNull(errorMessage);
+        Assert.Contains("Invalid action", errorMessage);
+        Assert.Contains("Valid actions:", errorMessage);
+    }
+
+    #endregion
+
+    #region ValidateRequiredParameter Tests
+
+    [Fact]
+    public void ValidateRequiredParameter_String_WithValidValue_ReturnsTrue()
+    {
+        // Arrange
+        var value = "test-value";
+
+        // Act
+        var isValid = ParameterValidator.ValidateRequiredParameter(value, "testParam", out var errorMessage);
+
+        // Assert
+        Assert.True(isValid);
+        Assert.Null(errorMessage);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void ValidateRequiredParameter_String_WithInvalidValue_ReturnsFalse(string? value)
+    {
+        // Act
+        var isValid = ParameterValidator.ValidateRequiredParameter(value, "testParam", out var errorMessage);
+
+        // Assert
+        Assert.False(isValid);
+        Assert.NotNull(errorMessage);
+        Assert.Contains("testParam", errorMessage);
+        Assert.Contains("required", errorMessage);
+    }
+
+    [Fact]
+    public void ValidateRequiredParameter_Generic_WithValidValue_ReturnsTrue()
+    {
+        // Arrange
+        var value = new object();
+
+        // Act
+        var isValid = ParameterValidator.ValidateRequiredParameter(value, "testParam", out var errorMessage);
+
+        // Assert
+        Assert.True(isValid);
+        Assert.Null(errorMessage);
+    }
+
+    [Fact]
+    public void ValidateRequiredParameter_Generic_WithNull_ReturnsFalse()
+    {
+        // Arrange
+        object? value = null;
+
+        // Act
+        var isValid = ParameterValidator.ValidateRequiredParameter(value, "testParam", out var errorMessage);
+
+        // Assert
+        Assert.False(isValid);
+        Assert.NotNull(errorMessage);
+        Assert.Contains("testParam", errorMessage);
+        Assert.Contains("required", errorMessage);
+    }
+
+    #endregion
 }
