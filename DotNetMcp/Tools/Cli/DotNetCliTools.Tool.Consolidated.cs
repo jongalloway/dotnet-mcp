@@ -39,7 +39,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("commonlyUsed", true)]
     [McpMeta("consolidatedTool", true)]
     [McpMeta("actions", JsonValue = """["Install","List","Update","Uninstall","Restore","CreateManifest","Search","Run"]""")]
-    public async Task<string> DotnetTool(
+    internal async Task<string> DotnetTool(
         DotnetToolAction action,
         string? packageId = null,
         bool? global = null,
@@ -262,7 +262,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("priority", 8.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("tags", JsonValue = """["tool","install","global","local","cli"]""")]
-    public async Task<string> DotnetToolInstall(
+    internal async Task<string> DotnetToolInstall(
         string packageName,
         bool global = false,
         string? version = null,
@@ -297,7 +297,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "tool")]
     [McpMeta("priority", 7.0)]
-    public async Task<string> DotnetToolList(
+    internal async Task<string> DotnetToolList(
         bool global = false,
         bool machineReadable = false)
     {
@@ -316,7 +316,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "tool")]
     [McpMeta("priority", 7.0)]
-    public async Task<string> DotnetToolUpdate(
+    internal async Task<string> DotnetToolUpdate(
         string packageName,
         bool global = false,
         string? version = null,
@@ -350,7 +350,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "tool")]
     [McpMeta("priority", 6.0)]
-    public async Task<string> DotnetToolUninstall(
+    internal async Task<string> DotnetToolUninstall(
         string packageName,
         bool global = false,
         bool machineReadable = false)
@@ -380,7 +380,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "tool")]
     [McpMeta("priority", 7.0)]
-    public async Task<string> DotnetToolRestore(bool machineReadable = false)
+    internal async Task<string> DotnetToolRestore(bool machineReadable = false)
         => await ExecuteDotNetCommand("tool restore", machineReadable);
 
     /// <summary>
@@ -392,7 +392,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "tool")]
     [McpMeta("priority", 6.0)]
-    public async Task<string> DotnetToolManifestCreate(
+    internal async Task<string> DotnetToolManifestCreate(
         string? output = null,
         bool force = false,
         bool machineReadable = false)
@@ -415,7 +415,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "tool")]
     [McpMeta("priority", 6.0)]
-    public async Task<string> DotnetToolSearch(
+    internal async Task<string> DotnetToolSearch(
         string searchTerm,
         bool detail = false,
         int? take = null,
@@ -453,7 +453,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "tool")]
     [McpMeta("priority", 7.0)]
-    public async Task<string> DotnetToolRun(
+    internal async Task<string> DotnetToolRun(
         string toolName,
         string? args = null,
         bool machineReadable = false)

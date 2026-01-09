@@ -339,7 +339,7 @@ public sealed partial class DotNetCliTools
     /// <summary>
     /// Add a project-to-project reference.
     /// </summary>
-    public async Task<string> DotnetReferenceAdd(
+    internal async Task<string> DotnetReferenceAdd(
         string project,
         string reference,
         bool machineReadable = false)
@@ -348,7 +348,7 @@ public sealed partial class DotNetCliTools
     /// <summary>
     /// List project references.
     /// </summary>
-    public async Task<string> DotnetReferenceList(
+    internal async Task<string> DotnetReferenceList(
         string? project = null,
         bool machineReadable = false)
     {
@@ -361,7 +361,7 @@ public sealed partial class DotNetCliTools
     /// <summary>
     /// Remove a project-to-project reference.
     /// </summary>
-    public async Task<string> DotnetReferenceRemove(
+    internal async Task<string> DotnetReferenceRemove(
         string project,
         string reference,
         bool machineReadable = false)
@@ -372,7 +372,7 @@ public sealed partial class DotNetCliTools
     /// <summary>
     /// Create a NuGet package from a .NET project.
     /// </summary>
-    public async Task<string> DotnetPackCreate(
+    internal async Task<string> DotnetPackCreate(
         string? project = null,
         string? configuration = null,
         string? output = null,
@@ -400,7 +400,7 @@ public sealed partial class DotNetCliTools
     /// <summary>
     /// Add a NuGet package reference to a .NET project.
     /// </summary>
-    public async Task<string> DotnetPackageAdd(
+    internal async Task<string> DotnetPackageAdd(
         string packageName,
         string? project = null,
         string? version = null,
@@ -422,7 +422,7 @@ public sealed partial class DotNetCliTools
     /// <summary>
     /// List package references for a .NET project.
     /// </summary>
-    public async Task<string> DotnetPackageList(
+    internal async Task<string> DotnetPackageList(
         string? project = null,
         bool outdated = false,
         bool deprecated = false,
@@ -443,7 +443,7 @@ public sealed partial class DotNetCliTools
     /// <summary>
     /// Remove a NuGet package reference from a .NET project.
     /// </summary>
-    public async Task<string> DotnetPackageRemove(
+    internal async Task<string> DotnetPackageRemove(
         string packageName,
         string? project = null,
         bool machineReadable = false)
@@ -461,7 +461,7 @@ public sealed partial class DotNetCliTools
     /// <summary>
     /// Search for NuGet packages on nuget.org. Returns matching packages with descriptions and download counts.
     /// </summary>
-    public async Task<string> DotnetPackageSearch(
+    internal async Task<string> DotnetPackageSearch(
         string searchTerm,
         int? take = null,
         int? skip = null,
@@ -481,7 +481,7 @@ public sealed partial class DotNetCliTools
     /// Update a NuGet package reference to a newer version in a .NET project. 
     /// Note: This uses 'dotnet add package' which updates the package when a newer version is specified.
     /// </summary>
-    public async Task<string> DotnetPackageUpdate(
+    internal async Task<string> DotnetPackageUpdate(
         string packageName,
         string? project = null,
         string? version = null,
@@ -503,7 +503,7 @@ public sealed partial class DotNetCliTools
     /// <summary>
     /// Manage local NuGet caches. List or clear the local NuGet HTTP request cache, global packages folder, or temp folder.
     /// </summary>
-    public async Task<string> DotnetNugetLocals(
+    internal async Task<string> DotnetNugetLocals(
         string cacheLocation,
         bool list = false,
         bool clear = false,
