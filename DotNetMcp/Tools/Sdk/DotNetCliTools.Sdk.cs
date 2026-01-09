@@ -14,10 +14,11 @@ public sealed partial class DotNetCliTools
     /// Useful for understanding framework compatibility.
     /// </summary>
     /// <param name="framework">Optional: specific framework to get info about (e.g., 'net8.0', 'net6.0')</param>
+    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text (currently unused, returns same format)</param>
     [McpServerTool]
     [McpMeta("category", "framework")]
     [McpMeta("usesFrameworkHelper", true)]
-    public async partial Task<string> DotnetFrameworkInfo(string? framework = null)
+    public async partial Task<string> DotnetFrameworkInfo(string? framework = null, bool machineReadable = false)
     {
         var result = new StringBuilder();
 
