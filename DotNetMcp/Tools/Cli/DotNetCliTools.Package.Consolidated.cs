@@ -333,4 +333,226 @@ public sealed partial class DotNetCliTools
             clear: true,
             machineReadable: machineReadable);
     }
+
+    // ===== Reference helper methods (moved from DotNetCliTools.Reference.cs) =====
+
+    /// <summary>
+    /// Add a project-to-project reference.
+    /// </summary>
+    internal async Task<string> DotnetReferenceAdd(
+        string project,
+        string reference,
+        bool machineReadable = false)
+        => await ExecuteDotNetCommand($"add \"{project}\" reference \"{reference}\"", machineReadable);
+
+    /// <summary>
+    /// List project references.
+    /// </summary>
+    internal async Task<string> DotnetReferenceList(
+        string? project = null,
+        bool machineReadable = false)
+    {
+        var args = "list";
+        if (!string.IsNullOrEmpty(project)) args += $" \"{project}\"";
+        args += " reference";
+        return await ExecuteDotNetCommand(args, machineReadable);
+    }
+
+    /// <summary>
+    /// Remove a project-to-project reference.
+    /// </summary>
+    internal async Task<string> DotnetReferenceRemove(
+        string project,
+        string reference,
+        bool machineReadable = false)
+        => await ExecuteDotNetCommand($"remove \"{project}\" reference \"{reference}\"", machineReadable);
+
+    // ===== Package helper methods (moved from DotNetCliTools.Package.cs) =====
+
+    /// <summary>
+    /// Create a NuGet package from a .NET project.
+    /// </summary>
+    internal async Task<string> DotnetPackCreate(
+        string? project = null,
+        string? configuration = null,
+        string? output = null,
+        bool includeSymbols = false,
+        bool includeSource = false,
+        bool machineReadable = false)
+    {
+        // Validate project path if provided
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+
+        // Validate configuration
+        if (!ParameterValidator.ValidateConfiguration(configuration, out var configError))
+            return $"Error: {configError}";
+
+        var args = new StringBuilder("pack");
+        if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
+        if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
+        if (!string.IsNullOrEmpty(output)) args.Append($" -o \"{output}\"");
+        if (includeSymbols) args.Append(" --include-symbols");
+        if (includeSource) args.Append(" --include-source");
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+    }
+
+    /// <summary>
+    /// Add a NuGet package reference to a .NET project.
+    /// </summary>
+    internal async Task<string> DotnetPackageAdd(
+        string packageName,
+        string? project = null,
+        string? version = null,
+        bool prerelease = false,
+        bool machineReadable = false)
+    {
+        // Validate project path if provided
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+
+        var args = new StringBuilder("add");
+        if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
+        args.Append($" package {packageName}");
+        if (!string.IsNullOrEmpty(version)) args.Append($" --version {version}");
+        else if (prerelease) args.Append(" --prerelease");
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+    }
+
+    /// <summary>
+    /// List package references for a .NET project.
+    /// </summary>
+    internal async Task<string> DotnetPackageList(
+        string? project = null,
+        bool outdated = false,
+        bool deprecated = false,
+        bool machineReadable = false)
+    {
+        // Validate project path if provided
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+
+        var args = new StringBuilder("list");
+        if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
+        args.Append(" package");
+        if (outdated) args.Append(" --outdated");
+        if (deprecated) args.Append(" --deprecated");
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+    }
+
+    /// <summary>
+    /// Remove a NuGet package reference from a .NET project.
+    /// </summary>
+    internal async Task<string> DotnetPackageRemove(
+        string packageName,
+        string? project = null,
+        bool machineReadable = false)
+    {
+        // Validate project path if provided
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+
+        var args = new StringBuilder("remove");
+        if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
+        args.Append($" package {packageName}");
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+    }
+
+    /// <summary>
+    /// Search for NuGet packages on nuget.org. Returns matching packages with descriptions and download counts.
+    /// </summary>
+    internal async Task<string> DotnetPackageSearch(
+        string searchTerm,
+        int? take = null,
+        int? skip = null,
+        bool prerelease = false,
+        bool exactMatch = false,
+        bool machineReadable = false)
+    {
+        var args = new StringBuilder($"package search {searchTerm}");
+        if (take.HasValue) args.Append($" --take {take.Value}");
+        if (skip.HasValue) args.Append($" --skip {skip.Value}");
+        if (prerelease) args.Append(" --prerelease");
+        if (exactMatch) args.Append(" --exact-match");
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+    }
+
+    /// <summary>
+    /// Update a NuGet package reference to a newer version in a .NET project. 
+    /// Note: This uses 'dotnet add package' which updates the package when a newer version is specified.
+    /// </summary>
+    internal async Task<string> DotnetPackageUpdate(
+        string packageName,
+        string? project = null,
+        string? version = null,
+        bool prerelease = false,
+        bool machineReadable = false)
+    {
+        // Validate project path if provided
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+
+        var args = new StringBuilder("add");
+        if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
+        args.Append($" package {packageName}");
+        if (!string.IsNullOrEmpty(version)) args.Append($" --version {version}");
+        else if (prerelease) args.Append(" --prerelease");
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+    }
+
+    /// <summary>
+    /// Manage local NuGet caches. List or clear the local NuGet HTTP request cache, global packages folder, or temp folder.
+    /// </summary>
+    internal async Task<string> DotnetNugetLocals(
+        string cacheLocation,
+        bool list = false,
+        bool clear = false,
+        bool machineReadable = false)
+    {
+        if (!list && !clear)
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    "Either 'list' or 'clear' must be true.",
+                    parameterName: "list/clear",
+                    reason: "at least one required");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return "Error: Either 'list' or 'clear' must be true.";
+        }
+
+        if (list && clear)
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    "Cannot specify both 'list' and 'clear'.",
+                    parameterName: "list/clear",
+                    reason: "mutually exclusive");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return "Error: Cannot specify both 'list' and 'clear'.";
+        }
+
+        var validLocations = new[] { "all", "http-cache", "global-packages", "temp", "plugins-cache" };
+        var normalizedCacheLocation = cacheLocation.ToLowerInvariant();
+        if (!validLocations.Contains(normalizedCacheLocation))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    $"Invalid cache location. Must be one of: {string.Join(", ", validLocations)}",
+                    parameterName: "cacheLocation",
+                    reason: "invalid value");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return $"Error: Invalid cache location. Must be one of: {string.Join(", ", validLocations)}";
+        }
+
+        var args = $"nuget locals {normalizedCacheLocation}";
+        if (list) args += " --list";
+        if (clear) args += " --clear";
+        return await ExecuteDotNetCommand(args, machineReadable);
+    }
 }
