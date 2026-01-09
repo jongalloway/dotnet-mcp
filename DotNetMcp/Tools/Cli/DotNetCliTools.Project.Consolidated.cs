@@ -1,5 +1,6 @@
 using System.Text;
 using DotNetMcp.Actions;
+using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 
 namespace DotNetMcp;
@@ -332,5 +333,368 @@ public sealed partial class DotNetCliTools
             diagnostics: diagnostics,
             severity: severity,
             machineReadable: machineReadable);
+    }
+
+    // ===== Watch helper methods (moved from DotNetCliTools.Watch.cs) =====
+
+    /// <summary>
+    /// Run a .NET project with file watching and hot reload. 
+    /// Note: This is a long-running command that watches for file changes and automatically restarts the application. 
+    /// It should be terminated by the user when no longer needed.
+    /// </summary>
+    private Task<string> DotnetWatchRun(
+        string? project = null,
+        string? appArgs = null,
+        bool noHotReload = false)
+    {
+        var args = new StringBuilder("watch");
+        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
+        args.Append(" run");
+        if (noHotReload) args.Append(" --no-hot-reload");
+        if (!string.IsNullOrEmpty(appArgs)) args.Append($" -- {appArgs}");
+        return Task.FromResult("Warning: 'dotnet watch run' is a long-running command that requires interactive terminal support. " +
+      "It will watch for file changes and automatically restart the application. " +
+        "This command is best run directly in a terminal. " +
+             $"Command that would be executed: dotnet {args}");
+    }
+
+    /// <summary>
+    /// Run unit tests with file watching and automatic test re-runs. 
+    /// Note: This is a long-running command that watches for file changes. It should be terminated by the user when no longer needed.
+    /// </summary>
+    private Task<string> DotnetWatchTest(
+        string? project = null,
+        string? filter = null)
+    {
+        var args = new StringBuilder("watch");
+        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
+        args.Append(" test");
+        if (!string.IsNullOrEmpty(filter)) args.Append($" --filter \"{filter}\"");
+        return Task.FromResult("Warning: 'dotnet watch test' is a long-running command that requires interactive terminal support. " +
+               "It will watch for file changes and automatically re-run tests. " +
+    "This command is best run directly in a terminal. " +
+  $"Command that would be executed: dotnet {args}");
+    }
+
+    /// <summary>
+    /// Build a .NET project with file watching and automatic rebuild. 
+    /// Note: This is a long-running command that watches for file changes. It should be terminated by the user when no longer needed.
+    /// </summary>
+    private Task<string> DotnetWatchBuild(
+        string? project = null,
+        string? configuration = null)
+    {
+        var args = new StringBuilder("watch");
+        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
+        args.Append(" build");
+        if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
+        return Task.FromResult("Warning: 'dotnet watch build' is a long-running command that requires interactive terminal support. " +
+   "It will watch for file changes and automatically rebuild. " +
+         "This command is best run directly in a terminal. " +
+   $"Command that would be executed: dotnet {args}");
+    }
+
+    // ===== Project helper methods (moved from DotNetCliTools.Project.cs) =====
+    // Note: Some methods kept McpMeta attributes as they are referenced from helper methods
+    // and might be useful for future maintenance
+
+    /// <summary>
+    /// Create a new .NET project from a template using the <c>dotnet new</c> command.
+    /// Common templates: console, classlib, web, webapi, mvc, blazor, xunit, nunit, mstest.
+    /// </summary>
+    private async Task<string> DotnetProjectNew(
+        string? template = null,
+        string? name = null,
+        string? output = null,
+        string? framework = null,
+        string? additionalOptions = null,
+        bool machineReadable = false)
+    {
+        // Validate additionalOptions first (security check before any other validation)
+        if (!string.IsNullOrEmpty(additionalOptions) && !IsValidAdditionalOptions(additionalOptions))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    "additionalOptions contains invalid characters. Only alphanumeric characters, hyphens, underscores, dots, spaces, and equals signs are allowed.",
+                    parameterName: "additionalOptions",
+                    reason: "invalid characters");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return "Error: additionalOptions contains invalid characters. Only alphanumeric characters, hyphens, underscores, dots, spaces, and equals signs are allowed.";
+        }
+
+        // Validate template
+        var templateValidation = await ParameterValidator.ValidateTemplateAsync(template, _logger);
+        if (!templateValidation.IsValid)
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    templateValidation.ErrorMessage!,
+                    parameterName: "template",
+                    reason: string.IsNullOrWhiteSpace(template) ? "required" : "not found");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return $"Error: {templateValidation.ErrorMessage}";
+        }
+
+        // Validate framework
+        if (!ParameterValidator.ValidateFramework(framework, out var frameworkError))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    frameworkError!,
+                    parameterName: "framework",
+                    reason: "invalid format");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return $"Error: {frameworkError}";
+        }
+
+        var args = new StringBuilder($"new {template}");
+        if (!string.IsNullOrEmpty(name)) args.Append($" -n \"{name}\"");
+        if (!string.IsNullOrEmpty(output)) args.Append($" -o \"{output}\"");
+        if (!string.IsNullOrEmpty(framework)) args.Append($" -f {framework}");
+        if (!string.IsNullOrEmpty(additionalOptions)) args.Append($" {additionalOptions}");
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+    }
+
+    /// <summary>
+    /// Restore the dependencies and tools of a .NET project.
+    /// </summary>
+    private async Task<string> DotnetProjectRestore(
+        string? project = null,
+        bool machineReadable = false)
+    {
+        // Validate project path if provided
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    projectError!,
+                    parameterName: "project",
+                    reason: "invalid extension");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return $"Error: {projectError}";
+        }
+
+        var args = "restore";
+        if (!string.IsNullOrEmpty(project)) args += $" \"{project}\"";
+        return await ExecuteDotNetCommand(args, machineReadable);
+    }
+
+    /// <summary>
+    /// Build a .NET project and its dependencies.
+    /// </summary>
+    private async Task<string> DotnetProjectBuild(
+        string? project = null,
+        string? configuration = null,
+        string? framework = null,
+        bool machineReadable = false)
+    {
+        // Validate project path if provided
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    projectError!,
+                    parameterName: "project",
+                    reason: "invalid extension");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return $"Error: {projectError}";
+        }
+
+        // Validate configuration
+        if (!ParameterValidator.ValidateConfiguration(configuration, out var configError))
+            return $"Error: {configError}";
+
+        // Validate framework
+        if (!ParameterValidator.ValidateFramework(framework, out var frameworkError))
+            return $"Error: {frameworkError}";
+
+        var args = new StringBuilder("build");
+        if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
+        if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
+        if (!string.IsNullOrEmpty(framework)) args.Append($" -f {framework}");
+
+        return await ExecuteWithConcurrencyCheck("build", GetOperationTarget(project), args.ToString(), machineReadable);
+    }
+
+    /// <summary>
+    /// Build and run a .NET project.
+    /// </summary>
+    private async Task<string> DotnetProjectRun(
+        string? project = null,
+        string? configuration = null,
+        string? appArgs = null,
+        bool machineReadable = false)
+    {
+        // Validate project path if provided
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+
+        // Validate configuration
+        if (!ParameterValidator.ValidateConfiguration(configuration, out var configError))
+            return $"Error: {configError}";
+
+        var args = new StringBuilder("run");
+        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
+        if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
+        if (!string.IsNullOrEmpty(appArgs)) args.Append($" -- {appArgs}");
+
+        return await ExecuteWithConcurrencyCheck("run", GetOperationTarget(project), args.ToString(), machineReadable);
+    }
+
+    /// <summary>
+    /// Run unit tests in a .NET project.
+    /// </summary>
+    private async Task<string> DotnetProjectTest(
+        string? project = null,
+        string? configuration = null,
+        string? filter = null,
+        string? collect = null,
+        string? resultsDirectory = null,
+        string? logger = null,
+        bool noBuild = false,
+        bool noRestore = false,
+        string? verbosity = null,
+        string? framework = null,
+        bool blame = false,
+        bool listTests = false,
+        bool machineReadable = false)
+    {
+        // Validate project path if provided
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+
+        // Validate configuration
+        if (!ParameterValidator.ValidateConfiguration(configuration, out var configError))
+            return $"Error: {configError}";
+
+        // Validate verbosity
+        if (!ParameterValidator.ValidateVerbosity(verbosity, out var verbosityError))
+            return $"Error: {verbosityError}";
+
+        // Validate framework
+        if (!ParameterValidator.ValidateFramework(framework, out var frameworkError))
+            return $"Error: {frameworkError}";
+
+        var args = new StringBuilder("test");
+        if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
+        if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
+        if (!string.IsNullOrEmpty(filter)) args.Append($" --filter \"{filter}\"");
+        if (!string.IsNullOrEmpty(collect)) args.Append($" --collect \"{collect}\"");
+        if (!string.IsNullOrEmpty(resultsDirectory)) args.Append($" --results-directory \"{resultsDirectory}\"");
+        if (!string.IsNullOrEmpty(logger)) args.Append($" --logger \"{logger}\"");
+        if (noBuild) args.Append(" --no-build");
+        if (noRestore) args.Append(" --no-restore");
+        if (!string.IsNullOrEmpty(verbosity)) args.Append($" --verbosity {verbosity}");
+        if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
+        if (blame) args.Append(" --blame");
+        if (listTests) args.Append(" --list-tests");
+
+        return await ExecuteWithConcurrencyCheck("test", GetOperationTarget(project), args.ToString(), machineReadable);
+    }
+
+    /// <summary>
+    /// Publish a .NET project for deployment.
+    /// </summary>
+    private async Task<string> DotnetProjectPublish(
+        string? project = null,
+        string? configuration = null,
+        string? output = null,
+        string? runtime = null,
+        bool machineReadable = false)
+    {
+        // Validate project path if provided
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+
+        // Validate configuration
+        if (!ParameterValidator.ValidateConfiguration(configuration, out var configError))
+            return $"Error: {configError}";
+
+        // Validate runtime identifier
+        if (!ParameterValidator.ValidateRuntimeIdentifier(runtime, out var runtimeError))
+            return $"Error: {runtimeError}";
+
+        var args = new StringBuilder("publish");
+        if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
+        if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
+        if (!string.IsNullOrEmpty(output)) args.Append($" -o \"{output}\"");
+        if (!string.IsNullOrEmpty(runtime)) args.Append($" -r {runtime}");
+
+        return await ExecuteWithConcurrencyCheck("publish", GetOperationTarget(project), args.ToString(), machineReadable);
+    }
+
+    /// <summary>
+    /// Clean the output of a .NET project.
+    /// </summary>
+    private async Task<string> DotnetProjectClean(
+        string? project = null,
+        string? configuration = null,
+        bool machineReadable = false)
+    {
+        // Validate project path if provided
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+
+        // Validate configuration
+        if (!ParameterValidator.ValidateConfiguration(configuration, out var configError))
+            return $"Error: {configError}";
+
+        var args = new StringBuilder("clean");
+        if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
+        if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+    }
+
+    /// <summary>
+    /// Analyze a .csproj file to extract comprehensive project information including target frameworks, 
+    /// package references, project references, and build properties. Returns structured JSON.
+    /// Does not require building the project.
+    /// </summary>
+    private async Task<string> DotnetProjectAnalyze(string projectPath)
+    {
+        // Validate project path
+        if (!ParameterValidator.ValidateProjectPath(projectPath, out var projectError))
+            return $"Error: {projectError}";
+
+        _logger.LogDebug("Analyzing project file: {ProjectPath}", projectPath);
+        return await ProjectAnalysisHelper.AnalyzeProjectAsync(projectPath, _logger);
+    }
+
+    /// <summary>
+    /// Analyze project dependencies to build a dependency graph showing direct package and project dependencies.
+    /// Returns structured JSON with dependency information. For transitive dependencies, use CLI commands.
+    /// </summary>
+    private async Task<string> DotnetProjectDependencies(string projectPath)
+    {
+        // Validate project path
+        if (!ParameterValidator.ValidateProjectPath(projectPath, out var projectError))
+            return $"Error: {projectError}";
+
+        _logger.LogDebug("Analyzing dependencies for: {ProjectPath}", projectPath);
+        return await ProjectAnalysisHelper.AnalyzeDependenciesAsync(projectPath, _logger);
+    }
+
+    /// <summary>
+    /// Validate a .csproj file for common issues, deprecated packages, and configuration problems.
+    /// Returns structured JSON with errors, warnings, and recommendations. Does not require building.
+    /// </summary>
+    private async Task<string> DotnetProjectValidate(string projectPath)
+    {
+        // Validate project path
+        if (!ParameterValidator.ValidateProjectPath(projectPath, out var projectError))
+            return $"Error: {projectError}";
+
+        _logger.LogDebug("Validating project: {ProjectPath}", projectPath);
+        return await ProjectAnalysisHelper.ValidateProjectAsync(projectPath, _logger);
     }
 }
