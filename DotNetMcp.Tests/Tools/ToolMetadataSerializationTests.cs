@@ -18,6 +18,7 @@ public class ToolMetadataSerializationTests
     /// <summary>
     /// Verifies that all tools with [McpServerTool] attribute can be discovered
     /// and their metadata is accessible.
+    /// After Phase 2: Only consolidated tools and utilities have [McpServerTool].
     /// </summary>
     [Fact]
     public void AllToolMethods_HaveMcpServerToolAttribute()
@@ -31,7 +32,8 @@ public class ToolMetadataSerializationTests
 
         // Assert
         Assert.NotEmpty(toolMethods);
-        Assert.True(toolMethods.Count >= 40, $"Expected at least 40 tool methods, found {toolMethods.Count}");
+        // Phase 2: Should have exactly 11 tools (8 consolidated + 3 utilities)
+        Assert.True(toolMethods.Count == 11, $"Expected exactly 11 tool methods (8 consolidated + 3 utilities), found {toolMethods.Count}");
     }
 
     /// <summary>
@@ -54,18 +56,19 @@ public class ToolMetadataSerializationTests
         // Assert
         Assert.NotEmpty(methodsWithMeta);
         
-        // Verify specific tools have expected metadata
-        var templateListMethod = toolMethods.FirstOrDefault(m => m.Name == "DotnetTemplateList");
-        Assert.NotNull(templateListMethod);
+        // Verify consolidated tool has expected metadata (using DotnetProject instead of legacy DotnetTemplateList)
+        var projectMethod = toolMethods.FirstOrDefault(m => m.Name == "DotnetProject");
+        Assert.NotNull(projectMethod);
         
-        var metaAttrs = templateListMethod.GetCustomAttributes<McpMetaAttribute>().ToList();
+        var metaAttrs = projectMethod.GetCustomAttributes<McpMetaAttribute>().ToList();
         Assert.NotEmpty(metaAttrs);
         
-        // Check for specific metadata
+        // Check for specific metadata on consolidated tools
         Assert.Contains(metaAttrs, m => m.Name == "category");
         Assert.Contains(metaAttrs, m => m.Name == "commonlyUsed");
         Assert.Contains(metaAttrs, m => m.Name == "priority");
-        Assert.Contains(metaAttrs, m => m.Name == "tags");
+        Assert.Contains(metaAttrs, m => m.Name == "consolidatedTool");
+        Assert.Contains(metaAttrs, m => m.Name == "actions");
     }
 
     /// <summary>

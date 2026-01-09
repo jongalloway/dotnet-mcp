@@ -146,7 +146,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("consolidatedTool", true)]
     [McpMeta("actions", JsonValue = """["Create","Add","List","Remove"]""")]
     [McpMeta("tags", JsonValue = """["solution","consolidated","create","add","list","remove","organization","multi-project"]""")]
-    public async Task<string> DotnetSolution(
+    public async partial Task<string> DotnetSolution(
         DotnetSolutionAction action,
         string? solution = null,
         string? name = null,

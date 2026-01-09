@@ -89,7 +89,7 @@ public sealed partial class DotNetCliTools
     [McpServerTool]
     [McpMeta("category", "help")]
     [McpMeta("priority", 5.0)]
-    public Task<string> DotnetServerInfo()
+    public partial Task<string> DotnetServerInfo()
     {
         var result = new StringBuilder();
         result.AppendLine("=== .NET MCP Server Capabilities ===");
