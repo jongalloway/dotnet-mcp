@@ -76,7 +76,7 @@ The .NET MCP Server provides two ways to get information:
 ```text
 ❌ Slower approach:
 "What templates are available?"
-AI: Executes dotnet_template_list (runs dotnet new list)
+AI: Executes dotnet_sdk (action: "ListTemplates", runs dotnet new list)
     ~800ms execution time
 
 ✅ Faster approach:
@@ -235,7 +235,7 @@ dotnet add package Serilog.Sinks.File
 dotnet list package --outdated
 
 # Update each outdated package to the latest compatible version
-# The AI uses dotnet_package_update tool which internally runs:
+# The AI uses dotnet_package (action: "Update") which internally runs:
 dotnet add package <PackageName>
 # This is repeated for each outdated package found
 ```
@@ -778,7 +778,7 @@ AI (suggested fix via .NET MCP):
 ```text
 # 1. Create Aspire application (via .NET MCP)
 User: "Create a microservices app with Aspire orchestration"
-AI: [creates projects via dotnet_project_new]
+AI: [creates projects via dotnet_project (action: "New")]
 
 # 2. Run application (via .NET MCP)
 AI: dotnet run --project MyApp.AppHost
@@ -965,7 +965,7 @@ AI: Reads dotnet://frameworks resource (fast, no execution)
 
 **❌ Less Efficient:**
 ```text
-AI: Executes dotnet_sdk_info (slower, runs dotnet command)
+AI: Executes dotnet_sdk (action: "Info", slower, runs dotnet command)
 ```
 
 ### 6. Bundle Related Operations
@@ -1025,7 +1025,7 @@ These modify state and must run sequentially.
 ```
 
 The AI will:
-1. Check installed workloads via `dotnet_workload_list`
+1. Check installed workloads via `dotnet_workload` (action: "List")
 2. Explain which are needed (maui-android, maui-ios, etc.)
 3. Warn about download size
 4. Offer to install them
@@ -1038,9 +1038,9 @@ The AI will:
 ```
 
 The AI will:
-1. Update packages via `dotnet_package_update`
-2. Build via `dotnet_project_build`
-3. Run tests via `dotnet_project_test`
+1. Update packages via `dotnet_package` (action: "Update")
+2. Build via `dotnet_project` (action: "Build")
+3. Run tests via `dotnet_project` (action: "Test")
 4. Report results
 
 ### 11. Use User Secrets for Sensitive Data
@@ -1341,7 +1341,7 @@ Creates `msbuild.binlog` for analysis with MSBuild Structured Log Viewer.
 "Analyze my project file and check for issues"
 ```
 
-AI uses `dotnet_project_analyze` to extract and validate project configuration.
+AI uses `dotnet_project` (action: "Analyze") to extract and validate project configuration.
 
 #### Test Specific Framework
 
@@ -1382,18 +1382,18 @@ The .NET MCP Server (v1.1+) implements automatic concurrency control to prevent 
 **Read-Only Operations:**
 These can always run concurrently with any other operations:
 
-- `dotnet_template_list` - List templates
-- `dotnet_template_search` - Search templates  
-- `dotnet_template_info` - Get template info
-- `dotnet_package_search` - Search NuGet packages
-- `dotnet_package_list` - List packages
-- `dotnet_sdk_info` - Get SDK information
-- `dotnet_sdk_list` - List SDKs
-- `dotnet_runtime_list` - List runtimes
-- `dotnet_solution_list` - List projects in solution
-- `dotnet_reference_list` - List project references
-- `dotnet_tool_list` - List tools
-- `dotnet_workload_list` - List workloads
+- `dotnet_sdk` (action: "ListTemplates") - List templates
+- `dotnet_sdk` (action: "SearchTemplates") - Search templates  
+- `dotnet_sdk` (action: "TemplateInfo") - Get template info
+- `dotnet_package` (action: "Search") - Search NuGet packages
+- `dotnet_package` (action: "List") - List packages
+- `dotnet_sdk` (action: "Info") - Get SDK information
+- `dotnet_sdk` (action: "ListSdks") - List SDKs
+- `dotnet_sdk` (action: "ListRuntimes") - List runtimes
+- `dotnet_solution` (action: "List") - List projects in solution
+- `dotnet_package` (action: "ListReferences") - List project references
+- `dotnet_tool` (action: "List") - List tools
+- `dotnet_workload` (action: "List") - List workloads
 - All MCP resources (dotnet://sdk-info, etc.)
 
 **Example - Parallel Discovery:**
@@ -1402,9 +1402,9 @@ User: "Show me available web templates, search for Entity Framework packages,
        and list my installed SDKs"
 
 AI can execute all three simultaneously:
-- dotnet_template_search "web"
-- dotnet_package_search "entityframework"
-- dotnet_sdk_list
+- dotnet_sdk (action: "SearchTemplates", searchTerm: "web")
+- dotnet_package (action: "Search", searchTerm: "entityframework")
+- dotnet_sdk (action: "ListSdks")
 
 All return immediately without conflicts.
 ```
@@ -1440,23 +1440,23 @@ dotnet sln remove Project2
 #### ❌ Never Run in Parallel
 
 **Long-Running Operations:**
-- `dotnet_project_build` (on same project)
-- `dotnet_project_test` (on same project)
-- `dotnet_project_run` (on same project)
-- `dotnet_project_publish` (on same project)
-- `dotnet_watch_*` (any watch command)
+- `dotnet_project` (action: "Build", on same project)
+- `dotnet_project` (action: "Test", on same project)
+- `dotnet_project` (action: "Run", on same project)
+- `dotnet_project` (action: "Publish", on same project)
+- `dotnet_project` (action: "Watch", any watch command)
 
 **Global Operations:**
-- `dotnet_template_clear_cache`
-- `dotnet_certificate_trust`
-- `dotnet_certificate_clean`
-- `dotnet_workload_install`
-- `dotnet_workload_update`
+- `dotnet_sdk` (action: "ClearTemplateCache")
+- `dotnet_dev_certs` (action: "CertificateTrust")
+- `dotnet_dev_certs` (action: "CertificateClean")
+- `dotnet_workload` (action: "Install")
+- `dotnet_workload` (action: "Update")
 
 **Database Operations:**
-- `dotnet_ef_database_update`
-- `dotnet_ef_database_drop`
-- `dotnet_ef_migrations_add` (on same DbContext)
+- `dotnet_ef` (action: "DatabaseUpdate")
+- `dotnet_ef` (action: "DatabaseDrop")
+- `dotnet_ef` (action: "MigrationsAdd", on same DbContext)
 
 ### Automatic Conflict Detection
 
@@ -1489,13 +1489,13 @@ User: "Create a web API, add EF Core packages, create a migration,
        and run the initial database update"
 
 AI Strategy (Sequential):
-1. dotnet_project_new (create project)
+1. dotnet_project (action: "New", create project)
    ↓ Wait for completion
-2. dotnet_package_add (add EF packages)  
+2. dotnet_package (action: "Add", add EF packages)  
    ↓ Wait for completion
-3. dotnet_ef_migrations_add (create migration)
+3. dotnet_ef (action: "MigrationsAdd", create migration)
    ↓ Wait for completion
-4. dotnet_ef_database_update (apply migration)
+4. dotnet_ef (action: "DatabaseUpdate", apply migration)
 ```
 
 #### Strategy 2: Parallel for Independent Operations
@@ -1507,9 +1507,9 @@ User: "Create three microservices: ProductApi, OrderApi, and CustomerApi"
 
 AI Strategy (Parallel):
 Simultaneously:
-- dotnet_project_new (template: "webapi", name: "ProductApi")
-- dotnet_project_new (template: "webapi", name: "OrderApi")
-- dotnet_project_new (template: "webapi", name: "CustomerApi")
+- dotnet_project (action: "New", template: "webapi", name: "ProductApi")
+- dotnet_project (action: "New", template: "webapi", name: "OrderApi")
+- dotnet_project (action: "New", template: "webapi", name: "CustomerApi")
 
 All complete faster than sequential execution.
 ```
@@ -1524,21 +1524,21 @@ User: "Create a solution with web app, API, and tests.
 
 AI Strategy:
 Stage 1 (Sequential): Create solution
-- dotnet_solution_create
+- dotnet_solution (action: "Create")
 
 Stage 2 (Parallel): Create projects
-- dotnet_project_new (webapp)
-- dotnet_project_new (webapi)  
-- dotnet_project_new (tests)
+- dotnet_project (action: "New", template: "webapp")
+- dotnet_project (action: "New", template: "webapi")  
+- dotnet_project (action: "New", template: "xunit")
 
 Stage 3 (Sequential): Add to solution
-- dotnet_solution_add (webapp)
-- dotnet_solution_add (webapi)
-- dotnet_solution_add (tests)
+- dotnet_solution (action: "Add", project: "webapp")
+- dotnet_solution (action: "Add", project: "webapi")
+- dotnet_solution (action: "Add", project: "tests")
 
 Stage 4 (Parallel): Add references
-- dotnet_reference_add (tests → webapi)
-- dotnet_reference_add (tests → webapp)
+- dotnet_package (action: "AddReference", from: "tests", to: "webapi")
+- dotnet_package (action: "AddReference", from: "tests", to: "webapp")
 ```
 
 #### Strategy 4: Optimistic with Retry
@@ -1617,7 +1617,7 @@ Prefer resources over tools for frequently accessed data:
 Read dotnet://templates resource
 
 ❌ Slower:
-Execute dotnet_template_list tool
+Execute dotnet_sdk (action: "ListTemplates")
 ```
 
 ### Performance Optimization
@@ -1632,14 +1632,14 @@ AI Optimized Strategy:
 Stage 1 (Parallel): Gather information
 - Read dotnet://frameworks (get latest LTS)
 - Read dotnet://templates (verify webapi exists)
-- dotnet_package_search "entityframework" (find EF packages)
-- dotnet_package_search "serilog" (find logging)
+- dotnet_package (action: "Search", searchTerm: "entityframework")
+- dotnet_package (action: "Search", searchTerm: "serilog")
 
 Stage 2 (Sequential): Create and configure
-- dotnet_project_new (using info from stage 1)
-- dotnet_package_add (multiple packages)
-- dotnet_project_build
-- dotnet_project_test
+- dotnet_project (action: "New", using info from stage 1)
+- dotnet_package (action: "Add", multiple packages)
+- dotnet_project (action: "Build")
+- dotnet_project (action: "Test")
 
 Result: Faster overall execution by parallelizing discovery.
 ```
@@ -1650,7 +1650,7 @@ Result: Faster overall execution by parallelizing discovery.
 User: "Build all projects in my solution"
 
 AI Strategy:
-1. dotnet_solution_list (get all projects)
+1. dotnet_solution (action: "List", get all projects)
 2. Analyze project graph for dependencies
 3. Build independent projects in parallel:
    - Shared.Core (no dependencies)
