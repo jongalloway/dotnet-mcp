@@ -24,6 +24,12 @@ jobs:
         with:
           fetch-depth: 0 # Required for MinVer to access Git history and tags
 
+      - name: Ensure NuGet cache folder exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.nuget/packages"
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
@@ -55,7 +61,7 @@ jobs:
 
           filename=$(basename "$nupkg")
           package_id="${{ env.PACKAGE_ID }}"
-          
+
           # Validate filename matches package ID with semantic version format
           # Semantic versioning: MAJOR.MINOR.PATCH[-PRERELEASE][+BUILD]
           # - Prerelease and build metadata use alphanumeric identifiers separated by dots

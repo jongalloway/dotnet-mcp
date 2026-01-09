@@ -2,7 +2,9 @@
 
 ## Project Overview
 
-This project is an MCP (Model Context Protocol) server that integrates with the .NET SDK. It provides both CLI command execution and **direct SDK integration** through official NuGet packages, offering rich metadata access and type-safe operations.
+This project is an **MCP (Model Context Protocol) server** that integrates with the .NET SDK. It provides both CLI command execution and **direct SDK integration** through official NuGet packages, offering rich metadata access and type-safe operations.
+
+**Important**: This package is designed exclusively as an **MCP server** for AI assistants. It is not intended for use as a library or for programmatic consumption in other .NET applications. The only supported use case is running it as an MCP server via `dnx` or `dotnet run`.
 
 ## Key Technologies
 
@@ -25,8 +27,9 @@ The server uses a **hybrid architecture**:
 - Use PascalCase for class names, method names, and public members
 - Use camelCase for local variables and parameters
 - Use descriptive names that clearly indicate purpose
-- **Tool method names follow the pattern: `Dotnet{Noun}{Verb}`** (e.g., `DotnetProjectBuild`, `DotnetTemplateList`)
-  - This aligns with the .NET 10 CLI naming direction: `dotnet_{noun}_{verb}`
+- **Consolidated tool method names follow the pattern: `Dotnet{Noun}`** (e.g., `DotnetProject`, `DotnetPackage`, `DotnetSolution`)
+  - Each consolidated tool accepts an `action` parameter to specify the operation
+  - This aligns with the consolidated tool design for better AI orchestration
 - Helper class methods should be descriptive: `GetInstalledTemplatesAsync`, `IsLtsFramework`
 
 ### Attribute Usage
