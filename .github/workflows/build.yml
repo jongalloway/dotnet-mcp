@@ -35,7 +35,7 @@ jobs:
           cache: true
           cache-dependency-path: |
             DotNetMcp.slnx
-            dotnet-tools.json
+            .config/dotnet-tools.json
             **/*.csproj
 
       - name: Display .NET info
