@@ -39,7 +39,8 @@ public class WorkloadToolsTests
         var result = await _tools.DotnetWorkloadSearch(machineReadable: true);
 
         Assert.NotNull(result);
-        // Search returns workload information
+        // Verify the command was executed (search returns workload information)
+        Assert.Contains("dotnet workload search", result);
     }
 
     [Fact]

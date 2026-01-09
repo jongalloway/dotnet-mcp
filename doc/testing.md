@@ -4,7 +4,7 @@ This repository uses an xUnit test project to validate the MCP server's behavior
 
 ## Test Coverage Summary
 
-- **Total Tests**: ~1054 passing tests (10 skipped interactive/integration tests)
+- **Total Tests**: 973 passing tests (10 skipped interactive/integration tests)
 - **Tool Coverage**: All 74 legacy MCP tools + 8 consolidated tools have comprehensive unit tests
 - **Code Coverage**: 73.2% line coverage
 - **Test Organization**: Tests are organized by category (Templates, Packages, Projects, Solutions, References, etc.)
