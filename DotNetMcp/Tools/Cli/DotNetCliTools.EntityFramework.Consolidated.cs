@@ -36,6 +36,7 @@ public sealed partial class DotNetCliTools
     /// <param name="noBuild">Do not build the project before executing the command</param>
     /// <param name="dryRun">Perform a dry run without actually executing (DatabaseDrop)</param>
     /// <param name="connectionDisplay">Show connection string used (MigrationsList)</param>
+    /// <param name="workingDirectory">Working directory for command execution</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpServerTool]
     [McpMeta("category", "ef")]
@@ -67,121 +68,125 @@ public sealed partial class DotNetCliTools
         bool noBuild = false,
         bool dryRun = false,
         bool connectionDisplay = false,
+        string? workingDirectory = null,
         bool machineReadable = false)
     {
-        // Validate action enum
-        if (!ParameterValidator.ValidateAction<DotnetEfAction>(action, out var actionError))
+        return await WithWorkingDirectoryAsync(workingDirectory, async () =>
         {
-            if (machineReadable)
+            // Validate action enum
+            if (!ParameterValidator.ValidateAction<DotnetEfAction>(action, out var actionError))
             {
-                var validActions = Enum.GetNames(typeof(DotnetEfAction));
-                var error = ErrorResultFactory.CreateActionValidationError(
-                    action.ToString(),
-                    validActions,
-                    toolName: "dotnet_ef");
-                return ErrorResultFactory.ToJson(error);
+                if (machineReadable)
+                {
+                    var validActions = Enum.GetNames(typeof(DotnetEfAction));
+                    var error = ErrorResultFactory.CreateActionValidationError(
+                        action.ToString(),
+                        validActions,
+                        toolName: "dotnet_ef");
+                    return ErrorResultFactory.ToJson(error);
+                }
+                return $"Error: {actionError}";
             }
-            return $"Error: {actionError}";
-        }
 
-        // Route to appropriate action handler
-        return action switch
-        {
-            DotnetEfAction.MigrationsAdd => await DotnetEfMigrationsAdd(
-                name: name!,
-                project: project,
-                startupProject: startupProject,
-                context: context,
-                outputDir: outputDir,
-                framework: framework,
-                machineReadable: machineReadable),
+            // Route to appropriate action handler
+            return action switch
+            {
+                DotnetEfAction.MigrationsAdd => await DotnetEfMigrationsAdd(
+                    name: name!,
+                    project: project,
+                    startupProject: startupProject,
+                    context: context,
+                    outputDir: outputDir,
+                    framework: framework,
+                    machineReadable: machineReadable),
 
-            DotnetEfAction.MigrationsList => await DotnetEfMigrationsList(
-                project: project,
-                startupProject: startupProject,
-                context: context,
-                framework: framework,
-                connection: connectionDisplay,
-                noBuild: noBuild,
-                machineReadable: machineReadable),
+                DotnetEfAction.MigrationsList => await DotnetEfMigrationsList(
+                    project: project,
+                    startupProject: startupProject,
+                    context: context,
+                    framework: framework,
+                    connection: connectionDisplay,
+                    noBuild: noBuild,
+                    machineReadable: machineReadable),
 
-            DotnetEfAction.MigrationsRemove => await DotnetEfMigrationsRemove(
-                project: project,
-                startupProject: startupProject,
-                context: context,
-                framework: framework,
-                force: force,
-                noBuild: noBuild,
-                machineReadable: machineReadable),
+                DotnetEfAction.MigrationsRemove => await DotnetEfMigrationsRemove(
+                    project: project,
+                    startupProject: startupProject,
+                    context: context,
+                    framework: framework,
+                    force: force,
+                    noBuild: noBuild,
+                    machineReadable: machineReadable),
 
-            DotnetEfAction.MigrationsScript => await DotnetEfMigrationsScript(
-                from: from,
-                to: to,
-                output: output,
-                project: project,
-                startupProject: startupProject,
-                context: context,
-                framework: framework,
-                idempotent: idempotent,
-                noBuild: noBuild,
-                machineReadable: machineReadable),
+                DotnetEfAction.MigrationsScript => await DotnetEfMigrationsScript(
+                    from: from,
+                    to: to,
+                    output: output,
+                    project: project,
+                    startupProject: startupProject,
+                    context: context,
+                    framework: framework,
+                    idempotent: idempotent,
+                    noBuild: noBuild,
+                    machineReadable: machineReadable),
 
-            DotnetEfAction.DatabaseUpdate => await DotnetEfDatabaseUpdate(
-                migration: migration,
-                project: project,
-                startupProject: startupProject,
-                context: context,
-                framework: framework,
-                connection: connection,
-                noBuild: noBuild,
-                machineReadable: machineReadable),
+                DotnetEfAction.DatabaseUpdate => await DotnetEfDatabaseUpdate(
+                    migration: migration,
+                    project: project,
+                    startupProject: startupProject,
+                    context: context,
+                    framework: framework,
+                    connection: connection,
+                    noBuild: noBuild,
+                    machineReadable: machineReadable),
 
-            DotnetEfAction.DatabaseDrop => await HandleDatabaseDropAction(
-                project: project,
-                startupProject: startupProject,
-                context: context,
-                framework: framework,
-                force: force,
-                dryRun: dryRun,
-                machineReadable: machineReadable),
+                DotnetEfAction.DatabaseDrop => await HandleDatabaseDropAction(
+                    project: project,
+                    startupProject: startupProject,
+                    context: context,
+                    framework: framework,
+                    force: force,
+                    dryRun: dryRun,
+                    machineReadable: machineReadable),
 
-            DotnetEfAction.DbContextList => await DotnetEfDbContextList(
-                project: project,
-                startupProject: startupProject,
-                framework: framework,
-                noBuild: noBuild,
-                machineReadable: machineReadable),
+                DotnetEfAction.DbContextList => await DotnetEfDbContextList(
+                    project: project,
+                    startupProject: startupProject,
+                    framework: framework,
+                    noBuild: noBuild,
+                    machineReadable: machineReadable),
 
-            DotnetEfAction.DbContextInfo => await DotnetEfDbContextInfo(
-                project: project,
-                startupProject: startupProject,
-                context: context,
-                framework: framework,
-                noBuild: noBuild,
-                machineReadable: machineReadable),
+                DotnetEfAction.DbContextInfo => await DotnetEfDbContextInfo(
+                    project: project,
+                    startupProject: startupProject,
+                    context: context,
+                    framework: framework,
+                    noBuild: noBuild,
+                    machineReadable: machineReadable),
 
-            DotnetEfAction.DbContextScaffold => await DotnetEfDbContextScaffold(
-                connection: connection!,
-                provider: provider!,
-                project: project,
-                startupProject: startupProject,
-                outputDir: outputDir,
-                contextDir: contextDir,
-                framework: framework,
-                tables: tables,
-                schemas: schemas,
-                useDatabaseNames: useDatabaseNames,
-                force: force,
-                noBuild: noBuild,
-                machineReadable: machineReadable),
+                DotnetEfAction.DbContextScaffold => await DotnetEfDbContextScaffold(
+                    connection: connection!,
+                    provider: provider!,
+                    project: project,
+                    startupProject: startupProject,
+                    outputDir: outputDir,
+                    contextDir: contextDir,
+                    framework: framework,
+                    tables: tables,
+                    schemas: schemas,
+                    useDatabaseNames: useDatabaseNames,
+                    force: force,
+                    noBuild: noBuild,
+                    machineReadable: machineReadable),
 
-            _ => machineReadable
-                ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateActionValidationError(
-                    action.ToString(),
-                    Enum.GetNames(typeof(DotnetEfAction)),
-                    toolName: "dotnet_ef"))
-                : $"Error: Unsupported action '{action}'"
-        };
+                _ => machineReadable
+                    ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateActionValidationError(
+                        action.ToString(),
+                        Enum.GetNames(typeof(DotnetEfAction)),
+                        toolName: "dotnet_ef"))
+                    : $"Error: Unsupported action '{action}'"
+            };
+        });
     }
 
     /// <summary>

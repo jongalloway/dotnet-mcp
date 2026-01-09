@@ -20,6 +20,90 @@ public class ConsolidatedProjectToolTests
         _tools = new DotNetCliTools(NullLogger<DotNetCliTools>.Instance, _concurrencyManager);
     }
 
+    [Fact]
+    public async Task DotnetProject_WithMissingWorkingDirectory_MachineReadable_ReturnsValidationError()
+    {
+        var missingDir = Path.Combine(Path.GetTempPath(), "dotnet-mcp-missing-" + Guid.NewGuid().ToString("N"));
+
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.Restore,
+            workingDirectory: missingDir,
+            machineReadable: true);
+
+        Assert.NotNull(result);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("INVALID_PARAMS", result);
+        Assert.Contains("workingDirectory", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_WorkingDirectory_UsesProvidedDirectoryForRestore()
+    {
+        // Arrange: use an empty temp dir so `dotnet restore` fails with MSB1003 about CWD.
+        var tempDir = Path.Combine(Path.GetTempPath(), "dotnet-mcp-wd-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            // Act
+            var result = await _tools.DotnetProject(
+                action: DotnetProjectAction.Restore,
+                workingDirectory: tempDir,
+                machineReadable: false);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Contains("MSB1003", result, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("current working directory", result, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(tempDir, recursive: true);
+            }
+            catch
+            {
+                // Best-effort cleanup
+            }
+        }
+    }
+
+    [Fact]
+    public async Task DotnetProject_WorkingDirectory_MachineReadable_RecordsCommandAndUsesProvidedDirectory()
+    {
+        // Arrange: use an empty temp dir so `dotnet restore` fails with MSB1003 about CWD.
+        var tempDir = Path.Combine(Path.GetTempPath(), "dotnet-mcp-wd-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            // Act
+            var result = await _tools.DotnetProject(
+                action: DotnetProjectAction.Restore,
+                workingDirectory: tempDir,
+                machineReadable: true);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Contains("\"success\": false", result);
+            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet restore");
+            Assert.Contains("MSB1003", result, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("current working directory", result, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(tempDir, recursive: true);
+            }
+            catch
+            {
+                // Best-effort cleanup
+            }
+        }
+    }
+
     #region Action Routing Tests
 
     [Fact]

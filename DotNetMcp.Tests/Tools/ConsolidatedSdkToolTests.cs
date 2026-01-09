@@ -24,6 +24,22 @@ public class ConsolidatedSdkToolTests
         _tools = new DotNetCliTools(_logger, _concurrencyManager);
     }
 
+    [Fact]
+    public async Task DotnetSdk_WithMissingWorkingDirectory_MachineReadable_ReturnsValidationError()
+    {
+        var missingDir = Path.Combine(Path.GetTempPath(), "dotnet-mcp-missing-" + Guid.NewGuid().ToString("N"));
+
+        var result = await _tools.DotnetSdk(
+            action: DotnetSdkAction.Version,
+            workingDirectory: missingDir,
+            machineReadable: true);
+
+        Assert.NotNull(result);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("INVALID_PARAMS", result);
+        Assert.Contains("workingDirectory", result, StringComparison.OrdinalIgnoreCase);
+    }
+
     #region Version Action Tests
 
     [Fact]

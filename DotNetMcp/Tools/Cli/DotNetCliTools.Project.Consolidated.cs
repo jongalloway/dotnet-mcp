@@ -42,6 +42,7 @@ public sealed partial class DotNetCliTools
     /// <param name="includeGenerated">Include generated code files for format action</param>
     /// <param name="diagnostics">Comma-separated list of diagnostic IDs to fix for format action</param>
     /// <param name="severity">Severity level to fix for format action (info, warn, error)</param>
+    /// <param name="workingDirectory">Working directory for command execution</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpServerTool]
     [McpMeta("category", "project")]
@@ -78,46 +79,50 @@ public sealed partial class DotNetCliTools
         bool? includeGenerated = null,
         string? diagnostics = null,
         string? severity = null,
+        string? workingDirectory = null,
         bool machineReadable = false)
     {
-        // Validate action parameter
-        if (!ParameterValidator.ValidateAction<DotnetProjectAction>(action, out var errorMessage))
+        return await WithWorkingDirectoryAsync(workingDirectory, async () =>
         {
-            if (machineReadable)
+            // Validate action parameter
+            if (!ParameterValidator.ValidateAction<DotnetProjectAction>(action, out var errorMessage))
             {
-                var validActions = Enum.GetNames(typeof(DotnetProjectAction));
-                var error = ErrorResultFactory.CreateActionValidationError(
-                    action.ToString(),
-                    validActions,
-                    toolName: "dotnet_project");
-                return ErrorResultFactory.ToJson(error);
+                if (machineReadable)
+                {
+                    var validActions = Enum.GetNames(typeof(DotnetProjectAction));
+                    var error = ErrorResultFactory.CreateActionValidationError(
+                        action.ToString(),
+                        validActions,
+                        toolName: "dotnet_project");
+                    return ErrorResultFactory.ToJson(error);
+                }
+                return $"Error: {errorMessage}";
             }
-            return $"Error: {errorMessage}";
-        }
 
-        // Route to appropriate handler based on action
-        return action switch
-        {
-            DotnetProjectAction.New => await HandleNewAction(template, name, output, framework, additionalOptions, machineReadable),
-            DotnetProjectAction.Restore => await HandleRestoreAction(project, machineReadable),
-            DotnetProjectAction.Build => await HandleBuildAction(project, configuration, framework, machineReadable),
-            DotnetProjectAction.Run => await HandleRunAction(project, configuration, appArgs, machineReadable),
-            DotnetProjectAction.Test => await HandleTestAction(project, configuration, filter, collect, resultsDirectory, logger, noBuild, noRestore, verbosity, framework, blame, listTests, machineReadable),
-            DotnetProjectAction.Publish => await HandlePublishAction(project, configuration, output, runtime, machineReadable),
-            DotnetProjectAction.Clean => await HandleCleanAction(project, configuration, machineReadable),
-            DotnetProjectAction.Analyze => await HandleAnalyzeAction(projectPath, machineReadable),
-            DotnetProjectAction.Dependencies => await HandleDependenciesAction(projectPath, machineReadable),
-            DotnetProjectAction.Validate => await HandleValidateAction(projectPath, machineReadable),
-            DotnetProjectAction.Pack => await HandlePackAction(project, configuration, output, includeSymbols, includeSource, machineReadable),
-            DotnetProjectAction.Watch => await HandleWatchAction(watchAction, project, configuration, appArgs, filter, noHotReload, machineReadable),
-            DotnetProjectAction.Format => await HandleFormatAction(project, verify, includeGenerated, diagnostics, severity, machineReadable),
-            _ => machineReadable
-                ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateValidationError(
-                    $"Action '{action}' is not supported.",
-                    parameterName: "action",
-                    reason: "not supported"))
-                : $"Error: Action '{action}' is not supported."
-        };
+            // Route to appropriate handler based on action
+            return action switch
+            {
+                DotnetProjectAction.New => await HandleNewAction(template, name, output, framework, additionalOptions, machineReadable),
+                DotnetProjectAction.Restore => await HandleRestoreAction(project, machineReadable),
+                DotnetProjectAction.Build => await HandleBuildAction(project, configuration, framework, machineReadable),
+                DotnetProjectAction.Run => await HandleRunAction(project, configuration, appArgs, machineReadable),
+                DotnetProjectAction.Test => await HandleTestAction(project, configuration, filter, collect, resultsDirectory, logger, noBuild, noRestore, verbosity, framework, blame, listTests, machineReadable),
+                DotnetProjectAction.Publish => await HandlePublishAction(project, configuration, output, runtime, machineReadable),
+                DotnetProjectAction.Clean => await HandleCleanAction(project, configuration, machineReadable),
+                DotnetProjectAction.Analyze => await HandleAnalyzeAction(projectPath, machineReadable),
+                DotnetProjectAction.Dependencies => await HandleDependenciesAction(projectPath, machineReadable),
+                DotnetProjectAction.Validate => await HandleValidateAction(projectPath, machineReadable),
+                DotnetProjectAction.Pack => await HandlePackAction(project, configuration, output, includeSymbols, includeSource, machineReadable),
+                DotnetProjectAction.Watch => await HandleWatchAction(watchAction, project, configuration, appArgs, filter, noHotReload, machineReadable),
+                DotnetProjectAction.Format => await HandleFormatAction(project, verify, includeGenerated, diagnostics, severity, machineReadable),
+                _ => machineReadable
+                    ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateValidationError(
+                        $"Action '{action}' is not supported.",
+                        parameterName: "action",
+                        reason: "not supported"))
+                    : $"Error: Action '{action}' is not supported."
+            };
+        });
     }
 
     private async Task<string> HandleNewAction(string? template, string? name, string? output, string? framework, string? additionalOptions, bool machineReadable)

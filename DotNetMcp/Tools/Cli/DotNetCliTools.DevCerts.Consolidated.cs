@@ -22,6 +22,7 @@ public sealed partial class DotNetCliTools
     /// <param name="trust">Also check if certificate is trusted (for cert_check action)</param>
     /// <param name="key">Secret key for set/remove operations (supports hierarchical keys like 'ConnectionStrings:Default')</param>
     /// <param name="value">Secret value for set operation</param>
+    /// <param name="workingDirectory">Working directory for command execution</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpServerTool]
     [McpMeta("category", "security")]
@@ -39,42 +40,46 @@ public sealed partial class DotNetCliTools
         bool trust = false,
         string? key = null,
         string? value = null,
+        string? workingDirectory = null,
         bool machineReadable = false)
     {
-        // Validate action enum
-        if (!ParameterValidator.ValidateAction<DotnetDevCertsAction>(action, out var actionError))
+        return await WithWorkingDirectoryAsync(workingDirectory, async () =>
         {
-            if (machineReadable)
+            // Validate action enum
+            if (!ParameterValidator.ValidateAction<DotnetDevCertsAction>(action, out var actionError))
             {
-                var validActions = Enum.GetNames(typeof(DotnetDevCertsAction));
-                var error = ErrorResultFactory.CreateActionValidationError(
-                    action.ToString(),
-                    validActions,
-                    toolName: "dotnet_dev_certs");
-                return ErrorResultFactory.ToJson(error);
+                if (machineReadable)
+                {
+                    var validActions = Enum.GetNames(typeof(DotnetDevCertsAction));
+                    var error = ErrorResultFactory.CreateActionValidationError(
+                        action.ToString(),
+                        validActions,
+                        toolName: "dotnet_dev_certs");
+                    return ErrorResultFactory.ToJson(error);
+                }
+                return $"Error: {actionError}";
             }
-            return $"Error: {actionError}";
-        }
 
-        // Route to appropriate action handler
-        return action switch
-        {
-            DotnetDevCertsAction.CertificateTrust => await HandleCertificateTrustAction(machineReadable),
-            DotnetDevCertsAction.CertificateCheck => await HandleCertificateCheckAction(trust, machineReadable),
-            DotnetDevCertsAction.CertificateClean => await HandleCertificateCleanAction(machineReadable),
-            DotnetDevCertsAction.CertificateExport => await HandleCertificateExportAction(path, password, format, machineReadable),
-            DotnetDevCertsAction.SecretsInit => await HandleSecretsInitAction(project, machineReadable),
-            DotnetDevCertsAction.SecretsSet => await HandleSecretsSetAction(key, value, project, machineReadable),
-            DotnetDevCertsAction.SecretsList => await HandleSecretsListAction(project, machineReadable),
-            DotnetDevCertsAction.SecretsRemove => await HandleSecretsRemoveAction(key, project, machineReadable),
-            DotnetDevCertsAction.SecretsClear => await HandleSecretsClearAction(project, machineReadable),
-            _ => machineReadable
-                ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateActionValidationError(
-                    action.ToString(),
-                    Enum.GetNames(typeof(DotnetDevCertsAction)),
-                    toolName: "dotnet_dev_certs"))
-                : $"Error: Unsupported action '{action}'"
-        };
+            // Route to appropriate action handler
+            return action switch
+            {
+                DotnetDevCertsAction.CertificateTrust => await HandleCertificateTrustAction(machineReadable),
+                DotnetDevCertsAction.CertificateCheck => await HandleCertificateCheckAction(trust, machineReadable),
+                DotnetDevCertsAction.CertificateClean => await HandleCertificateCleanAction(machineReadable),
+                DotnetDevCertsAction.CertificateExport => await HandleCertificateExportAction(path, password, format, machineReadable),
+                DotnetDevCertsAction.SecretsInit => await HandleSecretsInitAction(project, machineReadable),
+                DotnetDevCertsAction.SecretsSet => await HandleSecretsSetAction(key, value, project, machineReadable),
+                DotnetDevCertsAction.SecretsList => await HandleSecretsListAction(project, machineReadable),
+                DotnetDevCertsAction.SecretsRemove => await HandleSecretsRemoveAction(key, project, machineReadable),
+                DotnetDevCertsAction.SecretsClear => await HandleSecretsClearAction(project, machineReadable),
+                _ => machineReadable
+                    ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateActionValidationError(
+                        action.ToString(),
+                        Enum.GetNames(typeof(DotnetDevCertsAction)),
+                        toolName: "dotnet_dev_certs"))
+                    : $"Error: Unsupported action '{action}'"
+            };
+        });
     }
 
     private async Task<string> HandleCertificateTrustAction(bool machineReadable)

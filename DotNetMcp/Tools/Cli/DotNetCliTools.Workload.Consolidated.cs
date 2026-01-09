@@ -21,6 +21,7 @@ public sealed partial class DotNetCliTools
     /// <param name="includePreviews">Allow prerelease workload manifests (used with Install and Update actions)</param>
     /// <param name="source">NuGet package source to use during restore (used with Install and Update actions)</param>
     /// <param name="configFile">Path to NuGet configuration file to use (used with Install and Update actions)</param>
+    /// <param name="workingDirectory">Working directory for command execution</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpServerTool]
     [McpMeta("category", "workload")]
@@ -37,39 +38,43 @@ public sealed partial class DotNetCliTools
         bool includePreviews = false,
         string? source = null,
         string? configFile = null,
+        string? workingDirectory = null,
         bool machineReadable = false)
     {
-        // Validate action enum
-        if (!ParameterValidator.ValidateAction<DotnetWorkloadAction>(action, out var actionError))
+        return await WithWorkingDirectoryAsync(workingDirectory, async () =>
         {
-            if (machineReadable)
+            // Validate action enum
+            if (!ParameterValidator.ValidateAction<DotnetWorkloadAction>(action, out var actionError))
             {
-                var validActions = Enum.GetNames(typeof(DotnetWorkloadAction));
-                var error = ErrorResultFactory.CreateActionValidationError(
-                    action.ToString(),
-                    validActions,
-                    toolName: "dotnet_workload");
-                return ErrorResultFactory.ToJson(error);
+                if (machineReadable)
+                {
+                    var validActions = Enum.GetNames(typeof(DotnetWorkloadAction));
+                    var error = ErrorResultFactory.CreateActionValidationError(
+                        action.ToString(),
+                        validActions,
+                        toolName: "dotnet_workload");
+                    return ErrorResultFactory.ToJson(error);
+                }
+                return $"Error: {actionError}";
             }
-            return $"Error: {actionError}";
-        }
 
-        // Route to appropriate action handler
-        return action switch
-        {
-            DotnetWorkloadAction.List => await HandleListAction(machineReadable),
-            DotnetWorkloadAction.Info => await HandleInfoAction(machineReadable),
-            DotnetWorkloadAction.Search => await HandleSearchAction(searchTerm, machineReadable),
-            DotnetWorkloadAction.Install => await HandleInstallAction(workloadIds, skipManifestUpdate, includePreviews, source, configFile, machineReadable),
-            DotnetWorkloadAction.Update => await HandleUpdateAction(includePreviews, source, configFile, machineReadable),
-            DotnetWorkloadAction.Uninstall => await HandleUninstallAction(workloadIds, machineReadable),
-            _ => machineReadable
-                ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateActionValidationError(
-                    action.ToString(),
-                    Enum.GetNames(typeof(DotnetWorkloadAction)),
-                    toolName: "dotnet_workload"))
-                : $"Error: Unsupported action '{action}'"
-        };
+            // Route to appropriate action handler
+            return action switch
+            {
+                DotnetWorkloadAction.List => await HandleListAction(machineReadable),
+                DotnetWorkloadAction.Info => await HandleInfoAction(machineReadable),
+                DotnetWorkloadAction.Search => await HandleSearchAction(searchTerm, machineReadable),
+                DotnetWorkloadAction.Install => await HandleInstallAction(workloadIds, skipManifestUpdate, includePreviews, source, configFile, machineReadable),
+                DotnetWorkloadAction.Update => await HandleUpdateAction(includePreviews, source, configFile, machineReadable),
+                DotnetWorkloadAction.Uninstall => await HandleUninstallAction(workloadIds, machineReadable),
+                _ => machineReadable
+                    ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateActionValidationError(
+                        action.ToString(),
+                        Enum.GetNames(typeof(DotnetWorkloadAction)),
+                        toolName: "dotnet_workload"))
+                    : $"Error: Unsupported action '{action}'"
+            };
+        });
     }
 
     private async Task<string> HandleListAction(bool machineReadable)
@@ -108,7 +113,7 @@ public sealed partial class DotNetCliTools
         }
 
         var args = new StringBuilder("workload install");
-        
+
         // Add each workload ID
         foreach (var id in workloadIds!)
         {
@@ -130,7 +135,7 @@ public sealed partial class DotNetCliTools
         bool machineReadable)
     {
         var args = new StringBuilder("workload update");
-        
+
         if (includePreviews) args.Append(" --include-previews");
         if (!string.IsNullOrEmpty(source)) args.Append($" --source \"{source}\"");
         if (!string.IsNullOrEmpty(configFile)) args.Append($" --configfile \"{configFile}\"");
@@ -148,7 +153,7 @@ public sealed partial class DotNetCliTools
         }
 
         var args = new StringBuilder("workload uninstall");
-        
+
         // Add each workload ID
         foreach (var id in workloadIds!)
         {
