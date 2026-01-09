@@ -25,6 +25,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Ensure NuGet cache folder exists
+        run: mkdir -p /home/runner/.nuget/packages
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:

@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Text;
 using DotNetMcp.Actions;
 using ModelContextProtocol.Server;
@@ -33,13 +32,12 @@ public sealed partial class DotNetCliTools
     /// <param name="cacheType">Cache location to clear: all, http-cache, global-packages, temp, plugins-cache</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpServerTool]
-    [Description("Manage NuGet packages and project references. Supports add, remove, search, update, list packages, add/remove/list references, and clear cache.")]
     [McpMeta("category", "package")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("consolidatedTool", true)]
     [McpMeta("actions", JsonValue = """["Add","Remove","Search","Update","List","AddReference","RemoveReference","ListReferences","ClearCache"]""")]
-    public async Task<string> DotnetPackage(
+    public async partial Task<string> DotnetPackage(
         DotnetPackageAction action,
         string? packageId = null,
         string? version = null,
@@ -109,13 +107,49 @@ public sealed partial class DotNetCliTools
             return $"Error: {errorMessage}";
         }
 
-        // Route to existing DotnetPackageAdd method
-        return await DotnetPackageAdd(
-            packageName: packageId!,
-            project: project,
-            version: version,
-            prerelease: prerelease,
-            machineReadable: machineReadable);
+        // If no source/framework specified, preserve existing behavior by routing to DotnetPackageAdd
+        if (string.IsNullOrWhiteSpace(source) && string.IsNullOrWhiteSpace(framework))
+        {
+            return await DotnetPackageAdd(
+                packageName: packageId!,
+                project: project,
+                version: version,
+                prerelease: prerelease,
+                machineReadable: machineReadable);
+        }
+
+        // When source or framework are specified, execute 'dotnet add package' directly so those options are honored
+        var args = new StringBuilder("add");
+
+        if (!string.IsNullOrWhiteSpace(project))
+        {
+            args.Append($" \"{project}\"");
+        }
+
+        args.Append(" package");
+        args.Append($" \"{packageId}\"");
+
+        if (!string.IsNullOrWhiteSpace(version))
+        {
+            args.Append($" --version \"{version}\"");
+        }
+
+        if (prerelease)
+        {
+            args.Append(" --prerelease");
+        }
+
+        if (!string.IsNullOrWhiteSpace(source))
+        {
+            args.Append($" --source \"{source}\"");
+        }
+
+        if (!string.IsNullOrWhiteSpace(framework))
+        {
+            args.Append($" --framework \"{framework}\"");
+        }
+
+        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 
     private async Task<string> HandleRemoveAction(string? packageId, string? project, bool machineReadable)

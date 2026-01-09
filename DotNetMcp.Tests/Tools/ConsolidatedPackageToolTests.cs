@@ -82,6 +82,50 @@ public class ConsolidatedPackageToolTests
     }
 
     [Fact]
+    public async Task DotnetPackage_Add_WithSource_ExecutesCommand()
+    {
+        // Test add with source parameter
+        var result = await _tools.DotnetPackage(
+            action: DotnetPackageAction.Add,
+            packageId: "MyPackage",
+            source: "https://api.nuget.org/v3/index.json",
+            machineReadable: true);
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add package \"MyPackage\" --source \"https://api.nuget.org/v3/index.json\"");
+    }
+
+    [Fact]
+    public async Task DotnetPackage_Add_WithFramework_ExecutesCommand()
+    {
+        // Test add with framework parameter
+        var result = await _tools.DotnetPackage(
+            action: DotnetPackageAction.Add,
+            packageId: "MyPackage",
+            framework: "net8.0",
+            machineReadable: true);
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add package \"MyPackage\" --framework \"net8.0\"");
+    }
+
+    [Fact]
+    public async Task DotnetPackage_Add_WithSourceAndFramework_ExecutesCommand()
+    {
+        // Test add with both source and framework parameters
+        var result = await _tools.DotnetPackage(
+            action: DotnetPackageAction.Add,
+            packageId: "MyPackage",
+            version: "1.0.0",
+            source: "https://api.nuget.org/v3/index.json",
+            framework: "net10.0",
+            machineReadable: true);
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add package \"MyPackage\" --version \"1.0.0\" --source \"https://api.nuget.org/v3/index.json\" --framework \"net10.0\"");
+    }
+
+    [Fact]
     public async Task DotnetPackage_Add_WithoutPackageId_ReturnsError()
     {
         // Test that missing packageId returns error
