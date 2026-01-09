@@ -321,7 +321,7 @@ public static partial class ParameterValidator
         if (!Enum.IsDefined(typeof(TAction), action.Value))
         {
             var validActions = string.Join(", ", Enum.GetNames(typeof(TAction)));
-            errorMessage = $"Invalid action '{action}'. Valid actions: {validActions}";
+            errorMessage = $"Invalid action '{action}' is not supported. Valid actions: {validActions}";
             return false;
         }
 
