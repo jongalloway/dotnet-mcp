@@ -206,6 +206,66 @@ Validation errors occur **before** command execution when parameters are invalid
 }
 ```
 
+#### Action Parameter Validation (Consolidated Tools)
+
+**Consolidated tools** use an `action` parameter (enum) to select which operation to perform. Action validation occurs before execution and follows the same pattern as other parameter validation.
+
+**Characteristics:**
+- Error code: `INVALID_PARAMS`
+- Category: `Validation`
+- Exit code: `-1`
+- `data.additionalData` contains `parameter: "action"` and `reason: "invalid value"`
+
+**Example: Invalid Action Value**
+
+```json
+{
+  "success": false,
+  "errors": [
+    {
+      "code": "INVALID_PARAMS",
+      "message": "Invalid action 'build'. Allowed values: New, Restore, Build, Run, Test, Publish, Clean, Analyze, Dependencies, Validate, Pack, Watch, Format",
+      "category": "Validation",
+      "hint": "Verify the parameter values and try again.",
+      "rawOutput": "",
+      "mcpErrorCode": -32602,
+      "data": {
+        "exitCode": -1,
+        "additionalData": {
+          "parameter": "action",
+          "reason": "invalid value"
+        }
+      }
+    }
+  ],
+  "exitCode": -1
+}
+```
+
+**Note:** Action values are case-sensitive and must use PascalCase (e.g., `"New"` not `"new"`, `"MigrationsAdd"` not `"migrations_add"`).
+
+**Example: Successful Consolidated Tool Call**
+
+Request:
+```typescript
+await callTool("dotnet_project", {
+  action: "New",
+  template: "webapi",
+  name: "MyApi",
+  machineReadable: true
+});
+```
+
+Response:
+```json
+{
+  "success": true,
+  "command": "dotnet new webapi -n MyApi",
+  "output": "The template \"ASP.NET Core Web API\" was created successfully.\n\nProcessing post-creation actions...",
+  "exitCode": 0
+}
+```
+
 ### 2. Command Execution Failures
 
 Command execution errors occur when the dotnet CLI command runs but fails.
@@ -534,6 +594,195 @@ Server=localhost;Database=MyDb;User=admin;Password=[REDACTED]
 To disable redaction for debugging (use with caution):
 ```csharp
 await _tools.DotnetSdkVersion(machineReadable: true, unsafeOutput: true);
+```
+
+## Consolidated Tools Examples
+
+The following examples demonstrate machine-readable responses from consolidated tools, which group related operations using action enums.
+
+### Creating a Project with Consolidated Tools
+
+**Request:**
+```typescript
+await callTool("dotnet_project", {
+  action: "New",
+  template: "webapi",
+  name: "ProductApi",
+  framework: "net10.0",
+  machineReadable: true
+});
+```
+
+**Success Response:**
+```json
+{
+  "success": true,
+  "command": "dotnet new webapi -n ProductApi --framework net10.0",
+  "output": "The template \"ASP.NET Core Web API\" was created successfully.\n\nProcessing post-creation actions...\nRestoring NuGet packages...\nRestore completed in 2.3 sec for ProductApi.csproj.",
+  "exitCode": 0
+}
+```
+
+### Building a Project
+
+**Request:**
+```typescript
+await callTool("dotnet_project", {
+  action: "Build",
+  project: "ProductApi/ProductApi.csproj",
+  configuration: "Release",
+  machineReadable: true
+});
+```
+
+**Success Response:**
+```json
+{
+  "success": true,
+  "command": "dotnet build ProductApi/ProductApi.csproj -c Release",
+  "output": "Microsoft (R) Build Engine version 10.0.100+xyz\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:03.45",
+  "exitCode": 0
+}
+```
+
+### Managing Packages with Consolidated Tools
+
+**Request:**
+```typescript
+await callTool("dotnet_package", {
+  action: "Search",
+  searchTerm: "serilog",
+  take: 3,
+  machineReadable: true
+});
+```
+
+**Success Response:**
+```json
+{
+  "success": true,
+  "command": "dotnet package search serilog --take 3",
+  "output": "Package ID                        | Latest Version | Total Downloads\n----------------------------------+----------------+----------------\nSerilog                           | 4.0.0          | 250M+\nSerilog.AspNetCore                | 8.0.0          | 180M+\nSerilog.Sinks.Console             | 5.0.0          | 200M+",
+  "exitCode": 0
+}
+```
+
+**Adding a package:**
+```typescript
+await callTool("dotnet_package", {
+  action: "Add",
+  packageId: "Serilog.AspNetCore",
+  project: "ProductApi/ProductApi.csproj",
+  machineReadable: true
+});
+```
+
+**Success Response:**
+```json
+{
+  "success": true,
+  "command": "dotnet add ProductApi/ProductApi.csproj package Serilog.AspNetCore",
+  "output": "Determining projects to restore...\nWriting /tmp/tmpXYZ.tmp\ninfo : Adding PackageReference for package 'Serilog.AspNetCore' into project 'ProductApi.csproj'.\ninfo : Restoring packages for ProductApi.csproj...\ninfo : Package 'Serilog.AspNetCore' is compatible with all the specified frameworks.\ninfo : PackageReference for package 'Serilog.AspNetCore' version '8.0.0' added to file 'ProductApi.csproj'.",
+  "exitCode": 0
+}
+```
+
+### Entity Framework with Consolidated Tools
+
+**Request:**
+```typescript
+await callTool("dotnet_ef", {
+  action: "MigrationsAdd",
+  name: "InitialCreate",
+  project: "ProductApi/ProductApi.csproj",
+  machineReadable: true
+});
+```
+
+**Success Response:**
+```json
+{
+  "success": true,
+  "command": "dotnet ef migrations add InitialCreate --project ProductApi/ProductApi.csproj",
+  "output": "Build started...\nBuild succeeded.\nDone. To undo this action, use 'ef migrations remove'",
+  "exitCode": 0
+}
+```
+
+**Invalid action example:**
+```typescript
+await callTool("dotnet_ef", {
+  action: "InvalidAction",
+  project: "ProductApi/ProductApi.csproj",
+  machineReadable: true
+});
+```
+
+**Error Response:**
+```json
+{
+  "success": false,
+  "errors": [
+    {
+      "code": "INVALID_PARAMS",
+      "message": "Invalid action 'InvalidAction'. Allowed values: MigrationsAdd, MigrationsList, MigrationsRemove, MigrationsScript, DatabaseUpdate, DatabaseDrop, DbContextList, DbContextInfo, DbContextScaffold",
+      "category": "Validation",
+      "hint": "Verify the parameter values and try again.",
+      "rawOutput": "",
+      "mcpErrorCode": -32602,
+      "data": {
+        "exitCode": -1,
+        "additionalData": {
+          "parameter": "action",
+          "reason": "invalid value"
+        }
+      }
+    }
+  ],
+  "exitCode": -1
+}
+```
+
+### Solution Management
+
+**Request:**
+```typescript
+await callTool("dotnet_solution", {
+  action: "Create",
+  name: "MyApp",
+  format: "slnx",
+  machineReadable: true
+});
+```
+
+**Success Response:**
+```json
+{
+  "success": true,
+  "command": "dotnet new sln -n MyApp --use-slnx",
+  "output": "The template \"Solution File\" was created successfully.",
+  "exitCode": 0
+}
+```
+
+**Request:**
+```typescript
+await callTool("dotnet_solution", {
+  action: "Add",
+  solution: "MyApp.slnx",
+  projects: ["ProductApi/ProductApi.csproj", "ProductApi.Tests/ProductApi.Tests.csproj"],
+  machineReadable: true
+});
+```
+
+**Success Response:**
+```json
+{
+  "success": true,
+  "command": "dotnet sln MyApp.slnx add ProductApi/ProductApi.csproj ProductApi.Tests/ProductApi.Tests.csproj",
+  "output": "Project `ProductApi/ProductApi.csproj` added to the solution.\nProject `ProductApi.Tests/ProductApi.Tests.csproj` added to the solution.",
+  "exitCode": 0
+}
 ```
 
 ## Compliance Requirements
