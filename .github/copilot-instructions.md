@@ -362,6 +362,8 @@ To diagnose a specific pull request:
 pwsh -File scripts/download-coverage-artifact.ps1 -PullRequest <prNumber>
 ```
 
+When using `-PullRequest`, the script also downloads the latest successful run for the base branch (defaults to `-Branch main`) and prints a PR-vs-base delta. Use `-NoBaseCompare` to disable.
+
 Notes:
 
 - Requires GitHub CLI (`gh`) and auth (`gh auth login`).

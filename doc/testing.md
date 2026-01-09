@@ -117,6 +117,14 @@ To download coverage for a specific pull request:
 pwsh -File scripts/download-coverage-artifact.ps1 -PullRequest 285
 ```
 
+When using `-PullRequest`, the script also downloads the latest successful run for the base branch (defaults to `-Branch main`) and prints a PR-vs-base delta.
+
+To disable the base branch comparison:
+
+```powershell
+pwsh -File scripts/download-coverage-artifact.ps1 -PullRequest 285 -NoBaseCompare
+```
+
 Notes:
 
 - Requires GitHub CLI (`gh`) and auth (`gh auth login`).

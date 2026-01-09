@@ -17,6 +17,10 @@ GitHub Actions run ID (e.g. 20865330584).
 Pull request number. If provided, the script will locate the latest workflow run for the PR's
 head SHA and download the coverage artifact from that run.
 
+.PARAMETER NoBaseCompare
+When using -PullRequest, disables downloading and comparing against the latest successful run
+of the base branch (defaults to -Branch, typically 'main').
+
 .PARAMETER Workflow
 Workflow file name or workflow name to query. Defaults to "build.yml".
 
@@ -49,6 +53,9 @@ param(
 
   [Parameter(Mandatory = $false)]
   [int]$PullRequest,
+
+  [Parameter(Mandatory = $false)]
+  [switch]$NoBaseCompare,
 
   [Parameter(Mandatory = $false)]
   [string]$Workflow = "build.yml",
@@ -228,6 +235,25 @@ function Get-CoverageSummary([string]$coverageFile, [string]$repoRoot) {
     ForEach-Object {
       " - {0,6:P1}  {1,6}/{2,-6}  {3}" -f $_.LineRate, $_.Covered, $_.Total, $_.File
     } | Write-Host
+
+  return [pscustomobject]@{
+    LineRate = $lineRate
+    BranchRate = $branchRate
+  }
+}
+
+function Find-CoverageFile([string]$outPath) {
+  $coverageFile = Join-Path $outPath 'coverage.cobertura.xml'
+  if (Test-Path $coverageFile) {
+    return $coverageFile
+  }
+
+  $found = Get-ChildItem -Path $outPath -Recurse -Filter 'coverage.cobertura.xml' -ErrorAction SilentlyContinue | Select-Object -First 1
+  if ($found) {
+    return $found.FullName
+  }
+
+  return $null
 }
 
 # --- Main ---
@@ -256,6 +282,8 @@ if ($RunId -and $RunId -le 0) {
 $repoRoot = (Resolve-Path -Path .).Path
 $outRoot = Join-Path $repoRoot $OutDir
 
+$compareToBase = $false
+
 if ($PullRequest) {
   Write-Info "PullRequest provided; locating workflow run for PR #$PullRequest..."
   $candidates = Get-RunCandidatesForPullRequest -repo $Repo -workflow $Workflow -pullRequest $PullRequest
@@ -274,6 +302,8 @@ if ($PullRequest) {
   if (-not $RunId) {
     throw "Unable to download artifact '$ArtifactName' for PR #$PullRequest. The workflow may not have produced artifacts (e.g. failed before upload)."
   }
+
+  $compareToBase = (-not $NoBaseCompare)
 }
 else {
   if (-not $RunId) {
@@ -290,21 +320,43 @@ else {
   }
 }
 
-$coverageFile = Join-Path $outPath 'coverage.cobertura.xml'
-if (-not (Test-Path $coverageFile)) {
-  # Try to locate it just in case the artifact structure changes.
-  $found = Get-ChildItem -Path $outPath -Recurse -Filter 'coverage.cobertura.xml' -ErrorAction SilentlyContinue | Select-Object -First 1
-  if ($found) {
-    $coverageFile = $found.FullName
-  }
-}
-
-if (-not (Test-Path $coverageFile)) {
+$coverageFile = Find-CoverageFile -outPath $outPath
+if ([string]::IsNullOrWhiteSpace($coverageFile) -or -not (Test-Path $coverageFile)) {
   throw "Downloaded artifact, but coverage.cobertura.xml was not found under '$outPath'."
 }
 
 Write-Info "Found coverage file: $coverageFile"
-Get-CoverageSummary -coverageFile $coverageFile -repoRoot $repoRoot
+$prSummary = Get-CoverageSummary -coverageFile $coverageFile -repoRoot $repoRoot
+
+if ($compareToBase) {
+  Write-Info ""
+  Write-Info "Downloading baseline coverage for '$Branch' (latest successful run)..."
+
+  $baseRunId = Get-LatestSuccessfulRunId -repo $Repo -workflow $Workflow -branch $Branch
+  $baseOutPath = Join-Path (Join-Path $outRoot ("base-" + $Branch)) ("run-" + $baseRunId)
+  New-Item -ItemType Directory -Force -Path $baseOutPath | Out-Null
+
+  if (-not (Download-CoverageArtifactForRun -runId $baseRunId -repo $Repo -artifactName $ArtifactName -outPath $baseOutPath)) {
+    Write-Info "Warning: Failed to download baseline artifact '$ArtifactName' from run $baseRunId."
+  }
+  else {
+    $baseCoverageFile = Find-CoverageFile -outPath $baseOutPath
+    if ([string]::IsNullOrWhiteSpace($baseCoverageFile) -or -not (Test-Path $baseCoverageFile)) {
+      Write-Info "Warning: Downloaded baseline artifact, but coverage.cobertura.xml was not found under '$baseOutPath'."
+    }
+    else {
+      Write-Info ""
+      Write-Info "Baseline coverage file: $baseCoverageFile"
+      $baseSummary = Get-CoverageSummary -coverageFile $baseCoverageFile -repoRoot $repoRoot
+
+      $lineDelta = ($prSummary.LineRate - $baseSummary.LineRate) * 100
+      $branchDelta = ($prSummary.BranchRate - $baseSummary.BranchRate) * 100
+
+      Write-Info ""
+      Write-Info ("Delta vs '{0}' (percentage points): line={1:N2}pp branch={2:N2}pp" -f $Branch, $lineDelta, $branchDelta)
+    }
+  }
+}
 
 Write-Info ""
 Write-Info "Done. Coverage artifact saved at: $outPath"
