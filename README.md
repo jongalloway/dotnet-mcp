@@ -23,7 +23,9 @@ Click to install in your preferred environment:
 
 ## What is This?
 
-The .NET MCP Server is a bridge that connects AI assistants to the .NET SDK using the [Model Context Protocol](https://modelcontextprotocol.io/). Think of it as giving your AI assistant a direct line to `dotnet` commands, but with intelligence and context.
+The .NET MCP Server is a **Model Context Protocol (MCP) server** that connects AI assistants to the .NET SDK using the [Model Context Protocol](https://modelcontextprotocol.io/). Think of it as giving your AI assistant a direct line to `dotnet` commands, but with intelligence and context.
+
+> **Important**: This package is designed exclusively as an **MCP server** for AI assistants. It is not intended for use as a library or for programmatic consumption in other .NET applications. The only supported use case is running it as an MCP server via `dnx` or `dotnet run`.
 
 ```mermaid
 graph LR
@@ -661,6 +663,8 @@ dotnet workload update
 
 The server provides comprehensive .NET development capabilities through **consolidated MCP tools** that group related operations by domain, making it easier for AI assistants to select the right tool and compose workflows.
 
+> **Note**: The .NET MCP Server uses **consolidated tools only**. Each consolidated tool provides multiple related operations through an `action` parameter. This design improves AI orchestration and provides better semantic organization compared to having individual tools for each operation.
+
 ### MCP Resources (Read-Only Context)
 
 The server exposes read-only resources that provide efficient access to .NET environment metadata:
@@ -910,9 +914,10 @@ Key files to start with:
 
 ## Documentation
 
+- 📖 [CHANGELOG](CHANGELOG.md) - **Version history and release notes**
 - 📖 [AI Assistant Best Practices Guide](doc/ai-assistant-guide.md) - **Workflows, prompts, integration patterns, and troubleshooting**
 - 📖 [Machine-Readable JSON Contract](doc/machine-readable-contract.md) - **v1.0 stable contract for programmatic tool consumption**
-- 📖 [Tool Surface Consolidation Proposal](doc/tool-surface-consolidation.md) - **Strategic proposal to reduce tool count from 74 to 8 while preserving functionality**
+- 📖 [Tool Surface Consolidation](doc/tool-surface-consolidation.md) - **Consolidated tool design and architecture**
 - 📖 [SDK Integration Details](doc/sdk-integration.md) - Technical architecture and SDK usage
 - 📖 [Advanced Topics](doc/advanced-topics.md) - Performance, logging, and security details
 - 📖 [Concurrency Safety](doc/concurrency.md) - Parallel execution guidance for AI orchestrators
