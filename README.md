@@ -659,7 +659,7 @@ dotnet workload update
 
 ## Available Tools
 
-The server provides comprehensive .NET development capabilities through MCP tools and resources:
+The server provides comprehensive .NET development capabilities through MCP tools and resources. **New consolidated tools** group related operations by domain, making it easier for AI assistants to select the right tool and compose workflows.
 
 ### MCP Resources (Read-Only Context)
 
@@ -672,7 +672,187 @@ The server exposes read-only resources that provide efficient access to .NET env
 
 Resources provide structured JSON data and are more efficient than tool calls for frequently accessed read-only information.
 
-### Tools - Templates & Frameworks
+### Consolidated Tools (Recommended)
+
+**These tools group related operations using action enums, providing better AI orchestration and clearer semantic organization.**
+
+#### dotnet_project - Project Lifecycle Management
+
+Unified interface for all project operations: **New**, **Restore**, **Build**, **Run**, **Test**, **Publish**, **Clean**, **Analyze**, **Dependencies**, **Validate**, **Pack**, **Watch**, **Format**
+
+Example:
+```typescript
+// Create a new web API project
+await callTool("dotnet_project", { 
+  action: "New", 
+  template: "webapi", 
+  name: "MyApi" 
+});
+
+// Build the project
+await callTool("dotnet_project", { 
+  action: "Build", 
+  project: "MyApi/MyApi.csproj", 
+  configuration: "Release" 
+});
+```
+
+#### dotnet_package - Package and Reference Management
+
+Manage NuGet packages and project references: **Add**, **Remove**, **Search**, **Update**, **List**, **AddReference**, **RemoveReference**, **ListReferences**, **ClearCache**
+
+Example:
+```typescript
+// Search for a package
+await callTool("dotnet_package", { 
+  action: "Search", 
+  searchTerm: "serilog" 
+});
+
+// Add package to project
+await callTool("dotnet_package", { 
+  action: "Add", 
+  packageId: "Serilog.AspNetCore", 
+  project: "MyApi/MyApi.csproj" 
+});
+```
+
+#### dotnet_solution - Solution File Management
+
+Manage solution files and project membership: **Create**, **Add**, **List**, **Remove**
+
+Example:
+```typescript
+// Create a solution
+await callTool("dotnet_solution", { 
+  action: "Create", 
+  name: "MyApp", 
+  format: "slnx" 
+});
+
+// Add projects to solution
+await callTool("dotnet_solution", { 
+  action: "Add", 
+  solution: "MyApp.slnx", 
+  projects: ["MyApi/MyApi.csproj", "MyWeb/MyWeb.csproj"] 
+});
+```
+
+#### dotnet_ef - Entity Framework Core Operations
+
+Database migrations, DbContext management, and scaffolding: **MigrationsAdd**, **MigrationsList**, **MigrationsRemove**, **MigrationsScript**, **DatabaseUpdate**, **DatabaseDrop**, **DbContextList**, **DbContextInfo**, **DbContextScaffold**
+
+Example:
+```typescript
+// Create a migration
+await callTool("dotnet_ef", { 
+  action: "MigrationsAdd", 
+  name: "InitialCreate", 
+  project: "MyApi/MyApi.csproj" 
+});
+
+// Update database
+await callTool("dotnet_ef", { 
+  action: "DatabaseUpdate", 
+  project: "MyApi/MyApi.csproj" 
+});
+```
+
+#### dotnet_workload - Workload Management
+
+Install and manage .NET workloads (MAUI, WASM, etc.): **List**, **Info**, **Search**, **Install**, **Update**, **Uninstall**
+
+Example:
+```typescript
+// Search for workloads
+await callTool("dotnet_workload", { 
+  action: "Search", 
+  searchTerm: "maui" 
+});
+
+// Install workloads
+await callTool("dotnet_workload", { 
+  action: "Install", 
+  workloadIds: "maui-android,maui-ios" 
+});
+```
+
+#### dotnet_tool - .NET Tool Management
+
+Manage global and local .NET tools: **Install**, **List**, **Update**, **Uninstall**, **Restore**, **CreateManifest**, **Search**, **Run**
+
+Example:
+```typescript
+// Install a tool globally
+await callTool("dotnet_tool", { 
+  action: "Install", 
+  packageId: "dotnet-ef", 
+  global: true 
+});
+
+// Search for tools
+await callTool("dotnet_tool", { 
+  action: "Search", 
+  searchTerm: "format" 
+});
+```
+
+#### dotnet_sdk - SDK and Template Information
+
+Query SDK, runtime, template, and framework information: **Version**, **Info**, **ListSdks**, **ListRuntimes**, **ListTemplates**, **SearchTemplates**, **TemplateInfo**, **ClearTemplateCache**, **FrameworkInfo**, **CacheMetrics**
+
+Example:
+```typescript
+// Get SDK version
+await callTool("dotnet_sdk", { 
+  action: "Version" 
+});
+
+// List available templates
+await callTool("dotnet_sdk", { 
+  action: "ListTemplates" 
+});
+
+// Search for templates
+await callTool("dotnet_sdk", { 
+  action: "SearchTemplates", 
+  searchTerm: "web" 
+});
+```
+
+#### dotnet_dev_certs - Developer Certificates and Secrets
+
+Manage HTTPS certificates and user secrets: **CertificateTrust**, **CertificateCheck**, **CertificateClean**, **CertificateExport**, **SecretsInit**, **SecretsSet**, **SecretsList**, **SecretsRemove**, **SecretsClear**
+
+Example:
+```typescript
+// Trust development certificate
+await callTool("dotnet_dev_certs", { 
+  action: "CertificateTrust" 
+});
+
+// Set a user secret
+await callTool("dotnet_dev_certs", { 
+  action: "SecretsSet", 
+  key: "ConnectionStrings:DefaultConnection", 
+  value: "Server=localhost;Database=MyDb", 
+  project: "MyApi/MyApi.csproj" 
+});
+```
+
+**📘 Migration Guide:** See [doc/migration-guide.md](doc/migration-guide.md) for complete mapping from legacy tools to consolidated tools, including before/after examples and action reference tables.
+
+### Legacy Tools (Also Supported)
+
+The following individual tools continue to work alongside consolidated tools. While fully supported, **we recommend using consolidated tools for new integrations** as they provide better AI orchestration and clearer semantic grouping.
+
+**📘 Migration Guide:** See [doc/migration-guide.md](doc/migration-guide.md) for complete mapping from legacy tools to consolidated tools, including before/after examples and action reference tables.
+
+### Legacy Tools (Also Supported)
+
+The following individual tools continue to work alongside consolidated tools. While fully supported, **we recommend using consolidated tools for new integrations** as they provide better AI orchestration and clearer semantic grouping.
+
+#### Legacy - Templates & Frameworks
 
 - **dotnet_template_list** - List all installed .NET templates with metadata
 - **dotnet_template_search** - Search for templates by name or description
@@ -680,7 +860,7 @@ Resources provide structured JSON data and are more efficient than tool calls fo
 - **dotnet_template_clear_cache** - Clear template cache to force reload from disk
 - **dotnet_framework_info** - Get .NET framework version information and LTS status
 
-### Tools - Project Management
+#### Legacy - Project Management
 
 - **dotnet_project_new** - Create new .NET projects from templates
 - **dotnet_project_restore** - Restore project dependencies
@@ -697,7 +877,7 @@ Resources provide structured JSON data and are more efficient than tool calls fo
 - **dotnet_watch_test** - Run tests with auto-restart on file changes
 - **dotnet_watch_build** - Build with auto-rebuild on file changes
 
-### Tools - Package Management
+#### Legacy - Package Management
 
 - **dotnet_package_add** - Add NuGet package references
 - **dotnet_package_remove** - Remove NuGet package references
@@ -708,7 +888,7 @@ Resources provide structured JSON data and are more efficient than tool calls fo
 - **dotnet_reference_remove** - Remove project-to-project references
 - **dotnet_reference_list** - List project references
 
-### Tools - Tool Management
+#### Legacy - Tool Management
 
 - **dotnet_tool_install** - Install a .NET tool globally or locally to a tool manifest
 - **dotnet_tool_list** - List installed .NET tools (global or local from manifest)
@@ -719,7 +899,7 @@ Resources provide structured JSON data and are more efficient than tool calls fo
 - **dotnet_tool_search** - Search for .NET tools on NuGet.org
 - **dotnet_tool_run** - Run a .NET tool by its command name
 
-### Tools - Entity Framework Core
+#### Legacy - Entity Framework Core
 
 Entity Framework Core tools require the `dotnet-ef` tool to be installed (`dotnet tool install dotnet-ef --global`) and the `Microsoft.EntityFrameworkCore.Design` package in your project.
 
@@ -741,18 +921,18 @@ Entity Framework Core tools require the `dotnet-ef` tool to be installed (`dotne
 - **dotnet_ef_dbcontext_info** - Get DbContext information (connection string, provider)
 - **dotnet_ef_dbcontext_scaffold** - Reverse engineer database to entity classes (database-first)
 
-### Tools - Solution Management
+#### Legacy - Solution Management
 
 - **dotnet_solution_create** - Create new solution files (.sln or .slnx format)
 - **dotnet_solution_add** - Add projects to a solution
 - **dotnet_solution_list** - List projects in a solution
 - **dotnet_solution_remove** - Remove projects from a solution
 
-### Tools - Code Quality
+#### Legacy - Code Quality
 
 - **dotnet_format** - Format code according to .editorconfig and style rules
 
-### Tools - Security & Certificates
+#### Legacy - Security & Certificates
 
 - **dotnet_certificate_trust** - Trust the HTTPS development certificate (may require elevation)
 - **dotnet_certificate_check** - Check if HTTPS certificate exists and is trusted
@@ -764,7 +944,7 @@ Entity Framework Core tools require the `dotnet-ef` tool to be installed (`dotne
 - **dotnet_secrets_remove** - Remove a specific user secret by key
 - **dotnet_secrets_clear** - Clear all user secrets for a project
 
-### Tools - Workload Management
+#### Legacy - Workload Management
 
 - **dotnet_workload_list** - List installed workloads with versions and manifest information
 - **dotnet_workload_info** - Get detailed workload information including manifest paths and installation sources
@@ -773,11 +953,11 @@ Entity Framework Core tools require the `dotnet-ef` tool to be installed (`dotne
 - **dotnet_workload_update** - Update all installed workloads to latest versions (long-running operation)
 - **dotnet_workload_uninstall** - Uninstall workloads to free disk space
 
-### Tools - Utilities
+#### Legacy - Utilities
 
 - **dotnet_nuget_locals** - Manage NuGet local caches (list, clear)
 
-### Tools - SDK Information
+#### Legacy - SDK Information
 
 - **dotnet_sdk_version** - Get .NET SDK version
 - **dotnet_sdk_info** - Get detailed SDK and runtime information
