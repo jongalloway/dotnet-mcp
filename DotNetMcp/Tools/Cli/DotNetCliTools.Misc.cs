@@ -110,14 +110,14 @@ public sealed partial class DotNetCliTools
         result.AppendLine();
 
         result.AppendLine("CONSOLIDATED TOOLS:");
-        result.AppendLine("  • dotnet_project (12 actions): New, Restore, Build, Run, Test, Publish, Clean, Analyze, Dependencies, Validate, Pack, Watch, Format");
-        result.AppendLine("  • dotnet_package (8 actions): Add, Remove, Search, Update, List, AddReference, RemoveReference, ListReferences, ClearCache");
-        result.AppendLine("  • dotnet_solution (3 actions): Create, Add, List, Remove");
-        result.AppendLine("  • dotnet_ef (8 actions): MigrationsAdd, MigrationsList, MigrationsRemove, MigrationsScript, DatabaseUpdate, DatabaseDrop, DbContextList, DbContextInfo, DbContextScaffold");
-        result.AppendLine("  • dotnet_workload (5 actions): List, Info, Search, Install, Update, Uninstall");
-        result.AppendLine("  • dotnet_tool (7 actions): Install, List, Update, Uninstall, Restore, CreateManifest, Search, Run");
-        result.AppendLine("  • dotnet_sdk (9 actions): Version, Info, ListSdks, ListRuntimes, ListTemplates, SearchTemplates, TemplateInfo, ClearTemplateCache, FrameworkInfo, CacheMetrics");
-        result.AppendLine("  • dotnet_dev_certs (8 actions): CertificateTrust, CertificateCheck, CertificateClean, CertificateExport, SecretsInit, SecretsSet, SecretsList, SecretsRemove, SecretsClear");
+        result.AppendLine("  • dotnet_project (13 actions): New, Restore, Build, Run, Test, Publish, Clean, Analyze, Dependencies, Validate, Pack, Watch, Format");
+        result.AppendLine("  • dotnet_package (9 actions): Add, Remove, Search, Update, List, AddReference, RemoveReference, ListReferences, ClearCache");
+        result.AppendLine("  • dotnet_solution (4 actions): Create, Add, List, Remove");
+        result.AppendLine("  • dotnet_ef (9 actions): MigrationsAdd, MigrationsList, MigrationsRemove, MigrationsScript, DatabaseUpdate, DatabaseDrop, DbContextList, DbContextInfo, DbContextScaffold");
+        result.AppendLine("  • dotnet_workload (6 actions): List, Info, Search, Install, Update, Uninstall");
+        result.AppendLine("  • dotnet_tool (8 actions): Install, List, Update, Uninstall, Restore, CreateManifest, Search, Run");
+        result.AppendLine("  • dotnet_sdk (10 actions): Version, Info, ListSdks, ListRuntimes, ListTemplates, SearchTemplates, TemplateInfo, ClearTemplateCache, FrameworkInfo, CacheMetrics");
+        result.AppendLine("  • dotnet_dev_certs (9 actions): CertificateTrust, CertificateCheck, CertificateClean, CertificateExport, SecretsInit, SecretsSet, SecretsList, SecretsRemove, SecretsClear");
         result.AppendLine();
 
         result.AppendLine("UTILITY TOOLS:");
