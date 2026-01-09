@@ -5,7 +5,10 @@ using Xunit;
 namespace DotNetMcp.Tests;
 
 /// <summary>
-/// Tests for reference-related MCP tools
+/// Backward compatibility smoke tests for legacy reference-related MCP tools.
+/// 
+/// NOTE: Comprehensive tests are in ConsolidatedPackageToolTests.cs (references are part of package management).
+/// These tests ensure legacy tools still work for backwards compatibility.
 /// </summary>
 public class ReferenceToolsTests
 {
@@ -19,90 +22,37 @@ public class ReferenceToolsTests
     }
 
     [Fact]
-    public async Task DotnetReferenceAdd_WithRequiredParameters_BuildsCorrectCommand()
+    public async Task DotnetReferenceAdd_BackCompatSmokeTest()
     {
-        // Act
+        // Smoke test: ensure legacy tool still works
         var result = await _tools.DotnetReferenceAdd(
             project: "MyProject.csproj",
             reference: "MyLibrary.csproj",
             machineReadable: true);
 
-        // Assert
         Assert.NotNull(result);
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add \"MyProject.csproj\" reference \"MyLibrary.csproj\"");
     }
 
     [Fact]
-    public async Task DotnetReferenceAdd_WithMachineReadable_BuildsCorrectCommand()
+    public async Task DotnetReferenceList_BackCompatSmokeTest()
     {
-        // Act
-        var result = await _tools.DotnetReferenceAdd(
-            project: "MyProject.csproj",
-            reference: "MyLibrary.csproj",
-            machineReadable: true);
-
-        // Assert
-        Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add \"MyProject.csproj\" reference \"MyLibrary.csproj\"");
-    }
-
-    [Fact]
-    public async Task DotnetReferenceList_WithoutParameters_BuildsCorrectCommand()
-    {
-        // Act
+        // Smoke test: ensure legacy tool still works
         var result = await _tools.DotnetReferenceList(machineReadable: true);
 
-        // Assert
         Assert.NotNull(result);
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet list reference");
     }
 
     [Fact]
-    public async Task DotnetReferenceList_WithProject_BuildsCorrectCommand()
+    public async Task DotnetReferenceRemove_BackCompatSmokeTest()
     {
-        // Act
-        var result = await _tools.DotnetReferenceList(project: "MyProject.csproj", machineReadable: true);
-
-        // Assert
-        Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet list \"MyProject.csproj\" reference");
-    }
-
-    [Fact]
-    public async Task DotnetReferenceList_WithMachineReadable_BuildsCorrectCommand()
-    {
-        // Act
-        var result = await _tools.DotnetReferenceList(machineReadable: true);
-
-        // Assert
-        Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet list reference");
-    }
-
-    [Fact]
-    public async Task DotnetReferenceRemove_WithRequiredParameters_BuildsCorrectCommand()
-    {
-        // Act
+        // Smoke test: ensure legacy tool still works
         var result = await _tools.DotnetReferenceRemove(
             project: "MyProject.csproj",
             reference: "MyLibrary.csproj",
             machineReadable: true);
 
-        // Assert
-        Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet remove \"MyProject.csproj\" reference \"MyLibrary.csproj\"");
-    }
-
-    [Fact]
-    public async Task DotnetReferenceRemove_WithMachineReadable_BuildsCorrectCommand()
-    {
-        // Act
-        var result = await _tools.DotnetReferenceRemove(
-            project: "MyProject.csproj",
-            reference: "MyLibrary.csproj",
-            machineReadable: true);
-
-        // Assert
         Assert.NotNull(result);
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet remove \"MyProject.csproj\" reference \"MyLibrary.csproj\"");
     }
