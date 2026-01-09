@@ -25,7 +25,7 @@ public class SdkAndServerInfoToolsTests
     public async Task DotnetSdkInfo_ReturnsSDKInformation()
     {
         // Act
-        var result = await _tools.DotnetSdkInfo();
+        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Info);
 
         // Assert
         Assert.NotNull(result);
@@ -41,7 +41,7 @@ public class SdkAndServerInfoToolsTests
     public async Task DotnetSdkInfo_WithMachineReadable_ReturnsStructuredOutput()
     {
         // Act
-        var result = await _tools.DotnetSdkInfo(machineReadable: true);
+        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Info, machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
@@ -52,7 +52,7 @@ public class SdkAndServerInfoToolsTests
     public async Task DotnetSdkVersion_ReturnsSDKVersion()
     {
         // Act
-        var result = await _tools.DotnetSdkVersion();
+        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Version);
 
         // Assert
         Assert.NotNull(result);
@@ -65,7 +65,7 @@ public class SdkAndServerInfoToolsTests
     public async Task DotnetSdkVersion_WithMachineReadable_ReturnsStructuredOutput()
     {
         // Act
-        var result = await _tools.DotnetSdkVersion(machineReadable: true);
+        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Version, machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
@@ -76,7 +76,7 @@ public class SdkAndServerInfoToolsTests
     public async Task DotnetSdkList_ReturnsInstalledSDKs()
     {
         // Act
-        var result = await _tools.DotnetSdkList();
+        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.ListSdks);
 
         // Assert
         Assert.NotNull(result);
@@ -92,7 +92,7 @@ public class SdkAndServerInfoToolsTests
     public async Task DotnetSdkList_WithMachineReadable_ReturnsStructuredOutput()
     {
         // Act
-        var result = await _tools.DotnetSdkList(machineReadable: true);
+        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.ListSdks, machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
@@ -103,7 +103,7 @@ public class SdkAndServerInfoToolsTests
     public async Task DotnetRuntimeList_ReturnsInstalledRuntimes()
     {
         // Act
-        var result = await _tools.DotnetRuntimeList();
+        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.ListRuntimes);
 
         // Assert
         Assert.NotNull(result);
@@ -119,7 +119,7 @@ public class SdkAndServerInfoToolsTests
     public async Task DotnetRuntimeList_WithMachineReadable_ReturnsStructuredOutput()
     {
         // Act
-        var result = await _tools.DotnetRuntimeList(machineReadable: true);
+        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.ListRuntimes, machineReadable: true);
 
         // Assert
         Assert.NotNull(result);

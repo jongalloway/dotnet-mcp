@@ -102,7 +102,7 @@ public class PerformanceSmokeTests
         // Warmup
         for (int i = 0; i < WarmupIterations; i++)
         {
-            await _tools.DotnetSdkVersion();
+            await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Version);
         }
         
         // Measurement iterations
@@ -112,7 +112,7 @@ public class PerformanceSmokeTests
         for (int i = 0; i < MeasurementIterations; i++)
         {
             sw.Restart();
-            var result = await _tools.DotnetSdkVersion();
+            var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Version);
             sw.Stop();
             
             // Verify the call succeeded

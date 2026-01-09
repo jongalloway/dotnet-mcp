@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
@@ -23,13 +22,12 @@ public sealed partial class DotNetCliTools
     /// <param name="workingDirectory">Working directory for command execution</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpServerTool]
-    [Description("Query .NET SDK, runtime, template, and framework information. Supports version info, SDK/runtime listing, template operations, framework metadata, and cache metrics.")]
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("consolidatedTool", true)]
     [McpMeta("actions", JsonValue = """["Version","Info","ListSdks","ListRuntimes","ListTemplates","SearchTemplates","TemplateInfo","ClearTemplateCache","FrameworkInfo","CacheMetrics"]""")]
-    internal async Task<string> DotnetSdk(
+    public async partial Task<string> DotnetSdk(
         DotnetSdkAction action,
         string? searchTerm = null,
         string? templateShortName = null,
@@ -58,7 +56,7 @@ public sealed partial class DotNetCliTools
             // Route to appropriate handler based on action
             return action switch
             {
-                // Use executor directly so workingDirectory is honored without changing legacy tool signatures
+                // Use executor directly so workingDirectory is honored without changing helper method signatures
                 DotnetSdkAction.Version => await ExecuteDotNetCommand("--version", machineReadable),
                 DotnetSdkAction.Info => await ExecuteDotNetCommand("--info", machineReadable),
                 DotnetSdkAction.ListSdks => await ExecuteDotNetCommand("--list-sdks", machineReadable),

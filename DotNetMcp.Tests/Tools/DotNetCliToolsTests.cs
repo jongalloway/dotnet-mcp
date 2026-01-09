@@ -384,8 +384,9 @@ public class DotNetCliToolsTests
     public async Task DotnetToolInstall_WithPackageName_ExecutesCommand()
     {
         // Validates that tool install with package name works
-        var result = await _tools.DotnetToolInstall(
-            packageName: "dotnet-ef");
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Install,
+            packageId: "dotnet-ef");
 
         Assert.NotNull(result);
     }
@@ -394,8 +395,9 @@ public class DotNetCliToolsTests
     public async Task DotnetToolInstall_WithGlobalFlag_ExecutesCommand()
     {
         // Validates that global tool install works
-        var result = await _tools.DotnetToolInstall(
-            packageName: "dotnet-ef",
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Install,
+            packageId: "dotnet-ef",
             global: true);
 
         Assert.NotNull(result);
@@ -405,8 +407,9 @@ public class DotNetCliToolsTests
     public async Task DotnetToolInstall_WithVersion_ExecutesCommand()
     {
         // Validates that tool install with specific version works
-        var result = await _tools.DotnetToolInstall(
-            packageName: "dotnet-ef",
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Install,
+            packageId: "dotnet-ef",
             version: "8.0.0");
 
         Assert.NotNull(result);
@@ -416,8 +419,9 @@ public class DotNetCliToolsTests
     public async Task DotnetToolInstall_WithFramework_ExecutesCommand()
     {
         // Validates that tool install with framework works
-        var result = await _tools.DotnetToolInstall(
-            packageName: "dotnet-ef",
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Install,
+            packageId: "dotnet-ef",
             framework: "net8.0");
 
         Assert.NotNull(result);
@@ -427,8 +431,9 @@ public class DotNetCliToolsTests
     public async Task DotnetToolInstall_WithAllParameters_ExecutesCommand()
     {
         // Validates that all parameters work together
-        var result = await _tools.DotnetToolInstall(
-            packageName: "dotnet-ef",
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Install,
+            packageId: "dotnet-ef",
             global: true,
             version: "8.0.0",
             framework: "net8.0");
@@ -440,18 +445,22 @@ public class DotNetCliToolsTests
     public async Task DotnetToolInstall_WithEmptyPackageName_ReturnsError()
     {
         // Validates that empty package name returns error
-        var result = await _tools.DotnetToolInstall(
-            packageName: "");
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Install,
+            packageId: "");
 
         Assert.Contains("Error", result);
-        Assert.Contains("packageName parameter is required", result);
+        Assert.Contains("packageId", result);
+        Assert.Contains("required", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task DotnetToolList_WithoutGlobalFlag_ExecutesCommand()
     {
         // Validates that local tool list works
-        var result = await _tools.DotnetToolList(machineReadable: true);
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.List,
+            machineReadable: true);
 
         Assert.NotNull(result);
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet tool list");
@@ -461,7 +470,8 @@ public class DotNetCliToolsTests
     public async Task DotnetToolList_WithGlobalFlag_ExecutesCommand()
     {
         // Validates that global tool list works
-        var result = await _tools.DotnetToolList(
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.List,
             global: true,
             machineReadable: true);
 
@@ -473,8 +483,9 @@ public class DotNetCliToolsTests
     public async Task DotnetToolUpdate_WithPackageName_ExecutesCommand()
     {
         // Validates that tool update with package name works
-        var result = await _tools.DotnetToolUpdate(
-            packageName: "dotnet-ef");
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Update,
+            packageId: "dotnet-ef");
 
         Assert.NotNull(result);
     }
@@ -483,8 +494,9 @@ public class DotNetCliToolsTests
     public async Task DotnetToolUpdate_WithGlobalFlag_ExecutesCommand()
     {
         // Validates that global tool update works
-        var result = await _tools.DotnetToolUpdate(
-            packageName: "dotnet-ef",
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Update,
+            packageId: "dotnet-ef",
             global: true);
 
         Assert.NotNull(result);
@@ -494,8 +506,9 @@ public class DotNetCliToolsTests
     public async Task DotnetToolUpdate_WithVersion_ExecutesCommand()
     {
         // Validates that tool update to specific version works
-        var result = await _tools.DotnetToolUpdate(
-            packageName: "dotnet-ef",
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Update,
+            packageId: "dotnet-ef",
             version: "8.0.1");
 
         Assert.NotNull(result);
@@ -505,19 +518,22 @@ public class DotNetCliToolsTests
     public async Task DotnetToolUpdate_WithEmptyPackageName_ReturnsError()
     {
         // Validates that empty package name returns error
-        var result = await _tools.DotnetToolUpdate(
-            packageName: "");
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Update,
+            packageId: "");
 
         Assert.Contains("Error", result);
-        Assert.Contains("packageName parameter is required", result);
+        Assert.Contains("packageId", result);
+        Assert.Contains("required", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task DotnetToolUninstall_WithPackageName_ExecutesCommand()
     {
         // Validates that tool uninstall with package name works
-        var result = await _tools.DotnetToolUninstall(
-            packageName: "dotnet-ef");
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Uninstall,
+            packageId: "dotnet-ef");
 
         Assert.NotNull(result);
     }
@@ -526,8 +542,9 @@ public class DotNetCliToolsTests
     public async Task DotnetToolUninstall_WithGlobalFlag_ExecutesCommand()
     {
         // Validates that global tool uninstall works
-        var result = await _tools.DotnetToolUninstall(
-            packageName: "dotnet-ef",
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Uninstall,
+            packageId: "dotnet-ef",
             global: true);
 
         Assert.NotNull(result);
@@ -537,18 +554,20 @@ public class DotNetCliToolsTests
     public async Task DotnetToolUninstall_WithEmptyPackageName_ReturnsError()
     {
         // Validates that empty package name returns error
-        var result = await _tools.DotnetToolUninstall(
-            packageName: "");
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Uninstall,
+            packageId: "");
 
         Assert.Contains("Error", result);
-        Assert.Contains("packageName parameter is required", result);
+        Assert.Contains("packageId", result);
+        Assert.Contains("required", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task DotnetToolRestore_ExecutesCommand()
     {
         // Validates that tool restore command works
-        var result = await _tools.DotnetToolRestore();
+        var result = await _tools.DotnetTool(action: DotNetMcp.Actions.DotnetToolAction.Restore);
 
         Assert.NotNull(result);
     }
@@ -562,7 +581,8 @@ public class DotNetCliToolsTests
 
         try
         {
-            var result = await _tools.DotnetToolManifestCreate(
+            var result = await _tools.DotnetTool(
+                action: DotNetMcp.Actions.DotnetToolAction.CreateManifest,
                 output: tempDirectory,
                 machineReadable: true);
 
@@ -585,7 +605,8 @@ public class DotNetCliToolsTests
 
         try
         {
-            var result = await _tools.DotnetToolManifestCreate(
+            var result = await _tools.DotnetTool(
+                action: DotNetMcp.Actions.DotnetToolAction.CreateManifest,
                 output: tempDirectory,
                 machineReadable: true);
 
@@ -608,7 +629,8 @@ public class DotNetCliToolsTests
 
         try
         {
-            var result = await _tools.DotnetToolManifestCreate(
+            var result = await _tools.DotnetTool(
+                action: DotNetMcp.Actions.DotnetToolAction.CreateManifest,
                 output: tempDirectory,
                 force: true,
                 machineReadable: true);
@@ -632,7 +654,8 @@ public class DotNetCliToolsTests
 
         try
         {
-            var result = await _tools.DotnetToolManifestCreate(
+            var result = await _tools.DotnetTool(
+                action: DotNetMcp.Actions.DotnetToolAction.CreateManifest,
                 output: tempDirectory,
                 force: true,
                 machineReadable: true);
@@ -651,7 +674,8 @@ public class DotNetCliToolsTests
     public async Task DotnetToolSearch_WithSearchTerm_ExecutesCommand()
     {
         // Validates that tool search with search term works
-        var result = await _tools.DotnetToolSearch(
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Search,
             searchTerm: "entity");
 
         Assert.NotNull(result);
@@ -661,7 +685,8 @@ public class DotNetCliToolsTests
     public async Task DotnetToolSearch_WithDetail_ExecutesCommand()
     {
         // Validates that tool search with detail flag works
-        var result = await _tools.DotnetToolSearch(
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Search,
             searchTerm: "entity",
             detail: true);
 
@@ -672,7 +697,8 @@ public class DotNetCliToolsTests
     public async Task DotnetToolSearch_WithTakeAndSkip_ExecutesCommand()
     {
         // Validates that tool search with pagination works
-        var result = await _tools.DotnetToolSearch(
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Search,
             searchTerm: "entity",
             take: 10,
             skip: 5);
@@ -684,7 +710,8 @@ public class DotNetCliToolsTests
     public async Task DotnetToolSearch_WithPrerelease_ExecutesCommand()
     {
         // Validates that tool search with prerelease flag works
-        var result = await _tools.DotnetToolSearch(
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Search,
             searchTerm: "entity",
             prerelease: true);
 
@@ -695,7 +722,8 @@ public class DotNetCliToolsTests
     public async Task DotnetToolSearch_WithAllParameters_ExecutesCommand()
     {
         // Validates that all parameters work together
-        var result = await _tools.DotnetToolSearch(
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Search,
             searchTerm: "entity",
             detail: true,
             take: 10,
@@ -709,18 +737,21 @@ public class DotNetCliToolsTests
     public async Task DotnetToolSearch_WithEmptySearchTerm_ReturnsError()
     {
         // Validates that empty search term returns error
-        var result = await _tools.DotnetToolSearch(
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Search,
             searchTerm: "");
 
         Assert.Contains("Error", result);
-        Assert.Contains("searchTerm parameter is required", result);
+        Assert.Contains("searchTerm", result);
+        Assert.Contains("required", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task DotnetToolRun_WithToolName_ExecutesCommand()
     {
         // Validates that tool run with tool name works
-        var result = await _tools.DotnetToolRun(
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Run,
             toolName: "dotnet-ef");
 
         Assert.NotNull(result);
@@ -730,7 +761,8 @@ public class DotNetCliToolsTests
     public async Task DotnetToolRun_WithArgs_ExecutesCommand()
     {
         // Validates that tool run with arguments works
-        var result = await _tools.DotnetToolRun(
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Run,
             toolName: "dotnet-ef",
             args: "migrations add Initial");
 
@@ -741,18 +773,21 @@ public class DotNetCliToolsTests
     public async Task DotnetToolRun_WithEmptyToolName_ReturnsError()
     {
         // Validates that empty tool name returns error
-        var result = await _tools.DotnetToolRun(
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Run,
             toolName: "");
 
         Assert.Contains("Error", result);
-        Assert.Contains("toolName parameter is required", result);
+        Assert.Contains("toolName", result);
+        Assert.Contains("required", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task DotnetToolRun_WithInvalidArgsCharacters_ReturnsError()
     {
         // Validates that args with shell metacharacters returns error
-        var result = await _tools.DotnetToolRun(
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Run,
             toolName: "dotnet-ef",
             args: "migrations add Initial && echo hacked");
 

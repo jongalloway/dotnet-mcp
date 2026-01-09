@@ -46,7 +46,9 @@ public class MiscellaneousToolsTests
     public async Task DotnetWatchRun_WithoutParameters_ReturnsWarning()
     {
         // Act
-        var result = await _tools.DotnetWatchRun();
+        var result = await _tools.DotnetProject(
+            action: DotNetMcp.Actions.DotnetProjectAction.Watch,
+            watchAction: "run");
 
         // Assert
         Assert.NotNull(result);
@@ -58,7 +60,10 @@ public class MiscellaneousToolsTests
     public async Task DotnetWatchRun_WithProject_ReturnsWarning()
     {
         // Act
-        var result = await _tools.DotnetWatchRun(project: "MyProject.csproj");
+        var result = await _tools.DotnetProject(
+            action: DotNetMcp.Actions.DotnetProjectAction.Watch,
+            watchAction: "run",
+            project: "MyProject.csproj");
 
         // Assert
         Assert.NotNull(result);
@@ -70,7 +75,10 @@ public class MiscellaneousToolsTests
     public async Task DotnetWatchRun_WithAppArgs_ReturnsWarning()
     {
         // Act
-        var result = await _tools.DotnetWatchRun(appArgs: "--environment Development");
+        var result = await _tools.DotnetProject(
+            action: DotNetMcp.Actions.DotnetProjectAction.Watch,
+            watchAction: "run",
+            appArgs: "--environment Development");
 
         // Assert
         Assert.NotNull(result);
@@ -82,7 +90,10 @@ public class MiscellaneousToolsTests
     public async Task DotnetWatchRun_WithNoHotReload_ReturnsWarning()
     {
         // Act
-        var result = await _tools.DotnetWatchRun(noHotReload: true);
+        var result = await _tools.DotnetProject(
+            action: DotNetMcp.Actions.DotnetProjectAction.Watch,
+            watchAction: "run",
+            noHotReload: true);
 
         // Assert
         Assert.NotNull(result);
@@ -94,7 +105,9 @@ public class MiscellaneousToolsTests
     public async Task DotnetWatchTest_WithoutParameters_ReturnsWarning()
     {
         // Act
-        var result = await _tools.DotnetWatchTest();
+        var result = await _tools.DotnetProject(
+            action: DotNetMcp.Actions.DotnetProjectAction.Watch,
+            watchAction: "test");
 
         // Assert
         Assert.NotNull(result);
@@ -107,7 +120,10 @@ public class MiscellaneousToolsTests
     public async Task DotnetWatchTest_WithProject_ReturnsWarning()
     {
         // Act
-        var result = await _tools.DotnetWatchTest(project: "MyTests.csproj");
+        var result = await _tools.DotnetProject(
+            action: DotNetMcp.Actions.DotnetProjectAction.Watch,
+            watchAction: "test",
+            project: "MyTests.csproj");
 
         // Assert
         Assert.NotNull(result);
@@ -119,7 +135,10 @@ public class MiscellaneousToolsTests
     public async Task DotnetWatchTest_WithFilter_ReturnsWarning()
     {
         // Act
-        var result = await _tools.DotnetWatchTest(filter: "FullyQualifiedName~MyTest");
+        var result = await _tools.DotnetProject(
+            action: DotNetMcp.Actions.DotnetProjectAction.Watch,
+            watchAction: "test",
+            filter: "FullyQualifiedName~MyTest");
 
         // Assert
         Assert.NotNull(result);
@@ -131,7 +150,9 @@ public class MiscellaneousToolsTests
     public async Task DotnetWatchBuild_WithoutParameters_ReturnsWarning()
     {
         // Act
-        var result = await _tools.DotnetWatchBuild();
+        var result = await _tools.DotnetProject(
+            action: DotNetMcp.Actions.DotnetProjectAction.Watch,
+            watchAction: "build");
 
         // Assert
         Assert.NotNull(result);
@@ -144,7 +165,10 @@ public class MiscellaneousToolsTests
     public async Task DotnetWatchBuild_WithProject_ReturnsWarning()
     {
         // Act
-        var result = await _tools.DotnetWatchBuild(project: "MyProject.csproj");
+        var result = await _tools.DotnetProject(
+            action: DotNetMcp.Actions.DotnetProjectAction.Watch,
+            watchAction: "build",
+            project: "MyProject.csproj");
 
         // Assert
         Assert.NotNull(result);
@@ -156,7 +180,10 @@ public class MiscellaneousToolsTests
     public async Task DotnetWatchBuild_WithConfiguration_ReturnsWarning()
     {
         // Act
-        var result = await _tools.DotnetWatchBuild(configuration: "Release");
+        var result = await _tools.DotnetProject(
+            action: DotNetMcp.Actions.DotnetProjectAction.Watch,
+            watchAction: "build",
+            configuration: "Release");
 
         // Assert
         Assert.NotNull(result);
@@ -170,7 +197,9 @@ public class MiscellaneousToolsTests
     public async Task DotnetFormat_WithoutParameters_BuildsCorrectCommand()
     {
         // Act
-        var result = await ExecuteInTempDirectoryAsync(() => _tools.DotnetFormat(machineReadable: true));
+        var result = await ExecuteInTempDirectoryAsync(() => _tools.DotnetProject(
+            action: DotNetMcp.Actions.DotnetProjectAction.Format,
+            machineReadable: true));
 
         // Assert
         Assert.NotNull(result);
@@ -181,7 +210,10 @@ public class MiscellaneousToolsTests
     public async Task DotnetFormat_WithProject_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetFormat(project: "MyProject.csproj", machineReadable: true);
+        var result = await _tools.DotnetProject(
+            action: DotNetMcp.Actions.DotnetProjectAction.Format,
+            project: "MyProject.csproj",
+            machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
@@ -192,7 +224,10 @@ public class MiscellaneousToolsTests
     public async Task DotnetFormat_WithVerify_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetFormat(verify: true, machineReadable: true);
+        var result = await _tools.DotnetProject(
+            action: DotNetMcp.Actions.DotnetProjectAction.Format,
+            verify: true,
+            machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
@@ -203,7 +238,10 @@ public class MiscellaneousToolsTests
     public async Task DotnetFormat_WithIncludeGenerated_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetFormat(includeGenerated: true, machineReadable: true);
+        var result = await _tools.DotnetProject(
+            action: DotNetMcp.Actions.DotnetProjectAction.Format,
+            includeGenerated: true,
+            machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
@@ -214,7 +252,10 @@ public class MiscellaneousToolsTests
     public async Task DotnetFormat_WithDiagnostics_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetFormat(diagnostics: "IDE0005,CA1304", machineReadable: true);
+        var result = await _tools.DotnetProject(
+            action: DotNetMcp.Actions.DotnetProjectAction.Format,
+            diagnostics: "IDE0005,CA1304",
+            machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
@@ -225,7 +266,10 @@ public class MiscellaneousToolsTests
     public async Task DotnetFormat_WithSeverity_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetFormat(severity: "warn", machineReadable: true);
+        var result = await _tools.DotnetProject(
+            action: DotNetMcp.Actions.DotnetProjectAction.Format,
+            severity: "warn",
+            machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
@@ -236,7 +280,8 @@ public class MiscellaneousToolsTests
     public async Task DotnetFormat_WithAllParameters_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetFormat(
+        var result = await _tools.DotnetProject(
+            action: DotNetMcp.Actions.DotnetProjectAction.Format,
             project: "MyProject.csproj",
             verify: true,
             includeGenerated: true,
@@ -384,7 +429,7 @@ public class MiscellaneousToolsTests
     public async Task DotnetFrameworkInfo_WithoutParameters_ReturnsFrameworkList()
     {
         // Act
-        var result = await _tools.DotnetFrameworkInfo();
+        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.FrameworkInfo);
 
         // Assert
         Assert.NotNull(result);
@@ -400,7 +445,7 @@ public class MiscellaneousToolsTests
     public async Task DotnetFrameworkInfo_WithSpecificFramework_ReturnsFrameworkDetails()
     {
         // Act
-        var result = await _tools.DotnetFrameworkInfo(framework: "net8.0");
+        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.FrameworkInfo, framework: "net8.0");
 
         // Assert
         Assert.NotNull(result);
@@ -414,7 +459,7 @@ public class MiscellaneousToolsTests
     public async Task DotnetFrameworkInfo_WithLegacyFramework_ReturnsFrameworkDetails()
     {
         // Act
-        var result = await _tools.DotnetFrameworkInfo(framework: "netcoreapp3.1");
+        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.FrameworkInfo, framework: "netcoreapp3.1");
 
         // Assert
         Assert.NotNull(result);
