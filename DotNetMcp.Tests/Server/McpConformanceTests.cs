@@ -181,6 +181,76 @@ public class McpConformanceTests : IAsyncLifetime
         Assert.Contains("dotnet_server_capabilities", toolNames);
     }
 
+    [Fact]
+    public async Task Server_ToolList_ShouldIncludeConsolidatedTools()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act
+        var tools = await _client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+        var toolNames = tools.Select(t => t.Name).ToHashSet();
+
+        // Assert - Check that all consolidated tools are exposed
+        Assert.Contains("dotnet_project", toolNames);
+        Assert.Contains("dotnet_package", toolNames);
+        Assert.Contains("dotnet_solution", toolNames);
+        Assert.Contains("dotnet_ef", toolNames);
+        Assert.Contains("dotnet_workload", toolNames);
+        Assert.Contains("dotnet_tool", toolNames);
+        Assert.Contains("dotnet_sdk", toolNames);
+        Assert.Contains("dotnet_dev_certs", toolNames);
+    }
+
+    [Fact]
+    public async Task Server_ConsolidatedTool_ShouldHaveActionEnumInSchema()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act
+        var tools = await _client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+        var projectTool = tools.FirstOrDefault(t => t.Name == "dotnet_project");
+
+        // Assert
+        Assert.NotNull(projectTool);
+        
+        // The input schema should contain an 'action' parameter with enum values
+        var schemaJson = projectTool.ProtocolTool.InputSchema.ToString();
+        Assert.Contains("action", schemaJson);
+        
+        // Verify some expected action values are in the schema
+        Assert.Contains("New", schemaJson);
+        Assert.Contains("Build", schemaJson);
+        Assert.Contains("Test", schemaJson);
+    }
+
+    [Fact]
+    public async Task Server_ConsolidatedTools_AllShouldHaveActionParameter()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+        var consolidatedTools = new[] 
+        { 
+            "dotnet_project", "dotnet_package", "dotnet_solution", 
+            "dotnet_ef", "dotnet_workload", "dotnet_tool", 
+            "dotnet_sdk", "dotnet_dev_certs" 
+        };
+
+        // Act
+        var tools = await _client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        foreach (var toolName in consolidatedTools)
+        {
+            var tool = tools.FirstOrDefault(t => t.Name == toolName);
+            Assert.NotNull(tool);
+            
+            var schemaJson = tool.ProtocolTool.InputSchema.ToString();
+            Assert.Contains("action", schemaJson);
+        }
+    }
+
     #endregion
 
     #region Tool Invocation Tests
