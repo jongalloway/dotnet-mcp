@@ -14,6 +14,30 @@ This guide helps you get the most value from the .NET MCP Server with AI assista
 
 ## Getting Started
 
+### Consolidated vs. Legacy Tools
+
+The .NET MCP Server provides two tool surfaces:
+
+**Consolidated Tools (Recommended):**
+- **8 domain-focused tools** (dotnet_project, dotnet_package, dotnet_ef, etc.)
+- **Action-based** - Single tool with multiple actions (e.g., `dotnet_project` with action "New", "Build", "Test")
+- **Better AI orchestration** - Fewer tools means better tool selection by AI assistants
+- **Clear semantic grouping** - Related operations grouped by domain
+
+**Legacy Tools (Also Supported):**
+- **74 individual tools** (dotnet_project_new, dotnet_project_build, etc.)
+- **1:1 mapping** to dotnet CLI commands
+- **Fully supported** but more tools for AI to choose from
+
+**Which should you use?**
+
+For new integrations, **use consolidated tools**. They provide:
+- Clearer intent (domain + action)
+- Better AI tool selection accuracy
+- Easier workflow composition
+
+For existing integrations, **both work equally well**. See the [Migration Guide](migration-guide.md) for examples of converting from legacy to consolidated tools.
+
 ### First Steps with Your AI Assistant
 
 Once you've installed the .NET MCP Server, start with simple requests to verify everything works:
@@ -25,10 +49,10 @@ AI: Reads dotnet://sdk-info resource
     Returns: .NET 8.0.403, .NET 10.0.101 (with paths)
 ```
 
-**Explore Available Templates:**
+**Explore Available Templates (Consolidated Tool):**
 ```text
 User: "What project templates are available?"
-AI: Uses dotnet_template_list
+AI: Uses dotnet_sdk with action: "ListTemplates"
     Shows: console, webapi, webapp, classlib, xunit, nunit, etc.
 ```
 
@@ -69,6 +93,8 @@ AI: Reads dotnet://templates resource
 
 ## Common Workflows
 
+> **📘 About Code Examples:** The workflow examples in this guide show raw `dotnet` CLI commands for clarity and universal understanding. When AI assistants execute these operations through the MCP server, they use **consolidated MCP tools** (e.g., `dotnet_project`, `dotnet_package`, `dotnet_ef`) with appropriate actions. See the [Migration Guide](migration-guide.md) for complete examples of consolidated tool syntax.
+
 ### 1. Creating a New Console Application
 
 **Simple Prompt:**
@@ -77,7 +103,7 @@ AI: Reads dotnet://templates resource
 ```
 
 **What the AI Does:**
-1. Uses `dotnet_project_new` with template="console", name="HelloWorld"
+1. Uses `dotnet_project` with action="New", template="console", name="HelloWorld"
 2. Returns success message with project location
 
 **Advanced Prompt:**
@@ -86,12 +112,12 @@ AI: Reads dotnet://templates resource
 ```
 
 **What the AI Does:**
-1. Checks available console template parameters via `dotnet_template_info`
-2. Uses `dotnet_project_new` with:
+1. Uses `dotnet_sdk` with action="TemplateInfo" to check available console template parameters
+2. Uses `dotnet_project` with action="New":
    - template="console"
    - name="MyApp"
    - framework="net8.0"
-   - otherArgs="--use-program-main"
+   - additionalOptions="--use-program-main"
 
 ### 2. Creating a Web API with Database Support
 
@@ -101,27 +127,49 @@ AI: Reads dotnet://templates resource
 Set up user secrets for the connection string."
 ```
 
-**What the AI Does:**
-```bash
-# 1. Create the project
-dotnet new webapi -n ProductApi
+**What the AI Does (using consolidated tools):**
+```typescript
+// 1. Create the project
+await callTool("dotnet_project", {
+  action: "New",
+  template: "webapi",
+  name: "ProductApi"
+});
 
-# 2. Add EF Core packages
-dotnet add ProductApi package Microsoft.EntityFrameworkCore
-dotnet add ProductApi package Microsoft.EntityFrameworkCore.SqlServer
-dotnet add ProductApi package Microsoft.EntityFrameworkCore.Design
+// 2. Add EF Core packages
+await callTool("dotnet_package", {
+  action: "Add",
+  packageId: "Microsoft.EntityFrameworkCore",
+  project: "ProductApi/ProductApi.csproj"
+});
+await callTool("dotnet_package", {
+  action: "Add",
+  packageId: "Microsoft.EntityFrameworkCore.SqlServer",
+  project: "ProductApi/ProductApi.csproj"
+});
+await callTool("dotnet_package", {
+  action: "Add",
+  packageId: "Microsoft.EntityFrameworkCore.Design",
+  project: "ProductApi/ProductApi.csproj"
+});
 
-# 3. Set up user secrets
-dotnet user-secrets init --project ProductApi/ProductApi.csproj
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" 
-  "Server=localhost;Database=ProductDb;Trusted_Connection=true" 
-  --project ProductApi/ProductApi.csproj
+// 3. Set up user secrets
+await callTool("dotnet_dev_certs", {
+  action: "SecretsInit",
+  project: "ProductApi/ProductApi.csproj"
+});
+await callTool("dotnet_dev_certs", {
+  action: "SecretsSet",
+  key: "ConnectionStrings:DefaultConnection",
+  value: "Server=localhost;Database=ProductDb;Trusted_Connection=true",
+  project: "ProductApi/ProductApi.csproj"
+});
 ```
 
 **Best Practice:**
 - Be specific about what packages you need (EF Core, SQL Server provider, Design tools)
 - Request user secrets setup to avoid committing connection strings
-- The AI knows to install EF tools globally if needed
+- The AI knows to install EF tools globally if needed (using `dotnet_tool` with action="Install")
 
 ### 3. Adding Unit Tests to an Existing Project
 
@@ -233,6 +281,8 @@ dotnet add MyCompany.Products.Tests reference MyCompany.Products.Data
 ```
 
 ### 6. Database Migrations with Entity Framework
+
+> **Note on Code Examples:** The examples below show raw `dotnet` CLI commands for readability. When AI assistants execute these operations, they use the corresponding MCP tools (e.g., `dotnet_ef` with appropriate actions like "MigrationsAdd", "DatabaseUpdate"). The [Migration Guide](migration-guide.md) shows the exact tool call syntax.
 
 **Initial Setup:**
 ```text
@@ -851,7 +901,36 @@ AI validates improvements via Aspire MCP
 
 ## Best Practices
 
-### 1. Be Specific with Your Requests
+### 1. Use Consolidated Tools for New Work
+
+**Why Consolidated Tools?**
+
+The .NET MCP Server provides both consolidated tools (8 domain-focused tools) and legacy tools (74 individual tools). **For new work, prefer consolidated tools:**
+
+```text
+✅ Consolidated (Recommended):
+"Create a web API"
+AI uses: dotnet_project with action="New"
+
+❌ Legacy (Also works):
+"Create a web API"  
+AI uses: dotnet_project_new
+```
+
+**Benefits of consolidated tools:**
+- Clearer semantic intent (domain + action)
+- Better AI tool selection (8 tools vs 74)
+- Easier for AI to understand workflows
+- More maintainable integrations
+
+**When to use legacy tools:**
+- Existing integrations that already use them
+- When you need exact 1:1 CLI command mapping
+- Both tool surfaces are fully supported
+
+See the [Migration Guide](migration-guide.md) for detailed comparisons and migration patterns.
+
+### 2. Be Specific with Your Requests
 
 **❌ Vague Prompt:**
 ```text
@@ -866,14 +945,14 @@ targeting .NET 10 with Individual authentication"
 
 **Why:** The AI can make better decisions with clear requirements. Specific prompts reduce back-and-forth clarification.
 
-### 2. Leverage Template Discovery
+### 3. Leverage Template Discovery
 
 **✅ Good Practice:**
 ```text
 "What templates are available for creating APIs?"
 ```
 
-The AI will use `dotnet_template_search` to find:
+The AI will use `dotnet_sdk` with action="SearchTemplates" to find:
 - `webapi` - ASP.NET Core Web API
 - `webapi-minimal` - Minimal API
 - `grpc` - gRPC service
@@ -881,7 +960,7 @@ The AI will use `dotnet_template_search` to find:
 
 Then you can choose: *"Use the minimal API template"*
 
-### 3. Request Verification Steps
+### 4. Request Verification Steps
 
 **✅ Good Practice:**
 ```text
@@ -889,11 +968,11 @@ Then you can choose: *"Use the minimal API template"*
 ```
 
 The AI will:
-1. Create the project via `dotnet_project_new`
-2. Build it via `dotnet_project_build`
+1. Create the project via `dotnet_project` (action="New")
+2. Build it via `dotnet_project` (action="Build")
 3. Report any compilation errors
 
-### 4. Use Resources for Quick Queries
+### 5. Use Resources for Quick Queries
 
 When you need information but don't want to execute commands:
 
@@ -908,7 +987,7 @@ AI: Reads dotnet://frameworks resource (fast, no execution)
 AI: Executes dotnet_sdk_info (slower, runs dotnet command)
 ```
 
-### 5. Bundle Related Operations
+### 6. Bundle Related Operations
 
 **✅ Efficient Prompt:**
 ```text
@@ -928,7 +1007,7 @@ The AI executes all steps in sequence without additional prompting.
 [AI creates migration]
 ```
 
-### 6. Specify Framework Versions When Needed
+### 7. Specify Framework Versions When Needed
 
 **When to specify:**
 ```text
@@ -941,7 +1020,7 @@ The AI executes all steps in sequence without additional prompting.
 # AI will use latest LTS by default
 ```
 
-### 7. Use Parallel Operations for Independent Tasks
+### 8. Use Parallel Operations for Independent Tasks
 
 **✅ Good for Concurrency:**
 ```text
@@ -957,7 +1036,7 @@ The AI can execute both simultaneously (read-only operations).
 
 These modify state and must run sequentially.
 
-### 8. Request Explanations
+### 9. Request Explanations
 
 **✅ Good Practice:**
 ```text
@@ -970,7 +1049,7 @@ The AI will:
 3. Warn about download size
 4. Offer to install them
 
-### 9. Validate After Major Changes
+### 10. Validate After Major Changes
 
 **✅ Good Practice:**
 ```text
@@ -983,7 +1062,7 @@ The AI will:
 3. Run tests via `dotnet_project_test`
 4. Report results
 
-### 10. Use User Secrets for Sensitive Data
+### 11. Use User Secrets for Sensitive Data
 
 **✅ Secure:**
 ```text
