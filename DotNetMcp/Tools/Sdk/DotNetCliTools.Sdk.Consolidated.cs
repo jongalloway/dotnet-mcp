@@ -130,7 +130,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("commonlyUsed", true)]
     [McpMeta("priority", 10.0)]
     [McpMeta("tags", JsonValue = """["template","list","discovery","project-creation"]""")]
-    private async Task<string> DotnetTemplateList(bool forceReload = false, bool machineReadable = false)
+    public async Task<string> DotnetTemplateList(bool forceReload = false, bool machineReadable = false)
           => await TemplateEngineHelper.GetInstalledTemplatesAsync(forceReload, _logger);
 
     /// <summary>
@@ -141,7 +141,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text (currently unused, returns same format)</param>
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
-    private async Task<string> DotnetTemplateSearch(string searchTerm, bool forceReload = false, bool machineReadable = false)
+    public async Task<string> DotnetTemplateSearch(string searchTerm, bool forceReload = false, bool machineReadable = false)
         => await TemplateEngineHelper.SearchTemplatesAsync(searchTerm, forceReload, _logger);
 
     /// <summary>
@@ -152,7 +152,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text (currently unused, returns same format)</param>
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
-    private async Task<string> DotnetTemplateInfo(string templateShortName, bool forceReload = false, bool machineReadable = false)
+    public async Task<string> DotnetTemplateInfo(string templateShortName, bool forceReload = false, bool machineReadable = false)
         => await TemplateEngineHelper.GetTemplateDetailsAsync(templateShortName, forceReload, _logger);
 
     /// <summary>
@@ -162,7 +162,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text (currently unused, returns same format)</param>
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
-    private async Task<string> DotnetTemplateClearCache(bool machineReadable = false)
+    public async Task<string> DotnetTemplateClearCache(bool machineReadable = false)
     {
         await DotNetResources.ClearAllCachesAsync();
         return "All caches (templates, SDK, runtime) and metrics cleared successfully. Next query will reload from disk.";
@@ -174,7 +174,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text (currently unused, returns same format)</param>
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
-    private Task<string> DotnetCacheMetrics(bool machineReadable = false)
+    public Task<string> DotnetCacheMetrics(bool machineReadable = false)
     {
         var result = new StringBuilder();
         result.AppendLine("Cache Metrics:");
@@ -193,7 +193,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text (currently unused, returns same format)</param>
     [McpMeta("category", "framework")]
     [McpMeta("usesFrameworkHelper", true)]
-    private async Task<string> DotnetFrameworkInfo(string? framework = null, bool machineReadable = false)
+    public async Task<string> DotnetFrameworkInfo(string? framework = null, bool machineReadable = false)
     {
         var result = new StringBuilder();
 
@@ -258,7 +258,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 6.0)]
-    private async Task<string> DotnetSdkInfo(bool machineReadable = false)
+    public async Task<string> DotnetSdkInfo(bool machineReadable = false)
         => await ExecuteDotNetCommand("--info", machineReadable);
 
     /// <summary>
@@ -267,7 +267,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 6.0)]
-    private async Task<string> DotnetSdkVersion(bool machineReadable = false)
+    public async Task<string> DotnetSdkVersion(bool machineReadable = false)
         => await ExecuteDotNetCommand("--version", machineReadable);
 
     /// <summary>
@@ -276,7 +276,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 6.0)]
-    private async Task<string> DotnetSdkList(bool machineReadable = false)
+    public async Task<string> DotnetSdkList(bool machineReadable = false)
         => await ExecuteDotNetCommand("--list-sdks", machineReadable);
 
     /// <summary>
@@ -285,6 +285,6 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 6.0)]
-    private async Task<string> DotnetRuntimeList(bool machineReadable = false)
+    public async Task<string> DotnetRuntimeList(bool machineReadable = false)
         => await ExecuteDotNetCommand("--list-runtimes", machineReadable);
 }

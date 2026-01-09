@@ -226,6 +226,11 @@ public sealed partial class DotNetCliTools
     }
 
     // ===== EF helper methods (moved from DotNetCliTools.EntityFramework.cs) =====
+    /// <summary>
+    /// Create a new Entity Framework Core migration.
+    /// Generates migration files for database schema changes. Requires Microsoft.EntityFrameworkCore.Design package and dotnet-ef tool.
+    /// </summary>
+    /// <param name="name">Name of the migration (e.g., 'InitialCreate', 'AddProductEntity')</param>
     /// <param name="project">Project file containing the DbContext</param>
     /// <param name="startupProject">Startup project file (if different from DbContext project)</param>
     /// <param name="context">The DbContext class to use (if multiple contexts exist)</param>
@@ -236,7 +241,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("tags", JsonValue = """["ef","entity-framework","migration","database","schema"]""")]
-    private async Task<string> DotnetEfMigrationsAdd(
+    public async Task<string> DotnetEfMigrationsAdd(
         string name,
         string? project = null,
         string? startupProject = null,
@@ -282,7 +287,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("priority", 8.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("tags", JsonValue = """["ef","entity-framework","migration","database","list"]""")]
-    private async Task<string> DotnetEfMigrationsList(
+    public async Task<string> DotnetEfMigrationsList(
         string? project = null,
         string? startupProject = null,
         string? context = null,
@@ -315,7 +320,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("category", "ef")]
     [McpMeta("priority", 7.0)]
     [McpMeta("tags", JsonValue = """["ef","entity-framework","migration","database","remove"]""")]
-    private async Task<string> DotnetEfMigrationsRemove(
+    public async Task<string> DotnetEfMigrationsRemove(
         string? project = null,
         string? startupProject = null,
         string? context = null,
@@ -351,7 +356,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("category", "ef")]
     [McpMeta("priority", 7.0)]
     [McpMeta("tags", JsonValue = """["ef","entity-framework","migration","database","sql","script"]""")]
-    private async Task<string> DotnetEfMigrationsScript(
+    public async Task<string> DotnetEfMigrationsScript(
         string? from = null,
         string? to = null,
         string? output = null,
@@ -403,7 +408,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("tags", JsonValue = """["ef","entity-framework","database","update","migration","apply"]""")]
-    private async Task<string> DotnetEfDatabaseUpdate(
+    public async Task<string> DotnetEfDatabaseUpdate(
         string? migration = null,
         string? project = null,
         string? startupProject = null,
@@ -439,7 +444,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("category", "ef")]
     [McpMeta("priority", 5.0)]
     [McpMeta("tags", JsonValue = """["ef","entity-framework","database","drop","delete"]""")]
-    private async Task<string> DotnetEfDatabaseDrop(
+    public async Task<string> DotnetEfDatabaseDrop(
         string? project = null,
         string? startupProject = null,
         string? context = null,
@@ -470,7 +475,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("category", "ef")]
     [McpMeta("priority", 7.0)]
     [McpMeta("tags", JsonValue = """["ef","entity-framework","dbcontext","list"]""")]
-    private async Task<string> DotnetEfDbContextList(
+    public async Task<string> DotnetEfDbContextList(
         string? project = null,
         string? startupProject = null,
         string? framework = null,
@@ -498,7 +503,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("category", "ef")]
     [McpMeta("priority", 7.0)]
     [McpMeta("tags", JsonValue = """["ef","entity-framework","dbcontext","info","connection-string"]""")]
-    private async Task<string> DotnetEfDbContextInfo(
+    public async Task<string> DotnetEfDbContextInfo(
         string? project = null,
         string? startupProject = null,
         string? context = null,
@@ -536,7 +541,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("priority", 8.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("tags", JsonValue = """["ef","entity-framework","dbcontext","scaffold","reverse-engineer","database-first"]""")]
-    private async Task<string> DotnetEfDbContextScaffold(
+    public async Task<string> DotnetEfDbContextScaffold(
         string connection,
         string provider,
         string? project = null,

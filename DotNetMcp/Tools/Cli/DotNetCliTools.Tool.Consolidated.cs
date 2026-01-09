@@ -262,7 +262,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("priority", 8.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("tags", JsonValue = """["tool","install","global","local","cli"]""")]
-    private async Task<string> DotnetToolInstall(
+    public async Task<string> DotnetToolInstall(
         string packageName,
         bool global = false,
         string? version = null,
@@ -297,7 +297,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "tool")]
     [McpMeta("priority", 7.0)]
-    private async Task<string> DotnetToolList(
+    public async Task<string> DotnetToolList(
         bool global = false,
         bool machineReadable = false)
     {
@@ -316,7 +316,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "tool")]
     [McpMeta("priority", 7.0)]
-    private async Task<string> DotnetToolUpdate(
+    public async Task<string> DotnetToolUpdate(
         string packageName,
         bool global = false,
         string? version = null,
@@ -350,7 +350,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "tool")]
     [McpMeta("priority", 6.0)]
-    private async Task<string> DotnetToolUninstall(
+    public async Task<string> DotnetToolUninstall(
         string packageName,
         bool global = false,
         bool machineReadable = false)
@@ -380,7 +380,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "tool")]
     [McpMeta("priority", 7.0)]
-    private async Task<string> DotnetToolRestore(bool machineReadable = false)
+    public async Task<string> DotnetToolRestore(bool machineReadable = false)
         => await ExecuteDotNetCommand("tool restore", machineReadable);
 
     /// <summary>
@@ -392,7 +392,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "tool")]
     [McpMeta("priority", 6.0)]
-    private async Task<string> DotnetToolManifestCreate(
+    public async Task<string> DotnetToolManifestCreate(
         string? output = null,
         bool force = false,
         bool machineReadable = false)
@@ -415,7 +415,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "tool")]
     [McpMeta("priority", 6.0)]
-    private async Task<string> DotnetToolSearch(
+    public async Task<string> DotnetToolSearch(
         string searchTerm,
         bool detail = false,
         int? take = null,
@@ -453,7 +453,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "tool")]
     [McpMeta("priority", 7.0)]
-    private async Task<string> DotnetToolRun(
+    public async Task<string> DotnetToolRun(
         string toolName,
         string? args = null,
         bool machineReadable = false)

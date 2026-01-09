@@ -342,7 +342,7 @@ public sealed partial class DotNetCliTools
     /// Note: This is a long-running command that watches for file changes and automatically restarts the application. 
     /// It should be terminated by the user when no longer needed.
     /// </summary>
-    private Task<string> DotnetWatchRun(
+    public Task<string> DotnetWatchRun(
         string? project = null,
         string? appArgs = null,
         bool noHotReload = false)
@@ -362,7 +362,7 @@ public sealed partial class DotNetCliTools
     /// Run unit tests with file watching and automatic test re-runs. 
     /// Note: This is a long-running command that watches for file changes. It should be terminated by the user when no longer needed.
     /// </summary>
-    private Task<string> DotnetWatchTest(
+    public Task<string> DotnetWatchTest(
         string? project = null,
         string? filter = null)
     {
@@ -380,7 +380,7 @@ public sealed partial class DotNetCliTools
     /// Build a .NET project with file watching and automatic rebuild. 
     /// Note: This is a long-running command that watches for file changes. It should be terminated by the user when no longer needed.
     /// </summary>
-    private Task<string> DotnetWatchBuild(
+    public Task<string> DotnetWatchBuild(
         string? project = null,
         string? configuration = null)
     {
@@ -402,7 +402,7 @@ public sealed partial class DotNetCliTools
     /// Create a new .NET project from a template using the <c>dotnet new</c> command.
     /// Common templates: console, classlib, web, webapi, mvc, blazor, xunit, nunit, mstest.
     /// </summary>
-    private async Task<string> DotnetProjectNew(
+    public async Task<string> DotnetProjectNew(
         string? template = null,
         string? name = null,
         string? output = null,
@@ -464,7 +464,7 @@ public sealed partial class DotNetCliTools
     /// <summary>
     /// Restore the dependencies and tools of a .NET project.
     /// </summary>
-    private async Task<string> DotnetProjectRestore(
+    public async Task<string> DotnetProjectRestore(
         string? project = null,
         bool machineReadable = false)
     {
@@ -490,7 +490,7 @@ public sealed partial class DotNetCliTools
     /// <summary>
     /// Build a .NET project and its dependencies.
     /// </summary>
-    private async Task<string> DotnetProjectBuild(
+    public async Task<string> DotnetProjectBuild(
         string? project = null,
         string? configuration = null,
         string? framework = null,
@@ -529,7 +529,7 @@ public sealed partial class DotNetCliTools
     /// <summary>
     /// Build and run a .NET project.
     /// </summary>
-    private async Task<string> DotnetProjectRun(
+    public async Task<string> DotnetProjectRun(
         string? project = null,
         string? configuration = null,
         string? appArgs = null,
@@ -554,7 +554,7 @@ public sealed partial class DotNetCliTools
     /// <summary>
     /// Run unit tests in a .NET project.
     /// </summary>
-    private async Task<string> DotnetProjectTest(
+    public async Task<string> DotnetProjectTest(
         string? project = null,
         string? configuration = null,
         string? filter = null,
@@ -605,7 +605,7 @@ public sealed partial class DotNetCliTools
     /// <summary>
     /// Publish a .NET project for deployment.
     /// </summary>
-    private async Task<string> DotnetProjectPublish(
+    public async Task<string> DotnetProjectPublish(
         string? project = null,
         string? configuration = null,
         string? output = null,
@@ -636,7 +636,7 @@ public sealed partial class DotNetCliTools
     /// <summary>
     /// Clean the output of a .NET project.
     /// </summary>
-    private async Task<string> DotnetProjectClean(
+    public async Task<string> DotnetProjectClean(
         string? project = null,
         string? configuration = null,
         bool machineReadable = false)
@@ -660,7 +660,7 @@ public sealed partial class DotNetCliTools
     /// package references, project references, and build properties. Returns structured JSON.
     /// Does not require building the project.
     /// </summary>
-    private async Task<string> DotnetProjectAnalyze(string projectPath)
+    public async Task<string> DotnetProjectAnalyze(string projectPath)
     {
         // Validate project path
         if (!ParameterValidator.ValidateProjectPath(projectPath, out var projectError))
@@ -674,7 +674,7 @@ public sealed partial class DotNetCliTools
     /// Analyze project dependencies to build a dependency graph showing direct package and project dependencies.
     /// Returns structured JSON with dependency information. For transitive dependencies, use CLI commands.
     /// </summary>
-    private async Task<string> DotnetProjectDependencies(string projectPath)
+    public async Task<string> DotnetProjectDependencies(string projectPath)
     {
         // Validate project path
         if (!ParameterValidator.ValidateProjectPath(projectPath, out var projectError))
@@ -688,7 +688,7 @@ public sealed partial class DotNetCliTools
     /// Validate a .csproj file for common issues, deprecated packages, and configuration problems.
     /// Returns structured JSON with errors, warnings, and recommendations. Does not require building.
     /// </summary>
-    private async Task<string> DotnetProjectValidate(string projectPath)
+    public async Task<string> DotnetProjectValidate(string projectPath)
     {
         // Validate project path
         if (!ParameterValidator.ValidateProjectPath(projectPath, out var projectError))

@@ -271,7 +271,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("category", "security")]
     [McpMeta("priority", 7.0)]
     [McpMeta("requiresElevation", true)]
-    private async Task<string> DotnetCertificateTrust(bool machineReadable = false)
+    public async Task<string> DotnetCertificateTrust(bool machineReadable = false)
         => await ExecuteDotNetCommand("dev-certs https --trust", machineReadable);
 
     /// <summary>
@@ -281,7 +281,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "security")]
     [McpMeta("priority", 7.0)]
-    private async Task<string> DotnetCertificateCheck(bool machineReadable = false)
+    public async Task<string> DotnetCertificateCheck(bool machineReadable = false)
         => await ExecuteDotNetCommand("dev-certs https --check", machineReadable);
 
     /// <summary>
@@ -291,7 +291,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "security")]
     [McpMeta("priority", 6.0)]
-    private async Task<string> DotnetCertificateClean(bool machineReadable = false)
+    public async Task<string> DotnetCertificateClean(bool machineReadable = false)
         => await ExecuteDotNetCommand("dev-certs https --clean", machineReadable);
 
     /// <summary>
@@ -304,7 +304,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "security")]
     [McpMeta("priority", 6.0)]
-    private async Task<string> DotnetCertificateExport(
+    public async Task<string> DotnetCertificateExport(
         string path,
         string? password = null,
         string? format = null,
@@ -372,7 +372,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "security")]
     [McpMeta("priority", 8.0)]
-    private async Task<string> DotnetSecretsInit(
+    public async Task<string> DotnetSecretsInit(
         string? project = null,
         bool machineReadable = false)
     {
@@ -393,7 +393,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("category", "security")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]
-    private async Task<string> DotnetSecretsSet(
+    public async Task<string> DotnetSecretsSet(
         string key,
         string value,
         string? project = null,
@@ -449,7 +449,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "security")]
     [McpMeta("priority", 7.0)]
-    private async Task<string> DotnetSecretsList(
+    public async Task<string> DotnetSecretsList(
         string? project = null,
         bool machineReadable = false)
     {
@@ -466,7 +466,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "security")]
     [McpMeta("priority", 6.0)]
-    private async Task<string> DotnetSecretsRemove(
+    public async Task<string> DotnetSecretsRemove(
         string key,
         string? project = null,
         bool machineReadable = false)
@@ -497,7 +497,7 @@ public sealed partial class DotNetCliTools
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "security")]
     [McpMeta("priority", 5.0)]
-    private async Task<string> DotnetSecretsClear(
+    public async Task<string> DotnetSecretsClear(
         string? project = null,
         bool machineReadable = false)
     {

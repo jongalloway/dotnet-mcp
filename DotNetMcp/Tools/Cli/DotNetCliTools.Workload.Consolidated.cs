@@ -241,7 +241,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("priority", 7.0)]
     [McpMeta("commonlyUsed", false)]
     [McpMeta("tags", JsonValue = """["workload","list","installed","sdk"]""")]
-    private async Task<string> DotnetWorkloadList(bool machineReadable = false)
+    public async Task<string> DotnetWorkloadList(bool machineReadable = false)
         => await ExecuteDotNetCommand("workload list", machineReadable);
 
     /// <summary>
@@ -252,7 +252,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("category", "workload")]
     [McpMeta("priority", 6.0)]
     [McpMeta("tags", JsonValue = """["workload","info","details","installed","manifest"]""")]
-    private async Task<string> DotnetWorkloadInfo(bool machineReadable = false)
+    public async Task<string> DotnetWorkloadInfo(bool machineReadable = false)
         => await ExecuteDotNetCommand("workload --info", machineReadable);
 
     /// <summary>
@@ -264,7 +264,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("category", "workload")]
     [McpMeta("priority", 6.0)]
     [McpMeta("tags", JsonValue = """["workload","search","available","discovery"]""")]
-    private async Task<string> DotnetWorkloadSearch(
+    public async Task<string> DotnetWorkloadSearch(
         string? searchTerm = null,
         bool machineReadable = false)
     {
@@ -292,7 +292,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("isLongRunning", true)]
     [McpMeta("requiresElevation", "sometimes")]
     [McpMeta("tags", JsonValue = """["workload","install","setup","mobile","maui","wasm"]""")]
-    private async Task<string> DotnetWorkloadInstall(
+    public async Task<string> DotnetWorkloadInstall(
         string workloadIds,
         bool skipManifestUpdate = false,
         bool includePreviews = false,
@@ -335,7 +335,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("priority", 7.0)]
     [McpMeta("isLongRunning", true)]
     [McpMeta("tags", JsonValue = """["workload","update","upgrade","maintenance"]""")]
-    private async Task<string> DotnetWorkloadUpdate(
+    public async Task<string> DotnetWorkloadUpdate(
         bool includePreviews = false,
         string? source = null,
         string? configFile = null,
@@ -359,7 +359,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("category", "workload")]
     [McpMeta("priority", 6.0)]
     [McpMeta("tags", JsonValue = """["workload","uninstall","remove","cleanup"]""")]
-    private async Task<string> DotnetWorkloadUninstall(
+    public async Task<string> DotnetWorkloadUninstall(
         string workloadIds,
         bool machineReadable = false)
     {
