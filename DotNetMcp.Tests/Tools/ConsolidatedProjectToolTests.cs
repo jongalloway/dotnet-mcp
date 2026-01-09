@@ -532,12 +532,7 @@ public class ConsolidatedProjectToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        // When machineReadable is true, the result is JSON. We need to extract the command from it.
-        // The command should contain all the parts we're looking for
-        var commandResult = MachineReadableCommandAssertions.ExtractExecutedDotnetCommand(result);
-        Assert.Contains("dotnet run", commandResult);
-        Assert.Contains("--project \"MyProject.csproj\"", commandResult);
-        Assert.Contains("-- --verbose --log-level debug", commandResult);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet run --project \"MyProject.csproj\" -- --verbose --log-level debug");
     }
 
     #endregion
