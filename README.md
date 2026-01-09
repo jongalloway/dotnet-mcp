@@ -659,7 +659,7 @@ dotnet workload update
 
 ## Available Tools
 
-The server provides comprehensive .NET development capabilities through MCP tools and resources. **New consolidated tools** group related operations by domain, making it easier for AI assistants to select the right tool and compose workflows.
+The server provides comprehensive .NET development capabilities through **consolidated MCP tools** that group related operations by domain, making it easier for AI assistants to select the right tool and compose workflows.
 
 ### MCP Resources (Read-Only Context)
 
@@ -672,7 +672,7 @@ The server exposes read-only resources that provide efficient access to .NET env
 
 Resources provide structured JSON data and are more efficient than tool calls for frequently accessed read-only information.
 
-### Consolidated Tools (Recommended)
+### Consolidated Tools
 
 **These tools group related operations using action enums, providing better AI orchestration and clearer semantic organization.**
 
@@ -840,131 +840,7 @@ await callTool("dotnet_dev_certs", {
 });
 ```
 
-**📘 Migration Guide:** See [doc/migration-guide.md](doc/migration-guide.md) for complete mapping from legacy tools to consolidated tools, including before/after examples and action reference tables.
-
-### Legacy Tools (Also Supported)
-
-The following individual tools continue to work alongside consolidated tools. While fully supported, **we recommend using consolidated tools for new integrations** as they provide better AI orchestration and clearer semantic grouping.
-
-**📘 Migration Guide:** See [doc/migration-guide.md](doc/migration-guide.md) for complete mapping from legacy tools to consolidated tools, including before/after examples and action reference tables.
-
-### Legacy Tools (Also Supported)
-
-The following individual tools continue to work alongside consolidated tools. While fully supported, **we recommend using consolidated tools for new integrations** as they provide better AI orchestration and clearer semantic grouping.
-
-#### Legacy - Templates & Frameworks
-
-- **dotnet_template_list** - List all installed .NET templates with metadata
-- **dotnet_template_search** - Search for templates by name or description
-- **dotnet_template_info** - Get detailed template information and parameters
-- **dotnet_template_clear_cache** - Clear template cache to force reload from disk
-- **dotnet_framework_info** - Get .NET framework version information and LTS status
-
-#### Legacy - Project Management
-
-- **dotnet_project_new** - Create new .NET projects from templates
-- **dotnet_project_restore** - Restore project dependencies
-- **dotnet_project_build** - Build .NET projects
-- **dotnet_project_run** - Build and run .NET projects
-- **dotnet_project_test** - Run unit tests
-- **dotnet_project_publish** - Publish projects for deployment
-- **dotnet_project_clean** - Clean build outputs
-- **dotnet_project_analyze** - Analyze .csproj files to extract comprehensive project information (frameworks, packages, properties)
-- **dotnet_project_dependencies** - Build dependency graph showing direct package and project dependencies
-- **dotnet_project_validate** - Validate project health and detect common issues, deprecated packages, and configuration problems
-- **dotnet_pack_create** - Create NuGet packages from projects
-- **dotnet_watch_run** - Run with file watching and hot reload
-- **dotnet_watch_test** - Run tests with auto-restart on file changes
-- **dotnet_watch_build** - Build with auto-rebuild on file changes
-
-#### Legacy - Package Management
-
-- **dotnet_package_add** - Add NuGet package references
-- **dotnet_package_remove** - Remove NuGet package references
-- **dotnet_package_search** - Search for NuGet packages on nuget.org
-- **dotnet_package_update** - Update NuGet packages to newer versions
-- **dotnet_package_list** - List package references (including outdated/deprecated)
-- **dotnet_reference_add** - Add project-to-project references
-- **dotnet_reference_remove** - Remove project-to-project references
-- **dotnet_reference_list** - List project references
-
-#### Legacy - Tool Management
-
-- **dotnet_tool_install** - Install a .NET tool globally or locally to a tool manifest
-- **dotnet_tool_list** - List installed .NET tools (global or local from manifest)
-- **dotnet_tool_update** - Update a .NET tool to a newer version
-- **dotnet_tool_uninstall** - Uninstall a .NET tool
-- **dotnet_tool_restore** - Restore tools from the tool manifest (.config/dotnet-tools.json)
-- **dotnet_tool_manifest_create** - Create a .NET tool manifest file (.config/dotnet-tools.json)
-- **dotnet_tool_search** - Search for .NET tools on NuGet.org
-- **dotnet_tool_run** - Run a .NET tool by its command name
-
-#### Legacy - Entity Framework Core
-
-Entity Framework Core tools require the `dotnet-ef` tool to be installed (`dotnet tool install dotnet-ef --global`) and the `Microsoft.EntityFrameworkCore.Design` package in your project.
-
-**Migration Management:**
-
-- **dotnet_ef_migrations_add** - Create a new migration for database schema changes
-- **dotnet_ef_migrations_list** - List all migrations (applied and pending)
-- **dotnet_ef_migrations_remove** - Remove the last unapplied migration
-- **dotnet_ef_migrations_script** - Generate SQL script from migrations for deployment
-
-**Database Management:**
-
-- **dotnet_ef_database_update** - Apply migrations to update database schema
-- **dotnet_ef_database_drop** - Drop the database (development only, requires force flag)
-
-**DbContext Tools:**
-
-- **dotnet_ef_dbcontext_list** - List all DbContext classes in the project
-- **dotnet_ef_dbcontext_info** - Get DbContext information (connection string, provider)
-- **dotnet_ef_dbcontext_scaffold** - Reverse engineer database to entity classes (database-first)
-
-#### Legacy - Solution Management
-
-- **dotnet_solution_create** - Create new solution files (.sln or .slnx format)
-- **dotnet_solution_add** - Add projects to a solution
-- **dotnet_solution_list** - List projects in a solution
-- **dotnet_solution_remove** - Remove projects from a solution
-
-#### Legacy - Code Quality
-
-- **dotnet_format** - Format code according to .editorconfig and style rules
-
-#### Legacy - Security & Certificates
-
-- **dotnet_certificate_trust** - Trust the HTTPS development certificate (may require elevation)
-- **dotnet_certificate_check** - Check if HTTPS certificate exists and is trusted
-- **dotnet_certificate_clean** - Remove all HTTPS development certificates
-- **dotnet_certificate_export** - Export HTTPS certificate to a file (supports PFX and PEM formats)
-- **dotnet_secrets_init** - Initialize user secrets for a project (creates UserSecretsId)
-- **dotnet_secrets_set** - Set a user secret value (stores sensitive config outside project)
-- **dotnet_secrets_list** - List all user secrets for a project
-- **dotnet_secrets_remove** - Remove a specific user secret by key
-- **dotnet_secrets_clear** - Clear all user secrets for a project
-
-#### Legacy - Workload Management
-
-- **dotnet_workload_list** - List installed workloads with versions and manifest information
-- **dotnet_workload_info** - Get detailed workload information including manifest paths and installation sources
-- **dotnet_workload_search** - Search for available workloads (mobile, MAUI, WASM, etc.)
-- **dotnet_workload_install** - Install workloads for specialized development (may require elevation, can download GB of data)
-- **dotnet_workload_update** - Update all installed workloads to latest versions (long-running operation)
-- **dotnet_workload_uninstall** - Uninstall workloads to free disk space
-
-#### Legacy - Utilities
-
-- **dotnet_nuget_locals** - Manage NuGet local caches (list, clear)
-
-#### Legacy - SDK Information
-
-- **dotnet_sdk_version** - Get .NET SDK version
-- **dotnet_sdk_info** - Get detailed SDK and runtime information
-- **dotnet_sdk_list** - List installed SDKs
-- **dotnet_runtime_list** - List installed runtimes
-
-### Tools - Help
+### Utility Tools
 
 - **dotnet_help** - Get help for any dotnet command
 - **dotnet_server_capabilities** - Get MCP server capabilities and concurrency guidance

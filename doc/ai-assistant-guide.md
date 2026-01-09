@@ -14,29 +14,23 @@ This guide helps you get the most value from the .NET MCP Server with AI assista
 
 ## Getting Started
 
-### Consolidated vs. Legacy Tools
+### Understanding Consolidated Tools
 
-The .NET MCP Server provides two tool surfaces:
+The .NET MCP Server uses **consolidated tools** that group related operations by domain:
 
-**Consolidated Tools (Recommended):**
+**Consolidated Tools:**
 - **8 domain-focused tools** (dotnet_project, dotnet_package, dotnet_ef, etc.)
 - **Action-based** - Single tool with multiple actions (e.g., `dotnet_project` with action "New", "Build", "Test")
 - **Better AI orchestration** - Fewer tools means better tool selection by AI assistants
 - **Clear semantic grouping** - Related operations grouped by domain
 
-**Legacy Tools (Also Supported):**
-- **74 individual tools** (dotnet_project_new, dotnet_project_build, etc.)
-- **1:1 mapping** to dotnet CLI commands
-- **Fully supported** but more tools for AI to choose from
-
-**Which should you use?**
-
-For new integrations, **use consolidated tools**. They provide:
-- Clearer intent (domain + action)
-- Better AI tool selection accuracy
-- Easier workflow composition
-
-For existing integrations, **both work equally well**. See the [Migration Guide](migration-guide.md) for examples of converting from legacy to consolidated tools.
+**Example:**
+```typescript
+// All project operations use dotnet_project with different actions
+await callTool("dotnet_project", { action: "New", template: "webapi", name: "MyApi" });
+await callTool("dotnet_project", { action: "Build", configuration: "Release" });
+await callTool("dotnet_project", { action: "Test", filter: "Category=Unit" });
+```
 
 ### First Steps with Your AI Assistant
 
@@ -93,7 +87,7 @@ AI: Reads dotnet://templates resource
 
 ## Common Workflows
 
-> **📘 About Code Examples:** The workflow examples in this guide show raw `dotnet` CLI commands for clarity and universal understanding. When AI assistants execute these operations through the MCP server, they use **consolidated MCP tools** (e.g., `dotnet_project`, `dotnet_package`, `dotnet_ef`) with appropriate actions. See the [Migration Guide](migration-guide.md) for complete examples of consolidated tool syntax.
+> **📘 About Code Examples:** The workflow examples in this guide show raw `dotnet` CLI commands for clarity and universal understanding. When AI assistants execute these operations through the MCP server, they use **consolidated MCP tools** (e.g., `dotnet_project`, `dotnet_package`, `dotnet_ef`) with appropriate actions.
 
 ### 1. Creating a New Console Application
 
@@ -282,7 +276,7 @@ dotnet add MyCompany.Products.Tests reference MyCompany.Products.Data
 
 ### 6. Database Migrations with Entity Framework
 
-> **Note on Code Examples:** The examples below show raw `dotnet` CLI commands for readability. When AI assistants execute these operations, they use the corresponding MCP tools (e.g., `dotnet_ef` with appropriate actions like "MigrationsAdd", "DatabaseUpdate"). The [Migration Guide](migration-guide.md) shows the exact tool call syntax.
+> **Note on Code Examples:** The examples below show raw `dotnet` CLI commands for readability. When AI assistants execute these operations, they use the `dotnet_ef` tool with appropriate actions like "MigrationsAdd", "DatabaseUpdate".
 
 **Initial Setup:**
 ```text
@@ -901,34 +895,21 @@ AI validates improvements via Aspire MCP
 
 ## Best Practices
 
-### 1. Use Consolidated Tools for New Work
+### 1. Understand Tool Actions
 
-**Why Consolidated Tools?**
-
-The .NET MCP Server provides both consolidated tools (8 domain-focused tools) and legacy tools (74 individual tools). **For new work, prefer consolidated tools:**
+**The .NET MCP Server uses consolidated tools with action enums:**
 
 ```text
-✅ Consolidated (Recommended):
-"Create a web API"
-AI uses: dotnet_project with action="New"
-
-❌ Legacy (Also works):
-"Create a web API"  
-AI uses: dotnet_project_new
+✅ Use consolidated tools:
+await callTool("dotnet_project", { action: "New", template: "webapi" })
+await callTool("dotnet_project", { action: "Build", configuration: "Release" })
+await callTool("dotnet_package", { action: "Add", packageId: "Serilog" })
 ```
 
-**Benefits of consolidated tools:**
+**Benefits:**
 - Clearer semantic intent (domain + action)
-- Better AI tool selection (8 tools vs 74)
-- Easier for AI to understand workflows
-- More maintainable integrations
-
-**When to use legacy tools:**
-- Existing integrations that already use them
-- When you need exact 1:1 CLI command mapping
-- Both tool surfaces are fully supported
-
-See the [Migration Guide](migration-guide.md) for detailed comparisons and migration patterns.
+- Better AI tool selection (8 tools instead of 74)
+- Easier workflow composition
 
 ### 2. Be Specific with Your Requests
 
