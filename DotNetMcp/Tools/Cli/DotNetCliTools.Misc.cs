@@ -143,7 +143,7 @@ public sealed partial class DotNetCliTools
         result.AppendLine("  • SDK Info: 5-minute TTL, thread-safe with metrics");
         result.AppendLine("  • Runtime Info: 5-minute TTL, thread-safe with metrics");
         result.AppendLine("  • Force reload available on template tools");
-        result.AppendLine("  • Use dotnet_cache_metrics for hit/miss statistics");
+        result.AppendLine("  • Use dotnet_sdk (action: CacheMetrics) for hit/miss statistics");
         result.AppendLine();
 
         result.AppendLine("RESOURCES (Read-Only Access):");
@@ -176,10 +176,7 @@ public sealed partial class DotNetCliTools
     /// <param name="diagnostics">Comma-separated list of diagnostic IDs to fix</param>
     /// <param name="severity">Severity level to fix (info, warn, error)</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpMeta("category", "format")]
-    [McpMeta("priority", 6.0)]
-    [McpMeta("minimumSdkVersion", "6.0")]
-    public async Task<string> DotnetFormat(
+    internal async Task<string> DotnetFormat(
         string? project = null,
         bool verify = false,
         bool includeGenerated = false,

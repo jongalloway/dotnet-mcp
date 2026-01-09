@@ -23,7 +23,7 @@ public class MachineReadableOutputTests
     public async Task DotnetSdkVersion_WithMachineReadableFalse_ReturnsPlainText()
     {
         // Act
-        var result = await _tools.DotnetSdkVersion(machineReadable: false);
+        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Version, machineReadable: false);
 
         // Assert
         Assert.NotNull(result);
@@ -39,7 +39,7 @@ public class MachineReadableOutputTests
     public async Task DotnetSdkVersion_WithMachineReadableTrue_ReturnsValidJson()
     {
         // Act
-        var result = await _tools.DotnetSdkVersion(machineReadable: true);
+        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Version, machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
@@ -73,7 +73,8 @@ public class MachineReadableOutputTests
         var nonExistentProject = "/tmp/NonExistent_Project_12345.csproj";
 
         // Act
-        var result = await _tools.DotnetProjectBuild(
+        var result = await _tools.DotnetProject(
+            action: DotNetMcp.Actions.DotnetProjectAction.Build,
             project: nonExistentProject,
             machineReadable: true);
 
@@ -100,7 +101,8 @@ public class MachineReadableOutputTests
     public async Task DotnetPackageSearch_WithMachineReadableTrue_ReturnsValidJson()
     {
         // Act
-        var result = await _tools.DotnetPackageSearch(
+        var result = await _tools.DotnetPackage(
+            action: DotNetMcp.Actions.DotnetPackageAction.Search,
             searchTerm: "Newtonsoft.Json",
             take: 1,
             machineReadable: true);
@@ -117,7 +119,8 @@ public class MachineReadableOutputTests
     public async Task DotnetProjectNew_WithMachineReadableFalse_ReturnsPlainTextByDefault()
     {
         // Act - using default machineReadable parameter (should be false)
-        var result = await _tools.DotnetProjectNew(
+        var result = await _tools.DotnetProject(
+            action: DotNetMcp.Actions.DotnetProjectAction.New,
             template: "console",
             name: "TestApp",
             output: "/tmp/test-output-" + Guid.NewGuid());
@@ -134,13 +137,13 @@ public class MachineReadableOutputTests
     [Fact]
     public async Task MachineReadableParameter_DefaultsToFalse_ForBackwardsCompatibility()
     {
-        // This test verifies that existing code calling methods without machineReadable
-        // parameter continues to work and returns plain text
+        // This test verifies that calling consolidated tools without machineReadable
+        // continues to return plain text
 
         // Act - call without machineReadable parameter
-        var sdkInfoResult = await _tools.DotnetSdkInfo();
-        var sdkListResult = await _tools.DotnetSdkList();
-        var runtimeListResult = await _tools.DotnetRuntimeList();
+        var sdkInfoResult = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Info);
+        var sdkListResult = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.ListSdks);
+        var runtimeListResult = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.ListRuntimes);
 
         // Assert - all should return plain text (not JSON)
         var results = new[] { sdkInfoResult, sdkListResult, runtimeListResult };

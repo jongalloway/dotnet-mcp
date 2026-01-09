@@ -111,8 +111,9 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetPackageAdd_WithAllParameters_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetPackageAdd(
-            packageName: "Microsoft.Extensions.Logging",
+        var result = await _tools.DotnetPackage(
+            action: DotNetMcp.Actions.DotnetPackageAction.Add,
+            packageId: "Microsoft.Extensions.Logging",
             project: "MyProject.csproj",
             version: "8.0.0",
             prerelease: false,
@@ -127,7 +128,8 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetPackageList_WithAllParameters_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetPackageList(
+        var result = await _tools.DotnetPackage(
+            action: DotNetMcp.Actions.DotnetPackageAction.List,
             project: "MyProject.csproj",
             outdated: true,
             deprecated: true,
@@ -144,7 +146,8 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetSolutionCreate_WithMachineReadable_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetSolutionCreate(
+        var result = await _tools.DotnetSolution(
+            action: DotNetMcp.Actions.DotnetSolutionAction.Create,
             name: "TestSolution",
             machineReadable: true);
 
@@ -284,8 +287,9 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetToolInstall_WithMachineReadable_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetToolInstall(
-            packageName: "dotnet-format",
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Install,
+            packageId: "dotnet-format",
             global: true,
             machineReadable: true);
 
@@ -298,7 +302,8 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetToolList_WithMachineReadable_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetToolList(
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.List,
             global: true,
             machineReadable: true);
 
@@ -311,8 +316,9 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetToolUpdate_WithMachineReadable_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetToolUpdate(
-            packageName: "dotnet-ef",
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Update,
+            packageId: "dotnet-ef",
             global: true,
             version: "8.0.0",
             machineReadable: true);
@@ -326,8 +332,9 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetToolUninstall_WithMachineReadable_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetToolUninstall(
-            packageName: "dotnet-format",
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Uninstall,
+            packageId: "dotnet-format",
             global: false,
             machineReadable: true);
 
@@ -340,7 +347,9 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetToolRestore_WithMachineReadable_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetToolRestore(machineReadable: true);
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Restore,
+            machineReadable: true);
 
         // Assert
         Assert.NotNull(result);
@@ -357,7 +366,8 @@ public class EdgeCaseAndIntegrationTests
         string result;
         try
         {
-            result = await _tools.DotnetToolManifestCreate(
+            result = await _tools.DotnetTool(
+                action: DotNetMcp.Actions.DotnetToolAction.CreateManifest,
                 output: tempDirectory.FullName,
                 force: true,
                 machineReadable: true);
@@ -377,7 +387,8 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetToolSearch_WithMachineReadable_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetToolSearch(
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Search,
             searchTerm: "format",
             detail: true,
             take: 5,
@@ -394,7 +405,8 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetToolRun_WithMachineReadable_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetToolRun(
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Run,
             toolName: "dotnet-ef",
             args: "database update",
             machineReadable: true);
@@ -410,7 +422,9 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetFrameworkInfo_WithNetStandard_ReturnsCorrectInformation()
     {
         // Act
-        var result = await _tools.DotnetFrameworkInfo(framework: "netstandard2.1");
+        var result = await _tools.DotnetSdk(
+            action: DotNetMcp.Actions.DotnetSdkAction.FrameworkInfo,
+            framework: "netstandard2.1");
 
         // Assert
         Assert.NotNull(result);
@@ -422,7 +436,9 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetFrameworkInfo_WithModernNet_ReturnsCorrectInformation()
     {
         // Act
-        var result = await _tools.DotnetFrameworkInfo(framework: "net10.0");
+        var result = await _tools.DotnetSdk(
+            action: DotNetMcp.Actions.DotnetSdkAction.FrameworkInfo,
+            framework: "net10.0");
 
         // Assert
         Assert.NotNull(result);

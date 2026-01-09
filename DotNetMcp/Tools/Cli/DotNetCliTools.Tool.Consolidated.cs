@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Text;
 using DotNetMcp.Actions;
 using ModelContextProtocol.Server;
@@ -33,13 +32,12 @@ public sealed partial class DotNetCliTools
     /// <param name="workingDirectory">Working directory for command execution</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpServerTool]
-    [Description("Manage .NET tools (global, local, and tool manifests). Supports install, list, update, uninstall, restore, search, run, and manifest creation.")]
     [McpMeta("category", "tool")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("consolidatedTool", true)]
     [McpMeta("actions", JsonValue = """["Install","List","Update","Uninstall","Restore","CreateManifest","Search","Run"]""")]
-    internal async Task<string> DotnetTool(
+    public async partial Task<string> DotnetTool(
         DotnetToolAction action,
         string? packageId = null,
         bool? global = null,

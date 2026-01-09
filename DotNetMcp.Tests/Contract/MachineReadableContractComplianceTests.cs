@@ -28,28 +28,28 @@ public class MachineReadableContractComplianceTests
     [Fact]
     public async Task DotnetSdkVersion_MachineReadable_ReturnsValidSuccessEnvelope()
     {
-        var result = await _tools.DotnetSdkVersion(machineReadable: true);
+        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Version, machineReadable: true);
         AssertSuccessEnvelope(result);
     }
 
     [Fact]
     public async Task DotnetSdkInfo_MachineReadable_ReturnsValidSuccessEnvelope()
     {
-        var result = await _tools.DotnetSdkInfo(machineReadable: true);
+        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Info, machineReadable: true);
         AssertSuccessEnvelope(result);
     }
 
     [Fact]
     public async Task DotnetSdkList_MachineReadable_ReturnsValidSuccessEnvelope()
     {
-        var result = await _tools.DotnetSdkList(machineReadable: true);
+        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.ListSdks, machineReadable: true);
         AssertSuccessEnvelope(result);
     }
 
     [Fact]
     public async Task DotnetRuntimeList_MachineReadable_ReturnsValidSuccessEnvelope()
     {
-        var result = await _tools.DotnetRuntimeList(machineReadable: true);
+        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.ListRuntimes, machineReadable: true);
         AssertSuccessEnvelope(result);
     }
 
@@ -60,56 +60,81 @@ public class MachineReadableContractComplianceTests
     [Fact]
     public async Task DotnetToolInstall_EmptyPackageName_ReturnsValidValidationError()
     {
-        var result = await _tools.DotnetToolInstall(packageName: "", machineReadable: true);
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Install,
+            packageId: "",
+            machineReadable: true);
         AssertValidationErrorEnvelope(result);
     }
 
     [Fact]
     public async Task DotnetToolUpdate_EmptyPackageName_ReturnsValidValidationError()
     {
-        var result = await _tools.DotnetToolUpdate(packageName: "", machineReadable: true);
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Update,
+            packageId: "",
+            machineReadable: true);
         AssertValidationErrorEnvelope(result);
     }
 
     [Fact]
     public async Task DotnetToolUninstall_EmptyPackageName_ReturnsValidValidationError()
     {
-        var result = await _tools.DotnetToolUninstall(packageName: "", machineReadable: true);
+        var result = await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Uninstall,
+            packageId: "",
+            machineReadable: true);
         AssertValidationErrorEnvelope(result);
     }
 
     [Fact]
     public async Task DotnetSecretsSet_EmptyKey_ReturnsValidValidationError()
     {
-        var result = await _tools.DotnetSecretsSet(key: "", value: "test", machineReadable: true);
+        var result = await _tools.DotnetDevCerts(
+            action: DotNetMcp.Actions.DotnetDevCertsAction.SecretsSet,
+            key: "",
+            value: "test",
+            machineReadable: true);
         AssertValidationErrorEnvelope(result);
     }
 
     [Fact]
     public async Task DotnetSecretsSet_EmptyValue_ReturnsValidValidationError()
     {
-        var result = await _tools.DotnetSecretsSet(key: "test", value: "", machineReadable: true);
+        var result = await _tools.DotnetDevCerts(
+            action: DotNetMcp.Actions.DotnetDevCertsAction.SecretsSet,
+            key: "test",
+            value: "",
+            machineReadable: true);
         AssertValidationErrorEnvelope(result);
     }
 
     [Fact]
     public async Task DotnetCertificateExport_EmptyPath_ReturnsValidValidationError()
     {
-        var result = await _tools.DotnetCertificateExport(path: "", machineReadable: true);
+        var result = await _tools.DotnetDevCerts(
+            action: DotNetMcp.Actions.DotnetDevCertsAction.CertificateExport,
+            path: "",
+            machineReadable: true);
         AssertValidationErrorEnvelope(result);
     }
 
     [Fact]
     public async Task DotnetCertificateExport_InvalidFormat_ReturnsValidValidationError()
     {
-        var result = await _tools.DotnetCertificateExport(path: "/tmp/cert.pfx", format: "invalid", machineReadable: true);
+        var result = await _tools.DotnetDevCerts(
+            action: DotNetMcp.Actions.DotnetDevCertsAction.CertificateExport,
+            path: "/tmp/cert.pfx",
+            format: "invalid",
+            machineReadable: true);
         AssertValidationErrorEnvelope(result);
     }
 
     [Fact]
     public async Task DotnetSolutionAdd_EmptyProjects_ReturnsValidValidationError()
     {
-        var result = await _tools.DotnetSolutionAdd(
+        var result = await _tools.DotnetSolution(
+            action: DotNetMcp.Actions.DotnetSolutionAction.Add,
             solution: "Test.sln",
             projects: Array.Empty<string>(),
             machineReadable: true);
@@ -119,10 +144,9 @@ public class MachineReadableContractComplianceTests
     [Fact]
     public async Task DotnetNugetLocals_NeitherListNorClear_ReturnsValidValidationError()
     {
-        var result = await _tools.DotnetNugetLocals(
-            cacheLocation: "all",
-            list: false,
-            clear: false,
+        var result = await _tools.DotnetPackage(
+            action: DotNetMcp.Actions.DotnetPackageAction.ClearCache,
+            cacheType: "invalid",
             machineReadable: true);
         AssertValidationErrorEnvelope(result);
     }
@@ -134,7 +158,8 @@ public class MachineReadableContractComplianceTests
     [Fact]
     public async Task DotnetProjectBuild_NonExistentProject_ReturnsValidErrorEnvelope()
     {
-        var result = await _tools.DotnetProjectBuild(
+        var result = await _tools.DotnetProject(
+            action: DotNetMcp.Actions.DotnetProjectAction.Build,
             project: "/tmp/NonExistent_Project_12345.csproj",
             machineReadable: true);
         AssertErrorEnvelope(result);
@@ -143,7 +168,8 @@ public class MachineReadableContractComplianceTests
     [Fact]
     public async Task DotnetProjectRun_NonExistentProject_ReturnsValidErrorEnvelope()
     {
-        var result = await _tools.DotnetProjectRun(
+        var result = await _tools.DotnetProject(
+            action: DotNetMcp.Actions.DotnetProjectAction.Run,
             project: "/tmp/NonExistent_Project_12345.csproj",
             machineReadable: true);
         AssertErrorEnvelope(result);
