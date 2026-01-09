@@ -17,12 +17,11 @@ public sealed partial class DotNetCliTools
     /// <param name="version">Specific version to install</param>
     /// <param name="framework">Target framework to install for</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "tool")]
     [McpMeta("priority", 8.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("tags", JsonValue = """["tool","install","global","local","cli"]""")]
-    public async partial Task<string> DotnetToolInstall(
+    public async Task<string> DotnetToolInstall(
         string packageName,
         bool global = false,
         string? version = null,
@@ -55,10 +54,9 @@ public sealed partial class DotNetCliTools
     /// </summary>
     /// <param name="global">List global tools (system-wide); otherwise lists local tools from manifest</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "tool")]
     [McpMeta("priority", 7.0)]
-    public async partial Task<string> DotnetToolList(
+    public async Task<string> DotnetToolList(
         bool global = false,
         bool machineReadable = false)
     {
@@ -75,10 +73,9 @@ public sealed partial class DotNetCliTools
     /// <param name="global">Update global tool (system-wide); otherwise updates local tool</param>
     /// <param name="version">Update to specific version; otherwise updates to latest</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "tool")]
     [McpMeta("priority", 7.0)]
-    public async partial Task<string> DotnetToolUpdate(
+    public async Task<string> DotnetToolUpdate(
         string packageName,
         bool global = false,
         string? version = null,
@@ -110,10 +107,9 @@ public sealed partial class DotNetCliTools
     /// <param name="packageName">Package name of the tool to uninstall</param>
     /// <param name="global">Uninstall global tool (system-wide); otherwise uninstalls from local manifest</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "tool")]
     [McpMeta("priority", 6.0)]
-    public async partial Task<string> DotnetToolUninstall(
+    public async Task<string> DotnetToolUninstall(
         string packageName,
         bool global = false,
         bool machineReadable = false)
@@ -141,10 +137,9 @@ public sealed partial class DotNetCliTools
     /// Installs all tools listed in the manifest; essential for project setup after cloning.
     /// </summary>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "tool")]
     [McpMeta("priority", 7.0)]
-    public async partial Task<string> DotnetToolRestore(bool machineReadable = false)
+    public async Task<string> DotnetToolRestore(bool machineReadable = false)
         => await ExecuteDotNetCommand("tool restore", machineReadable);
 
     /// <summary>
@@ -154,10 +149,9 @@ public sealed partial class DotNetCliTools
     /// <param name="output">Output directory for the manifest (defaults to current directory)</param>
     /// <param name="force">Force creation even if manifest already exists</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "tool")]
     [McpMeta("priority", 6.0)]
-    public async partial Task<string> DotnetToolManifestCreate(
+    public async Task<string> DotnetToolManifestCreate(
         string? output = null,
         bool force = false,
         bool machineReadable = false)
@@ -178,10 +172,9 @@ public sealed partial class DotNetCliTools
     /// <param name="skip">Skip the first N results for pagination</param>
     /// <param name="prerelease">Include prerelease tool versions in search</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "tool")]
     [McpMeta("priority", 6.0)]
-    public async partial Task<string> DotnetToolSearch(
+    public async Task<string> DotnetToolSearch(
         string searchTerm,
         bool detail = false,
         int? take = null,
@@ -217,10 +210,9 @@ public sealed partial class DotNetCliTools
     /// <param name="toolName">Tool command name to run (e.g., 'dotnet-ef', 'dotnet-format')</param>
     /// <param name="args">Arguments to pass to the tool (e.g., 'migrations add Initial')</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "tool")]
     [McpMeta("priority", 7.0)]
-    public async partial Task<string> DotnetToolRun(
+    public async Task<string> DotnetToolRun(
         string toolName,
         string? args = null,
         bool machineReadable = false)

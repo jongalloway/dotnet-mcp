@@ -19,12 +19,11 @@ public sealed partial class DotNetCliTools
     /// <param name="framework">The target framework (e.g., 'net10.0', 'net8.0')</param>
     /// <param name="additionalOptions">Additional template-specific options (e.g., '--format slnx', '--use-program-main', '--aot')</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "project")]
     [McpMeta("priority", 10.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("tags", JsonValue = """["project","create","new","template","initialization"]""")]
-    public async partial Task<string> DotnetProjectNew(
+    public async Task<string> DotnetProjectNew(
         string? template = null,
         string? name = null,
         string? output = null,
@@ -88,12 +87,11 @@ public sealed partial class DotNetCliTools
     /// </summary>
     /// <param name="project">The project file or solution file to restore</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "project")]
     [McpMeta("priority", 8.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("tags", JsonValue = """["project","restore","dependencies","packages","setup"]""")]
-    public async partial Task<string> DotnetProjectRestore(
+    public async Task<string> DotnetProjectRestore(
         string? project = null,
         bool machineReadable = false)
     {
@@ -123,13 +121,12 @@ public sealed partial class DotNetCliTools
     /// <param name="configuration">The configuration to build (Debug or Release)</param>
     /// <param name="framework">Build for a specific framework</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "project")]
     [McpMeta("priority", 10.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("isLongRunning", true)]
     [McpMeta("tags", JsonValue = """["project","build","compile","compilation"]""")]
-    public async partial Task<string> DotnetProjectBuild(
+    public async Task<string> DotnetProjectBuild(
         string? project = null,
         string? configuration = null,
         string? framework = null,
@@ -172,13 +169,12 @@ public sealed partial class DotNetCliTools
     /// <param name="configuration">The configuration to use (Debug or Release)</param>
     /// <param name="appArgs">Arguments to pass to the application</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "project")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("isLongRunning", true)]
     [McpMeta("tags", JsonValue = """["project","run","execute","launch","development"]""")]
-    public async partial Task<string> DotnetProjectRun(
+    public async Task<string> DotnetProjectRun(
         string? project = null,
         string? configuration = null,
         string? appArgs = null,
@@ -216,13 +212,12 @@ public sealed partial class DotNetCliTools
     /// <param name="blame">Run tests in blame mode to isolate problematic tests</param>
     /// <param name="listTests">List discovered tests without running them</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "project")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("isLongRunning", true)]
     [McpMeta("tags", JsonValue = """["project","test","testing","unit-test","validation"]""")]
-    public async partial Task<string> DotnetProjectTest(
+    public async Task<string> DotnetProjectTest(
         string? project = null,
         string? configuration = null,
         string? filter = null,
@@ -278,11 +273,10 @@ public sealed partial class DotNetCliTools
     /// <param name="output">The output directory for published files</param>
     /// <param name="runtime">The target runtime identifier (e.g., 'linux-x64', 'win-x64')</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "project")]
     [McpMeta("priority", 7.0)]
     [McpMeta("isLongRunning", true)]
-    public async partial Task<string> DotnetProjectPublish(
+    public async Task<string> DotnetProjectPublish(
         string? project = null,
         string? configuration = null,
         string? output = null,
@@ -316,10 +310,9 @@ public sealed partial class DotNetCliTools
     /// <param name="project">The project file or solution file to clean</param>
     /// <param name="configuration">The configuration to clean (Debug or Release)</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "project")]
     [McpMeta("priority", 6.0)]
-    public async partial Task<string> DotnetProjectClean(
+    public async Task<string> DotnetProjectClean(
         string? project = null,
         string? configuration = null,
         bool machineReadable = false)
@@ -344,12 +337,11 @@ public sealed partial class DotNetCliTools
     /// Does not require building the project.
     /// </summary>
     /// <param name="projectPath">Path to the .csproj file to analyze</param>
-    [McpServerTool]
     [McpMeta("category", "project")]
     [McpMeta("usesMSBuild", true)]
     [McpMeta("priority", 7.0)]
     [McpMeta("tags", JsonValue = """["project","analyze","introspection","metadata"]""")]
-    public async partial Task<string> DotnetProjectAnalyze(string projectPath)
+    public async Task<string> DotnetProjectAnalyze(string projectPath)
     {
         // Validate project path
         if (!ParameterValidator.ValidateProjectPath(projectPath, out var projectError))
@@ -364,12 +356,11 @@ public sealed partial class DotNetCliTools
     /// Returns structured JSON with dependency information. For transitive dependencies, use CLI commands.
     /// </summary>
     /// <param name="projectPath">Path to the .csproj file to analyze</param>
-    [McpServerTool]
     [McpMeta("category", "project")]
     [McpMeta("usesMSBuild", true)]
     [McpMeta("priority", 6.0)]
     [McpMeta("tags", JsonValue = """["project","dependencies","analyze","packages"]""")]
-    public async partial Task<string> DotnetProjectDependencies(string projectPath)
+    public async Task<string> DotnetProjectDependencies(string projectPath)
     {
         // Validate project path
         if (!ParameterValidator.ValidateProjectPath(projectPath, out var projectError))
@@ -384,12 +375,11 @@ public sealed partial class DotNetCliTools
     /// Returns structured JSON with errors, warnings, and recommendations. Does not require building.
     /// </summary>
     /// <param name="projectPath">Path to the .csproj file to validate</param>
-    [McpServerTool]
     [McpMeta("category", "project")]
     [McpMeta("usesMSBuild", true)]
     [McpMeta("priority", 6.0)]
     [McpMeta("tags", JsonValue = """["project","validate","health-check","diagnostics"]""")]
-    public async partial Task<string> DotnetProjectValidate(string projectPath)
+    public async Task<string> DotnetProjectValidate(string projectPath)
     {
         // Validate project path
         if (!ParameterValidator.ValidateProjectPath(projectPath, out var projectError))

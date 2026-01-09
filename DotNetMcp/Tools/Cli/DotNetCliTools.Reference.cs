@@ -13,10 +13,9 @@ public sealed partial class DotNetCliTools
     /// <param name="project">The project file to add the reference from</param>
     /// <param name="reference">The project file to reference</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "reference")]
     [McpMeta("priority", 7.0)]
-    public async partial Task<string> DotnetReferenceAdd(
+    public async Task<string> DotnetReferenceAdd(
         string project,
         string reference,
         bool machineReadable = false)
@@ -27,10 +26,9 @@ public sealed partial class DotNetCliTools
     /// </summary>
     /// <param name="project">The project file</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "reference")]
     [McpMeta("priority", 5.0)]
-    public async partial Task<string> DotnetReferenceList(
+    public async Task<string> DotnetReferenceList(
         string? project = null,
         bool machineReadable = false)
     {
@@ -46,10 +44,9 @@ public sealed partial class DotNetCliTools
     /// <param name="project">The project file to remove the reference from</param>
     /// <param name="reference">The project file to unreference</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "reference")]
     [McpMeta("priority", 5.0)]
-    public async partial Task<string> DotnetReferenceRemove(
+    public async Task<string> DotnetReferenceRemove(
         string project,
         string reference,
         bool machineReadable = false)

@@ -15,11 +15,10 @@ public sealed partial class DotNetCliTools
     /// May require elevation on Windows/macOS. Essential for local ASP.NET Core HTTPS development.
     /// </summary>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "security")]
     [McpMeta("priority", 7.0)]
     [McpMeta("requiresElevation", true)]
-    public async partial Task<string> DotnetCertificateTrust(bool machineReadable = false)
+    public async Task<string> DotnetCertificateTrust(bool machineReadable = false)
         => await ExecuteDotNetCommand("dev-certs https --trust", machineReadable);
 
     /// <summary>
@@ -27,10 +26,9 @@ public sealed partial class DotNetCliTools
     /// Returns certificate status and validity information.
     /// </summary>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "security")]
     [McpMeta("priority", 7.0)]
-    public async partial Task<string> DotnetCertificateCheck(bool machineReadable = false)
+    public async Task<string> DotnetCertificateCheck(bool machineReadable = false)
         => await ExecuteDotNetCommand("dev-certs https --check", machineReadable);
 
     /// <summary>
@@ -38,10 +36,9 @@ public sealed partial class DotNetCliTools
     /// Use this to clean up old or invalid certificates before creating new ones.
     /// </summary>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "security")]
     [McpMeta("priority", 6.0)]
-    public async partial Task<string> DotnetCertificateClean(bool machineReadable = false)
+    public async Task<string> DotnetCertificateClean(bool machineReadable = false)
         => await ExecuteDotNetCommand("dev-certs https --clean", machineReadable);
 
     /// <summary>
@@ -52,10 +49,9 @@ public sealed partial class DotNetCliTools
     /// <param name="password">Certificate password for protection (optional, but recommended for PFX format)</param>
     /// <param name="format">Export format: Pfx or Pem (defaults to Pfx if not specified)</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "security")]
     [McpMeta("priority", 6.0)]
-    public async partial Task<string> DotnetCertificateExport(
+    public async Task<string> DotnetCertificateExport(
         string path,
         string? password = null,
         string? format = null,
@@ -121,10 +117,9 @@ public sealed partial class DotNetCliTools
     /// </summary>
     /// <param name="project">Project file to initialize secrets for (optional; uses current directory if not specified)</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "security")]
     [McpMeta("priority", 8.0)]
-    public async partial Task<string> DotnetSecretsInit(
+    public async Task<string> DotnetSecretsInit(
         string? project = null,
         bool machineReadable = false)
     {
@@ -142,11 +137,10 @@ public sealed partial class DotNetCliTools
     /// <param name="value">Secret value (will not be logged for security)</param>
     /// <param name="project">Project file (optional; uses current directory if not specified)</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "security")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]
-    public async partial Task<string> DotnetSecretsSet(
+    public async Task<string> DotnetSecretsSet(
         string key,
         string value,
         string? project = null,
@@ -200,10 +194,9 @@ public sealed partial class DotNetCliTools
     /// </summary>
     /// <param name="project">Project file (optional; uses current directory if not specified)</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "security")]
     [McpMeta("priority", 7.0)]
-    public async partial Task<string> DotnetSecretsList(
+    public async Task<string> DotnetSecretsList(
         string? project = null,
         bool machineReadable = false)
     {
@@ -218,10 +211,9 @@ public sealed partial class DotNetCliTools
     /// <param name="key">Secret key to remove</param>
     /// <param name="project">Project file (optional; uses current directory if not specified)</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "security")]
     [McpMeta("priority", 6.0)]
-    public async partial Task<string> DotnetSecretsRemove(
+    public async Task<string> DotnetSecretsRemove(
         string key,
         string? project = null,
         bool machineReadable = false)
@@ -250,10 +242,9 @@ public sealed partial class DotNetCliTools
     /// </summary>
     /// <param name="project">Project file (optional; uses current directory if not specified)</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "security")]
     [McpMeta("priority", 5.0)]
-    public async partial Task<string> DotnetSecretsClear(
+    public async Task<string> DotnetSecretsClear(
         string? project = null,
         bool machineReadable = false)
     {

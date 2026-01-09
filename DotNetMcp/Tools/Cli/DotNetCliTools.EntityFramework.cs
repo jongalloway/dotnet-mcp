@@ -20,12 +20,11 @@ public sealed partial class DotNetCliTools
     /// <param name="outputDir">Output directory for migration files</param>
     /// <param name="framework">Target framework for the project</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "ef")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("tags", JsonValue = """["ef","entity-framework","migration","database","schema"]""")]
-    public async partial Task<string> DotnetEfMigrationsAdd(
+    public async Task<string> DotnetEfMigrationsAdd(
         string name,
         string? project = null,
         string? startupProject = null,
@@ -67,12 +66,11 @@ public sealed partial class DotNetCliTools
     /// <param name="connection">Show connection string used</param>
     /// <param name="noBuild">Do not build the project before listing</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "ef")]
     [McpMeta("priority", 8.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("tags", JsonValue = """["ef","entity-framework","migration","database","list"]""")]
-    public async partial Task<string> DotnetEfMigrationsList(
+    public async Task<string> DotnetEfMigrationsList(
         string? project = null,
         string? startupProject = null,
         string? context = null,
@@ -102,11 +100,10 @@ public sealed partial class DotNetCliTools
     /// <param name="force">Force removal (reverts migration if already applied)</param>
     /// <param name="noBuild">Do not build the project before removing</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "ef")]
     [McpMeta("priority", 7.0)]
     [McpMeta("tags", JsonValue = """["ef","entity-framework","migration","database","remove"]""")]
-    public async partial Task<string> DotnetEfMigrationsRemove(
+    public async Task<string> DotnetEfMigrationsRemove(
         string? project = null,
         string? startupProject = null,
         string? context = null,
@@ -139,11 +136,10 @@ public sealed partial class DotNetCliTools
     /// <param name="idempotent">Generate idempotent script (can be run multiple times)</param>
     /// <param name="noBuild">Do not build the project before scripting</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "ef")]
     [McpMeta("priority", 7.0)]
     [McpMeta("tags", JsonValue = """["ef","entity-framework","migration","database","sql","script"]""")]
-    public async partial Task<string> DotnetEfMigrationsScript(
+    public async Task<string> DotnetEfMigrationsScript(
         string? from = null,
         string? to = null,
         string? output = null,
@@ -191,12 +187,11 @@ public sealed partial class DotNetCliTools
     /// <param name="connection">Connection string (overrides configured connection)</param>
     /// <param name="noBuild">Do not build the project before updating</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "ef")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("tags", JsonValue = """["ef","entity-framework","database","update","migration","apply"]""")]
-    public async partial Task<string> DotnetEfDatabaseUpdate(
+    public async Task<string> DotnetEfDatabaseUpdate(
         string? migration = null,
         string? project = null,
         string? startupProject = null,
@@ -229,11 +224,10 @@ public sealed partial class DotNetCliTools
     /// <param name="force">Force drop without confirmation prompt (set to true to execute)</param>
     /// <param name="dryRun">Perform a dry run without actually dropping</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "ef")]
     [McpMeta("priority", 5.0)]
     [McpMeta("tags", JsonValue = """["ef","entity-framework","database","drop","delete"]""")]
-    public async partial Task<string> DotnetEfDatabaseDrop(
+    public async Task<string> DotnetEfDatabaseDrop(
         string? project = null,
         string? startupProject = null,
         string? context = null,
@@ -261,11 +255,10 @@ public sealed partial class DotNetCliTools
     /// <param name="framework">Target framework for the project</param>
     /// <param name="noBuild">Do not build the project before listing</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "ef")]
     [McpMeta("priority", 7.0)]
     [McpMeta("tags", JsonValue = """["ef","entity-framework","dbcontext","list"]""")]
-    public async partial Task<string> DotnetEfDbContextList(
+    public async Task<string> DotnetEfDbContextList(
         string? project = null,
         string? startupProject = null,
         string? framework = null,
@@ -290,11 +283,10 @@ public sealed partial class DotNetCliTools
     /// <param name="framework">Target framework for the project</param>
     /// <param name="noBuild">Do not build the project before getting info</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "ef")]
     [McpMeta("priority", 7.0)]
     [McpMeta("tags", JsonValue = """["ef","entity-framework","dbcontext","info","connection-string"]""")]
-    public async partial Task<string> DotnetEfDbContextInfo(
+    public async Task<string> DotnetEfDbContextInfo(
         string? project = null,
         string? startupProject = null,
         string? context = null,
@@ -328,12 +320,11 @@ public sealed partial class DotNetCliTools
     /// <param name="force">Force overwrite of existing files</param>
     /// <param name="noBuild">Do not build the project before scaffolding</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "ef")]
     [McpMeta("priority", 8.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("tags", JsonValue = """["ef","entity-framework","dbcontext","scaffold","reverse-engineer","database-first"]""")]
-    public async partial Task<string> DotnetEfDbContextScaffold(
+    public async Task<string> DotnetEfDbContextScaffold(
         string connection,
         string provider,
         string? project = null,

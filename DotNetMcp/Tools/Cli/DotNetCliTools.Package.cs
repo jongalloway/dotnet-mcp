@@ -17,10 +17,9 @@ public sealed partial class DotNetCliTools
     /// <param name="includeSymbols">Include symbols package</param>
     /// <param name="includeSource">Include source files in the package</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "package")]
     [McpMeta("priority", 5.0)]
-    public async partial Task<string> DotnetPackCreate(
+    public async Task<string> DotnetPackCreate(
         string? project = null,
         string? configuration = null,
         string? output = null,
@@ -53,12 +52,11 @@ public sealed partial class DotNetCliTools
     /// <param name="version">The version of the package</param>
     /// <param name="prerelease">Include prerelease packages</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "package")]
     [McpMeta("priority", 8.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("tags", JsonValue = """["package","add","nuget","dependency","install"]""")]
-    public async partial Task<string> DotnetPackageAdd(
+    public async Task<string> DotnetPackageAdd(
         string packageName,
         string? project = null,
         string? version = null,
@@ -84,10 +82,9 @@ public sealed partial class DotNetCliTools
     /// <param name="outdated">Show outdated packages</param>
     /// <param name="deprecated">Show deprecated packages</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "package")]
     [McpMeta("priority", 6.0)]
-    public async partial Task<string> DotnetPackageList(
+    public async Task<string> DotnetPackageList(
         string? project = null,
         bool outdated = false,
         bool deprecated = false,
@@ -111,10 +108,9 @@ public sealed partial class DotNetCliTools
     /// <param name="packageName">The name of the NuGet package to remove</param>
     /// <param name="project">The project file to remove the package from</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "package")]
     [McpMeta("priority", 6.0)]
-    public async partial Task<string> DotnetPackageRemove(
+    public async Task<string> DotnetPackageRemove(
         string packageName,
         string? project = null,
         bool machineReadable = false)
@@ -138,12 +134,11 @@ public sealed partial class DotNetCliTools
     /// <param name="prerelease">Include prerelease packages</param>
     /// <param name="exactMatch">Show exact matches only</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "package")]
     [McpMeta("priority", 7.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("tags", JsonValue = """["package","search","nuget","discovery","find"]""")]
-    public async partial Task<string> DotnetPackageSearch(
+    public async Task<string> DotnetPackageSearch(
         string searchTerm,
         int? take = null,
         int? skip = null,
@@ -168,10 +163,9 @@ public sealed partial class DotNetCliTools
     /// <param name="version">The version to update to</param>
     /// <param name="prerelease">Update to the latest prerelease version</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "package")]
     [McpMeta("priority", 7.0)]
-    public async partial Task<string> DotnetPackageUpdate(
+    public async Task<string> DotnetPackageUpdate(
         string packageName,
         string? project = null,
         string? version = null,
@@ -197,10 +191,9 @@ public sealed partial class DotNetCliTools
     /// <param name="list">List the cache location path</param>
     /// <param name="clear">Clear the specified cache location</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "nuget")]
     [McpMeta("priority", 4.0)]
-    public async partial Task<string> DotnetNugetLocals(
+    public async Task<string> DotnetNugetLocals(
         string cacheLocation,
         bool list = false,
         bool clear = false,

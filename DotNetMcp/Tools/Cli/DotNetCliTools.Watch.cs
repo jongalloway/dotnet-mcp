@@ -16,11 +16,10 @@ public sealed partial class DotNetCliTools
     /// <param name="project">The project file to run</param>
     /// <param name="appArgs">Arguments to pass to the application</param>
     /// <param name="noHotReload">Disable hot reload</param>
-    [McpServerTool]
     [McpMeta("category", "watch")]
     [McpMeta("isLongRunning", true)]
     [McpMeta("requiresInteractive", true)]
-    public partial Task<string> DotnetWatchRun(
+    public Task<string> DotnetWatchRun(
         string? project = null,
         string? appArgs = null,
         bool noHotReload = false)
@@ -42,11 +41,10 @@ public sealed partial class DotNetCliTools
     /// </summary>
     /// <param name="project">The project file or solution file to test</param>
     /// <param name="filter">Filter to run specific tests</param>
-    [McpServerTool]
     [McpMeta("category", "watch")]
     [McpMeta("isLongRunning", true)]
     [McpMeta("requiresInteractive", true)]
-    public partial Task<string> DotnetWatchTest(
+    public Task<string> DotnetWatchTest(
         string? project = null,
         string? filter = null)
     {
@@ -66,11 +64,10 @@ public sealed partial class DotNetCliTools
     /// </summary>
     /// <param name="project">The project file or solution file to build</param>
     /// <param name="configuration">The configuration to build (Debug or Release)</param>
-    [McpServerTool]
     [McpMeta("category", "watch")]
     [McpMeta("isLongRunning", true)]
     [McpMeta("requiresInteractive", true)]
-    public partial Task<string> DotnetWatchBuild(
+    public Task<string> DotnetWatchBuild(
         string? project = null,
         string? configuration = null)
     {
