@@ -479,7 +479,7 @@ public static partial class ErrorResultFactory
         var validActionsList = validActions.Select(a => SanitizeOutput(a)).ToList();
         var message = string.IsNullOrWhiteSpace(action)
             ? "Action parameter is required."
-            : $"Invalid action '{SanitizeOutput(action)}'.";
+            : $"Invalid action '{SanitizeOutput(action)}' is not supported.";
 
         if (!string.IsNullOrWhiteSpace(toolName))
         {
