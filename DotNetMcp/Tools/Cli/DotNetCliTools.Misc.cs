@@ -89,7 +89,7 @@ public sealed partial class DotNetCliTools
     [McpServerTool]
     [McpMeta("category", "help")]
     [McpMeta("priority", 5.0)]
-    public partial Task<string> DotnetServerInfo()
+    public Task<string> DotnetServerInfo()
     {
         var result = new StringBuilder();
         result.AppendLine("=== .NET MCP Server Capabilities ===");
@@ -176,11 +176,10 @@ public sealed partial class DotNetCliTools
     /// <param name="diagnostics">Comma-separated list of diagnostic IDs to fix</param>
     /// <param name="severity">Severity level to fix (info, warn, error)</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "format")]
     [McpMeta("priority", 6.0)]
     [McpMeta("minimumSdkVersion", "6.0")]
-    public async partial Task<string> DotnetFormat(
+    public async Task<string> DotnetFormat(
         string? project = null,
         bool verify = false,
         bool includeGenerated = false,
@@ -203,11 +202,10 @@ public sealed partial class DotNetCliTools
     /// <param name="enable">Whether to enable or disable telemetry (preserved for future implementation)</param>
     /// <param name="machineReadable">Ignored - method always returns JSON (preserved for consistency with other tools)</param>
     /// <returns>JSON error response indicating the feature is not yet available</returns>
-    [McpServerTool]
     [McpMeta("category", "telemetry")]
     [McpMeta("priority", 2.0)]
     [McpMeta("planned", true)]
-    public partial Task<string> DotnetTelemetry(
+    public Task<string> DotnetTelemetry(
         bool enable = true,
         bool machineReadable = false)
     {

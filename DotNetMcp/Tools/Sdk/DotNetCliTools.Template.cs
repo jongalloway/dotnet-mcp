@@ -15,13 +15,12 @@ public sealed partial class DotNetCliTools
     /// </summary>
     /// <param name="forceReload">If true, bypasses cache and reloads templates from disk</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text (currently unused, returns same format)</param>
-    [McpServerTool]
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("priority", 10.0)]
     [McpMeta("tags", JsonValue = """["template","list","discovery","project-creation"]""")]
-    public async partial Task<string> DotnetTemplateList(bool forceReload = false, bool machineReadable = false)
+    public async Task<string> DotnetTemplateList(bool forceReload = false, bool machineReadable = false)
           => await TemplateEngineHelper.GetInstalledTemplatesAsync(forceReload, _logger);
 
     /// <summary>
@@ -30,10 +29,9 @@ public sealed partial class DotNetCliTools
     /// <param name="searchTerm">Search term to find templates (searches in name, short name, and description)</param>
     /// <param name="forceReload">If true, bypasses cache and reloads templates from disk</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text (currently unused, returns same format)</param>
-    [McpServerTool]
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
-    public async partial Task<string> DotnetTemplateSearch(string searchTerm, bool forceReload = false, bool machineReadable = false)
+    public async Task<string> DotnetTemplateSearch(string searchTerm, bool forceReload = false, bool machineReadable = false)
         => await TemplateEngineHelper.SearchTemplatesAsync(searchTerm, forceReload, _logger);
 
     /// <summary>
@@ -42,10 +40,9 @@ public sealed partial class DotNetCliTools
     /// <param name="templateShortName">The template short name (e.g., 'console', 'webapi', 'classlib')</param>
     /// <param name="forceReload">If true, bypasses cache and reloads templates from disk</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text (currently unused, returns same format)</param>
-    [McpServerTool]
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
-    public async partial Task<string> DotnetTemplateInfo(string templateShortName, bool forceReload = false, bool machineReadable = false)
+    public async Task<string> DotnetTemplateInfo(string templateShortName, bool forceReload = false, bool machineReadable = false)
         => await TemplateEngineHelper.GetTemplateDetailsAsync(templateShortName, forceReload, _logger);
 
     /// <summary>
@@ -53,10 +50,9 @@ public sealed partial class DotNetCliTools
     /// Use this after installing or uninstalling templates or SDK versions. Also resets all cache metrics.
     /// </summary>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text (currently unused, returns same format)</param>
-    [McpServerTool]
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
-    public async partial Task<string> DotnetTemplateClearCache(bool machineReadable = false)
+    public async Task<string> DotnetTemplateClearCache(bool machineReadable = false)
     {
         await DotNetResources.ClearAllCachesAsync();
         return "All caches (templates, SDK, runtime) and metrics cleared successfully. Next query will reload from disk.";
@@ -66,10 +62,9 @@ public sealed partial class DotNetCliTools
     /// Get cache metrics showing hit/miss statistics for templates, SDK, and runtime information.
     /// </summary>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text (currently unused, returns same format)</param>
-    [McpServerTool]
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
-    public partial Task<string> DotnetCacheMetrics(bool machineReadable = false)
+    public Task<string> DotnetCacheMetrics(bool machineReadable = false)
     {
         var result = new StringBuilder();
         result.AppendLine("Cache Metrics:");

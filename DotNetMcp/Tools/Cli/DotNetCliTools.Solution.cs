@@ -16,12 +16,11 @@ public sealed partial class DotNetCliTools
     /// <param name="output">The output directory for the solution file</param>
     /// <param name="format">The solution file format: 'sln' (classic) or 'slnx' (XML-based). Default is 'sln'.</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "solution")]
     [McpMeta("priority", 8.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("tags", JsonValue = """["solution","create","new","organization","multi-project"]""")]
-    public async partial Task<string> DotnetSolutionCreate(
+    public async Task<string> DotnetSolutionCreate(
         string name,
         string? output = null,
         string? format = null,
@@ -55,10 +54,9 @@ public sealed partial class DotNetCliTools
     /// <param name="solution">The solution file to add projects to</param>
     /// <param name="projects">Array of project file paths to add to the solution</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "solution")]
     [McpMeta("priority", 7.0)]
-    public async partial Task<string> DotnetSolutionAdd(
+    public async Task<string> DotnetSolutionAdd(
         string solution,
         string[] projects,
         bool machineReadable = false)
@@ -89,10 +87,9 @@ public sealed partial class DotNetCliTools
     /// </summary>
     /// <param name="solution">The solution file to list projects from</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "solution")]
     [McpMeta("priority", 6.0)]
-    public async partial Task<string> DotnetSolutionList(
+    public async Task<string> DotnetSolutionList(
         string solution,
         bool machineReadable = false)
         => await ExecuteDotNetCommand($"solution \"{solution}\" list", machineReadable);
@@ -103,10 +100,9 @@ public sealed partial class DotNetCliTools
     /// <param name="solution">The solution file to remove projects from</param>
     /// <param name="projects">Array of project file paths to remove from the solution</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "solution")]
     [McpMeta("priority", 5.0)]
-    public async partial Task<string> DotnetSolutionRemove(
+    public async Task<string> DotnetSolutionRemove(
         string solution,
         string[] projects,
         bool machineReadable = false)
@@ -150,7 +146,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("consolidatedTool", true)]
     [McpMeta("actions", JsonValue = """["Create","Add","List","Remove"]""")]
     [McpMeta("tags", JsonValue = """["solution","consolidated","create","add","list","remove","organization","multi-project"]""")]
-    public async partial Task<string> DotnetSolution(
+    public async Task<string> DotnetSolution(
         DotnetSolutionAction action,
         string? solution = null,
         string? name = null,

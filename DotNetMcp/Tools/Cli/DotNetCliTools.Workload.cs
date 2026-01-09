@@ -14,12 +14,11 @@ public sealed partial class DotNetCliTools
     /// Shows workloads currently installed for mobile, MAUI, Blazor WASM, and other specialized development.
     /// </summary>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "workload")]
     [McpMeta("priority", 7.0)]
     [McpMeta("commonlyUsed", false)]
     [McpMeta("tags", JsonValue = """["workload","list","installed","sdk"]""")]
-    public async partial Task<string> DotnetWorkloadList(bool machineReadable = false)
+    public async Task<string> DotnetWorkloadList(bool machineReadable = false)
         => await ExecuteDotNetCommand("workload list", machineReadable);
 
     /// <summary>
@@ -27,11 +26,10 @@ public sealed partial class DotNetCliTools
     /// Shows comprehensive details including manifest versions, installation paths, and installation sources for each workload.
     /// </summary>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "workload")]
     [McpMeta("priority", 6.0)]
     [McpMeta("tags", JsonValue = """["workload","info","details","installed","manifest"]""")]
-    public async partial Task<string> DotnetWorkloadInfo(bool machineReadable = false)
+    public async Task<string> DotnetWorkloadInfo(bool machineReadable = false)
         => await ExecuteDotNetCommand("workload --info", machineReadable);
 
     /// <summary>
@@ -40,11 +38,10 @@ public sealed partial class DotNetCliTools
     /// </summary>
     /// <param name="searchTerm">Optional search term to filter workloads (searches in IDs and descriptions). If not provided, shows all available workloads.</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "workload")]
     [McpMeta("priority", 6.0)]
     [McpMeta("tags", JsonValue = """["workload","search","available","discovery"]""")]
-    public async partial Task<string> DotnetWorkloadSearch(
+    public async Task<string> DotnetWorkloadSearch(
         string? searchTerm = null,
         bool machineReadable = false)
     {
@@ -67,13 +64,12 @@ public sealed partial class DotNetCliTools
     /// <param name="source">NuGet package source to use during restore (can specify multiple by repeating)</param>
     /// <param name="configFile">Path to NuGet configuration file to use</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "workload")]
     [McpMeta("priority", 8.0)]
     [McpMeta("isLongRunning", true)]
     [McpMeta("requiresElevation", "sometimes")]
     [McpMeta("tags", JsonValue = """["workload","install","setup","mobile","maui","wasm"]""")]
-    public async partial Task<string> DotnetWorkloadInstall(
+    public async Task<string> DotnetWorkloadInstall(
         string workloadIds,
         bool skipManifestUpdate = false,
         bool includePreviews = false,
@@ -112,12 +108,11 @@ public sealed partial class DotNetCliTools
     /// <param name="source">NuGet package source to use during restore</param>
     /// <param name="configFile">Path to NuGet configuration file to use</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "workload")]
     [McpMeta("priority", 7.0)]
     [McpMeta("isLongRunning", true)]
     [McpMeta("tags", JsonValue = """["workload","update","upgrade","maintenance"]""")]
-    public async partial Task<string> DotnetWorkloadUpdate(
+    public async Task<string> DotnetWorkloadUpdate(
         bool includePreviews = false,
         string? source = null,
         string? configFile = null,
@@ -138,11 +133,10 @@ public sealed partial class DotNetCliTools
     /// </summary>
     /// <param name="workloadIds">One or more workload IDs to uninstall (comma-separated for multiple, e.g., 'maui-android,wasm-tools')</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "workload")]
     [McpMeta("priority", 6.0)]
     [McpMeta("tags", JsonValue = """["workload","uninstall","remove","cleanup"]""")]
-    public async partial Task<string> DotnetWorkloadUninstall(
+    public async Task<string> DotnetWorkloadUninstall(
         string workloadIds,
         bool machineReadable = false)
     {

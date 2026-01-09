@@ -173,12 +173,12 @@ public class McpConformanceTests : IAsyncLifetime
         var tools = await _client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
         var toolNames = tools.Select(t => t.Name).ToHashSet();
 
-        // Assert - Check for some core tools that should always be present
-        // These are representative tools from different categories
-        Assert.Contains("dotnet_template_list", toolNames);
-        Assert.Contains("dotnet_project_new", toolNames);
-        Assert.Contains("dotnet_sdk_info", toolNames);
+        // Assert - Check for consolidated and utility tools that should always be present
+        // After Phase 2: only consolidated tools and utilities are exposed
+        Assert.Contains("dotnet_project", toolNames);
+        Assert.Contains("dotnet_sdk", toolNames);
         Assert.Contains("dotnet_server_capabilities", toolNames);
+        Assert.Contains("dotnet_help", toolNames);
     }
 
     [Fact]
@@ -201,6 +201,28 @@ public class McpConformanceTests : IAsyncLifetime
         Assert.Contains("dotnet_sdk", toolNames);
         Assert.Contains("dotnet_dev_certs", toolNames);
     }
+
+    [Fact]
+    public async Task Server_ToolList_ShouldNotIncludeLegacyTools()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act
+        var tools = await _client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+        var toolNames = tools.Select(t => t.Name).ToHashSet();
+
+        // Assert - Phase 2: Verify legacy tools are removed from tool listing
+        // These legacy per-command tools should no longer be exposed
+        Assert.DoesNotContain("dotnet_project_new", toolNames);
+        Assert.DoesNotContain("dotnet_project_build", toolNames);
+        Assert.DoesNotContain("dotnet_template_list", toolNames);
+        Assert.DoesNotContain("dotnet_package_add", toolNames);
+        Assert.DoesNotContain("dotnet_ef_migrations_add", toolNames);
+        Assert.DoesNotContain("dotnet_watch_run", toolNames);
+        Assert.DoesNotContain("dotnet_format", toolNames);
+    }
+
 
     [Fact]
     public async Task Server_ConsolidatedTool_ShouldHaveActionEnumInSchema()
@@ -317,10 +339,10 @@ public class McpConformanceTests : IAsyncLifetime
         // Arrange
         Assert.NotNull(_client);
 
-        // Act
+        // Act - Call consolidated dotnet_sdk tool with Info action
         var result = await _client.CallToolAsync(
-            "dotnet_sdk_info",
-            new Dictionary<string, object?>(),
+            "dotnet_sdk",
+            new Dictionary<string, object?> { { "action", "Info" } },
             cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert

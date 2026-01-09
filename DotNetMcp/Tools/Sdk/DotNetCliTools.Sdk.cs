@@ -15,10 +15,9 @@ public sealed partial class DotNetCliTools
     /// </summary>
     /// <param name="framework">Optional: specific framework to get info about (e.g., 'net8.0', 'net6.0')</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text (currently unused, returns same format)</param>
-    [McpServerTool]
     [McpMeta("category", "framework")]
     [McpMeta("usesFrameworkHelper", true)]
-    public async partial Task<string> DotnetFrameworkInfo(string? framework = null, bool machineReadable = false)
+    public async Task<string> DotnetFrameworkInfo(string? framework = null, bool machineReadable = false)
     {
         var result = new StringBuilder();
 
@@ -81,39 +80,35 @@ public sealed partial class DotNetCliTools
     /// Get information about installed .NET SDKs and runtimes.
     /// </summary>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 6.0)]
-    public async partial Task<string> DotnetSdkInfo(bool machineReadable = false)
+    public async Task<string> DotnetSdkInfo(bool machineReadable = false)
         => await ExecuteDotNetCommand("--info", machineReadable);
 
     /// <summary>
     /// Get the version of the .NET SDK.
     /// </summary>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 6.0)]
-    public async partial Task<string> DotnetSdkVersion(bool machineReadable = false)
+    public async Task<string> DotnetSdkVersion(bool machineReadable = false)
         => await ExecuteDotNetCommand("--version", machineReadable);
 
     /// <summary>
     /// List installed .NET SDKs.
     /// </summary>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 6.0)]
-    public async partial Task<string> DotnetSdkList(bool machineReadable = false)
+    public async Task<string> DotnetSdkList(bool machineReadable = false)
         => await ExecuteDotNetCommand("--list-sdks", machineReadable);
 
     /// <summary>
     /// List installed .NET runtimes.
     /// </summary>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 6.0)]
-    public async partial Task<string> DotnetRuntimeList(bool machineReadable = false)
+    public async Task<string> DotnetRuntimeList(bool machineReadable = false)
         => await ExecuteDotNetCommand("--list-runtimes", machineReadable);
 }
