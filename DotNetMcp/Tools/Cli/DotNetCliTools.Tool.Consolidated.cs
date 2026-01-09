@@ -30,6 +30,7 @@ public sealed partial class DotNetCliTools
     /// <param name="args">Arguments to pass to the tool when running</param>
     /// <param name="output">Output directory for manifest creation (defaults to current directory)</param>
     /// <param name="force">Force manifest creation even if one already exists</param>
+    /// <param name="workingDirectory">Working directory for command execution</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpServerTool]
     [Description("Manage .NET tools (global, local, and tool manifests). Supports install, list, update, uninstall, restore, search, run, and manifest creation.")]
@@ -54,41 +55,45 @@ public sealed partial class DotNetCliTools
         string? args = null,
         string? output = null,
         bool? force = null,
+        string? workingDirectory = null,
         bool machineReadable = false)
     {
-        // Validate action parameter
-        if (!ParameterValidator.ValidateAction<DotnetToolAction>(action, out var errorMessage))
+        return await WithWorkingDirectoryAsync(workingDirectory, async () =>
         {
-            if (machineReadable)
+            // Validate action parameter
+            if (!ParameterValidator.ValidateAction<DotnetToolAction>(action, out var errorMessage))
             {
-                var validActions = Enum.GetNames(typeof(DotnetToolAction));
-                var error = ErrorResultFactory.CreateActionValidationError(
-                    action.ToString(),
-                    validActions,
-                    toolName: "dotnet_tool");
-                return ErrorResultFactory.ToJson(error);
+                if (machineReadable)
+                {
+                    var validActions = Enum.GetNames(typeof(DotnetToolAction));
+                    var error = ErrorResultFactory.CreateActionValidationError(
+                        action.ToString(),
+                        validActions,
+                        toolName: "dotnet_tool");
+                    return ErrorResultFactory.ToJson(error);
+                }
+                return $"Error: {errorMessage}";
             }
-            return $"Error: {errorMessage}";
-        }
 
-        // Route to appropriate handler based on action
-        return action switch
-        {
-            DotnetToolAction.Install => await HandleInstallAction(packageId, global ?? false, version, framework, toolPath, machineReadable),
-            DotnetToolAction.List => await HandleListAction(global ?? false, machineReadable),
-            DotnetToolAction.Update => await HandleUpdateAction(packageId, global ?? false, version, machineReadable),
-            DotnetToolAction.Uninstall => await HandleUninstallAction(packageId, global ?? false, machineReadable),
-            DotnetToolAction.Restore => await HandleRestoreAction(machineReadable),
-            DotnetToolAction.CreateManifest => await HandleCreateManifestAction(output, force ?? false, machineReadable),
-            DotnetToolAction.Search => await HandleSearchAction(searchTerm, detail ?? false, take, skip, prerelease ?? false, machineReadable),
-            DotnetToolAction.Run => await HandleRunAction(toolName, args, machineReadable),
-            _ => machineReadable
-                ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateValidationError(
-                    $"Action '{action}' is not supported.",
-                    parameterName: "action",
-                    reason: "not supported"))
-                : $"Error: Action '{action}' is not supported."
-        };
+            // Route to appropriate handler based on action
+            return action switch
+            {
+                DotnetToolAction.Install => await HandleInstallAction(packageId, global ?? false, version, framework, toolPath, machineReadable),
+                DotnetToolAction.List => await HandleListAction(global ?? false, machineReadable),
+                DotnetToolAction.Update => await HandleUpdateAction(packageId, global ?? false, version, machineReadable),
+                DotnetToolAction.Uninstall => await HandleUninstallAction(packageId, global ?? false, machineReadable),
+                DotnetToolAction.Restore => await HandleRestoreAction(machineReadable),
+                DotnetToolAction.CreateManifest => await HandleCreateManifestAction(output, force ?? false, machineReadable),
+                DotnetToolAction.Search => await HandleSearchAction(searchTerm, detail ?? false, take, skip, prerelease ?? false, machineReadable),
+                DotnetToolAction.Run => await HandleRunAction(toolName, args, machineReadable),
+                _ => machineReadable
+                    ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateValidationError(
+                        $"Action '{action}' is not supported.",
+                        parameterName: "action",
+                        reason: "not supported"))
+                    : $"Error: Action '{action}' is not supported."
+            };
+        });
     }
 
     private async Task<string> HandleInstallAction(string? packageId, bool global, string? version, string? framework, string? toolPath, bool machineReadable)

@@ -30,6 +30,7 @@ public sealed partial class DotNetCliTools
     /// <param name="deprecated">Show only deprecated packages in list</param>
     /// <param name="referencePath">Path to referenced project for add/remove reference operations</param>
     /// <param name="cacheType">Cache location to clear: all, http-cache, global-packages, temp, plugins-cache</param>
+    /// <param name="workingDirectory">Working directory for command execution</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpServerTool]
     [McpMeta("category", "package")]
@@ -53,42 +54,46 @@ public sealed partial class DotNetCliTools
         bool? deprecated = null,
         string? referencePath = null,
         string? cacheType = null,
+        string? workingDirectory = null,
         bool machineReadable = false)
     {
-        // Validate action parameter
-        if (!ParameterValidator.ValidateAction<DotnetPackageAction>(action, out var errorMessage))
+        return await WithWorkingDirectoryAsync(workingDirectory, async () =>
         {
-            if (machineReadable)
+            // Validate action parameter
+            if (!ParameterValidator.ValidateAction<DotnetPackageAction>(action, out var errorMessage))
             {
-                var validActions = Enum.GetNames(typeof(DotnetPackageAction));
-                var error = ErrorResultFactory.CreateActionValidationError(
-                    action.ToString(),
-                    validActions,
-                    toolName: "dotnet_package");
-                return ErrorResultFactory.ToJson(error);
+                if (machineReadable)
+                {
+                    var validActions = Enum.GetNames(typeof(DotnetPackageAction));
+                    var error = ErrorResultFactory.CreateActionValidationError(
+                        action.ToString(),
+                        validActions,
+                        toolName: "dotnet_package");
+                    return ErrorResultFactory.ToJson(error);
+                }
+                return $"Error: {errorMessage}";
             }
-            return $"Error: {errorMessage}";
-        }
 
-        // Route to appropriate handler based on action
-        return action switch
-        {
-            DotnetPackageAction.Add => await HandleAddAction(packageId, project, version, source, framework, prerelease ?? false, machineReadable),
-            DotnetPackageAction.Remove => await HandleRemoveAction(packageId, project, machineReadable),
-            DotnetPackageAction.Search => await HandleSearchAction(searchTerm, take, skip, prerelease ?? false, exactMatch ?? false, machineReadable),
-            DotnetPackageAction.Update => await HandleUpdateAction(packageId, project, version, prerelease ?? false, machineReadable),
-            DotnetPackageAction.List => await HandleListAction(project, outdated ?? false, deprecated ?? false, machineReadable),
-            DotnetPackageAction.AddReference => await HandleAddReferenceAction(project, referencePath, machineReadable),
-            DotnetPackageAction.RemoveReference => await HandleRemoveReferenceAction(project, referencePath, machineReadable),
-            DotnetPackageAction.ListReferences => await HandleListReferencesAction(project, machineReadable),
-            DotnetPackageAction.ClearCache => await HandleClearCacheAction(cacheType, machineReadable),
-            _ => machineReadable
-                ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateValidationError(
-                    $"Action '{action}' is not supported.",
-                    parameterName: "action",
-                    reason: "not supported"))
-                : $"Error: Action '{action}' is not supported."
-        };
+            // Route to appropriate handler based on action
+            return action switch
+            {
+                DotnetPackageAction.Add => await HandleAddAction(packageId, project, version, source, framework, prerelease ?? false, machineReadable),
+                DotnetPackageAction.Remove => await HandleRemoveAction(packageId, project, machineReadable),
+                DotnetPackageAction.Search => await HandleSearchAction(searchTerm, take, skip, prerelease ?? false, exactMatch ?? false, machineReadable),
+                DotnetPackageAction.Update => await HandleUpdateAction(packageId, project, version, prerelease ?? false, machineReadable),
+                DotnetPackageAction.List => await HandleListAction(project, outdated ?? false, deprecated ?? false, machineReadable),
+                DotnetPackageAction.AddReference => await HandleAddReferenceAction(project, referencePath, machineReadable),
+                DotnetPackageAction.RemoveReference => await HandleRemoveReferenceAction(project, referencePath, machineReadable),
+                DotnetPackageAction.ListReferences => await HandleListReferencesAction(project, machineReadable),
+                DotnetPackageAction.ClearCache => await HandleClearCacheAction(cacheType, machineReadable),
+                _ => machineReadable
+                    ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateValidationError(
+                        $"Action '{action}' is not supported.",
+                        parameterName: "action",
+                        reason: "not supported"))
+                    : $"Error: Action '{action}' is not supported."
+            };
+        });
     }
 
     private async Task<string> HandleAddAction(string? packageId, string? project, string? version, string? source, string? framework, bool prerelease, bool machineReadable)

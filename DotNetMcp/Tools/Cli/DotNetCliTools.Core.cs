@@ -28,8 +28,8 @@ public sealed partial class DotNetCliTools
         _concurrencyManager = concurrencyManager!;
     }
 
-    private async Task<string> ExecuteDotNetCommand(string arguments, bool machineReadable = false, CancellationToken cancellationToken = default)
-        => await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable, unsafeOutput: false, cancellationToken);
+    private async Task<string> ExecuteDotNetCommand(string arguments, bool machineReadable = false, CancellationToken cancellationToken = default, string? workingDirectory = null)
+        => await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable, unsafeOutput: false, cancellationToken: cancellationToken, workingDirectory: workingDirectory);
 
     /// <summary>
     /// Execute a command with concurrency control. Returns error if there's a conflict.
@@ -39,7 +39,8 @@ public sealed partial class DotNetCliTools
         string target,
         string arguments,
         bool machineReadable = false,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? workingDirectory = null)
     {
         // Try to acquire the operation
         if (!_concurrencyManager.TryAcquireOperation(operationType, target, out var conflictingOperation))
@@ -54,7 +55,7 @@ public sealed partial class DotNetCliTools
         try
         {
             // Execute the command
-            return await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable, unsafeOutput: false, cancellationToken);
+            return await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable, unsafeOutput: false, cancellationToken: cancellationToken, workingDirectory: workingDirectory);
         }
         finally
         {
@@ -88,6 +89,25 @@ public sealed partial class DotNetCliTools
                 return false;
         }
         return true;
+    }
+
+    private static async Task<string> WithWorkingDirectoryAsync(string? workingDirectory, Func<Task<string>> action)
+    {
+        if (string.IsNullOrWhiteSpace(workingDirectory))
+        {
+            return await action();
+        }
+
+        var prior = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
+        DotNetCommandExecutor.WorkingDirectoryOverride.Value = workingDirectory;
+        try
+        {
+            return await action();
+        }
+        finally
+        {
+            DotNetCommandExecutor.WorkingDirectoryOverride.Value = prior;
+        }
     }
 
     /// <summary>

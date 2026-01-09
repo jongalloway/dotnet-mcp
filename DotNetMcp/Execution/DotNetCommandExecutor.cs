@@ -14,6 +14,8 @@ public static class DotNetCommandExecutor
     private const int MaxOutputCharacters = 1_000_000;
     private static readonly int NewLineLength = Environment.NewLine.Length;
 
+    internal static readonly AsyncLocal<string?> WorkingDirectoryOverride = new();
+
     /// <summary>
     /// Execute a dotnet command with full output handling, logging, and truncation support.
     /// </summary>
@@ -22,10 +24,45 @@ public static class DotNetCommandExecutor
     /// <param name="machineReadable">When true, returns JSON format with structured errors; when false, returns plain text</param>
     /// <param name="unsafeOutput">When true, disables security redaction of sensitive information (default: false). Use with caution.</param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
+    /// <param name="workingDirectory">Optional working directory for command execution</param>
     /// <returns>Combined output, error, and exit code information (plain text or JSON based on machineReadable)</returns>
-    public static async Task<string> ExecuteCommandAsync(string arguments, ILogger? logger = null, bool machineReadable = false, bool unsafeOutput = false, CancellationToken cancellationToken = default)
+    public static async Task<string> ExecuteCommandAsync(string arguments, ILogger? logger = null, bool machineReadable = false, bool unsafeOutput = false, CancellationToken cancellationToken = default, string? workingDirectory = null)
     {
         logger?.LogDebug("Executing: dotnet {Arguments}", arguments);
+
+        workingDirectory ??= WorkingDirectoryOverride.Value;
+
+        string? normalizedWorkingDirectory = null;
+        if (!string.IsNullOrWhiteSpace(workingDirectory))
+        {
+            try
+            {
+                normalizedWorkingDirectory = Path.GetFullPath(workingDirectory);
+            }
+            catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+            {
+                var message = $"Invalid workingDirectory path: {workingDirectory}. {ex.Message}";
+                if (machineReadable)
+                {
+                    return ErrorResultFactory.ToJson(
+                        ErrorResultFactory.CreateValidationError(message, parameterName: "workingDirectory", reason: "invalid"));
+                }
+
+                return $"Error: {message}";
+            }
+
+            if (!Directory.Exists(normalizedWorkingDirectory))
+            {
+                var message = $"Directory not found: {normalizedWorkingDirectory}. The workingDirectory parameter must point to an existing directory.";
+                if (machineReadable)
+                {
+                    return ErrorResultFactory.ToJson(
+                        ErrorResultFactory.CreateValidationError(message, parameterName: "workingDirectory", reason: "not found"));
+                }
+
+                return $"Error: {message}";
+            }
+        }
 
         var psi = new ProcessStartInfo
         {
@@ -36,6 +73,11 @@ public static class DotNetCommandExecutor
             UseShellExecute = false,
             CreateNoWindow = true
         };
+
+        if (!string.IsNullOrWhiteSpace(normalizedWorkingDirectory))
+        {
+            psi.WorkingDirectory = normalizedWorkingDirectory;
+        }
 
         using var process = new Process { StartInfo = psi };
         var output = new StringBuilder();
@@ -135,20 +177,20 @@ public static class DotNetCommandExecutor
         catch (OperationCanceledException)
         {
             logger?.LogWarning("Command was cancelled");
-            
+
             // Apply security redaction to partial output unless unsafeOutput is enabled
             var partialOutput = output.ToString().TrimEnd();
             if (!unsafeOutput)
             {
                 partialOutput = SecretRedactor.Redact(partialOutput);
             }
-            
+
             if (machineReadable)
             {
                 var code = "OPERATION_CANCELLED";
                 var category = "Cancellation";
                 var mcpErrorCode = McpErrorCodes.GetMcpErrorCode(code, category, -1);
-                
+
                 var cancelResult = new ErrorResponse
                 {
                     Success = false,
@@ -190,7 +232,7 @@ public static class DotNetCommandExecutor
         // Apply security redaction unless unsafeOutput is explicitly enabled
         var outputStr = output.ToString().TrimEnd();
         var errorStr = error.ToString().TrimEnd();
-        
+
         if (!unsafeOutput)
         {
             outputStr = SecretRedactor.Redact(outputStr);
@@ -225,12 +267,34 @@ public static class DotNetCommandExecutor
     /// <param name="arguments">The command-line arguments to pass to dotnet.exe</param>
     /// <param name="logger">Optional logger for debug messages</param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
+    /// <param name="workingDirectory">Optional working directory for command execution</param>
     /// <returns>Standard output only (no error or exit code information), with security redaction applied</returns>
     /// <exception cref="InvalidOperationException">Thrown if the command fails</exception>
     /// <exception cref="OperationCanceledException">Thrown if the operation is cancelled</exception>
-    public static async Task<string> ExecuteCommandForResourceAsync(string arguments, ILogger? logger = null, CancellationToken cancellationToken = default)
+    public static async Task<string> ExecuteCommandForResourceAsync(string arguments, ILogger? logger = null, CancellationToken cancellationToken = default, string? workingDirectory = null)
     {
         logger?.LogDebug("Executing: dotnet {Arguments}", arguments);
+
+        workingDirectory ??= WorkingDirectoryOverride.Value;
+
+        string? normalizedWorkingDirectory = null;
+        if (!string.IsNullOrWhiteSpace(workingDirectory))
+        {
+            try
+            {
+                normalizedWorkingDirectory = Path.GetFullPath(workingDirectory);
+            }
+            catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+            {
+                throw new InvalidOperationException($"Invalid workingDirectory path: {workingDirectory}. {ex.Message}", ex);
+            }
+
+            if (!Directory.Exists(normalizedWorkingDirectory))
+            {
+                throw new DirectoryNotFoundException(
+                    $"Directory not found: {normalizedWorkingDirectory}. The workingDirectory parameter must point to an existing directory.");
+            }
+        }
 
         var startInfo = new ProcessStartInfo
         {
@@ -241,6 +305,11 @@ public static class DotNetCommandExecutor
             UseShellExecute = false,
             CreateNoWindow = true
         };
+
+        if (!string.IsNullOrWhiteSpace(normalizedWorkingDirectory))
+        {
+            startInfo.WorkingDirectory = normalizedWorkingDirectory;
+        }
 
         using var process = Process.Start(startInfo);
         if (process == null)
@@ -269,10 +338,10 @@ public static class DotNetCommandExecutor
         // Read both streams concurrently to avoid deadlock
         var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
         var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
-        
+
         string output;
         string error;
-        
+
         try
         {
             await Task.WhenAll(outputTask, errorTask);

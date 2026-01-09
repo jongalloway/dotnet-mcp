@@ -18,6 +18,7 @@ public sealed partial class DotNetCliTools
     /// <param name="templateShortName">Template short name for template info operations (e.g., 'console', 'webapi')</param>
     /// <param name="framework">Specific framework to query for framework info (e.g., 'net10.0', 'net8.0')</param>
     /// <param name="forceReload">If true, bypasses cache and reloads from disk (applies to template operations)</param>
+    /// <param name="workingDirectory">Working directory for command execution</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpServerTool]
     [Description("Query .NET SDK, runtime, template, and framework information. Supports version info, SDK/runtime listing, template operations, framework metadata, and cache metrics.")]
@@ -32,43 +33,49 @@ public sealed partial class DotNetCliTools
         string? templateShortName = null,
         string? framework = null,
         bool forceReload = false,
+        string? workingDirectory = null,
         bool machineReadable = false)
     {
-        // Validate action parameter
-        if (!ParameterValidator.ValidateAction<DotnetSdkAction>(action, out var errorMessage))
+        return await WithWorkingDirectoryAsync(workingDirectory, async () =>
         {
-            if (machineReadable)
+            // Validate action parameter
+            if (!ParameterValidator.ValidateAction<DotnetSdkAction>(action, out var errorMessage))
             {
-                var validActions = Enum.GetNames(typeof(DotnetSdkAction));
-                var error = ErrorResultFactory.CreateActionValidationError(
-                    action.ToString(),
-                    validActions,
-                    toolName: "dotnet_sdk");
-                return ErrorResultFactory.ToJson(error);
+                if (machineReadable)
+                {
+                    var validActions = Enum.GetNames(typeof(DotnetSdkAction));
+                    var error = ErrorResultFactory.CreateActionValidationError(
+                        action.ToString(),
+                        validActions,
+                        toolName: "dotnet_sdk");
+                    return ErrorResultFactory.ToJson(error);
+                }
+                return $"Error: {errorMessage}";
             }
-            return $"Error: {errorMessage}";
-        }
 
-        // Route to appropriate handler based on action
-        return action switch
-        {
-            DotnetSdkAction.Version => await DotnetSdkVersion(machineReadable),
-            DotnetSdkAction.Info => await DotnetSdkInfo(machineReadable),
-            DotnetSdkAction.ListSdks => await DotnetSdkList(machineReadable),
-            DotnetSdkAction.ListRuntimes => await DotnetRuntimeList(machineReadable),
-            DotnetSdkAction.ListTemplates => await DotnetTemplateList(forceReload, machineReadable),
-            DotnetSdkAction.SearchTemplates => await HandleSearchTemplatesAction(searchTerm, forceReload, machineReadable),
-            DotnetSdkAction.TemplateInfo => await HandleTemplateInfoAction(templateShortName, forceReload, machineReadable),
-            DotnetSdkAction.ClearTemplateCache => await DotnetTemplateClearCache(machineReadable),
-            DotnetSdkAction.FrameworkInfo => await DotnetFrameworkInfo(framework, machineReadable),
-            DotnetSdkAction.CacheMetrics => await DotnetCacheMetrics(machineReadable),
-            _ => machineReadable
-                ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateValidationError(
-                    $"Action '{action}' is not supported.",
-                    parameterName: "action",
-                    reason: "not supported"))
-                : $"Error: Action '{action}' is not supported."
-        };
+            // Route to appropriate handler based on action
+            return action switch
+            {
+                // Use executor directly so workingDirectory is honored without changing legacy tool signatures
+                DotnetSdkAction.Version => await ExecuteDotNetCommand("--version", machineReadable),
+                DotnetSdkAction.Info => await ExecuteDotNetCommand("--info", machineReadable),
+                DotnetSdkAction.ListSdks => await ExecuteDotNetCommand("--list-sdks", machineReadable),
+                DotnetSdkAction.ListRuntimes => await ExecuteDotNetCommand("--list-runtimes", machineReadable),
+
+                DotnetSdkAction.ListTemplates => await DotnetTemplateList(forceReload, machineReadable),
+                DotnetSdkAction.SearchTemplates => await HandleSearchTemplatesAction(searchTerm, forceReload, machineReadable),
+                DotnetSdkAction.TemplateInfo => await HandleTemplateInfoAction(templateShortName, forceReload, machineReadable),
+                DotnetSdkAction.ClearTemplateCache => await DotnetTemplateClearCache(machineReadable),
+                DotnetSdkAction.FrameworkInfo => await DotnetFrameworkInfo(framework, machineReadable),
+                DotnetSdkAction.CacheMetrics => await DotnetCacheMetrics(machineReadable),
+                _ => machineReadable
+                    ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateValidationError(
+                        $"Action '{action}' is not supported.",
+                        parameterName: "action",
+                        reason: "not supported"))
+                    : $"Error: Action '{action}' is not supported."
+            };
+        });
     }
 
     private async Task<string> HandleSearchTemplatesAction(string? searchTerm, bool forceReload, bool machineReadable)
