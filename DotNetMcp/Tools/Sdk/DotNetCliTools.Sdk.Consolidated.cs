@@ -56,12 +56,12 @@ public sealed partial class DotNetCliTools
             DotnetSdkAction.Info => await DotnetSdkInfo(machineReadable),
             DotnetSdkAction.ListSdks => await DotnetSdkList(machineReadable),
             DotnetSdkAction.ListRuntimes => await DotnetRuntimeList(machineReadable),
-            DotnetSdkAction.ListTemplates => await DotnetTemplateList(forceReload),
+            DotnetSdkAction.ListTemplates => await DotnetTemplateList(forceReload, machineReadable),
             DotnetSdkAction.SearchTemplates => await HandleSearchTemplatesAction(searchTerm, forceReload, machineReadable),
             DotnetSdkAction.TemplateInfo => await HandleTemplateInfoAction(templateShortName, forceReload, machineReadable),
-            DotnetSdkAction.ClearTemplateCache => await DotnetTemplateClearCache(),
-            DotnetSdkAction.FrameworkInfo => await DotnetFrameworkInfo(framework),
-            DotnetSdkAction.CacheMetrics => await DotnetCacheMetrics(),
+            DotnetSdkAction.ClearTemplateCache => await DotnetTemplateClearCache(machineReadable),
+            DotnetSdkAction.FrameworkInfo => await DotnetFrameworkInfo(framework, machineReadable),
+            DotnetSdkAction.CacheMetrics => await DotnetCacheMetrics(machineReadable),
             _ => machineReadable
                 ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateValidationError(
                     $"Action '{action}' is not supported.",
@@ -87,7 +87,7 @@ public sealed partial class DotNetCliTools
             return $"Error: {errorMessage}";
         }
 
-        return await DotnetTemplateSearch(searchTerm!, forceReload);
+        return await DotnetTemplateSearch(searchTerm!, forceReload, machineReadable);
     }
 
     private async Task<string> HandleTemplateInfoAction(string? templateShortName, bool forceReload, bool machineReadable)
@@ -106,6 +106,6 @@ public sealed partial class DotNetCliTools
             return $"Error: {errorMessage}";
         }
 
-        return await DotnetTemplateInfo(templateShortName!, forceReload);
+        return await DotnetTemplateInfo(templateShortName!, forceReload, machineReadable);
     }
 }
