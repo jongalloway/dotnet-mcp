@@ -1056,11 +1056,11 @@ if (!IsValidAction(action, allowedActions))
 
 - This document (implementation reference)
 
-**doc/migration-guide.md** (new):
+**Documentation:**
 
-- Step-by-step migration from v1.x to v2.x
-- Search/replace patterns
-- Common pitfalls and solutions
+- Update README.md to present consolidated tools as the primary interface
+- Update doc/ai-assistant-guide.md with consolidated tool examples
+- Update doc/machine-readable-contract.md with action validation examples
 
 **server.json:**
 
