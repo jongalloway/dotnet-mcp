@@ -173,12 +173,15 @@ public class SdkAndServerInfoToolsTests
         // Act
         var result = await _tools.DotnetServerInfo();
 
-        // Assert
-        Assert.Contains("Template", result);
-        Assert.Contains("Project", result);
-        Assert.Contains("Package", result);
-        Assert.Contains("Solution", result);
-        Assert.Contains("SDK", result);
+        // Assert - Verify consolidated tools are mentioned
+        Assert.Contains("dotnet_project", result);
+        Assert.Contains("dotnet_package", result);
+        Assert.Contains("dotnet_solution", result);
+        Assert.Contains("dotnet_sdk", result);
+        Assert.Contains("dotnet_ef", result);
+        Assert.Contains("dotnet_workload", result);
+        Assert.Contains("dotnet_tool", result);
+        Assert.Contains("dotnet_dev_certs", result);
     }
 
     [Fact]

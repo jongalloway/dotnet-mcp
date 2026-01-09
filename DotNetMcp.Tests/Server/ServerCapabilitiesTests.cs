@@ -249,7 +249,8 @@ public class ServerCapabilitiesTests
         Assert.NotEmpty(result);
         Assert.Contains("=== .NET MCP Server Capabilities ===", result);
         Assert.Contains("FEATURES:", result);
-        Assert.Contains("TOOL CATEGORIES:", result);
+        Assert.Contains("CONSOLIDATED TOOLS:", result);
+        Assert.Contains("UTILITY TOOLS:", result);
         Assert.Contains("CONCURRENCY SAFETY:", result);
     }
 }
