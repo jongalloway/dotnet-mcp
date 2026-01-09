@@ -241,9 +241,8 @@ public class McpConformanceTests : IAsyncLifetime
         var tools = await _client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
-        foreach (var toolName in consolidatedTools)
+        foreach (var tool in consolidatedTools.Select(toolName => tools.FirstOrDefault(t => t.Name == toolName)))
         {
-            var tool = tools.FirstOrDefault(t => t.Name == toolName);
             Assert.NotNull(tool);
             
             var schemaJson = tool.ProtocolTool.InputSchema.ToString();
