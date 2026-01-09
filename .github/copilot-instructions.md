@@ -340,6 +340,33 @@ When adding features:
 - Uploads coverage to Codecov
 - Ensures code compiles and tests pass before merge
 
+## Coverage Diagnostics (Artifacts)
+
+CI uploads a Cobertura coverage artifact named `coverage-cobertura` on each `build.yml` run.
+
+To download and summarize coverage locally:
+
+```powershell
+pwsh -File scripts/download-coverage-artifact.ps1
+```
+
+To diagnose a specific GitHub Actions run:
+
+```powershell
+pwsh -File scripts/download-coverage-artifact.ps1 -RunId <runId>
+```
+
+To diagnose a specific pull request:
+
+```powershell
+pwsh -File scripts/download-coverage-artifact.ps1 -PullRequest <prNumber>
+```
+
+Notes:
+
+- Requires GitHub CLI (`gh`) and auth (`gh auth login`).
+- The script prints overall rates plus lowest-covered files and saves output under `artifacts/coverage/run-<runId>/`.
+
 ## Package Management
 
 The project uses the following NuGet packages for SDK integration:

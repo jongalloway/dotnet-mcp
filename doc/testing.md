@@ -15,12 +15,14 @@ This repository uses an xUnit test project to validate the MCP server's behavior
 This project uses **consolidated tools** as the primary test surface:
 
 ### Consolidated Tools (Primary Test Surface)
+
 - **Comprehensive coverage**: Consolidated tool tests (`Consolidated*ToolTests.cs`) contain detailed parameter-matrix tests, command-building assertions, and validation logic
 - **Machine-readable contract tests**: Verify both plain-text and JSON output formats
 - **Action routing tests**: Validate that each action enum value correctly routes to underlying implementation
 - **Schema validation**: MCP conformance tests verify action enums appear correctly in tool schemas
 
 ### Benefits of This Approach
+
 - **Clear test organization**: Tests organized by domain (project, package, EF, etc.)
 - **Improved signal-to-noise**: Focused tests on consolidated tool behavior
 - **Easier maintenance**: Adding new actions means adding tests to existing consolidated tool test files
@@ -72,6 +74,7 @@ The conformance tests use an **in-process stdio** approach:
 - The same server binary used in production is tested for conformance
 
 This approach ensures that:
+
 - Tests validate the actual deployed server behavior
 - No mocking or test doubles are used for the core server
 - Protocol conformance is verified end-to-end
@@ -91,6 +94,33 @@ dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release -- --cov
 The Cobertura XML will be written under the test output folder, typically:
 
 - `DotNetMcp.Tests/bin/Release/net10.0/TestResults/*.cobertura.xml`
+
+## Downloading CI coverage artifacts
+
+CI uploads a Cobertura coverage artifact named `coverage-cobertura` on each run of the `build.yml` workflow.
+
+To download the latest successful coverage artifact for `main` and print a quick hotspot summary:
+
+```powershell
+pwsh -File scripts/download-coverage-artifact.ps1
+```
+
+To download coverage from a specific workflow run (e.g. a run URL like `.../actions/runs/20865330584`):
+
+```powershell
+pwsh -File scripts/download-coverage-artifact.ps1 -RunId 20865330584
+```
+
+To download coverage for a specific pull request:
+
+```powershell
+pwsh -File scripts/download-coverage-artifact.ps1 -PullRequest 285
+```
+
+Notes:
+
+- Requires GitHub CLI (`gh`) and auth (`gh auth login`).
+- Output is saved under `artifacts/coverage/run-<runId>/`.
 
 ## Test project layout
 
@@ -149,13 +179,16 @@ If interactive tests are disabled, they will appear as skipped with a message ex
 ## Adding Tests for New Features
 
 ### For Consolidated Tools
+
 When adding a new action to a consolidated tool:
+
 1. Add action routing test in the corresponding `Consolidated*ToolTests.cs` file
 2. Add parameter validation tests (both machineReadable and plain text)
 3. Add command-building assertion tests using `MachineReadableCommandAssertions.AssertExecutedDotnetCommand`
 4. If the action has required parameters, add validation error tests
 
 Example:
+
 ```csharp
 [Fact]
 public async Task DotnetProject_NewAction_RoutesCorrectly()
@@ -171,7 +204,9 @@ public async Task DotnetProject_NewAction_RoutesCorrectly()
 ```
 
 ### Machine-Readable Output Tests
+
 When testing `machineReadable: true` behavior:
+
 - Use `MachineReadableCommandAssertions.AssertExecutedDotnetCommand` to verify the command was executed
 - Verify the response contains `"success": true` or `"success": false` as appropriate
 - For validation errors, verify the response contains the expected error code and parameter name
