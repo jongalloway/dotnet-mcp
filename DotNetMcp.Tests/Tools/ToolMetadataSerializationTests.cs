@@ -35,8 +35,8 @@ public class ToolMetadataSerializationTests
 
         // Assert
         Assert.NotEmpty(toolMethods);
-        // Phase 2: Verify we have the expected consolidated tools and utilities
-        Assert.True(toolMethods.Count >= 11, $"Expected at least 11 tool methods (8 consolidated + 3 utilities), found {toolMethods.Count}");
+        // Phase 2: Verify we have exactly the expected consolidated tools and utilities
+        Assert.Equal(11, toolMethods.Count);
     }
 
     /// <summary>
