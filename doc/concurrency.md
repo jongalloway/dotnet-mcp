@@ -4,13 +4,13 @@ This document provides guidance for AI orchestrators and MCP clients on which .N
 
 ## Overview
 
-The .NET MCP Server provides 74 tools across 13 categories. Understanding which tools can run concurrently is essential for:
+The .NET MCP Server provides 10 consolidated tools (8 domain tools + 2 utilities) with multiple actions each. Understanding which operations can run concurrently is essential for:
 
 - **AI orchestrators** that execute multiple operations simultaneously
 - **MCP clients** that batch or parallelize requests
 - **Performance optimization** when working with large solutions or multiple projects
 
-**As of v1.1+**, the server implements automatic concurrency control for long-running and mutating operations. Conflicting operations are automatically rejected with a `CONCURRENCY_CONFLICT` error code.
+**As of v1.0+**, the server implements automatic concurrency control for long-running and mutating operations. Conflicting operations are automatically rejected with a `CONCURRENCY_CONFLICT` error code.
 
 ## Quick Reference
 
@@ -38,35 +38,28 @@ The .NET MCP Server automatically prevents conflicting operations from running s
 ```
 
 This applies to:
-- **Long-running operations**: `build`, `run`, `test`, `publish`, `watch_*`
-- **Mutating operations**: `package_add`, `package_remove`, `reference_add`, `solution_add`, etc.
-- **Global operations**: `template_clear_cache`, `certificate_trust`, `certificate_clean`
+- **Long-running operations**: `dotnet_project` actions: Build, Run, Test, Publish, Watch
+- **Mutating operations**: `dotnet_package` actions: Add, Remove; `dotnet_solution` actions: Add, Remove
+- **Global operations**: `dotnet_sdk` action: ClearTemplateCache; `dotnet_dev_certs` actions: CertificateTrust, CertificateClean
 
 ## Concurrency Safety Matrix
 
 ### Fully Thread-Safe Operations (Read-Only)
 
-These tools **can always run in parallel** with any other tools, including themselves. They do not modify state and are safe to execute concurrently.
+These operations **can always run in parallel** with any other operations, including themselves. They do not modify state and are safe to execute concurrently.
 
-| Category | Tool | Description | Parallel Safe |
-|----------|------|-------------|---------------|
-| **SDK** | `dotnet_sdk_version` | Get .NET SDK version | ✅ Always |
-| **SDK** | `dotnet_sdk_info` | Get SDK and runtime information | ✅ Always |
-| **SDK** | `dotnet_sdk_list` | List installed SDKs | ✅ Always |
-| **SDK** | `dotnet_runtime_list` | List installed runtimes | ✅ Always |
-| **SDK** | `dotnet_help` | Get help for dotnet commands | ✅ Always |
-| **Template** | `dotnet_template_list` | List installed templates | ✅ Always |
-| **Template** | `dotnet_template_search` | Search for templates | ✅ Always |
-| **Template** | `dotnet_template_info` | Get template details | ✅ Always |
-| **Template** | `dotnet_cache_metrics` | Get cache hit/miss statistics | ✅ Always |
-| **Framework** | `dotnet_framework_info` | Get framework version info | ✅ Always |
-| **Package** | `dotnet_package_search` | Search NuGet packages | ✅ Always |
-| **Package** | `dotnet_package_list` | List package references | ✅ Always |
-| **Reference** | `dotnet_reference_list` | List project references | ✅ Always |
-| **Solution** | `dotnet_solution_list` | List projects in solution | ✅ Always |
-| **Tool** | `dotnet_tool_list` | List installed .NET tools | ✅ Always |
-| **Tool** | `dotnet_tool_search` | Search for .NET tools | ✅ Always |
-| **Security** | `dotnet_certificate_check` | Check HTTPS certificate status | ✅ Always |
+| Tool | Actions | Description | Parallel Safe |
+|------|---------|-------------|---------------|
+| **dotnet_sdk** | Version, Info, ListSdks, ListRuntimes, ListTemplates, SearchTemplates, TemplateInfo, FrameworkInfo, CacheMetrics | Query SDK, runtime, template, and framework information | ✅ Always |
+| **dotnet_package** | Search, List | Search NuGet packages and list package references | ✅ Always |
+| **dotnet_solution** | List | List projects in solution | ✅ Always |
+| **dotnet_tool** | List, Search | List and search for .NET tools | ✅ Always |
+| **dotnet_dev_certs** | CertificateCheck, SecretsList | Check certificate status and list user secrets | ✅ Always |
+| **dotnet_project** | Analyze, Dependencies, Validate | Analyze project metadata and dependencies | ✅ Always |
+| **dotnet_ef** | MigrationsList, DbContextList, DbContextInfo | List migrations and DbContext information | ✅ Always |
+| **dotnet_workload** | List, Info, Search | List and search workloads | ✅ Always |
+| **dotnet_help** | (all) | Get help for dotnet commands | ✅ Always |
+| **dotnet_server_capabilities** | (all) | Get MCP server capabilities | ✅ Always |
 
 **Key Characteristics:**
 - No file system modifications
@@ -77,54 +70,38 @@ These tools **can always run in parallel** with any other tools, including thems
 
 ### Conditionally Safe Operations (Mutating - Different Targets)
 
-These tools **can run in parallel IF they operate on different targets** (different projects, packages, or solutions). Running them on the same target concurrently may cause conflicts.
+These operations **can run in parallel IF they operate on different targets** (different projects, packages, or solutions). Running them on the same target concurrently may cause conflicts.
 
-| Category | Tool | Parallel Conditions | Risk Level |
-|----------|------|---------------------|------------|
-| **Project** | `dotnet_project_build` | Different projects or solutions | ⚠️ Medium |
-| **Project** | `dotnet_project_restore` | Different projects | ⚠️ Medium |
-| **Project** | `dotnet_project_clean` | Different projects | ⚠️ Low |
-| **Project** | `dotnet_project_test` | Different test projects | ⚠️ Medium |
-| **Project** | `dotnet_project_publish` | Different projects or output paths | ⚠️ Medium |
-| **Project** | `dotnet_pack_create` | Different projects | ⚠️ Medium |
-| **Package** | `dotnet_package_add` | Different projects | ⚠️ High |
-| **Package** | `dotnet_package_remove` | Different projects | ⚠️ High |
-| **Package** | `dotnet_package_update` | Different projects | ⚠️ High |
-| **Reference** | `dotnet_reference_add` | Different projects | ⚠️ High |
-| **Reference** | `dotnet_reference_remove` | Different projects | ⚠️ High |
-| **Solution** | `dotnet_solution_add` | Different solutions | ⚠️ High |
-| **Solution** | `dotnet_solution_remove` | Different solutions | ⚠️ High |
-| **Tool** | `dotnet_tool_install` | Different tools or scopes (global vs local) | ⚠️ Medium |
-| **Tool** | `dotnet_tool_uninstall` | Different tools | ⚠️ Medium |
-| **Tool** | `dotnet_tool_update` | Different tools | ⚠️ Medium |
-| **Tool** | `dotnet_tool_restore` | Different manifest files | ⚠️ Low |
-| **Security** | `dotnet_certificate_export` | Different output paths | ⚠️ Low |
-| **Format** | `dotnet_format` | Different projects or directories | ⚠️ Medium |
-| **NuGet** | `dotnet_nuget_locals` | Different cache types | ⚠️ Low |
+| Tool | Actions | Parallel Conditions | Risk Level |
+|------|---------|---------------------|------------|
+| **dotnet_project** | Build, Restore, Clean, Test, Publish, Pack, Format | Different projects or solutions | ⚠️ Medium |
+| **dotnet_package** | Add, Remove, Update, AddReference, RemoveReference, ClearCache | Different projects or cache types | ⚠️ High |
+| **dotnet_solution** | Add, Remove | Different solutions | ⚠️ High |
+| **dotnet_tool** | Install, Uninstall, Update, Restore | Different tools or scopes (global vs local) | ⚠️ Medium |
+| **dotnet_dev_certs** | CertificateExport, SecretsSet, SecretsRemove, SecretsClear | Different projects or output paths | ⚠️ Medium |
+| **dotnet_ef** | MigrationsAdd, MigrationsRemove, MigrationsScript, DatabaseUpdate, DatabaseDrop, DbContextScaffold | Different projects or databases | ⚠️ High |
+| **dotnet_workload** | Install, Uninstall, Update | Different workloads | ⚠️ Medium |
 
 **Safety Guidelines:**
-- ✅ **Safe**: Build Project A and Project B simultaneously (if no dependencies between them)
-- ✅ **Safe**: Add different packages to different projects concurrently
-- ❌ **Unsafe**: Add two packages to the same project concurrently
-- ❌ **Unsafe**: Build the same project twice simultaneously
-- ❌ **Unsafe**: Modify solution file from multiple tools at once
+- ✅ **Safe**: `dotnet_project` Build on Project A and Project B simultaneously (if no dependencies between them)
+- ✅ **Safe**: `dotnet_package` Add different packages to different projects concurrently
+- ❌ **Unsafe**: `dotnet_package` Add two packages to the same project concurrently
+- ❌ **Unsafe**: `dotnet_project` Build the same project twice simultaneously
+- ❌ **Unsafe**: `dotnet_solution` Add projects from multiple operations to same solution file
 
 ### Never Run in Parallel (Mutating - Global State or Long-Running)
 
-These tools should **NEVER run in parallel** with themselves or similar operations, as they modify global state, run indefinitely, or create file system conflicts.
+These operations should **NEVER run in parallel** with themselves or similar operations, as they modify global state, run indefinitely, or create file system conflicts.
 
-| Category | Tool | Reason | Risk Level |
-|----------|------|--------|------------|
-| **Project** | `dotnet_project_new` | Creates files/directories; may conflict | ❌ Critical |
-| **Project** | `dotnet_project_run` | Long-running process; holds resources | ❌ Critical |
-| **Solution** | `dotnet_solution_create` | Creates solution file | ❌ Critical |
-| **Watch** | `dotnet_watch_run` | Long-running file watcher | ❌ Critical |
-| **Watch** | `dotnet_watch_test` | Long-running file watcher | ❌ Critical |
-| **Watch** | `dotnet_watch_build` | Long-running file watcher | ❌ Critical |
-| **Tool** | `dotnet_tool_run` | May be long-running; depends on tool | ❌ High |
-| **Security** | `dotnet_certificate_trust` | Modifies system trust store | ❌ Critical |
-| **Security** | `dotnet_certificate_clean` | Removes all certificates globally | ❌ Critical |
-| **Template** | `dotnet_template_clear_cache` | Clears global template cache | ❌ High |
+| Tool | Actions | Reason | Risk Level |
+|------|---------|--------|------------|
+| **dotnet_project** | New, Run, Watch | Creates files/directories or long-running process | ❌ Critical |
+| **dotnet_solution** | Create | Creates solution file | ❌ Critical |
+| **dotnet_tool** | Run | May be long-running; depends on tool | ❌ High |
+| **dotnet_dev_certs** | CertificateTrust, CertificateClean | Modifies system trust store | ❌ Critical |
+| **dotnet_sdk** | ClearTemplateCache | Clears global template cache | ❌ High |
+| **dotnet_ef** | DatabaseUpdate, DatabaseDrop | Modifies database schema | ❌ Critical |
+| **dotnet_workload** | Install, Update | Modifies global SDK installation | ❌ High |
 
 **Key Considerations:**
 - These operations often modify global state (certificates, global tools, caches)
@@ -172,43 +149,43 @@ Beyond simple parallelization, consider project dependencies:
 
 ### Restore Before Build
 
-Many tools have implicit ordering requirements:
+Many operations have implicit ordering requirements:
 
-1. **dotnet_project_restore** must complete before **dotnet_project_build**
-2. **dotnet_tool_restore** must complete before **dotnet_tool_run**
-3. **dotnet_package_add** should complete before **dotnet_project_build**
+1. **dotnet_project** Restore action must complete before Build action
+2. **dotnet_tool** Restore action must complete before Run action
+3. **dotnet_package** Add action should complete before **dotnet_project** Build action
 
 ## File System Conflict Scenarios
 
 ### Same Project File (❌ Unsafe)
 
 ```text
-Thread 1: dotnet_package_add → MyProject.csproj
-Thread 2: dotnet_package_add → MyProject.csproj
+Thread 1: dotnet_package { action: "Add", packageId: "PackageA", project: "MyProject.csproj" }
+Thread 2: dotnet_package { action: "Add", packageId: "PackageB", project: "MyProject.csproj" }
 Result: Race condition, possible corruption or lost changes
 ```
 
 ### Same Solution File (❌ Unsafe)
 
 ```text
-Thread 1: dotnet_solution_add ProjectA → MySolution.sln
-Thread 2: dotnet_solution_add ProjectB → MySolution.sln
+Thread 1: dotnet_solution { action: "Add", projects: ["ProjectA.csproj"], solution: "MySolution.sln" }
+Thread 2: dotnet_solution { action: "Add", projects: ["ProjectB.csproj"], solution: "MySolution.sln" }
 Result: One operation may be lost or file corrupted
 ```
 
 ### Different Projects in Same Solution (✅ Safe with Caution)
 
 ```text
-Thread 1: dotnet_project_build ProjectA
-Thread 2: dotnet_project_build ProjectB
+Thread 1: dotnet_project { action: "Build", project: "ProjectA.csproj" }
+Thread 2: dotnet_project { action: "Build", project: "ProjectB.csproj" }
 Result: Generally safe if no interdependencies, but MSBuild may serialize internally
 ```
 
 ### Overlapping Output Directories (❌ Unsafe)
 
 ```text
-Thread 1: dotnet_project_publish → /output
-Thread 2: dotnet_project_publish → /output
+Thread 1: dotnet_project { action: "Publish", project: "ProjectA.csproj", output: "/output" }
+Thread 2: dotnet_project { action: "Publish", project: "ProjectB.csproj", output: "/output" }
 Result: File conflicts, overwritten outputs
 ```
 
@@ -220,8 +197,8 @@ Running multiple web applications simultaneously can cause port conflicts:
 
 ```text
 ❌ UNSAFE:
-Thread 1: dotnet_project_run (uses port 5000)
-Thread 2: dotnet_project_run (tries to use port 5000)
+Thread 1: dotnet_project { action: "Run", project: "WebAppA.csproj" } (uses port 5000)
+Thread 2: dotnet_project { action: "Run", project: "WebAppB.csproj" } (tries to use port 5000)
 Result: Second process fails with "address already in use"
 ```
 
@@ -231,8 +208,8 @@ The global NuGet cache can handle concurrent access, but operations may serializ
 
 ```text
 ⚠️ SLOWED BUT SAFE:
-Thread 1: dotnet_package_add (downloads package X)
-Thread 2: dotnet_package_add (downloads package Y)
+Thread 1: dotnet_package { action: "Add", packageId: "PackageX" } (downloads package X)
+Thread 2: dotnet_package { action: "Add", packageId: "PackageY" } (downloads package Y)
 Result: Both succeed but may be slower due to NuGet lock files
 ```
 
@@ -244,15 +221,15 @@ Result: Both succeed but may be slower due to NuGet lock files
 
 ```text
 ✅ SAFE - Execute in Parallel:
-┌─────────────────────────┐
-│ dotnet_sdk_list         │ ───┐
-└─────────────────────────┘    │
-┌─────────────────────────┐    │
-│ dotnet_template_list    │ ───┤ All execute
-└─────────────────────────┘    │ concurrently
-┌─────────────────────────┐    │
-│ dotnet_package_search   │ ───┘
-└─────────────────────────┘
+┌──────────────────────────────────────┐
+│ dotnet_sdk { action: "ListSdks" }    │ ───┐
+└──────────────────────────────────────┘    │
+┌──────────────────────────────────────┐    │
+│ dotnet_sdk { action: "ListTemplates" }───┤ All execute
+└──────────────────────────────────────┘    │ concurrently
+┌──────────────────────────────────────┐    │
+│ dotnet_package { action: "Search" }  │ ───┘
+└──────────────────────────────────────┘
 ```
 
 ### Pattern 2: Sequential Project Modifications
@@ -261,16 +238,16 @@ Result: Both succeed but may be slower due to NuGet lock files
 
 ```text
 ✅ SAFE - Execute Sequentially:
-┌───────────────────────────────┐
-│ dotnet_package_add "Package1" │
-└───────────────────────────────┘
+┌───────────────────────────────────────────────────────┐
+│ dotnet_package { action: "Add", packageId: "Pkg1" }  │
+└───────────────────────────────────────────────────────┘
            ↓
-┌───────────────────────────────┐
-│ dotnet_package_add "Package2" │
-└───────────────────────────────┘
+┌───────────────────────────────────────────────────────┐
+│ dotnet_package { action: "Add", packageId: "Pkg2" }  │
+└───────────────────────────────────────────────────────┘
            ↓
-┌───────────────────────────────┐
-│ dotnet_project_restore        │
+┌───────────────────────────────────────────────────────┐
+│ dotnet_project { action: "Restore" }                  │
 └───────────────────────────────┘
 ```
 
@@ -280,9 +257,10 @@ Result: Both succeed but may be slower due to NuGet lock files
 
 ```text
 ✅ SAFE - Execute in Parallel (if no dependencies):
-┌─────────────────────────┐     ┌─────────────────────────┐
-│ dotnet_project_build A  │     │ dotnet_project_build C  │
-└─────────────────────────┘     └─────────────────────────┘
+┌──────────────────────────────────────────┐     ┌──────────────────────────────────────────┐
+│ dotnet_project { action: "Build",        │     │ dotnet_project { action: "Build",        │
+│                  project: "ProjA.csproj"} │     │                  project: "ProjC.csproj"}│
+└──────────────────────────────────────────┘     └──────────────────────────────────────────┘
 ```
 
 ### Pattern 4: Dependency-Aware Build
@@ -291,15 +269,17 @@ Result: Both succeed but may be slower due to NuGet lock files
 
 ```text
 ✅ SAFE - Respect Dependencies:
-       ┌─────────────────────────┐
-       │ dotnet_project_build B  │
-       │ (no dependencies)       │
-       └─────────────────────────┘
+       ┌──────────────────────────────────────────┐
+       │ dotnet_project { action: "Build",        │
+       │                  project: "ProjB.csproj"}│
+       │ (no dependencies)                        │
+       └──────────────────────────────────────────┘
                   ↓
-       ┌─────────────────────────┐
-       │ dotnet_project_build A  │
-       │ (references B)          │
-       └─────────────────────────┘
+       ┌──────────────────────────────────────────┐
+       │ dotnet_project { action: "Build",        │
+       │                  project: "ProjA.csproj"}│
+       │ (references B)                           │
+       └──────────────────────────────────────────┘
 ```
 
 ## Caching Considerations
@@ -314,7 +294,7 @@ The .NET MCP Server implements caching for read-only resources:
 
 ✅ **Thread-Safe**: All cache operations use `SemaphoreSlim` for async locking
 ✅ **Concurrent Reads**: Multiple parallel reads are safe and efficient
-⚠️ **Cache Invalidation**: `dotnet_template_clear_cache` should not run concurrently with template operations
+⚠️ **Cache Invalidation**: `dotnet_sdk { action: "ClearTemplateCache" }` should not run concurrently with template operations
 
 ## Summary Table: Tool Parallelization
 
@@ -422,7 +402,7 @@ for (int i = 0; i < maxRetries; i++)
 
 To test concurrent tool execution:
 
-1. Use the `dotnet_cache_metrics` tool to verify caching behavior
+1. Use `dotnet_sdk { action: "CacheMetrics" }` to verify caching behavior
 2. Monitor file system for lock contention
 3. Check process handles for resource conflicts
 4. Review MCP server logs for race conditions
@@ -435,9 +415,10 @@ To test concurrent tool execution:
 
 ## Version History
 
-- **v1.1** (2025-11-01) - Added automatic concurrency control and cancellation support
+- **v1.0** (2026-01-09) - Initial release with consolidated tools and automatic concurrency control
   - Introduced `ConcurrencyManager` for conflict detection
   - Added `CONCURRENCY_CONFLICT` error code
+  - Consolidated tool interface with action-based parameters
   - Implemented `CancellationToken` support throughout execution chain
   - Added `isLongRunning` metadata to appropriate tools
 - **v1.0** (2025-10-31) - Initial concurrency safety documentation
