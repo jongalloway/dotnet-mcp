@@ -129,7 +129,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("priority", 10.0)]
     [McpMeta("tags", JsonValue = """["template","list","discovery","project-creation"]""")]
     internal async Task<string> DotnetTemplateList(bool forceReload = false, bool machineReadable = false)
-          => await TemplateEngineHelper.GetInstalledTemplatesAsync(forceReload, _logger);
+            => await TemplateEngineHelper.GetInstalledTemplatesAsync(forceReload, _logger, machineReadable);
 
     /// <summary>
     /// Search for .NET templates by name or description. Returns matching templates with their details.
@@ -140,7 +140,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
     internal async Task<string> DotnetTemplateSearch(string searchTerm, bool forceReload = false, bool machineReadable = false)
-        => await TemplateEngineHelper.SearchTemplatesAsync(searchTerm, forceReload, _logger);
+        => await TemplateEngineHelper.SearchTemplatesAsync(searchTerm, forceReload, _logger, machineReadable);
 
     /// <summary>
     /// Get detailed information about a specific template including available parameters and options.
@@ -151,7 +151,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
     internal async Task<string> DotnetTemplateInfo(string templateShortName, bool forceReload = false, bool machineReadable = false)
-        => await TemplateEngineHelper.GetTemplateDetailsAsync(templateShortName, forceReload, _logger);
+        => await TemplateEngineHelper.GetTemplateDetailsAsync(templateShortName, forceReload, _logger, machineReadable);
 
     /// <summary>
     /// Clear all caches (templates, SDK, runtime) to force reload from disk. 
