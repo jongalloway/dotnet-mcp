@@ -425,26 +425,20 @@ public class TemplateEngineHelper
         }
         catch (InvalidOperationException ex)
         {
-            // If template engine fails, do not assume template exists; return false to avoid false positives
-            logger?.LogDebug(ex, "Template engine failed during validation");
+            // If template engine or CLI fails, do not assume template exists; return false to avoid false positives
+            logger?.LogDebug(ex, "Template validation failed");
             return false;
         }
         catch (Win32Exception ex)
         {
-            // If template engine fails, do not assume template exists; return false to avoid false positives
-            logger?.LogDebug(ex, "Template engine failed during validation");
+            // If CLI process fails to start, return false
+            logger?.LogDebug(ex, "Template validation failed");
             return false;
         }
-        catch (IOException ex)
+        catch (OperationCanceledException ex)
         {
-            // If template engine fails, do not assume template exists; return false to avoid false positives
-            logger?.LogDebug(ex, "Template engine failed during validation");
-            return false;
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            // If template engine fails, do not assume template exists; return false to avoid false positives
-            logger?.LogDebug(ex, "Template engine failed during validation");
+            // If operation is cancelled, return false
+            logger?.LogDebug(ex, "Template validation cancelled");
             return false;
         }
     }
