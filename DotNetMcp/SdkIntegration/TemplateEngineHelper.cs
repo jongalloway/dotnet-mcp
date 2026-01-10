@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -67,7 +68,12 @@ public class TemplateEngineHelper
             // This is still consistent with the server's hybrid approach: SDK integration first, CLI execution fallback.
             return await ExecuteDotNetForTemplatesAsync(args, logger);
         }
-        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+        catch (InvalidOperationException ex)
+        {
+            logger?.LogDebug(ex, "Failed to query templates via 'dotnet new list' fallback");
+            return null;
+        }
+        catch (Win32Exception ex)
         {
             logger?.LogDebug(ex, "Failed to query templates via 'dotnet new list' fallback");
             return null;
@@ -229,7 +235,7 @@ public class TemplateEngineHelper
                     {
                         // Ignore and fall through to the normal not-found message.
                     }
-                    catch (System.ComponentModel.Win32Exception)
+                    catch (Win32Exception)
                     {
                         // Ignore and fall through to the normal not-found message.
                     }
@@ -409,7 +415,7 @@ public class TemplateEngineHelper
                 {
                     return false;
                 }
-                catch (System.ComponentModel.Win32Exception)
+                catch (Win32Exception)
                 {
                     return false;
                 }
