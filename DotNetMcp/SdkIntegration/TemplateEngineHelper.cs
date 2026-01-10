@@ -67,7 +67,7 @@ public class TemplateEngineHelper
             // This is still consistent with the server's hybrid approach: SDK integration first, CLI execution fallback.
             return await ExecuteDotNetForTemplatesAsync(args, logger);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
         {
             logger?.LogDebug(ex, "Failed to query templates via 'dotnet new list' fallback");
             return null;
@@ -225,7 +225,11 @@ public class TemplateEngineHelper
                             return text;
                         }
                     }
-                    catch
+                    catch (InvalidOperationException)
+                    {
+                        // Ignore and fall through to the normal not-found message.
+                    }
+                    catch (System.ComponentModel.Win32Exception)
                     {
                         // Ignore and fall through to the normal not-found message.
                     }
@@ -394,10 +398,21 @@ public class TemplateEngineHelper
             {
                 // If the Template Engine API can't enumerate templates here, fall back to the CLI.
                 // dotnet new list returns exit code 1 when no templates match.
-                var _ = await ExecuteDotNetForTemplatesAsync(
-                    $"new list \"{templateShortName}\" --columns author --columns language --columns type --columns tags",
-                    logger);
-                return true;
+                try
+                {
+                    await ExecuteDotNetForTemplatesAsync(
+                        $"new list \"{templateShortName}\" --columns author --columns language --columns type --columns tags",
+                        logger);
+                    return true;
+                }
+                catch (InvalidOperationException)
+                {
+                    return false;
+                }
+                catch (System.ComponentModel.Win32Exception)
+                {
+                    return false;
+                }
             }
 
             return templates.Any(t => t.ShortNameList.Any(sn => sn.Equals(templateShortName, StringComparison.OrdinalIgnoreCase)));
