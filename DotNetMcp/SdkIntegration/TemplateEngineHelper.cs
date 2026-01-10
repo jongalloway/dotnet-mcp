@@ -423,7 +423,25 @@ public class TemplateEngineHelper
 
             return templates.Any(t => t.ShortNameList.Any(sn => sn.Equals(templateShortName, StringComparison.OrdinalIgnoreCase)));
         }
-        catch (Exception ex) when (ex is InvalidOperationException or Win32Exception or IOException or UnauthorizedAccessException)
+        catch (InvalidOperationException ex)
+        {
+            // If template engine fails, do not assume template exists; return false to avoid false positives
+            logger?.LogDebug(ex, "Template engine failed during validation");
+            return false;
+        }
+        catch (Win32Exception ex)
+        {
+            // If template engine fails, do not assume template exists; return false to avoid false positives
+            logger?.LogDebug(ex, "Template engine failed during validation");
+            return false;
+        }
+        catch (IOException ex)
+        {
+            // If template engine fails, do not assume template exists; return false to avoid false positives
+            logger?.LogDebug(ex, "Template engine failed during validation");
+            return false;
+        }
+        catch (UnauthorizedAccessException ex)
         {
             // If template engine fails, do not assume template exists; return false to avoid false positives
             logger?.LogDebug(ex, "Template engine failed during validation");
