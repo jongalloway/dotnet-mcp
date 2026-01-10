@@ -78,6 +78,11 @@ public class TemplateEngineHelper
             logger?.LogDebug(ex, "Failed to query templates via 'dotnet new list' fallback");
             return null;
         }
+        catch (OperationCanceledException ex)
+        {
+            logger?.LogDebug(ex, "Template query cancelled");
+            return null;
+        }
     }
 
     /// <summary>
@@ -236,6 +241,10 @@ public class TemplateEngineHelper
                         // Ignore and fall through to the normal not-found message.
                     }
                     catch (Win32Exception)
+                    {
+                        // Ignore and fall through to the normal not-found message.
+                    }
+                    catch (OperationCanceledException)
                     {
                         // Ignore and fall through to the normal not-found message.
                     }
@@ -416,6 +425,10 @@ public class TemplateEngineHelper
                     return false;
                 }
                 catch (Win32Exception)
+                {
+                    return false;
+                }
+                catch (OperationCanceledException)
                 {
                     return false;
                 }
