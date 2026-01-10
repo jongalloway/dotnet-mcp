@@ -70,12 +70,12 @@ public class TemplateEngineHelper
         }
         catch (InvalidOperationException ex)
         {
-            logger?.LogDebug(ex, "Failed to query templates via 'dotnet new list' fallback");
+            logger?.LogDebug(ex, "Invalid operation during template query via 'dotnet new list' fallback");
             return null;
         }
         catch (Win32Exception ex)
         {
-            logger?.LogDebug(ex, "Failed to query templates via 'dotnet new list' fallback");
+            logger?.LogDebug(ex, "Process execution failed for 'dotnet new list' fallback");
             return null;
         }
         catch (OperationCanceledException ex)
@@ -439,13 +439,13 @@ public class TemplateEngineHelper
         catch (InvalidOperationException ex)
         {
             // If template engine or CLI fails, do not assume template exists; return false to avoid false positives
-            logger?.LogDebug(ex, "Template validation failed");
+            logger?.LogDebug(ex, "Template validation failed: invalid operation");
             return false;
         }
         catch (Win32Exception ex)
         {
             // If CLI process fails to start, return false
-            logger?.LogDebug(ex, "Template validation failed");
+            logger?.LogDebug(ex, "Template validation failed: process execution error");
             return false;
         }
         catch (OperationCanceledException ex)
