@@ -1,4 +1,5 @@
 using DotNetMcp;
+using Microsoft.TemplateEngine.Abstractions;
 using Xunit;
 
 namespace DotNetMcp.Tests;
@@ -11,6 +12,149 @@ namespace DotNetMcp.Tests;
 [Collection("CachingIntegrationTests")]
 public class TemplateEngineHelperTests
 {
+    [Fact]
+    public async Task GetInstalledTemplatesAsync_Fallback_MachineReadable_ReturnsSuccessResultJson()
+    {
+        var originalLoader = TemplateEngineHelper.LoadTemplatesOverride;
+        var originalExecutor = TemplateEngineHelper.ExecuteDotNetForTemplatesAsync;
+
+        try
+        {
+            TemplateEngineHelper.LoadTemplatesOverride = () => Task.FromResult<IEnumerable<ITemplateInfo>>(Array.Empty<ITemplateInfo>());
+            TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = (_, _) => Task.FromResult("FAKE TEMPLATE LIST OUTPUT");
+
+            var json = await TemplateEngineHelper.GetInstalledTemplatesAsync(forceReload: true, machineReadable: true);
+
+            Assert.Contains("\"success\": true", json, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("dotnet new list", json, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("FAKE TEMPLATE LIST OUTPUT", json);
+        }
+        finally
+        {
+            TemplateEngineHelper.LoadTemplatesOverride = originalLoader;
+            TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = originalExecutor;
+        }
+    }
+
+    [Fact]
+    public async Task GetInstalledTemplatesAsync_WhenTemplateApiReturnsEmpty_UsesDotnetNewListFallback()
+    {
+        var originalLoader = TemplateEngineHelper.LoadTemplatesOverride;
+        var originalExecutor = TemplateEngineHelper.ExecuteDotNetForTemplatesAsync;
+
+        try
+        {
+            TemplateEngineHelper.LoadTemplatesOverride = () => Task.FromResult<IEnumerable<ITemplateInfo>>(Array.Empty<ITemplateInfo>());
+
+            string? executedArgs = null;
+            TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = (args, _) =>
+            {
+                executedArgs = args;
+                return Task.FromResult("FAKE TEMPLATE LIST OUTPUT");
+            };
+
+            var result = await TemplateEngineHelper.GetInstalledTemplatesAsync(forceReload: true);
+
+            Assert.Contains("dotnet new list", result, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("FAKE TEMPLATE LIST OUTPUT", result);
+            Assert.Equal("new list --columns author --columns language --columns type --columns tags", executedArgs);
+        }
+        finally
+        {
+            TemplateEngineHelper.LoadTemplatesOverride = originalLoader;
+            TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = originalExecutor;
+        }
+    }
+
+    [Fact]
+    public async Task SearchTemplatesAsync_WhenTemplateApiReturnsEmpty_UsesDotnetNewListFallback()
+    {
+        var originalLoader = TemplateEngineHelper.LoadTemplatesOverride;
+        var originalExecutor = TemplateEngineHelper.ExecuteDotNetForTemplatesAsync;
+
+        try
+        {
+            TemplateEngineHelper.LoadTemplatesOverride = () => Task.FromResult<IEnumerable<ITemplateInfo>>(Array.Empty<ITemplateInfo>());
+
+            string? executedArgs = null;
+            TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = (args, _) =>
+            {
+                executedArgs = args;
+                return Task.FromResult("FAKE SEARCH OUTPUT");
+            };
+
+            var result = await TemplateEngineHelper.SearchTemplatesAsync("console", forceReload: true);
+
+            Assert.Contains("Templates matching 'console'", result);
+            Assert.Contains("FAKE SEARCH OUTPUT", result);
+            Assert.Equal("new list \"console\" --columns author --columns language --columns type --columns tags", executedArgs);
+        }
+        finally
+        {
+            TemplateEngineHelper.LoadTemplatesOverride = originalLoader;
+            TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = originalExecutor;
+        }
+    }
+
+    [Fact]
+    public async Task GetTemplateDetailsAsync_WhenTemplateApiReturnsEmpty_UsesDotnetNewHelpFallback()
+    {
+        var originalLoader = TemplateEngineHelper.LoadTemplatesOverride;
+        var originalExecutor = TemplateEngineHelper.ExecuteDotNetForTemplatesAsync;
+
+        try
+        {
+            TemplateEngineHelper.LoadTemplatesOverride = () => Task.FromResult<IEnumerable<ITemplateInfo>>(Array.Empty<ITemplateInfo>());
+
+            string? executedArgs = null;
+            TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = (args, _) =>
+            {
+                executedArgs = args;
+                return Task.FromResult("USAGE: dotnet new console [options]");
+            };
+
+            var result = await TemplateEngineHelper.GetTemplateDetailsAsync("console", forceReload: true);
+
+            Assert.Contains("Template help", result);
+            Assert.Contains("USAGE:", result);
+            Assert.Equal("new console --help", executedArgs);
+        }
+        finally
+        {
+            TemplateEngineHelper.LoadTemplatesOverride = originalLoader;
+            TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = originalExecutor;
+        }
+    }
+
+    [Fact]
+    public async Task ValidateTemplateExistsAsync_WhenTemplateApiReturnsEmpty_UsesDotnetNewListFallback()
+    {
+        var originalLoader = TemplateEngineHelper.LoadTemplatesOverride;
+        var originalExecutor = TemplateEngineHelper.ExecuteDotNetForTemplatesAsync;
+
+        try
+        {
+            TemplateEngineHelper.LoadTemplatesOverride = () => Task.FromResult<IEnumerable<ITemplateInfo>>(Array.Empty<ITemplateInfo>());
+
+            string? executedArgs = null;
+            TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = (args, _) =>
+            {
+                executedArgs = args;
+                return Task.FromResult("These templates matched your input: 'console'\n\n...");
+            };
+
+            var exists = await TemplateEngineHelper.ValidateTemplateExistsAsync("console", forceReload: true);
+
+            Assert.True(exists);
+            Assert.Equal("new list \"console\" --columns author --columns language --columns type --columns tags", executedArgs);
+        }
+        finally
+        {
+            TemplateEngineHelper.LoadTemplatesOverride = originalLoader;
+            TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = originalExecutor;
+        }
+    }
+
     [Fact]
     public async Task GetInstalledTemplatesAsync_ReturnsSuccessfully()
     {
