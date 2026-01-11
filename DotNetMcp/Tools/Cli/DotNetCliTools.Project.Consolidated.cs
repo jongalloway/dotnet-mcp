@@ -595,7 +595,7 @@ public sealed partial class DotNetCliTools
             return $"Error: {frameworkError}";
 
         var args = new StringBuilder("test");
-        if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
+        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
         if (!string.IsNullOrEmpty(filter)) args.Append($" --filter \"{filter}\"");
         if (!string.IsNullOrEmpty(collect)) args.Append($" --collect \"{collect}\"");

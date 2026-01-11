@@ -33,7 +33,7 @@ public class DotNetCliToolsTests
         Assert.NotNull(result);
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(
             result,
-            "dotnet test \"test.csproj\" -c Debug --filter \"FullyQualifiedName~MyTest\"");
+            "dotnet test --project \"test.csproj\" -c Debug --filter \"FullyQualifiedName~MyTest\"");
     }
 
     [Fact]
@@ -166,7 +166,7 @@ public class DotNetCliToolsTests
         Assert.NotNull(result);
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(
             result,
-            "dotnet test \"test.csproj\" -c Release --filter \"Category=Unit\" --collect \"XPlat Code Coverage\" --results-directory \"/tmp/results\" --logger \"trx;LogFileName=test-results.trx\" --no-build --no-restore --verbosity minimal --framework net10.0 --blame");
+            "dotnet test --project \"test.csproj\" -c Release --filter \"Category=Unit\" --collect \"XPlat Code Coverage\" --results-directory \"/tmp/results\" --logger \"trx;LogFileName=test-results.trx\" --no-build --no-restore --verbosity minimal --framework net10.0 --blame");
     }
 
     [InteractiveFact]

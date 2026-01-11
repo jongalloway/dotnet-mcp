@@ -178,7 +178,7 @@ public class ConsolidatedProjectToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet test \"MyTests.csproj\"");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet test --project \"MyTests.csproj\"");
     }
 
     [Fact]
@@ -484,7 +484,7 @@ public class ConsolidatedProjectToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet test \"MyTests.csproj\" --filter \"FullyQualifiedName~MyNamespace\"");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet test --project \"MyTests.csproj\" --filter \"FullyQualifiedName~MyNamespace\"");
     }
 
     [Fact]
