@@ -107,6 +107,25 @@ public class ErrorResultFactoryTests
     }
 
     [Fact]
+    public void CreateResult_WithDuplicateCompilerErrorAcrossStdoutAndStderr_Deduplicates()
+    {
+        // Arrange
+        var duplicate = "Program.cs(10,5): error CS0246: The type or namespace name 'NotThere' could not be found (are you missing a using directive or an assembly reference?)";
+        var output = duplicate;
+        var error = duplicate;
+        var exitCode = 1;
+
+        // Act
+        var result = ErrorResultFactory.CreateResult(output, error, exitCode);
+
+        // Assert
+        var errorResponse = Assert.IsType<ErrorResponse>(result);
+        var parsedError = Assert.Single(errorResponse.Errors);
+        Assert.Equal("CS0246", parsedError.Code);
+        Assert.Equal("Compilation", parsedError.Category);
+    }
+
+    [Fact]
     public void CreateResult_WithMSBuildError_ParsesCorrectly()
     {
         // Arrange

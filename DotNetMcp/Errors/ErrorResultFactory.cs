@@ -107,6 +107,8 @@ public static partial class ErrorResultFactory
             .Select(line => ParseErrorLine(line, error, exitCode, command))
             .OfType<ErrorResult>());
 
+        errors = DeduplicateErrors(errors);
+
         // If no specific errors were parsed, create a generic error
         if (errors.Count == 0)
         {
@@ -137,6 +139,36 @@ public static partial class ErrorResultFactory
             Errors = errors,
             ExitCode = exitCode
         };
+    }
+
+    private static List<ErrorResult> DeduplicateErrors(List<ErrorResult> errors)
+    {
+        if (errors.Count <= 1)
+        {
+            return errors;
+        }
+
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var deduped = new List<ErrorResult>(errors.Count);
+
+        foreach (var error in errors)
+        {
+            var key = string.Join("\u001F", new[]
+            {
+                error.Code ?? string.Empty,
+                error.Category ?? string.Empty,
+                error.Message ?? string.Empty,
+                error.RawOutput ?? string.Empty,
+                error.McpErrorCode.ToString()
+            });
+
+            if (seen.Add(key))
+            {
+                deduped.Add(error);
+            }
+        }
+
+        return deduped;
     }
 
     /// <summary>
