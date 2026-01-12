@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using System.ComponentModel;
 using Xunit;
 
 namespace DotNetMcp.Tests.Scenarios;
@@ -119,9 +120,9 @@ internal static class ScenarioHelpers
                     process.Kill(entireProcessTree: true);
                 }
             }
-            catch
+            catch (Exception ex) when (ex is InvalidOperationException || ex is Win32Exception || ex is ObjectDisposedException)
             {
-                // Best-effort cleanup; ignore failures when killing the process on cancellation.
+                // Best-effort cleanup; ignore expected failures when killing the process on cancellation.
             }
 
             throw;
