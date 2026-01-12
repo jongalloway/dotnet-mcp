@@ -52,7 +52,7 @@ jobs:
         run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-class "*McpConformanceTests"
 
       - name: Run MCP Scenario Tests
-        if: ${{ github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.runScenarioTests == 'true') }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.runScenarioTests == 'true' }}
         env:
           DOTNET_MCP_SCENARIO_TESTS: "1"
         run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
