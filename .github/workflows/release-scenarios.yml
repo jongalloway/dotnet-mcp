@@ -5,6 +5,11 @@ on:
         inputs:
             os:
                 description: "Runner OS (ubuntu-latest, windows-latest, or all)"
+                type: choice
+                options:
+                    - ubuntu-latest
+                    - windows-latest
+                    - all
                 required: false
                 default: "ubuntu-latest"
 
@@ -19,9 +24,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                os: [ubuntu-latest, windows-latest]
-
-        if: ${{ inputs.os == 'all' || inputs.os == matrix.os }}
+                os: ${{ inputs.os == 'all' && fromJSON('["ubuntu-latest", "windows-latest"]') || fromJSON(format('["{0}"]', inputs.os)) }}
 
         env:
             DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
