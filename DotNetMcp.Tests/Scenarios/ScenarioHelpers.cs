@@ -99,10 +99,16 @@ internal static class ScenarioHelpers
         var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
         var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
 
+        string stdout;
+        string stderr;
+
         try
         {
             await Task.WhenAll(stdoutTask, stderrTask);
             await process.WaitForExitAsync(cancellationToken);
+
+            stdout = stdoutTask.Result;
+            stderr = stderrTask.Result;
         }
         catch (OperationCanceledException)
         {
@@ -121,7 +127,7 @@ internal static class ScenarioHelpers
             throw;
         }
 
-        return (process.ExitCode, (await stdoutTask).TrimEnd(), (await stderrTask).TrimEnd());
+        return (process.ExitCode, stdout.TrimEnd(), stderr.TrimEnd());
     }
 
     /// <summary>
