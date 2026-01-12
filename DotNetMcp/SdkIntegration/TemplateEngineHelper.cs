@@ -412,7 +412,9 @@ public class TemplateEngineHelper
             if (!templates.Any())
             {
                 // If the Template Engine API can't enumerate templates here, fall back to the CLI.
-                // dotnet new list returns exit code 0 when templates match, 103 when no templates match.
+                // 'dotnet new list <templateName>' returns exit code 0 when templates are found,
+                // exit code 103 when no templates match the filter.
+                // See: https://aka.ms/templating-exit-codes
                 try
                 {
                     await ExecuteDotNetForTemplatesAsync(
@@ -426,9 +428,8 @@ public class TemplateEngineHelper
                 }
                 catch (InvalidOperationException ex)
                 {
-                    // Command failed with non-zero exit code.
-                    // Exit code 103 means "no templates found" which is the expected case for invalid templates.
-                    // Any other non-zero exit code also means validation failed.
+                    // Command failed with non-zero exit code (most commonly exit code 103 for "no templates found").
+                    // ExecuteCommandForResourceAsync throws InvalidOperationException for any non-zero exit code.
                     logger?.LogDebug(ex, "Template '{TemplateName}' not found via CLI fallback", templateShortName);
                     return false;
                 }
