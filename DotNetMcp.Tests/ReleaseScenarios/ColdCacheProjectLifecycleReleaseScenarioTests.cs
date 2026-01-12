@@ -12,8 +12,8 @@ public class ColdCacheProjectLifecycleReleaseScenarioTests
         var cancellationToken = TestContext.Current.CancellationToken;
         using var tempRoot = ScenarioHelpers.CreateTempDirectory(nameof(ReleaseScenario_ColdNuGetCache_Console_AddPackage_Restore_Build_Publish));
 
-        var nugetPackagesDir = Path.Combine(tempRoot.Path, ".nuget", "packages");
-        var dotnetCliHomeDir = Path.Combine(tempRoot.Path, ".dotnet", "home");
+        var nugetPackagesDir = Path.Join(tempRoot.Path, ".nuget", "packages");
+        var dotnetCliHomeDir = Path.Join(tempRoot.Path, ".dotnet", "home");
         Directory.CreateDirectory(nugetPackagesDir);
         Directory.CreateDirectory(dotnetCliHomeDir);
 
@@ -34,7 +34,7 @@ public class ColdCacheProjectLifecycleReleaseScenarioTests
 
             Assert.True(exitCode == 0, $"dotnet new console failed: {stderr}");
 
-            var projectPath = Path.Combine(tempRoot.Path, "App.csproj");
+            var projectPath = Path.Join(tempRoot.Path, "App.csproj");
             Assert.True(File.Exists(projectPath), $"Expected App.csproj to exist at {projectPath}");
 
             await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
@@ -93,7 +93,7 @@ public class ColdCacheProjectLifecycleReleaseScenarioTests
             }
 
             // Publish via MCP and validate output exists.
-            var publishDir = Path.Combine(tempRoot.Path, "publish");
+            var publishDir = Path.Join(tempRoot.Path, "publish");
             Directory.CreateDirectory(publishDir);
 
             var publishJsonText = await client.CallToolTextAsync(
@@ -114,7 +114,7 @@ public class ColdCacheProjectLifecycleReleaseScenarioTests
                 ScenarioHelpers.AssertMachineReadableSuccess(publishJson.RootElement);
             }
 
-            Assert.True(File.Exists(Path.Combine(publishDir, "App.dll")), "Expected published App.dll to exist.");
+            Assert.True(File.Exists(Path.Join(publishDir, "App.dll")), "Expected published App.dll to exist.");
         }
         finally
         {

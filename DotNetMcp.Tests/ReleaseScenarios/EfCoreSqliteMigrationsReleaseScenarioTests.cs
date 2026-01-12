@@ -24,8 +24,8 @@ public class EfCoreSqliteMigrationsReleaseScenarioTests
         var cancellationToken = TestContext.Current.CancellationToken;
         using var tempRoot = ScenarioHelpers.CreateTempDirectory(nameof(ReleaseScenario_EfCoreSqlite_MigrationsAdd_And_DatabaseUpdate));
 
-        var nugetPackagesDir = Path.Combine(tempRoot.Path, ".nuget", "packages");
-        var dotnetCliHomeDir = Path.Combine(tempRoot.Path, ".dotnet", "home");
+        var nugetPackagesDir = Path.Join(tempRoot.Path, ".nuget", "packages");
+        var dotnetCliHomeDir = Path.Join(tempRoot.Path, ".dotnet", "home");
         Directory.CreateDirectory(nugetPackagesDir);
         Directory.CreateDirectory(dotnetCliHomeDir);
 
@@ -45,7 +45,7 @@ public class EfCoreSqliteMigrationsReleaseScenarioTests
 
             Assert.True(exitCode == 0, $"dotnet new console failed: {stderr}");
 
-            var projectPath = Path.Combine(tempRoot.Path, "EfApp.csproj");
+            var projectPath = Path.Join(tempRoot.Path, "EfApp.csproj");
             Assert.True(File.Exists(projectPath), $"Expected EfApp.csproj to exist at {projectPath}");
 
             // Add EF Core packages via MCP.
@@ -109,7 +109,7 @@ public class EfCoreSqliteMigrationsReleaseScenarioTests
                 "",
             });
 
-            File.WriteAllText(Path.Combine(tempRoot.Path, "AppDbContext.cs"), dbContextSource);
+            File.WriteAllText(Path.Join(tempRoot.Path, "AppDbContext.cs"), dbContextSource);
 
             var dbContextFactorySource = string.Join(Environment.NewLine, new[]
             {
@@ -130,7 +130,7 @@ public class EfCoreSqliteMigrationsReleaseScenarioTests
                 "",
             });
 
-            File.WriteAllText(Path.Combine(tempRoot.Path, "AppDbContextFactory.cs"), dbContextFactorySource);
+            File.WriteAllText(Path.Join(tempRoot.Path, "AppDbContextFactory.cs"), dbContextFactorySource);
 
             // Ensure dotnet-ef is available as a local tool.
             var createManifestText = await client.CallToolTextAsync(
@@ -232,8 +232,8 @@ public class EfCoreSqliteMigrationsReleaseScenarioTests
 
             AssertMachineReadableSuccessOrThrow(databaseUpdateText, "dotnet_ef DatabaseUpdate");
 
-            Assert.True(Directory.Exists(Path.Combine(tempRoot.Path, "Migrations")), "Expected Migrations folder to be created.");
-            Assert.True(File.Exists(Path.Combine(tempRoot.Path, "app.db")), "Expected SQLite database file 'app.db' to exist.");
+            Assert.True(Directory.Exists(Path.Join(tempRoot.Path, "Migrations")), "Expected Migrations folder to be created.");
+            Assert.True(File.Exists(Path.Join(tempRoot.Path, "app.db")), "Expected SQLite database file 'app.db' to exist.");
         }
         finally
         {

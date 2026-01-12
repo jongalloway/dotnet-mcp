@@ -29,7 +29,7 @@ public class LocalToolManifestReleaseScenarioTests
             ScenarioHelpers.AssertMachineReadableSuccess(createManifestJson.RootElement);
         }
 
-        Assert.True(File.Exists(Path.Combine(tempRoot.Path, ".config", "dotnet-tools.json")), "Expected local tool manifest to exist.");
+        Assert.True(File.Exists(Path.Join(tempRoot.Path, ".config", "dotnet-tools.json")), "Expected local tool manifest to exist.");
 
         var installText = await client.CallToolTextAsync(
             toolName: "dotnet_tool",
