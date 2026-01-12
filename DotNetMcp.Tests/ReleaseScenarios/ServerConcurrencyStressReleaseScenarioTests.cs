@@ -28,10 +28,12 @@ public class ServerConcurrencyStressReleaseScenarioTests
         var results = await Task.WhenAll(tasks);
         Assert.Equal(callCount, results.Length);
 
-        foreach (var jsonText in results)
+        foreach (var json in results.Select(ScenarioHelpers.ParseJson))
         {
-            using var json = ScenarioHelpers.ParseJson(jsonText);
-            ScenarioHelpers.AssertMachineReadableSuccess(json.RootElement);
+            using (json)
+            {
+                ScenarioHelpers.AssertMachineReadableSuccess(json.RootElement);
+            }
         }
     }
 }
