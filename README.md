@@ -195,6 +195,10 @@ The .NET MCP Server acts as an intelligent middleware that:
 3. **Executes** commands safely with proper error handling
 4. **Returns** structured results that AI assistants can understand and explain
 
+## Testing
+
+See [doc/testing.md](doc/testing.md) for how to run the test suite, including opt-in scenario tests and long-running release-gate scenarios.
+
 ## Installation
 
 ### Requirements
@@ -685,6 +689,7 @@ Resources provide structured JSON data and are more efficient than tool calls fo
 Unified interface for all project operations: **New**, **Restore**, **Build**, **Run**, **Test**, **Publish**, **Clean**, **Analyze**, **Dependencies**, **Validate**, **Pack**, **Watch**, **Format**
 
 Example:
+
 ```typescript
 // Create a new web API project
 await callTool("dotnet_project", { 
@@ -706,6 +711,7 @@ await callTool("dotnet_project", {
 Manage NuGet packages and project references: **Add**, **Remove**, **Search**, **Update**, **List**, **AddReference**, **RemoveReference**, **ListReferences**, **ClearCache**
 
 Example:
+
 ```typescript
 // Search for a package
 await callTool("dotnet_package", { 
@@ -726,6 +732,7 @@ await callTool("dotnet_package", {
 Manage solution files and project membership: **Create**, **Add**, **List**, **Remove**
 
 Example:
+
 ```typescript
 // Create a solution
 await callTool("dotnet_solution", { 
@@ -747,6 +754,7 @@ await callTool("dotnet_solution", {
 Database migrations, DbContext management, and scaffolding: **MigrationsAdd**, **MigrationsList**, **MigrationsRemove**, **MigrationsScript**, **DatabaseUpdate**, **DatabaseDrop**, **DbContextList**, **DbContextInfo**, **DbContextScaffold**
 
 Example:
+
 ```typescript
 // Create a migration
 await callTool("dotnet_ef", { 
@@ -767,6 +775,7 @@ await callTool("dotnet_ef", {
 Install and manage .NET workloads (MAUI, WASM, etc.): **List**, **Info**, **Search**, **Install**, **Update**, **Uninstall**
 
 Example:
+
 ```typescript
 // Search for workloads
 await callTool("dotnet_workload", { 
@@ -786,6 +795,7 @@ await callTool("dotnet_workload", {
 Manage global and local .NET tools: **Install**, **List**, **Update**, **Uninstall**, **Restore**, **CreateManifest**, **Search**, **Run**
 
 Example:
+
 ```typescript
 // Install a tool globally
 await callTool("dotnet_tool", { 
@@ -806,6 +816,7 @@ await callTool("dotnet_tool", {
 Query SDK, runtime, template, and framework information: **Version**, **Info**, **ListSdks**, **ListRuntimes**, **ListTemplates**, **SearchTemplates**, **TemplateInfo**, **ClearTemplateCache**, **FrameworkInfo**, **CacheMetrics**
 
 Example:
+
 ```typescript
 // Get SDK version
 await callTool("dotnet_sdk", { 
@@ -829,6 +840,7 @@ await callTool("dotnet_sdk", {
 Manage HTTPS certificates and user secrets: **CertificateTrust**, **CertificateCheck**, **CertificateClean**, **CertificateExport**, **SecretsInit**, **SecretsSet**, **SecretsList**, **SecretsRemove**, **SecretsClear**
 
 Example:
+
 ```typescript
 // Trust development certificate
 await callTool("dotnet_dev_certs", { 
