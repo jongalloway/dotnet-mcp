@@ -20,9 +20,6 @@ internal static class McpScenarioGate
     /// <returns><c>true</c> if scenario tests are enabled; otherwise, <c>false</c>.</returns>
     public static bool IsEnabled()
     {
-        var enabled = Environment.GetEnvironmentVariable(EnvVar);
-        return string.Equals(enabled, "1", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(enabled, "true", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(enabled, "yes", StringComparison.OrdinalIgnoreCase);
+        return ScenarioFactAttribute.IsEnabled();
     }
 }

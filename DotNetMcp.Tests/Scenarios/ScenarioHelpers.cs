@@ -99,10 +99,35 @@ internal static class ScenarioHelpers
         var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
         var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
 
-        await Task.WhenAll(stdoutTask, stderrTask);
-        await process.WaitForExitAsync(cancellationToken);
+        string stdout;
+        string stderr;
 
-        return (process.ExitCode, (await stdoutTask).TrimEnd(), (await stderrTask).TrimEnd());
+        try
+        {
+            await Task.WhenAll(stdoutTask, stderrTask);
+            await process.WaitForExitAsync(cancellationToken);
+
+            stdout = stdoutTask.Result;
+            stderr = stderrTask.Result;
+        }
+        catch (OperationCanceledException)
+        {
+            try
+            {
+                if (!process.HasExited)
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+            }
+            catch
+            {
+                // Best-effort cleanup; ignore failures when killing the process on cancellation.
+            }
+
+            throw;
+        }
+
+        return (process.ExitCode, stdout.TrimEnd(), stderr.TrimEnd());
     }
 
     /// <summary>

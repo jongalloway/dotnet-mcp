@@ -45,7 +45,11 @@ public sealed class ScenarioFactAttribute : FactAttribute
         }
     }
 
-    private static bool IsEnabled()
+    /// <summary>
+    /// Determines whether scenario tests are enabled based on the environment variable.
+    /// </summary>
+    /// <returns><c>true</c> if scenario tests are enabled; otherwise, <c>false</c>.</returns>
+    public static bool IsEnabled()
     {
         var value = Environment.GetEnvironmentVariable(EnableEnvironmentVariableName);
         return string.Equals(value, "1", StringComparison.OrdinalIgnoreCase)
