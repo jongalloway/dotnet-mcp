@@ -62,6 +62,11 @@ The server uses a **hybrid architecture**:
   - `FrameworkHelper` - Framework validation
   - `DotNetSdkConstants` - Type-safe constants
 
+### Path Handling
+
+- Prefer `Path.Join(...)` over `Path.Combine(...)` whenever possible.
+- Avoid `Path.Combine` because it has "rooted path reset" behavior when a later segment is rooted (or starts with a directory separator), which can lead to surprising bugs and repeated analyzer/security findings.
+
 ## Build and Compilation
 
 ### Local Tool Manifest
@@ -85,6 +90,13 @@ After making code changes:
 1. Build with full path: `dotnet build --project [full path to .csproj]`
 2. Check for compilation errors
 3. Test the MCP server manually if significant changes were made
+
+When running tests:
+
+- Use `dotnet test --project ...` to run a specific test project.
+  - Do not pass a `.csproj` as a positional argument; `dotnet test` will warn: `Specifying a project for 'dotnet test' should be via '--project'`.
+- Use `dotnet test --solution ...` to run from the solution.
+- Use Microsoft Testing Platform filters after `--` (for example `--filter-class ...`).
 
 ## SDK Integration Patterns
 
