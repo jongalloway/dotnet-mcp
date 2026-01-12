@@ -415,7 +415,7 @@ public class TemplateEngineHelper
                 // dotnet new list returns exit code 0 when templates match, 103 when no templates match.
                 try
                 {
-                    var cliOutput = await ExecuteDotNetForTemplatesAsync(
+                    await ExecuteDotNetForTemplatesAsync(
                         $"new list \"{templateShortName}\" --columns author --columns language --columns type --columns tags",
                         logger);
                     
