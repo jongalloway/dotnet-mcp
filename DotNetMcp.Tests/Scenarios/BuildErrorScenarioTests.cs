@@ -13,7 +13,7 @@ public class BuildErrorScenarioTests
 
         // Create a throwaway project via CLI to avoid mutating repo projects.
         var (newExit, _, newErr) = await ScenarioHelpers.RunDotNetAsync(
-            $"new console -n BrokenApp -o \"{tempRoot}\"",
+            $"new console -n BrokenApp -o \"{(string)tempRoot}\"",
             workingDirectory: tempRoot,
             cancellationToken);
 
