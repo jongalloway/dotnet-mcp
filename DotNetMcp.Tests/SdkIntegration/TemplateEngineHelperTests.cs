@@ -214,6 +214,69 @@ public class TemplateEngineHelperTests
     }
 
     [Fact]
+    public async Task ValidateTemplateExistsAsync_WhenApiReturnsEmpty_AndCliFallbackSucceeds_ReturnsTrue()
+    {
+        // This test verifies the fix for the classlib template issue
+        var originalLoader = TemplateEngineHelper.LoadTemplatesOverride;
+        var originalExecutor = TemplateEngineHelper.ExecuteDotNetForTemplatesAsync;
+
+        try
+        {
+            // Arrange: Simulate Template Engine API returning empty (the problem scenario)
+            TemplateEngineHelper.LoadTemplatesOverride = () => Task.FromResult<IEnumerable<ITemplateInfo>>(Array.Empty<ITemplateInfo>());
+            
+            // Arrange: Simulate CLI fallback succeeding (exit code 0 = template found)
+            TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = (args, _) =>
+            {
+                // Simulate successful dotnet new list output (exit code 0)
+                return Task.FromResult("These templates matched your input: 'classlib'\n\nTemplate Name  Short Name  ...");
+            };
+
+            // Act
+            var exists = await TemplateEngineHelper.ValidateTemplateExistsAsync("classlib", forceReload: true);
+
+            // Assert
+            Assert.True(exists, "Template should be found via CLI fallback when API returns empty");
+        }
+        finally
+        {
+            TemplateEngineHelper.LoadTemplatesOverride = originalLoader;
+            TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = originalExecutor;
+        }
+    }
+
+    [Fact]
+    public async Task ValidateTemplateExistsAsync_WhenApiReturnsEmpty_AndCliFallbackFailsWithExit103_ReturnsFalse()
+    {
+        var originalLoader = TemplateEngineHelper.LoadTemplatesOverride;
+        var originalExecutor = TemplateEngineHelper.ExecuteDotNetForTemplatesAsync;
+
+        try
+        {
+            // Arrange: Simulate Template Engine API returning empty
+            TemplateEngineHelper.LoadTemplatesOverride = () => Task.FromResult<IEnumerable<ITemplateInfo>>(Array.Empty<ITemplateInfo>());
+            
+            // Arrange: Simulate CLI fallback failing (exit code 103 = template not found)
+            TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = (args, _) =>
+            {
+                // ExecuteCommandForResourceAsync throws InvalidOperationException on non-zero exit code
+                throw new InvalidOperationException("dotnet command failed: No templates found matching: 'nonexistent'");
+            };
+
+            // Act
+            var exists = await TemplateEngineHelper.ValidateTemplateExistsAsync("nonexistent", forceReload: true);
+
+            // Assert
+            Assert.False(exists, "Template should not be found when CLI returns exit code 103");
+        }
+        finally
+        {
+            TemplateEngineHelper.LoadTemplatesOverride = originalLoader;
+            TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = originalExecutor;
+        }
+    }
+
+    [Fact]
     public async Task ClearCacheAsync_ExecutesSuccessfully()
     {
         // Arrange - Load templates into cache (or try to)

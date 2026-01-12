@@ -311,6 +311,45 @@ public class ParameterValidatorTests
     }
 
     [Fact]
+    public async Task ValidateTemplateAsync_WhenTemplateEngineReturnsEmpty_ButCliFallbackSucceeds_ReturnsTrue()
+    {
+        // This test verifies the fix for the classlib template validation issue
+        var originalLoader = TemplateEngineHelper.LoadTemplatesOverride;
+        var originalExecutor = TemplateEngineHelper.ExecuteDotNetForTemplatesAsync;
+
+        try
+        {
+            // Arrange: Simulate Template Engine API returning empty (the problem scenario)
+            TemplateEngineHelper.LoadTemplatesOverride = () => 
+                Task.FromResult(Enumerable.Empty<Microsoft.TemplateEngine.Abstractions.ITemplateInfo>());
+            
+            // Arrange: Simulate CLI fallback succeeding for classlib
+            TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = (args, _) =>
+            {
+                if (args.Contains("classlib"))
+                {
+                    // Simulate successful dotnet new list output (exit code 0)
+                    return Task.FromResult("These templates matched your input: 'classlib'\n\nTemplate Name  Short Name  Language  Type");
+                }
+                // For any other template, simulate not found
+                throw new InvalidOperationException("No templates found");
+            };
+
+            // Act
+            var result = await ParameterValidator.ValidateTemplateAsync("classlib");
+
+            // Assert
+            Assert.True(result.IsValid, "ValidateTemplateAsync should succeed when CLI fallback finds the template");
+            Assert.Null(result.ErrorMessage);
+        }
+        finally
+        {
+            TemplateEngineHelper.LoadTemplatesOverride = originalLoader;
+            TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = originalExecutor;
+        }
+    }
+
+    [Fact]
     public void ValidateFramework_ErrorMessage_ContainsExamples()
     {
         // Act
