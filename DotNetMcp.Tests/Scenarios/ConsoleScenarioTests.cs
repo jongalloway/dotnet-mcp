@@ -19,7 +19,7 @@ public class ConsoleScenarioTests
 
         Assert.True(exitCode == 0, $"dotnet new console failed: {stderr}");
 
-        var projectPath = Path.Combine(tempRoot.Path, "ConsoleApp.csproj");
+        var projectPath = Path.Join(tempRoot.Path, "ConsoleApp.csproj");
         Assert.True(File.Exists(projectPath), $"Expected ConsoleApp.csproj to exist at {projectPath}");
 
         await using var client = await McpScenarioClient.CreateAsync(cancellationToken);

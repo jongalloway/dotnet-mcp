@@ -140,11 +140,11 @@ public class ProjectAnalysisHelperTests
         var currentDir = Directory.GetCurrentDirectory();
         
         // Common patterns where the test project might be
-        var possiblePaths = new[]
+        var possiblePaths = new[] 
         {
-            Path.Combine(currentDir, "DotNetMcp.Tests.csproj"),
-            Path.Combine(currentDir, "..", "DotNetMcp.Tests", "DotNetMcp.Tests.csproj"),
-            Path.Combine(currentDir, "..", "..", "DotNetMcp.Tests", "DotNetMcp.Tests.csproj"),
+            Path.Join(currentDir, "DotNetMcp.Tests.csproj"),
+            Path.Join(currentDir, "..", "DotNetMcp.Tests", "DotNetMcp.Tests.csproj"),
+            Path.Join(currentDir, "..", "..", "DotNetMcp.Tests", "DotNetMcp.Tests.csproj"),
         };
 
         return possiblePaths

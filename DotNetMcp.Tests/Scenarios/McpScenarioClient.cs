@@ -113,7 +113,7 @@ internal sealed class McpScenarioClient : IAsyncDisposable
         var targetFramework = Path.GetFileName(trimmedTestBinaryDir);
 
         var serverBinaryDir = Path.GetFullPath(
-            Path.Combine(testBinaryDir, "..", "..", "..", "..", "DotNetMcp", "bin", configuration, targetFramework));
+            Path.Join(testBinaryDir, "..", "..", "..", "..", "DotNetMcp", "bin", configuration, targetFramework));
 
         if (!Directory.Exists(serverBinaryDir))
         {
@@ -123,7 +123,7 @@ internal sealed class McpScenarioClient : IAsyncDisposable
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            var exePath = Path.Combine(serverBinaryDir, "DotNetMcp.exe");
+            var exePath = Path.Join(serverBinaryDir, "DotNetMcp.exe");
             if (!File.Exists(exePath))
             {
                 throw new FileNotFoundException($"Server executable not found at: {exePath}");
@@ -132,7 +132,7 @@ internal sealed class McpScenarioClient : IAsyncDisposable
             return (exePath, Array.Empty<string>());
         }
 
-        var dllPath = Path.Combine(serverBinaryDir, "DotNetMcp.dll");
+        var dllPath = Path.Join(serverBinaryDir, "DotNetMcp.dll");
         if (!File.Exists(dllPath))
         {
             throw new FileNotFoundException($"Server assembly not found at: {dllPath}");

@@ -21,7 +21,7 @@ public class SecretsRedactionScenarioTests
 
         Assert.True(exitCode == 0, $"dotnet new failed: {stderr}");
 
-        var projectPath = Path.Combine(tempRoot.Path, "SecretsProj.csproj");
+        var projectPath = Path.Join(tempRoot.Path, "SecretsProj.csproj");
         Assert.True(File.Exists(projectPath), $"Expected SecretsProj.csproj to exist at {projectPath}");
 
         await using var client = await McpScenarioClient.CreateAsync(cancellationToken);

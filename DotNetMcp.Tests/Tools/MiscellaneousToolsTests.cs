@@ -24,7 +24,7 @@ public class MiscellaneousToolsTests
     private static async Task<string> ExecuteInTempDirectoryAsync(Func<Task<string>> action)
     {
         var originalDirectory = Environment.CurrentDirectory;
-        var tempDirectory = Path.Combine(Path.GetTempPath(), "dotnet-mcp-tests", Guid.NewGuid().ToString("N"));
+        var tempDirectory = Path.Join(Path.GetTempPath(), "dotnet-mcp-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDirectory);
 
         try

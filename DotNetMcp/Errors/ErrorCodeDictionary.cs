@@ -67,7 +67,7 @@ public static class ErrorCodeDictionary
                 var directory = Path.GetDirectoryName(assemblyLocation);
                 if (directory != null)
                 {
-                    var filePath = Path.Combine(directory, "ErrorCodes.json");
+                    var filePath = Path.Join(directory, "ErrorCodes.json");
                     if (File.Exists(filePath))
                     {
                         var json = File.ReadAllText(filePath);
@@ -77,7 +77,7 @@ public static class ErrorCodeDictionary
             }
 
             // Second fallback: try loading from current directory
-            var currentDirPath = Path.Combine(Directory.GetCurrentDirectory(), "ErrorCodes.json");
+            var currentDirPath = Path.Join(Directory.GetCurrentDirectory(), "ErrorCodes.json");
             if (File.Exists(currentDirPath))
             {
                 var json = File.ReadAllText(currentDirPath);

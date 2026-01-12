@@ -296,7 +296,7 @@ public class DotNetCliToolsConsolidatedToolTests
     public async Task DotnetTool_CreateManifest_WithoutParameters_ExecutesCommand()
     {
         // Use an isolated output directory to avoid writing into the repo
-        var tempDirectory = Path.Combine(Path.GetTempPath(), "dotnet-mcp-tests", Guid.NewGuid().ToString("N"));
+        var tempDirectory = Path.Join(Path.GetTempPath(), "dotnet-mcp-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDirectory);
 
         try
@@ -320,7 +320,7 @@ public class DotNetCliToolsConsolidatedToolTests
     public async Task DotnetTool_CreateManifest_WithOutput_ExecutesCommand()
     {
         // Test manifest creation with output directory
-        var tempDirectory = Path.Combine(Path.GetTempPath(), "dotnet-mcp-tests", Guid.NewGuid().ToString("N"));
+        var tempDirectory = Path.Join(Path.GetTempPath(), "dotnet-mcp-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDirectory);
 
         try
@@ -344,7 +344,7 @@ public class DotNetCliToolsConsolidatedToolTests
     public async Task DotnetTool_CreateManifest_WithForce_ExecutesCommand()
     {
         // Test manifest creation with force flag
-        var tempDirectory = Path.Combine(Path.GetTempPath(), "dotnet-mcp-tests", Guid.NewGuid().ToString("N"));
+        var tempDirectory = Path.Join(Path.GetTempPath(), "dotnet-mcp-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDirectory);
 
         try
@@ -369,7 +369,7 @@ public class DotNetCliToolsConsolidatedToolTests
     public async Task DotnetTool_CreateManifest_WithAllParameters_ExecutesCommand()
     {
         // Test manifest creation with all parameters
-        var tempDirectory = Path.Combine(Path.GetTempPath(), "dotnet-mcp-tests", Guid.NewGuid().ToString("N"));
+        var tempDirectory = Path.Join(Path.GetTempPath(), "dotnet-mcp-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDirectory);
 
         try

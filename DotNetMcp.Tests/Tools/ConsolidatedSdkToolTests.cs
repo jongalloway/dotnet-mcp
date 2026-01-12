@@ -27,7 +27,7 @@ public class ConsolidatedSdkToolTests
     [Fact]
     public async Task DotnetSdk_WithMissingWorkingDirectory_MachineReadable_ReturnsValidationError()
     {
-        var missingDir = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "dotnet-mcp-missing-" + Guid.NewGuid().ToString("N")));
+        var missingDir = Path.GetFullPath(Path.Join(Path.GetTempPath(), "dotnet-mcp-missing-" + Guid.NewGuid().ToString("N")));
 
         var result = await _tools.DotnetSdk(
             action: DotnetSdkAction.Version,

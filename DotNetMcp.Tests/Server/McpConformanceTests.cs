@@ -457,7 +457,7 @@ public class McpConformanceTests : IAsyncLifetime
         var targetFramework = Path.GetFileName(testBinaryDir.TrimEnd(Path.DirectorySeparatorChar));
         
         var serverBinaryDir = Path.GetFullPath(
-            Path.Combine(testBinaryDir, "..", "..", "..", "..", "DotNetMcp", "bin", configuration, targetFramework));
+            Path.Join(testBinaryDir, "..", "..", "..", "..", "DotNetMcp", "bin", configuration, targetFramework));
 
         if (!Directory.Exists(serverBinaryDir))
         {
@@ -469,7 +469,7 @@ public class McpConformanceTests : IAsyncLifetime
         // Determine the appropriate command and arguments based on platform
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            var exePath = Path.Combine(serverBinaryDir, "DotNetMcp.exe");
+            var exePath = Path.Join(serverBinaryDir, "DotNetMcp.exe");
             if (!File.Exists(exePath))
             {
                 throw new FileNotFoundException($"Server executable not found at: {exePath}");
@@ -479,7 +479,7 @@ public class McpConformanceTests : IAsyncLifetime
         else
         {
             // On Unix-like systems, use 'dotnet' to run the DLL
-            var dllPath = Path.Combine(serverBinaryDir, "DotNetMcp.dll");
+            var dllPath = Path.Join(serverBinaryDir, "DotNetMcp.dll");
             if (!File.Exists(dllPath))
             {
                 throw new FileNotFoundException($"Server assembly not found at: {dllPath}");

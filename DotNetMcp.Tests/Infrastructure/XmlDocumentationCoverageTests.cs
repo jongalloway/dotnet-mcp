@@ -14,7 +14,7 @@ public class XmlDocumentationCoverageTests
 
         while (directory is not null)
         {
-            var slnxPath = Path.Combine(directory.FullName, "DotNetMcp.slnx");
+            var slnxPath = Path.Join(directory.FullName, "DotNetMcp.slnx");
             if (File.Exists(slnxPath))
             {
                 return directory.FullName;
@@ -41,7 +41,7 @@ public class XmlDocumentationCoverageTests
         }
 
         var repoRoot = FindRepoRoot();
-        var binRoot = Path.Combine(repoRoot, "DotNetMcp", "bin");
+        var binRoot = Path.Join(repoRoot, "DotNetMcp", "bin");
 
         if (Directory.Exists(binRoot))
         {

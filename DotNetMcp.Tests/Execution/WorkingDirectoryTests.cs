@@ -18,7 +18,7 @@ public class WorkingDirectoryTests
     public async Task ExecuteCommandAsync_WithExistingWorkingDirectory_Succeeds()
     {
         // Arrange
-        var tempDir = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "dotnet-mcp-wd-" + Guid.NewGuid().ToString("N")));
+        var tempDir = Path.GetFullPath(Path.Join(Path.GetTempPath(), "dotnet-mcp-wd-" + Guid.NewGuid().ToString("N")));
         Directory.CreateDirectory(tempDir);
 
         try
@@ -58,7 +58,7 @@ public class WorkingDirectoryTests
     public async Task ExecuteCommandAsync_WithMissingWorkingDirectory_ReturnsValidationErrorPlainText()
     {
         // Arrange
-        var missingDir = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "dotnet-mcp-missing-" + Guid.NewGuid().ToString("N")));
+        var missingDir = Path.GetFullPath(Path.Join(Path.GetTempPath(), "dotnet-mcp-missing-" + Guid.NewGuid().ToString("N")));
 
         // Act
         var result = await DotNetCommandExecutor.ExecuteCommandAsync(
@@ -79,7 +79,7 @@ public class WorkingDirectoryTests
     public async Task ExecuteCommandAsync_WithMissingWorkingDirectory_ReturnsValidationErrorJson()
     {
         // Arrange
-        var missingDir = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "dotnet-mcp-missing-" + Guid.NewGuid().ToString("N")));
+        var missingDir = Path.GetFullPath(Path.Join(Path.GetTempPath(), "dotnet-mcp-missing-" + Guid.NewGuid().ToString("N")));
 
         // Act
         var result = await DotNetCommandExecutor.ExecuteCommandAsync(
