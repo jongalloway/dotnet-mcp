@@ -410,5 +410,46 @@ public class ConsolidatedSdkToolTests
         Assert.NotEmpty(infoResult);
     }
 
+    [Fact]
+    public async Task DotnetSdk_ListTemplates_WhenTemplateEngineReturnsEmpty_ButCliFallbackSucceeds_ReturnsSuccess()
+    {
+        // This test verifies the fix for the template listing issue when Template Engine API returns empty
+        var originalLoader = TemplateEngineHelper.LoadTemplatesOverride;
+        var originalExecutor = TemplateEngineHelper.ExecuteDotNetForTemplatesAsync;
+
+        try
+        {
+            // Arrange: Simulate Template Engine API returning empty (the problem scenario)
+            TemplateEngineHelper.LoadTemplatesOverride = () => 
+                Task.FromResult(Enumerable.Empty<Microsoft.TemplateEngine.Abstractions.ITemplateInfo>());
+            
+            // Arrange: Simulate CLI fallback succeeding
+            TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = (args, _) =>
+            {
+                if (args.Contains("new list"))
+                {
+                    // Simulate successful dotnet new list output
+                    return Task.FromResult("These templates are available:\n\nTemplate Name     Short Name    Language\nConsole App       console       [C#],F#,VB\nClass Library     classlib      [C#],F#,VB");
+                }
+                throw new InvalidOperationException("Unexpected command");
+            };
+
+            // Act
+            var result = await _tools.DotnetSdk(
+                action: DotnetSdkAction.ListTemplates,
+                machineReadable: true);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Contains("\"success\": true", result, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("dotnet new list", result, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            TemplateEngineHelper.LoadTemplatesOverride = originalLoader;
+            TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = originalExecutor;
+        }
+    }
+
     #endregion
 }

@@ -627,5 +627,52 @@ public class ConsolidatedProjectToolTests
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet run --project \"MyProject.csproj\" -- --verbose --log-level debug");
     }
 
+    [Fact]
+    public async Task DotnetProject_New_WhenTemplateEngineReturnsEmpty_ButCliFallbackSucceeds_ExecutesDotnetNew()
+    {
+        // This test verifies the fix for the classlib template creation issue
+        var originalLoader = TemplateEngineHelper.LoadTemplatesOverride;
+        var originalExecutor = TemplateEngineHelper.ExecuteDotNetForTemplatesAsync;
+
+        try
+        {
+            // Arrange: Simulate Template Engine API returning empty (the problem scenario)
+            TemplateEngineHelper.LoadTemplatesOverride = () => 
+                Task.FromResult(Enumerable.Empty<Microsoft.TemplateEngine.Abstractions.ITemplateInfo>());
+            
+            // Arrange: Simulate CLI fallback succeeding for classlib template validation
+            TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = (args, _) =>
+            {
+                if (args.Contains("new list") && args.Contains("classlib"))
+                {
+                    // Simulate successful template validation (exit code 0)
+                    return Task.FromResult("These templates matched your input: 'classlib'\n\nClass Library  classlib");
+                }
+                // For actual project creation, we'll let it fail naturally since we're not in a real project directory
+                throw new InvalidOperationException("Command failed");
+            };
+
+            // Act: Try to create a classlib project
+            var result = await _tools.DotnetProject(
+                action: DotnetProjectAction.New,
+                template: "classlib",
+                name: "MyLib",
+                output: Path.Join(Path.GetTempPath(), "test-output-" + Guid.NewGuid().ToString("N")),
+                machineReadable: true);
+
+            // Assert: Should have attempted to execute dotnet new classlib (validation passed)
+            // The command might fail due to environment, but it should have been attempted
+            Assert.NotNull(result);
+            // Either success or a CLI execution error (not a validation error)
+            var hasExecutedCommand = result.Contains("dotnet new classlib") || result.Contains("\"command\":");
+            Assert.True(hasExecutedCommand, "Should have attempted to execute 'dotnet new classlib' after successful validation");
+        }
+        finally
+        {
+            TemplateEngineHelper.LoadTemplatesOverride = originalLoader;
+            TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = originalExecutor;
+        }
+    }
+
     #endregion
 }
