@@ -23,7 +23,7 @@ public class ConsolidatedProjectToolTests
     [Fact]
     public async Task DotnetProject_WithMissingWorkingDirectory_MachineReadable_ReturnsValidationError()
     {
-        var missingDir = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "dotnet-mcp-missing-" + Guid.NewGuid().ToString("N")));
+        var missingDir = Path.GetFullPath(Path.Join(Path.GetTempPath(), "dotnet-mcp-missing-" + Guid.NewGuid().ToString("N")));
 
         var result = await _tools.DotnetProject(
             action: DotnetProjectAction.Restore,
@@ -40,7 +40,7 @@ public class ConsolidatedProjectToolTests
     public async Task DotnetProject_WorkingDirectory_UsesProvidedDirectoryForRestore()
     {
         // Arrange: use an empty temp dir so `dotnet restore` fails with MSB1003 about CWD.
-        var tempDir = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "dotnet-mcp-wd-" + Guid.NewGuid().ToString("N")));
+        var tempDir = Path.GetFullPath(Path.Join(Path.GetTempPath(), "dotnet-mcp-wd-" + Guid.NewGuid().ToString("N")));
         Directory.CreateDirectory(tempDir);
 
         try
@@ -77,7 +77,7 @@ public class ConsolidatedProjectToolTests
     public async Task DotnetProject_WorkingDirectory_MachineReadable_RecordsCommandAndUsesProvidedDirectory()
     {
         // Arrange: use an empty temp dir so `dotnet restore` fails with MSB1003 about CWD.
-        var tempDir = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "dotnet-mcp-wd-" + Guid.NewGuid().ToString("N")));
+        var tempDir = Path.GetFullPath(Path.Join(Path.GetTempPath(), "dotnet-mcp-wd-" + Guid.NewGuid().ToString("N")));
         Directory.CreateDirectory(tempDir);
 
         try

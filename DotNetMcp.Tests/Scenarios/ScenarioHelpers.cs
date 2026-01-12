@@ -66,7 +66,7 @@ internal static class ScenarioHelpers
     /// <returns>A disposable temporary directory.</returns>
     public static TempScenarioDirectory CreateTempDirectory(string testName)
     {
-        var root = Path.Combine(Path.GetTempPath(), "dotnet-mcp-scenarios", DateTime.UtcNow.ToString("yyyyMMdd"), testName, Guid.NewGuid().ToString("N"));
+        var root = Path.Join(Path.GetTempPath(), "dotnet-mcp-scenarios", DateTime.UtcNow.ToString("yyyyMMdd"), testName, Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         return new TempScenarioDirectory(root);
     }

@@ -36,6 +36,18 @@ Run all tests (recommended):
 dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release
 ```
 
+Important:
+
+- When specifying a project for `dotnet test`, use `--project` (do not pass a `.csproj` as a positional argument). If you pass a project path positionally, `dotnet test` will emit: `Specifying a project for 'dotnet test' should be via '--project'`.
+- When running from the solution, use `--solution`.
+
+Examples:
+
+```bash
+dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release
+dotnet test --solution DotNetMcp.slnx -c Release
+```
+
 Run tests from the solution:
 
 ```bash
@@ -282,3 +294,10 @@ Avoid creating redundant tests that only differ by the `machineReadable` flag un
 
 - Prefer `-c Release` for CI parity.
 - If you're iterating on a single area, use Microsoft Testing Platform filters after `--`, for example: `dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release -- --filter-class DotNetMcp.Tests.CacheMetricsTests`.
+
+## Path handling
+
+When writing tests (including scenario/release-scenario tests), prefer `Path.Join(...)` over `Path.Combine(...)` whenever possible.
+
+- `Path.Combine` has "rooted path reset" behavior if a later segment is rooted (or begins with a directory separator), which can produce surprising results.
+- Several analyzers/security checks recommend `Path.Join` to avoid those classes of issues.

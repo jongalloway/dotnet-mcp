@@ -60,7 +60,7 @@ public sealed class DotNetResources
             {
                 var version = parts[0].Trim();
                 var path = parts[1].TrimEnd(']').Trim();
-                return new SdkInfo(version, Path.Combine(path, version));
+                return new SdkInfo(version, Path.Join(path, version));
             })
             .OrderBy(sdk => ParseForSorting(sdk.Version))
             // If the numeric version is the same, put prereleases before stable so the stable appears as the latest.
@@ -87,7 +87,7 @@ public sealed class DotNetResources
                     var name = nameAndVersion[0];
                     var version = nameAndVersion[1];
                     var path = parts[1].TrimEnd(']').Trim();
-                    return new RuntimeInfo(name, version, Path.Combine(path, version));
+                    return new RuntimeInfo(name, version, Path.Join(path, version));
                 }
 
                 return null;

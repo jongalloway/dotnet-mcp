@@ -29,7 +29,7 @@ public class SolutionToolsTests
     {
         // Arrange
         var originalDirectory = Environment.CurrentDirectory;
-        var tempDirectory = Path.Combine(Path.GetTempPath(), "dotnet-mcp-tests", Guid.NewGuid().ToString("N"));
+        var tempDirectory = Path.Join(Path.GetTempPath(), "dotnet-mcp-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDirectory);
 
         try
@@ -58,7 +58,7 @@ public class SolutionToolsTests
     public async Task DotnetSolution_CreateAction_WithAllParameters_BuildsCorrectCommand()
     {
         // Arrange
-        var tempDirectory = Path.Combine(Path.GetTempPath(), "dotnet-mcp-tests", Guid.NewGuid().ToString("N"));
+        var tempDirectory = Path.Join(Path.GetTempPath(), "dotnet-mcp-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDirectory);
 
         try

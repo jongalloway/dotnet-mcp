@@ -19,7 +19,7 @@ public class PackageAndReferenceScenarioTests
 
         Assert.True(exitCode == 0, $"dotnet new failed: {stderr}");
 
-        var projectPath = Path.Combine(tempRoot.Path, "TempProj.csproj");
+        var projectPath = Path.Join(tempRoot.Path, "TempProj.csproj");
         Assert.True(File.Exists(projectPath), $"Expected TempProj.csproj to exist at {projectPath}");
 
         await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
@@ -49,8 +49,8 @@ public class PackageAndReferenceScenarioTests
         var cancellationToken = TestContext.Current.CancellationToken;
         using var tempRoot = ScenarioHelpers.CreateTempDirectory(nameof(Scenario_ProjectReferenceFlow_AddReferenceAndBuildSolution_Release));
 
-        var libADir = Path.Combine(tempRoot.Path, "LibA");
-        var libBDir = Path.Combine(tempRoot.Path, "LibB");
+        var libADir = Path.Join(tempRoot.Path, "LibA");
+        var libBDir = Path.Join(tempRoot.Path, "LibB");
 
         var (aExit, _, aErr) = await ScenarioHelpers.RunDotNetAsync($"new classlib -n LibA -o \"{libADir}\"", tempRoot.Path, cancellationToken);
         Assert.True(aExit == 0, $"dotnet new LibA failed: {aErr}");
@@ -58,8 +58,8 @@ public class PackageAndReferenceScenarioTests
         var (bExit, _, bErr) = await ScenarioHelpers.RunDotNetAsync($"new classlib -n LibB -o \"{libBDir}\"", tempRoot.Path, cancellationToken);
         Assert.True(bExit == 0, $"dotnet new LibB failed: {bErr}");
 
-        var libAProj = Path.Combine(libADir, "LibA.csproj");
-        var libBProj = Path.Combine(libBDir, "LibB.csproj");
+        var libAProj = Path.Join(libADir, "LibA.csproj");
+        var libBProj = Path.Join(libBDir, "LibB.csproj");
         Assert.True(File.Exists(libAProj));
         Assert.True(File.Exists(libBProj));
 
@@ -80,7 +80,7 @@ public class PackageAndReferenceScenarioTests
         using var slnCreateJson = ScenarioHelpers.ParseJson(slnCreateText);
         ScenarioHelpers.AssertMachineReadableSuccess(slnCreateJson.RootElement);
 
-        var slnPath = Path.Combine(tempRoot.Path, "RefDemo.sln");
+        var slnPath = Path.Join(tempRoot.Path, "RefDemo.sln");
         Assert.True(File.Exists(slnPath), "Expected solution file to be created");
 
         // Add projects to solution.

@@ -8,7 +8,7 @@ public class ServerJsonValidationTests
 {
     private const string CurrentSchemaUrl = "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json";
     private const string NuGetOrgV3IndexUrl = "https://api.nuget.org/v3/index.json";
-    private static readonly string ServerJsonRelativePath = Path.Combine("DotNetMcp", ".mcp", "server.json");
+    private static readonly string ServerJsonRelativePath = Path.Join("DotNetMcp", ".mcp", "server.json");
 
     private static string FindRepoRoot()
     {
@@ -16,7 +16,7 @@ public class ServerJsonValidationTests
 
         while (directory is not null)
         {
-            var slnxPath = Path.Combine(directory.FullName, "DotNetMcp.slnx");
+            var slnxPath = Path.Join(directory.FullName, "DotNetMcp.slnx");
             if (File.Exists(slnxPath))
             {
                 return directory.FullName;
@@ -32,7 +32,7 @@ public class ServerJsonValidationTests
     private static string GetServerJsonFullPath()
     {
         var repoRoot = FindRepoRoot();
-        return Path.Combine(repoRoot, ServerJsonRelativePath);
+        return Path.Join(repoRoot, ServerJsonRelativePath);
     }
 
     [Fact]

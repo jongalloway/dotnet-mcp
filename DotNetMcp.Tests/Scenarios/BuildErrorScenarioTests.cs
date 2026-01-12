@@ -27,7 +27,7 @@ public class BuildErrorScenarioTests
         Assert.False(string.IsNullOrWhiteSpace(projectDir));
 
         // Introduce a compile error.
-        var programPath = Path.Combine(projectDir!, "Program.cs");
+        var programPath = Path.Join(projectDir!, "Program.cs");
         Assert.True(File.Exists(programPath), "Expected Program.cs to exist");
         await File.AppendAllTextAsync(programPath, "\nthis_will_not_compile\n", cancellationToken);
 
