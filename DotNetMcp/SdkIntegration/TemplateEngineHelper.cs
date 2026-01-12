@@ -23,6 +23,9 @@ public class TemplateEngineHelper
     private static readonly CachedResourceManager<IEnumerable<ITemplateInfo>> _cacheManager =
         new("Templates", defaultTtlSeconds: 300);
 
+    // Line separators used for splitting dotnet CLI output
+    private static readonly string[] LineSeparators = ["\r\n", "\n"];
+
     // Test hooks (internal for DotNetMcp.Tests via InternalsVisibleTo)
     internal static Func<Task<IEnumerable<ITemplateInfo>>>? LoadTemplatesOverride { get; set; }
 
@@ -66,7 +69,8 @@ public class TemplateEngineHelper
 
             // Use dotnet CLI as a fallback for environments where the Template Engine API cannot enumerate templates.
             // This is still consistent with the server's hybrid approach: SDK integration first, CLI execution fallback.
-            return await ExecuteDotNetForTemplatesAsync(args, logger);
+            var output = await ExecuteDotNetForTemplatesAsync(args, logger);
+            return SanitizeDotnetNewOutput(output);
         }
         catch (InvalidOperationException ex)
         {
@@ -83,6 +87,53 @@ public class TemplateEngineHelper
             logger?.LogDebug(ex, "Template query cancelled");
             return null;
         }
+    }
+
+    /// <summary>
+    /// Sanitizes output from `dotnet new` commands by stripping leading error-prefixed lines.
+    /// Internal for testing via InternalsVisibleTo.
+    /// </summary>
+    /// <param name="output">The raw output from dotnet new command.</param>
+    /// <returns>Sanitized output with leading "Error:" lines removed, or original output if sanitization would remove all content.</returns>
+    internal static string SanitizeDotnetNewOutput(string output)
+    {
+        if (string.IsNullOrWhiteSpace(output))
+        {
+            return output;
+        }
+
+        // In some environments (notably CI), `dotnet new ...` can emit lines starting with "Error:" to stdout
+        // while still returning exit code 0 and including useful output after that.
+        // This breaks consumers/tests that treat "Error:" as a hard failure.
+        //
+        // Strategy: drop any leading contiguous "Error:" lines and keep the rest.
+        // If the output is entirely error-prefixed, return the original output so callers can decide.
+        
+        // Split on both CRLF and LF without creating intermediate normalized string
+        var lines = output.Split(LineSeparators, StringSplitOptions.None);
+        var index = 0;
+        while (index < lines.Length && lines[index].StartsWith("Error:", StringComparison.OrdinalIgnoreCase))
+        {
+            index++;
+        }
+
+        // No error lines found - return original output unchanged
+        if (index == 0)
+        {
+            return output;
+        }
+
+        // If every line was error-prefixed, we do not silently strip the entire payload.
+        // Returning the original output lets callers see the full error text and decide how to handle it.
+        if (index >= lines.Length)
+        {
+            return output;
+        }
+
+        // TrimStart removes any leading whitespace/blank lines left after dropping error lines,
+        // but if that yields only whitespace we fall back to the original output to avoid hiding all content.
+        var sanitized = string.Join("\n", lines.Skip(index)).TrimStart();
+        return string.IsNullOrWhiteSpace(sanitized) ? output : sanitized;
     }
 
     /// <summary>
@@ -224,6 +275,7 @@ public class TemplateEngineHelper
                     try
                     {
                         var help = await ExecuteDotNetForTemplatesAsync($"new {templateShortName} --help", logger);
+                        help = SanitizeDotnetNewOutput(help);
                         if (!string.IsNullOrWhiteSpace(help))
                         {
                             var text = $"Template help (from 'dotnet new {templateShortName} --help'):\n\n{help.TrimEnd()}";
@@ -417,10 +469,18 @@ public class TemplateEngineHelper
                 // See: https://aka.ms/templating-exit-codes
                 try
                 {
-                    await ExecuteDotNetForTemplatesAsync(
+                    var output = await ExecuteDotNetForTemplatesAsync(
                         $"new list \"{templateShortName}\" --columns author --columns language --columns type --columns tags",
                         logger);
-                    
+
+                    // Some environments can write error-prefixed output to stdout while still returning exit code 0.
+                    // Treat that as a failed validation to avoid false positives.
+                    if (output.TrimStart().StartsWith("Error:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        logger?.LogDebug("Template '{TemplateName}' validation output started with 'Error:'", templateShortName);
+                        return false;
+                    }
+
                     // If we got here without exception, the command succeeded (exit code 0).
                     // This means templates were found matching the search term.
                     logger?.LogDebug("Template '{TemplateName}' validated via CLI fallback (exit code 0)", templateShortName);

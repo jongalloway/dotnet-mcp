@@ -289,4 +289,179 @@ public class TemplateEngineHelperTests
         var result = await TemplateEngineHelper.GetInstalledTemplatesAsync();
         Assert.NotNull(result);
     }
+
+    [Fact]
+    public async Task ValidateTemplateExistsAsync_WhenCliReturnsErrorPrefixedOutput_ReturnsFalse()
+    {
+        // This test verifies that when the CLI returns exit code 0 but emits "Error:" to stdout,
+        // the validation treats it as a failure to avoid false positives
+        var originalLoader = TemplateEngineHelper.LoadTemplatesOverride;
+        var originalExecutor = TemplateEngineHelper.ExecuteDotNetForTemplatesAsync;
+
+        try
+        {
+            // Arrange: Simulate Template Engine API returning empty
+            TemplateEngineHelper.LoadTemplatesOverride = () => Task.FromResult<IEnumerable<ITemplateInfo>>(Array.Empty<ITemplateInfo>());
+            
+            // Arrange: Simulate CLI returning error-prefixed output (exit code 0 but contains error)
+            TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = (args, _) =>
+            {
+                // In some CI environments, dotnet new can emit errors to stdout while returning exit code 0
+                return Task.FromResult("Error: Something went wrong but exit code was 0\nTemplate Name  Short Name  ...");
+            };
+
+            // Act
+            var exists = await TemplateEngineHelper.ValidateTemplateExistsAsync("badtemplate", forceReload: true);
+
+            // Assert
+            Assert.False(exists, "Template validation should fail when CLI output starts with 'Error:' even if exit code is 0");
+        }
+        finally
+        {
+            TemplateEngineHelper.LoadTemplatesOverride = originalLoader;
+            TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = originalExecutor;
+        }
+    }
+
+    #region SanitizeDotnetNewOutput Tests
+
+    [Fact]
+    public void SanitizeDotnetNewOutput_WhenOutputIsNull_ReturnsNull()
+    {
+        // Act
+        var result = TemplateEngineHelper.SanitizeDotnetNewOutput(null!);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void SanitizeDotnetNewOutput_WhenOutputIsWhitespace_ReturnsWhitespace()
+    {
+        // Act
+        var result = TemplateEngineHelper.SanitizeDotnetNewOutput("   \t  ");
+
+        // Assert
+        Assert.Equal("   \t  ", result);
+    }
+
+    [Fact]
+    public void SanitizeDotnetNewOutput_WhenOutputHasNoErrorLines_ReturnsOriginal()
+    {
+        // Arrange
+        var output = "Template Name    Short Name\nConsole App      console\nClass Library    classlib";
+
+        // Act
+        var result = TemplateEngineHelper.SanitizeDotnetNewOutput(output);
+
+        // Assert
+        Assert.Equal(output, result);
+    }
+
+    [Fact]
+    public void SanitizeDotnetNewOutput_WhenOutputHasLeadingErrorsFollowedByContent_StripsErrors()
+    {
+        // Arrange
+        var output = "Error: Something went wrong\nError: Another error\nTemplate Name    Short Name\nConsole App      console";
+
+        // Act
+        var result = TemplateEngineHelper.SanitizeDotnetNewOutput(output);
+
+        // Assert
+        Assert.Equal("Template Name    Short Name\nConsole App      console", result);
+    }
+
+    [Fact]
+    public void SanitizeDotnetNewOutput_WhenOutputIsEntirelyErrors_ReturnsOriginal()
+    {
+        // Arrange
+        var output = "Error: Something went wrong\nError: Another error\nError: Yet another error";
+
+        // Act
+        var result = TemplateEngineHelper.SanitizeDotnetNewOutput(output);
+
+        // Assert
+        Assert.Equal(output, result);
+    }
+
+    [Fact]
+    public void SanitizeDotnetNewOutput_WithCrlfLineEndings_HandlesCorrectly()
+    {
+        // Arrange
+        var output = "Error: Something went wrong\r\nError: Another error\r\nTemplate Name    Short Name\r\nConsole App      console";
+
+        // Act
+        var result = TemplateEngineHelper.SanitizeDotnetNewOutput(output);
+
+        // Assert
+        Assert.Equal("Template Name    Short Name\nConsole App      console", result);
+    }
+
+    [Fact]
+    public void SanitizeDotnetNewOutput_WithMixedLineEndings_HandlesCorrectly()
+    {
+        // Arrange
+        var output = "Error: Something went wrong\r\nError: Another error\nTemplate Name    Short Name\r\nConsole App      console";
+
+        // Act
+        var result = TemplateEngineHelper.SanitizeDotnetNewOutput(output);
+
+        // Assert
+        Assert.Equal("Template Name    Short Name\nConsole App      console", result);
+    }
+
+    [Fact]
+    public void SanitizeDotnetNewOutput_WhenErrorsFollowedByBlankLines_StripsErrorsAndBlankLines()
+    {
+        // Arrange
+        var output = "Error: Something went wrong\nError: Another error\n\n\nTemplate Name    Short Name";
+
+        // Act
+        var result = TemplateEngineHelper.SanitizeDotnetNewOutput(output);
+
+        // Assert
+        Assert.Equal("Template Name    Short Name", result);
+    }
+
+    [Fact]
+    public void SanitizeDotnetNewOutput_WhenErrorsFollowedByOnlyWhitespace_ReturnsOriginal()
+    {
+        // Arrange
+        var output = "Error: Something went wrong\nError: Another error\n   \n\t";
+
+        // Act
+        var result = TemplateEngineHelper.SanitizeDotnetNewOutput(output);
+
+        // Assert
+        Assert.Equal(output, result);
+    }
+
+    [Fact]
+    public void SanitizeDotnetNewOutput_CaseInsensitiveErrorDetection_StripsErrors()
+    {
+        // Arrange
+        var output = "error: lowercase error\nERROR: uppercase error\nTemplate Name    Short Name";
+
+        // Act
+        var result = TemplateEngineHelper.SanitizeDotnetNewOutput(output);
+
+        // Assert
+        Assert.Equal("Template Name    Short Name", result);
+    }
+
+    [Fact]
+    public void SanitizeDotnetNewOutput_WhenErrorInMiddleOfOutput_DoesNotStrip()
+    {
+        // Only leading errors should be stripped
+        // Arrange
+        var output = "Template Name    Short Name\nError: Something in the middle\nConsole App      console";
+
+        // Act
+        var result = TemplateEngineHelper.SanitizeDotnetNewOutput(output);
+
+        // Assert
+        Assert.Equal(output, result);
+    }
+
+    #endregion
 }
