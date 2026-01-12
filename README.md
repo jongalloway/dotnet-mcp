@@ -333,6 +333,42 @@ Edit your VS Code settings (`Ctrl+,` or `Cmd+,`, search for "mcp"):
 }
 ```
 
+### GitHub Copilot coding agent (Repository MCP configuration)
+
+You can also configure this MCP server at the **repository** level for GitHub Copilot coding agent.
+
+1. Open your repo on GitHub
+2. Go to **Settings** > **Copilot** > **Coding agent**
+3. Paste the JSON below into the MCP configuration box
+4. Click **Save**
+
+For details, see GitHub's documentation: [Extending GitHub Copilot coding agent with the Model Context Protocol (MCP)](https://docs.github.com/copilot/how-tos/use-copilot-agents/coding-agent/extend-coding-agent-with-mcp)
+
+```json
+{
+  "mcpServers": {
+    "dotnet": {
+      "type": "local",
+      "command": "dnx",
+      "args": ["Community.Mcp.DotNet@1.0.0", "--yes"],
+      "tools": [
+        "dotnet_project",
+        "dotnet_package",
+        "dotnet_solution",
+        "dotnet_sdk",
+        "dotnet_help",
+        "dotnet_server_capabilities",
+        "dotnet_server_info"
+      ]
+    }
+  }
+}
+```
+
+This configuration uses a curated allowlist of tools (instead of `"*"`) so the agent can use the .NET MCP server safely and predictably.
+
+Note: Copilot coding agent runs on GitHub Actions runners. If you need to ensure .NET 10 is installed for your repository, add a setup workflow like [.github/workflows/copilot-setup-steps.yml](.github/workflows/copilot-setup-steps.yml).
+
 ## Usage Examples
 
 Once configured, you can use natural language with your AI assistant:
