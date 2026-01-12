@@ -66,7 +66,8 @@ public class TemplateEngineHelper
 
             // Use dotnet CLI as a fallback for environments where the Template Engine API cannot enumerate templates.
             // This is still consistent with the server's hybrid approach: SDK integration first, CLI execution fallback.
-            return await ExecuteDotNetForTemplatesAsync(args, logger);
+            var output = await ExecuteDotNetForTemplatesAsync(args, logger);
+            return SanitizeDotnetNewOutput(output);
         }
         catch (InvalidOperationException ex)
         {
@@ -83,6 +84,40 @@ public class TemplateEngineHelper
             logger?.LogDebug(ex, "Template query cancelled");
             return null;
         }
+    }
+
+    private static string SanitizeDotnetNewOutput(string output)
+    {
+        if (string.IsNullOrWhiteSpace(output))
+        {
+            return output;
+        }
+
+        // In some environments (notably CI), `dotnet new ...` can emit lines starting with "Error:" to stdout
+        // while still returning exit code 0 and including useful output after that.
+        // This breaks consumers/tests that treat "Error:" as a hard failure.
+        //
+        // Strategy: drop any leading contiguous "Error:" lines and keep the rest.
+        // If the output is entirely error-prefixed, return the original output so callers can decide.
+        var lines = output.Replace("\r\n", "\n").Split('\n');
+        var index = 0;
+        while (index < lines.Length && lines[index].StartsWith("Error:", StringComparison.OrdinalIgnoreCase))
+        {
+            index++;
+        }
+
+        if (index == 0)
+        {
+            return output;
+        }
+
+        if (index >= lines.Length)
+        {
+            return output;
+        }
+
+        var sanitized = string.Join("\n", lines.Skip(index)).TrimStart();
+        return string.IsNullOrWhiteSpace(sanitized) ? output : sanitized;
     }
 
     /// <summary>
@@ -224,6 +259,7 @@ public class TemplateEngineHelper
                     try
                     {
                         var help = await ExecuteDotNetForTemplatesAsync($"new {templateShortName} --help", logger);
+                        help = SanitizeDotnetNewOutput(help);
                         if (!string.IsNullOrWhiteSpace(help))
                         {
                             var text = $"Template help (from 'dotnet new {templateShortName} --help'):\n\n{help.TrimEnd()}";
@@ -417,10 +453,18 @@ public class TemplateEngineHelper
                 // See: https://aka.ms/templating-exit-codes
                 try
                 {
-                    await ExecuteDotNetForTemplatesAsync(
+                    var output = await ExecuteDotNetForTemplatesAsync(
                         $"new list \"{templateShortName}\" --columns author --columns language --columns type --columns tags",
                         logger);
-                    
+
+                    // Some environments can write error-prefixed output to stdout while still returning exit code 0.
+                    // Treat that as a failed validation to avoid false positives.
+                    if (output.TrimStart().StartsWith("Error:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        logger?.LogDebug("Template '{TemplateName}' validation output started with 'Error:'", templateShortName);
+                        return false;
+                    }
+
                     // If we got here without exception, the command succeeded (exit code 0).
                     // This means templates were found matching the search term.
                     logger?.LogDebug("Template '{TemplateName}' validated via CLI fallback (exit code 0)", templateShortName);
