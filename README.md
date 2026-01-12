@@ -195,6 +195,10 @@ The .NET MCP Server acts as an intelligent middleware that:
 3. **Executes** commands safely with proper error handling
 4. **Returns** structured results that AI assistants can understand and explain
 
+## Testing
+
+See [doc/testing.md](doc/testing.md) for how to run the test suite, including opt-in scenario tests and long-running release-gate scenarios.
+
 ## Installation
 
 ### Requirements
