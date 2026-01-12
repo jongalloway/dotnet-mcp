@@ -53,5 +53,7 @@ jobs:
             - name: Validate server.json
               run: pwsh -File scripts/validate-server-json.ps1
 
-            - name: Run Release Scenario Tests
-              run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.ReleaseScenarios*"
+            - name: Run Scenario + Release Scenario Tests
+              run: |
+                  dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
+                  dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.ReleaseScenarios*"
