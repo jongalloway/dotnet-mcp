@@ -47,7 +47,7 @@ public class TemplateEngineHelper
         var host = new DefaultTemplateEngineHost("dotnet-mcp", "1.0.0");
         using var engineEnvironmentSettings = new EngineEnvironmentSettings(
             host,
-            virtualizeSettings: false);
+            virtualizeSettings: true);
 
         using var templatePackageManager = new TemplatePackageManager(engineEnvironmentSettings);
         return await templatePackageManager.GetTemplatesAsync(default);
@@ -412,24 +412,37 @@ public class TemplateEngineHelper
             if (!templates.Any())
             {
                 // If the Template Engine API can't enumerate templates here, fall back to the CLI.
-                // dotnet new list returns exit code 1 when no templates match.
+                // 'dotnet new list <templateName>' returns exit code 0 when templates are found,
+                // exit code 103 when no templates match the filter.
+                // See: https://aka.ms/templating-exit-codes
                 try
                 {
                     await ExecuteDotNetForTemplatesAsync(
                         $"new list \"{templateShortName}\" --columns author --columns language --columns type --columns tags",
                         logger);
+                    
+                    // If we got here without exception, the command succeeded (exit code 0).
+                    // This means templates were found matching the search term.
+                    logger?.LogDebug("Template '{TemplateName}' validated via CLI fallback (exit code 0)", templateShortName);
                     return true;
                 }
-                catch (InvalidOperationException)
+                catch (InvalidOperationException ex)
                 {
+                    // Command failed with non-zero exit code (most commonly exit code 103 for "no templates found").
+                    // ExecuteCommandForResourceAsync throws InvalidOperationException for any non-zero exit code.
+                    logger?.LogDebug(ex, "Template '{TemplateName}' not found via CLI fallback", templateShortName);
                     return false;
                 }
-                catch (Win32Exception)
+                catch (Win32Exception ex)
                 {
+                    // Process failed to start - CLI not available
+                    logger?.LogDebug(ex, "Template validation failed: process execution error");
                     return false;
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException ex)
                 {
+                    // Operation was cancelled
+                    logger?.LogDebug(ex, "Template validation cancelled");
                     return false;
                 }
             }
@@ -438,7 +451,7 @@ public class TemplateEngineHelper
         }
         catch (InvalidOperationException ex)
         {
-            // If template engine or CLI fails, do not assume template exists; return false to avoid false positives
+            // If template engine fails, do not assume template exists; return false to avoid false positives
             logger?.LogDebug(ex, "Template validation failed: invalid operation");
             return false;
         }
