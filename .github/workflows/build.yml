@@ -5,6 +5,12 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      runScenarioTests:
+        description: "Run MCP scenario (integration) tests"
+        required: false
+        default: "false"
 
 # Cancel in-progress runs for the same branch to save CI resources
 concurrency:
@@ -44,6 +50,12 @@ jobs:
 
       - name: Run MCP Conformance Tests
         run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-class "*McpConformanceTests"
+
+      - name: Run MCP Scenario Tests
+        if: ${{ github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.runScenarioTests == 'true') }}
+        env:
+          DOTNET_MCP_SCENARIO_TESTS: "1"
+        run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
 
       - name: Test
         run: dotnet test --solution DotNetMcp.slnx --no-build --configuration Release --verbosity normal -- --coverage --coverage-output-format cobertura
