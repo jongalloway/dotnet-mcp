@@ -23,6 +23,9 @@ public class TemplateEngineHelper
     private static readonly CachedResourceManager<IEnumerable<ITemplateInfo>> _cacheManager =
         new("Templates", defaultTtlSeconds: 300);
 
+    // Line separators used for splitting dotnet CLI output
+    private static readonly string[] LineSeparators = ["\r\n", "\n"];
+
     // Test hooks (internal for DotNetMcp.Tests via InternalsVisibleTo)
     internal static Func<Task<IEnumerable<ITemplateInfo>>>? LoadTemplatesOverride { get; set; }
 
@@ -107,7 +110,7 @@ public class TemplateEngineHelper
         // If the output is entirely error-prefixed, return the original output so callers can decide.
         
         // Split on both CRLF and LF without creating intermediate normalized string
-        var lines = output.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+        var lines = output.Split(LineSeparators, StringSplitOptions.None);
         var index = 0;
         while (index < lines.Length && lines[index].StartsWith("Error:", StringComparison.OrdinalIgnoreCase))
         {
