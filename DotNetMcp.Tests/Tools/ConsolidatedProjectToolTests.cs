@@ -657,7 +657,7 @@ public class ConsolidatedProjectToolTests
                 action: DotnetProjectAction.New,
                 template: "classlib",
                 name: "MyLib",
-                output: Path.Combine(Path.GetTempPath(), "test-output-" + Guid.NewGuid().ToString("N")),
+                output: Path.Join(Path.GetTempPath(), "test-output-" + Guid.NewGuid().ToString("N")),
                 machineReadable: true);
 
             // Assert: Should have attempted to execute dotnet new classlib (validation passed)
