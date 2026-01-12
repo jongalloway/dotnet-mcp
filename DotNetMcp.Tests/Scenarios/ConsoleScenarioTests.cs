@@ -12,15 +12,15 @@ public class ConsoleScenarioTests
         using var tempRoot = ScenarioHelpers.CreateTempDirectory(nameof(Scenario_ConsoleProject_AddPackageAndBuild_Release));
 
         // Create console project via CLI (keeps scenario stable even if template enumeration/validation is flaky).
-        var (exitCode, _, stderr) = await ScenarioHelpers.RunDotNetAsync(
-            $"new console -n ConsoleApp -o \"{tempRoot}\"",
-            workingDirectory: tempRoot,
+        var (exitCode, stdout, stderr) = await ScenarioHelpers.RunDotNetAsync(
+            $"new console -n ConsoleApp -o \"{tempRoot.Path}\"",
+            workingDirectory: tempRoot.Path,
             cancellationToken);
 
         Assert.True(exitCode == 0, $"dotnet new console failed: {stderr}");
 
-        var projectPath = Path.Combine(tempRoot, "ConsoleApp.csproj");
-        Assert.True(File.Exists(projectPath), "Expected ConsoleApp.csproj to exist");
+        var projectPath = Path.Combine(tempRoot.Path, "ConsoleApp.csproj");
+        Assert.True(File.Exists(projectPath), $"Expected ConsoleApp.csproj to exist at {projectPath}");
 
         await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
 

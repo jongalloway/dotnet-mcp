@@ -15,14 +15,14 @@ public class SecretsRedactionScenarioTests
 
         // Create a throwaway project so we don't mutate repo project files (SecretsInit writes UserSecretsId).
         var (exitCode, _, stderr) = await ScenarioHelpers.RunDotNetAsync(
-            $"new classlib -n SecretsProj -o \"{tempRoot}\"",
-            workingDirectory: tempRoot,
+            $"new classlib -n SecretsProj -o \"{tempRoot.Path}\"",
+            workingDirectory: tempRoot.Path,
             cancellationToken);
 
         Assert.True(exitCode == 0, $"dotnet new failed: {stderr}");
 
-        var projectPath = Path.Combine(tempRoot, "SecretsProj.csproj");
-        Assert.True(File.Exists(projectPath), "Expected SecretsProj.csproj to exist");
+        var projectPath = Path.Combine(tempRoot.Path, "SecretsProj.csproj");
+        Assert.True(File.Exists(projectPath), $"Expected SecretsProj.csproj to exist at {projectPath}");
 
         await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
 

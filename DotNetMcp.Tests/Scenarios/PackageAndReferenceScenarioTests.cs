@@ -13,14 +13,14 @@ public class PackageAndReferenceScenarioTests
 
         // Create a throwaway project via CLI to avoid mutating repo projects.
         var (exitCode, _, stderr) = await ScenarioHelpers.RunDotNetAsync(
-            $"new classlib -n TempProj -o \"{tempRoot}\"",
-            workingDirectory: tempRoot,
+            $"new classlib -n TempProj -o \"{tempRoot.Path}\"",
+            workingDirectory: tempRoot.Path,
             cancellationToken);
 
         Assert.True(exitCode == 0, $"dotnet new failed: {stderr}");
 
-        var projectPath = Path.Combine(tempRoot, "TempProj.csproj");
-        Assert.True(File.Exists(projectPath), "Expected TempProj.csproj to exist");
+        var projectPath = Path.Combine(tempRoot.Path, "TempProj.csproj");
+        Assert.True(File.Exists(projectPath), $"Expected TempProj.csproj to exist at {projectPath}");
 
         await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
 
@@ -49,13 +49,13 @@ public class PackageAndReferenceScenarioTests
         var cancellationToken = TestContext.Current.CancellationToken;
         using var tempRoot = ScenarioHelpers.CreateTempDirectory(nameof(Scenario_ProjectReferenceFlow_AddReferenceAndBuildSolution_Release));
 
-        var libADir = Path.Combine(tempRoot, "LibA");
-        var libBDir = Path.Combine(tempRoot, "LibB");
+        var libADir = Path.Combine(tempRoot.Path, "LibA");
+        var libBDir = Path.Combine(tempRoot.Path, "LibB");
 
-        var (aExit, _, aErr) = await ScenarioHelpers.RunDotNetAsync($"new classlib -n LibA -o \"{libADir}\"", tempRoot, cancellationToken);
+        var (aExit, _, aErr) = await ScenarioHelpers.RunDotNetAsync($"new classlib -n LibA -o \"{libADir}\"", tempRoot.Path, cancellationToken);
         Assert.True(aExit == 0, $"dotnet new LibA failed: {aErr}");
 
-        var (bExit, _, bErr) = await ScenarioHelpers.RunDotNetAsync($"new classlib -n LibB -o \"{libBDir}\"", tempRoot, cancellationToken);
+        var (bExit, _, bErr) = await ScenarioHelpers.RunDotNetAsync($"new classlib -n LibB -o \"{libBDir}\"", tempRoot.Path, cancellationToken);
         Assert.True(bExit == 0, $"dotnet new LibB failed: {bErr}");
 
         var libAProj = Path.Combine(libADir, "LibA.csproj");
@@ -72,7 +72,7 @@ public class PackageAndReferenceScenarioTests
             {
                 ["action"] = "Create",
                 ["name"] = "RefDemo",
-                ["output"] = tempRoot,
+                ["output"] = tempRoot.Path,
                 ["machineReadable"] = true
             },
             cancellationToken);
@@ -80,7 +80,7 @@ public class PackageAndReferenceScenarioTests
         using var slnCreateJson = ScenarioHelpers.ParseJson(slnCreateText);
         ScenarioHelpers.AssertMachineReadableSuccess(slnCreateJson.RootElement);
 
-        var slnPath = Path.Combine(tempRoot, "RefDemo.sln");
+        var slnPath = Path.Combine(tempRoot.Path, "RefDemo.sln");
         Assert.True(File.Exists(slnPath), "Expected solution file to be created");
 
         // Add projects to solution.
