@@ -11,7 +11,7 @@ public class SecretsRedactionScenarioTests
         var secretValue = "Server=localhost;Password=SuperSecret123!";
         var cancellationToken = TestContext.Current.CancellationToken;
 
-        var tempRoot = ScenarioHelpers.CreateTempDirectory(nameof(Scenario_UserSecrets_NoSecretLeak_InOtherToolOutputs));
+        using var tempRoot = ScenarioHelpers.CreateTempDirectory(nameof(Scenario_UserSecrets_NoSecretLeak_InOtherToolOutputs));
 
         // Create a throwaway project so we don't mutate repo project files (SecretsInit writes UserSecretsId).
         var (exitCode, _, stderr) = await ScenarioHelpers.RunDotNetAsync(

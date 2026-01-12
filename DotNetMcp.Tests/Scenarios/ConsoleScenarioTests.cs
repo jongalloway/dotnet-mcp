@@ -9,7 +9,7 @@ public class ConsoleScenarioTests
     public async Task Scenario_ConsoleProject_AddPackageAndBuild_Release()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var tempRoot = ScenarioHelpers.CreateTempDirectory(nameof(Scenario_ConsoleProject_AddPackageAndBuild_Release));
+        using var tempRoot = ScenarioHelpers.CreateTempDirectory(nameof(Scenario_ConsoleProject_AddPackageAndBuild_Release));
 
         // Create console project via CLI (keeps scenario stable even if template enumeration/validation is flaky).
         var (exitCode, _, stderr) = await ScenarioHelpers.RunDotNetAsync(

@@ -9,7 +9,7 @@ public class PackageAndReferenceScenarioTests
     public async Task Scenario_DotnetPackage_AddInvalidPackage_ReturnsMachineReadableError()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var tempRoot = ScenarioHelpers.CreateTempDirectory(nameof(Scenario_DotnetPackage_AddInvalidPackage_ReturnsMachineReadableError));
+        using var tempRoot = ScenarioHelpers.CreateTempDirectory(nameof(Scenario_DotnetPackage_AddInvalidPackage_ReturnsMachineReadableError));
 
         // Create a throwaway project via CLI to avoid mutating repo projects.
         var (exitCode, _, stderr) = await ScenarioHelpers.RunDotNetAsync(
@@ -47,7 +47,7 @@ public class PackageAndReferenceScenarioTests
     public async Task Scenario_ProjectReferenceFlow_AddReferenceAndBuildSolution_Release()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var tempRoot = ScenarioHelpers.CreateTempDirectory(nameof(Scenario_ProjectReferenceFlow_AddReferenceAndBuildSolution_Release));
+        using var tempRoot = ScenarioHelpers.CreateTempDirectory(nameof(Scenario_ProjectReferenceFlow_AddReferenceAndBuildSolution_Release));
 
         var libADir = Path.Combine(tempRoot, "LibA");
         var libBDir = Path.Combine(tempRoot, "LibB");
