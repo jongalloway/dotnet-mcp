@@ -12,7 +12,7 @@ public class ConsoleScenarioTests
         using var tempRoot = ScenarioHelpers.CreateTempDirectory(nameof(Scenario_ConsoleProject_AddPackageAndBuild_Release));
 
         // Create console project via CLI (keeps scenario stable even if template enumeration/validation is flaky).
-        var (exitCode, stdout, stderr) = await ScenarioHelpers.RunDotNetAsync(
+        var (exitCode, _, stderr) = await ScenarioHelpers.RunDotNetAsync(
             $"new console -n ConsoleApp -o \"{tempRoot.Path}\"",
             workingDirectory: tempRoot.Path,
             cancellationToken);
