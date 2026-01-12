@@ -13,13 +13,13 @@ public class BuildErrorScenarioTests
 
         // Create a throwaway project via CLI to avoid mutating repo projects.
         var (newExit, _, newErr) = await ScenarioHelpers.RunDotNetAsync(
-            $"new console -n BrokenApp -o \"{(string)tempRoot}\"",
-            workingDirectory: tempRoot,
+            $"new console -n BrokenApp -o \"{tempRoot.Path}\"",
+            workingDirectory: tempRoot.Path,
             cancellationToken);
 
         Assert.True(newExit == 0, $"dotnet new console failed: {newErr}");
 
-        var projectPath = Directory.GetFiles(tempRoot, "*.csproj", SearchOption.AllDirectories)
+        var projectPath = Directory.GetFiles(tempRoot.Path, "*.csproj", SearchOption.AllDirectories)
             .Single();
         Assert.True(File.Exists(projectPath), "Expected a .csproj to exist");
 
