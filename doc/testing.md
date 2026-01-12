@@ -4,9 +4,9 @@ This repository uses an xUnit test project to validate the MCP server's behavior
 
 ## Test Coverage Summary
 
-- **Total Tests**: 973 passing tests (10 skipped interactive/integration tests)
-- **Tool Coverage**: All 8 consolidated MCP tools have comprehensive unit tests
-- **Code Coverage**: 73.2% line coverage
+- **Total Tests**: Large suite (unit + conformance + opt-in scenarios)
+- **Tool Coverage**: Consolidated MCP tools have comprehensive unit tests
+- **Code Coverage**: Tracked in CI and uploaded to Codecov
 - **Test Organization**: Tests are organized by category (Templates, Packages, Projects, Solutions, References, etc.)
 - **MCP Conformance**: 19 conformance tests validate MCP protocol compliance (including consolidated tool schema validation)
 
@@ -41,6 +41,58 @@ Run tests from the solution:
 ```bash
 dotnet test --solution DotNetMcp.slnx -c Release
 ```
+
+## Scenario Tests (Opt-in)
+
+This repo includes end-to-end scenario tests that start the real `DotNetMcp` server binary and communicate with it over stdio.
+These are integration-style tests (slower and more environment-dependent than unit tests).
+
+- **Namespace**: `DotNetMcp.Tests.Scenarios`
+- **Gate**: `DOTNET_MCP_SCENARIO_TESTS=1` (or `true` / `yes`)
+- **How they run in CI**: `build.yml` runs them by setting `DOTNET_MCP_SCENARIO_TESTS=1` and filtering to the scenario namespace.
+
+Run scenario tests locally:
+
+```powershell
+$env:DOTNET_MCP_SCENARIO_TESTS = "1"
+dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
+```
+
+## Release-Gate Scenario Tests (Manual / workflow_dispatch)
+
+Release-gate scenarios are a second tier of **long-running** integration tests intended to run before shipping a release.
+They may:
+
+- perform real NuGet restores,
+- install local .NET tools (e.g., `dotnet-ef`),
+- run EF Core migrations against a local SQLite file,
+- stress concurrency by running many tool calls in parallel.
+
+- **Namespace**: `DotNetMcp.Tests.ReleaseScenarios`
+- **Gate**: `DOTNET_MCP_RELEASE_SCENARIO_TESTS=1` (or `true` / `yes`)
+
+### Run locally (recommended)
+
+Use the helper script which enables both scenario tiers and runs them in a predictable order:
+
+```powershell
+pwsh -File scripts/run-release-gate-tests.ps1
+```
+
+Common variants:
+
+```powershell
+# Fast path (assumes you already built)
+pwsh -File scripts/run-release-gate-tests.ps1 -NoRestore -NoBuild
+
+# Skip server.json validation
+pwsh -File scripts/run-release-gate-tests.ps1 -SkipServerJsonValidation
+```
+
+### Run in GitHub Actions (manual)
+
+The workflow [.github/workflows/release-scenarios.yml](../.github/workflows/release-scenarios.yml) is designed to be run via `workflow_dispatch`.
+It runs release scenario tests on the selected OS.
 
 ## MCP Conformance Tests
 
@@ -153,6 +205,11 @@ Notes:
 ## Integration and environment-dependent tests
 
 Some tests are intentionally skipped by default because they require external state (for example, an actual `dotnet` CLI invocation with a valid project on disk).
+
+This includes:
+
+- Scenario tests (real server over stdio)
+- Release-gate scenarios (NuGet network access, tool install, EF migrations, concurrency stress)
 
 If you are working on command execution behavior, you may want to:
 
