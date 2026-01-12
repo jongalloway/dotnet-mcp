@@ -9,7 +9,7 @@ public class BuildErrorScenarioTests
     public async Task Scenario_DotnetProject_Build_WithCompileError_ReturnsMachineReadableError()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var tempRoot = ScenarioHelpers.CreateTempDirectory(nameof(Scenario_DotnetProject_Build_WithCompileError_ReturnsMachineReadableError));
+        using var tempRoot = ScenarioHelpers.CreateTempDirectory(nameof(Scenario_DotnetProject_Build_WithCompileError_ReturnsMachineReadableError));
 
         // Create a throwaway project via CLI to avoid mutating repo projects.
         var (newExit, _, newErr) = await ScenarioHelpers.RunDotNetAsync(
