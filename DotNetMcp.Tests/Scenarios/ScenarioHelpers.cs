@@ -36,7 +36,7 @@ internal static class ScenarioHelpers
         /// </summary>
         /// <param name="temp">The temporary directory.</param>
         public static implicit operator string(TempScenarioDirectory temp)
-            => temp.Path;
+            => temp?.Path ?? throw new ArgumentNullException(nameof(temp));
 
         /// <summary>
         /// Disposes the temporary directory by recursively deleting it.
@@ -65,7 +65,7 @@ internal static class ScenarioHelpers
     /// <returns>A disposable temporary directory.</returns>
     public static TempScenarioDirectory CreateTempDirectory(string testName)
     {
-        var root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "dotnet-mcp-scenarios", DateTime.UtcNow.ToString("yyyyMMdd"), testName, Guid.NewGuid().ToString("N"));
+        var root = Path.Combine(Path.GetTempPath(), "dotnet-mcp-scenarios", DateTime.UtcNow.ToString("yyyyMMdd"), testName, Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         return new TempScenarioDirectory(root);
     }
