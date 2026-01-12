@@ -86,7 +86,13 @@ public class TemplateEngineHelper
         }
     }
 
-    private static string SanitizeDotnetNewOutput(string output)
+    /// <summary>
+    /// Sanitizes output from `dotnet new` commands by stripping leading error-prefixed lines.
+    /// Internal for testing via InternalsVisibleTo.
+    /// </summary>
+    /// <param name="output">The raw output from dotnet new command.</param>
+    /// <returns>Sanitized output with leading "Error:" lines removed, or original output if sanitization would remove all content.</returns>
+    internal static string SanitizeDotnetNewOutput(string output)
     {
         if (string.IsNullOrWhiteSpace(output))
         {
@@ -99,23 +105,30 @@ public class TemplateEngineHelper
         //
         // Strategy: drop any leading contiguous "Error:" lines and keep the rest.
         // If the output is entirely error-prefixed, return the original output so callers can decide.
-        var lines = output.Replace("\r\n", "\n").Split('\n');
+        
+        // Split on both CRLF and LF without creating intermediate normalized string
+        var lines = output.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
         var index = 0;
         while (index < lines.Length && lines[index].StartsWith("Error:", StringComparison.OrdinalIgnoreCase))
         {
             index++;
         }
 
+        // No error lines found - return original output unchanged
         if (index == 0)
         {
             return output;
         }
 
+        // If every line was error-prefixed, we do not silently strip the entire payload.
+        // Returning the original output lets callers see the full error text and decide how to handle it.
         if (index >= lines.Length)
         {
             return output;
         }
 
+        // TrimStart removes any leading whitespace/blank lines left after dropping error lines,
+        // but if that yields only whitespace we fall back to the original output to avoid hiding all content.
         var sanitized = string.Join("\n", lines.Skip(index)).TrimStart();
         return string.IsNullOrWhiteSpace(sanitized) ? output : sanitized;
     }
