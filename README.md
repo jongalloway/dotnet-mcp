@@ -723,6 +723,8 @@ Resources provide structured JSON data and are more efficient than tool calls fo
 
 Unified interface for all project operations: **New**, **Restore**, **Build**, **Run**, **Test**, **Publish**, **Clean**, **Analyze**, **Dependencies**, **Validate**, **Pack**, **Watch**, **Format**
 
+**SDK Compatibility Note**: The Test action uses `--project` by default (requires .NET SDK 8+ with MTP or SDK 10+). For older SDKs, set `useLegacyProjectArgument: true` to use the legacy positional argument format.
+
 Example:
 
 ```typescript
@@ -738,6 +740,19 @@ await callTool("dotnet_project", {
   action: "Build", 
   project: "MyApi/MyApi.csproj", 
   configuration: "Release" 
+});
+
+// Run tests (uses --project by default)
+await callTool("dotnet_project", { 
+  action: "Test", 
+  project: "MyApi.Tests/MyApi.Tests.csproj" 
+});
+
+// Run tests with legacy SDK (positional argument)
+await callTool("dotnet_project", { 
+  action: "Test", 
+  project: "MyApi.Tests/MyApi.Tests.csproj",
+  useLegacyProjectArgument: true
 });
 ```
 
@@ -1093,6 +1108,15 @@ See [.github/copilot-instructions.md](.github/copilot-instructions.md) for devel
 
 - **Cause**: Server crashed or failed to start
 - **Solution**: Check logs in your MCP client, ensure .NET SDK is in PATH
+
+### "Unrecognized option '--project'" when running tests
+
+- **Cause**: Older .NET SDK or non-MTP test environment
+- **Solution**: The `dotnet test --project` flag requires .NET SDK 8.0+ with Microsoft Testing Platform (MTP) enabled, or .NET SDK 10.0+. You have two options:
+  1. **Upgrade SDK** (recommended): Install [.NET 10 SDK](https://dotnet.microsoft.com/download)
+  2. **Use legacy mode**: Set `useLegacyProjectArgument: true` when calling `dotnet_project` with the `Test` action to use the older positional argument format (`dotnet test MyProject.csproj` instead of `dotnet test --project MyProject.csproj`)
+- **Verify support**: Run `dotnet test --help | grep "\-\-project"` to check if your SDK supports the `--project` flag
+- **More info**: See [doc/testing.md](doc/testing.md) for detailed MTP configuration and troubleshooting
 
 ### Need Help?
 
