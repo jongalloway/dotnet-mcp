@@ -90,4 +90,28 @@ public class SdkContractScenarioTests
 
         Assert.True(found, "Expected a Validation/INVALID_PARAMS error with data.additionalData.parameter == 'searchTerm'.");
     }
+
+    [ScenarioFact]
+    public async Task Scenario_DotnetSdk_ListTemplatePacks_MachineReadable_Success()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
+
+        var jsonText = await client.CallToolTextAsync(
+            toolName: "dotnet_sdk",
+            args: new Dictionary<string, object?>
+            {
+                ["action"] = "ListTemplatePacks",
+                ["machineReadable"] = true
+            },
+            cancellationToken);
+
+        using var json = ScenarioHelpers.ParseJson(jsonText);
+        ScenarioHelpers.AssertMachineReadableSuccess(json.RootElement);
+
+        // Contract: machine-readable success includes the executed command.
+        Assert.True(json.RootElement.TryGetProperty("command", out var command));
+        Assert.Equal("dotnet new uninstall", command.GetString());
+    }
 }

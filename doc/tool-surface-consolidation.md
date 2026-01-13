@@ -574,6 +574,9 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
   - `ListTemplates` - List installed templates
   - `SearchTemplates` - Search templates
   - `TemplateInfo` - Get template details
+  - `ListTemplatePacks` - List installed template packs
+  - `InstallTemplatePack` - Install a template pack
+  - `UninstallTemplatePack` - Uninstall a template pack
   - `ClearTemplateCache` - Clear template cache
   - `FrameworkInfo` - Get framework information
   - `CacheMetrics` - Get cache performance metrics
@@ -595,6 +598,18 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **For action="ListTemplates":**
 
 - `forceReload` (optional, bool): Bypass cache
+
+**For action="InstallTemplatePack":**
+
+- `templatePackage` (required): Template package ID or local path
+- `templateVersion` (optional): Template package version
+- `nugetSource` (optional): NuGet source URL/path
+- `interactive` (optional, bool): Allow interactive restore/auth prompts
+- `force` (optional, bool): Force install even if already installed
+
+**For action="UninstallTemplatePack":**
+
+- `templatePackage` (optional): Template package ID or local path (omit to list installed packs)
 
 **For action="FrameworkInfo":**
 

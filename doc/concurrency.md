@@ -38,9 +38,10 @@ The .NET MCP Server automatically prevents conflicting operations from running s
 ```
 
 This applies to:
+
 - **Long-running operations**: `dotnet_project` actions: Build, Run, Test, Publish, Watch
 - **Mutating operations**: `dotnet_package` actions: Add, Remove; `dotnet_solution` actions: Add, Remove
-- **Global operations**: `dotnet_sdk` action: ClearTemplateCache; `dotnet_dev_certs` actions: CertificateTrust, CertificateClean
+- **Global operations**: `dotnet_sdk` actions: ClearTemplateCache, InstallTemplatePack, UninstallTemplatePack; `dotnet_dev_certs` actions: CertificateTrust, CertificateClean
 
 ## Concurrency Safety Matrix
 
@@ -50,7 +51,7 @@ These operations **can always run in parallel** with any other operations, inclu
 
 | Tool | Actions | Description | Parallel Safe |
 |------|---------|-------------|---------------|
-| **dotnet_sdk** | Version, Info, ListSdks, ListRuntimes, ListTemplates, SearchTemplates, TemplateInfo, FrameworkInfo, CacheMetrics | Query SDK, runtime, template, and framework information | ✅ Always |
+| **dotnet_sdk** | Version, Info, ListSdks, ListRuntimes, ListTemplates, SearchTemplates, TemplateInfo, ListTemplatePacks, FrameworkInfo, CacheMetrics | Query SDK, runtime, template, and framework information | ✅ Always |
 | **dotnet_package** | Search, List | Search NuGet packages and list package references | ✅ Always |
 | **dotnet_solution** | List | List projects in solution | ✅ Always |
 | **dotnet_tool** | List, Search | List and search for .NET tools | ✅ Always |
@@ -62,6 +63,7 @@ These operations **can always run in parallel** with any other operations, inclu
 | **dotnet_server_capabilities** | (all) | Get MCP server capabilities | ✅ Always |
 
 **Key Characteristics:**
+
 - No file system modifications
 - No state changes
 - Idempotent operations
@@ -83,6 +85,7 @@ These operations **can run in parallel IF they operate on different targets** (d
 | **dotnet_workload** | Install, Uninstall, Update | Different workloads | ⚠️ Medium |
 
 **Safety Guidelines:**
+
 - ✅ **Safe**: `dotnet_project` Build on Project A and Project B simultaneously (if no dependencies between them)
 - ✅ **Safe**: `dotnet_package` Add different packages to different projects concurrently
 - ❌ **Unsafe**: `dotnet_package` Add two packages to the same project concurrently
@@ -99,11 +102,12 @@ These operations should **NEVER run in parallel** with themselves or similar ope
 | **dotnet_solution** | Create | Creates solution file | ❌ Critical |
 | **dotnet_tool** | Run | May be long-running; depends on tool | ❌ High |
 | **dotnet_dev_certs** | CertificateTrust, CertificateClean | Modifies system trust store | ❌ Critical |
-| **dotnet_sdk** | ClearTemplateCache | Clears global template cache | ❌ High |
+| **dotnet_sdk** | ClearTemplateCache, InstallTemplatePack, UninstallTemplatePack | Modifies global template state and/or clears caches | ❌ High |
 | **dotnet_ef** | DatabaseUpdate, DatabaseDrop | Modifies database schema | ❌ Critical |
 | **dotnet_workload** | Install, Update | Modifies global SDK installation | ❌ High |
 
 **Key Considerations:**
+
 - These operations often modify global state (certificates, global tools, caches)
 - File watchers run indefinitely and should not be duplicated
 - Project creation can conflict if output directories overlap
@@ -143,6 +147,7 @@ Beyond simple parallelization, consider project dependencies:
 ```
 
 **Rules:**
+
 - Always build dependencies before dependent projects
 - Test projects can usually run in parallel if they don't share state
 - Multiple independent projects in a solution can build concurrently
@@ -294,7 +299,7 @@ The .NET MCP Server implements caching for read-only resources:
 
 ✅ **Thread-Safe**: All cache operations use `SemaphoreSlim` for async locking
 ✅ **Concurrent Reads**: Multiple parallel reads are safe and efficient
-⚠️ **Cache Invalidation**: `dotnet_sdk { action: "ClearTemplateCache" }` should not run concurrently with template operations
+⚠️ **Template State Changes**: `dotnet_sdk { action: "ClearTemplateCache" }`, `InstallTemplatePack`, and `UninstallTemplatePack` should not run concurrently with template operations
 
 ## Summary Table: Tool Parallelization
 
@@ -341,6 +346,7 @@ When you receive a `CONCURRENCY_CONFLICT` error:
 4. **Use different targets** - Operate on different projects/solutions to avoid conflicts
 
 Example retry logic (plain text mode):
+
 ```csharp
 var maxRetries = 3;
 var retryDelay = TimeSpan.FromSeconds(2);
@@ -358,6 +364,7 @@ for (int i = 0; i < maxRetries; i++)
 ```
 
 Example retry logic (machine-readable mode):
+
 ```csharp
 using System.Text.Json;
 
@@ -478,6 +485,7 @@ catch (OperationCanceledException)
 ### Operations Supporting Cancellation
 
 All operations support cancellation, but it's most useful for:
+
 - **Long-running tests** - Large test suites that take minutes to complete
 - **Build operations** - Complex solutions with many projects
 - **Run operations** - Applications that would otherwise run indefinitely
