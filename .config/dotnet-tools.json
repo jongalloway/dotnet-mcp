@@ -3,11 +3,10 @@
   "isRoot": true,
   "tools": {
     "dotnet-ef": {
-      "version": "10.0.1",
+      "version": "9.0.0",
       "commands": [
         "dotnet-ef"
-      ],
-      "rollForward": false
+      ]
     }
   }
 }

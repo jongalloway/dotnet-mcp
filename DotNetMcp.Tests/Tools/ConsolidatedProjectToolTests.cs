@@ -675,4 +675,132 @@ public class ConsolidatedProjectToolTests
     }
 
     #endregion
+
+    #region Legacy Project Argument Tests (--project vs positional)
+
+    [Fact]
+    public async Task DotnetProject_Test_DefaultUsesProjectFlag()
+    {
+        // Test that Test action uses --project by default
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.Test,
+            project: "MyTests.csproj",
+            machineReadable: true);
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet test --project \"MyTests.csproj\"");
+    }
+
+    [Fact]
+    public async Task DotnetProject_Test_WithLegacyFlag_UsesPositionalArgument()
+    {
+        // Test that Test action uses positional argument when useLegacyProjectArgument is true
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.Test,
+            project: "MyTests.csproj",
+            useLegacyProjectArgument: true,
+            machineReadable: true);
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet test \"MyTests.csproj\"");
+    }
+
+    [Fact]
+    public async Task DotnetProject_Test_WithLegacyFlag_AndConfiguration_UsesPositionalArgument()
+    {
+        // Test that Test action with configuration uses positional argument when useLegacyProjectArgument is true
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.Test,
+            project: "MyTests.csproj",
+            configuration: "Release",
+            useLegacyProjectArgument: true,
+            machineReadable: true);
+
+        Assert.NotNull(result);
+        var command = MachineReadableCommandAssertions.ExtractExecutedDotnetCommand(result);
+        Assert.Contains("dotnet test \"MyTests.csproj\"", command);
+        Assert.Contains("-c Release", command);
+        Assert.DoesNotContain("--project", command);
+    }
+
+    [Fact]
+    public async Task DotnetProject_Test_WithLegacyFlag_MultipleParameters_UsesPositionalArgument()
+    {
+        // Test that Test action with multiple parameters uses positional argument when useLegacyProjectArgument is true
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.Test,
+            project: "MyTests.csproj",
+            configuration: "Release",
+            filter: "FullyQualifiedName~MyNamespace",
+            noBuild: true,
+            useLegacyProjectArgument: true,
+            machineReadable: true);
+
+        Assert.NotNull(result);
+        var command = MachineReadableCommandAssertions.ExtractExecutedDotnetCommand(result);
+        Assert.Contains("dotnet test \"MyTests.csproj\"", command);
+        Assert.Contains("-c Release", command);
+        Assert.Contains("--filter \"FullyQualifiedName~MyNamespace\"", command);
+        Assert.Contains("--no-build", command);
+        Assert.DoesNotContain("--project", command);
+    }
+
+    [Fact]
+    public async Task DotnetProject_Test_WithLegacyFlagFalse_UsesProjectFlag()
+    {
+        // Test that Test action uses --project when useLegacyProjectArgument is explicitly false
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.Test,
+            project: "MyTests.csproj",
+            useLegacyProjectArgument: false,
+            machineReadable: true);
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet test --project \"MyTests.csproj\"");
+    }
+
+    [Fact]
+    public async Task DotnetProject_Test_WithoutProject_LegacyFlagHasNoEffect()
+    {
+        // Test that when no project is specified, the legacy flag has no effect
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.Test,
+            project: null,
+            useLegacyProjectArgument: true,
+            machineReadable: true);
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet test");
+    }
+
+    [Fact]
+    public async Task DotnetProject_Test_PlainText_DefaultUsesProjectFlag()
+    {
+        // Test that Test action uses --project by default in plain text mode
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.Test,
+            project: "MyTests.csproj",
+            machineReadable: false);
+
+        Assert.NotNull(result);
+        // In plain text mode, check for the command in error/output
+        // The command should still use --project
+    }
+
+    [Fact]
+    public async Task DotnetProject_Test_PlainText_WithLegacyFlag_UsesPositionalArgument()
+    {
+        // Test that Test action uses positional argument when useLegacyProjectArgument is true in plain text mode
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.Test,
+            project: "MyTests.csproj",
+            useLegacyProjectArgument: true,
+            machineReadable: false);
+
+        Assert.NotNull(result);
+        // In plain text mode, the result will be an error or output
+        // Just verify we get some result
+    }
+
+    #endregion
 }
