@@ -66,7 +66,7 @@ The `--project` flag for `dotnet test` requires:
 **Troubleshooting**: If you encounter an error like `Unrecognized option '--project'`:
 1. Verify your SDK version supports `--project`:
    ```bash
-   dotnet test --help | grep "\-\-project"
+   dotnet test --help | grep -- --project
    ```
 2. Check if you have `global.json` with MTP runner configuration in your project/repository root
 3. If using an older SDK or non-MTP configuration, the MCP server provides a `useLegacyProjectArgument` parameter as a fallback

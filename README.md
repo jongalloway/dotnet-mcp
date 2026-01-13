@@ -1115,7 +1115,7 @@ See [.github/copilot-instructions.md](.github/copilot-instructions.md) for devel
 - **Solution**: The `dotnet test --project` flag requires .NET SDK 8.0+ with Microsoft Testing Platform (MTP) enabled, or .NET SDK 10.0+. You have two options:
   1. **Upgrade SDK** (recommended): Install [.NET 10 SDK](https://dotnet.microsoft.com/download)
   2. **Use legacy mode**: Set `useLegacyProjectArgument: true` when calling `dotnet_project` with the `Test` action to use the older positional argument format (`dotnet test MyProject.csproj` instead of `dotnet test --project MyProject.csproj`)
-- **Verify support**: Run `dotnet test --help | grep "\-\-project"` to check if your SDK supports the `--project` flag
+- **Verify support**: Run `dotnet test --help | grep -- --project` to check if your SDK supports the `--project` flag
 - **More info**: See [doc/testing.md](doc/testing.md) for detailed MTP configuration and troubleshooting
 
 ### Need Help?
