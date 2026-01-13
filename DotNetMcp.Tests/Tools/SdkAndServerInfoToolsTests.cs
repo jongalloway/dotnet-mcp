@@ -163,7 +163,6 @@ public class SdkAndServerInfoToolsTests
             try { System.IO.Directory.Delete(tempDir, recursive: true); }
             catch (System.IO.IOException) { /* best-effort cleanup */ }
             catch (System.UnauthorizedAccessException) { /* best-effort cleanup */ }
-            catch (System.IO.DirectoryNotFoundException) { /* best-effort cleanup */ }
         }
     }
 
