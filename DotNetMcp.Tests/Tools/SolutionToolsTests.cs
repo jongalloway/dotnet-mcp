@@ -298,4 +298,37 @@ public class SolutionToolsTests
         Assert.Contains("\"success\": false", result);
         Assert.Contains("INVALID_PARAMS", result);
     }
+
+    [Fact]
+    public async Task DotnetSolution_CreateAction_WithInvalidFormat_ReturnsError()
+    {
+        // Act
+        var result = await _tools.DotnetSolution(
+            action: DotNetMcp.Actions.DotnetSolutionAction.Create,
+            name: "MySolution",
+            format: "invalid",
+            machineReadable: false);
+
+        // Assert
+        Assert.Contains("Error", result);
+        Assert.Contains("format", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("sln", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("slnx", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetSolution_CreateAction_WithInvalidFormat_MachineReadable_ReturnsJson()
+    {
+        // Act
+        var result = await _tools.DotnetSolution(
+            action: DotNetMcp.Actions.DotnetSolutionAction.Create,
+            name: "MySolution",
+            format: "invalid",
+            machineReadable: true);
+
+        // Assert
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("INVALID_PARAMS", result);
+        Assert.Contains("format", result, StringComparison.OrdinalIgnoreCase);
+    }
 }
