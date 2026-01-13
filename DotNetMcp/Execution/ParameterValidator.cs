@@ -90,13 +90,10 @@ public static partial class ParameterValidator
         }
 
         // Disallow control characters which can break argument parsing/logging.
-        foreach (var c in templatePackage)
+        if (templatePackage.Any(char.IsControl))
         {
-            if (char.IsControl(c))
-            {
-                errorMessage = "templatePackage contains control characters, which is not allowed.";
-                return false;
-            }
+            errorMessage = "templatePackage contains control characters, which is not allowed.";
+            return false;
         }
 
         // If the string looks like a path, validate that it exists.
@@ -118,13 +115,10 @@ public static partial class ParameterValidator
 
         // Otherwise treat as package ID (optionally with ::version already appended).
         // Allow letters/digits plus '.', '-', '_' and ':' (for <id>::<version> syntax).
-        foreach (var c in templatePackage)
+        if (templatePackage.Any(c => !(char.IsLetterOrDigit(c) || c is '.' or '-' or '_' or ':')))
         {
-            if (!(char.IsLetterOrDigit(c) || c is '.' or '-' or '_' or ':'))
-            {
-                errorMessage = $"Invalid templatePackage '{templatePackage}'. Package IDs may contain only letters, digits, '.', '-', '_' (and optionally '::' for version).";
-                return false;
-            }
+            errorMessage = $"Invalid templatePackage '{templatePackage}'. Package IDs may contain only letters, digits, '.', '-', '_' (and optionally '::' for version).";
+            return false;
         }
 
         return true;
@@ -140,13 +134,10 @@ public static partial class ParameterValidator
         if (string.IsNullOrWhiteSpace(templateVersion))
             return true;
 
-        foreach (var c in templateVersion)
+        if (templateVersion.Any(char.IsControl))
         {
-            if (char.IsControl(c))
-            {
-                errorMessage = "templateVersion contains control characters, which is not allowed.";
-                return false;
-            }
+            errorMessage = "templateVersion contains control characters, which is not allowed.";
+            return false;
         }
 
         // Keep this permissive (supports prerelease/build metadata) but disallow whitespace.
@@ -169,13 +160,10 @@ public static partial class ParameterValidator
         if (string.IsNullOrWhiteSpace(nugetSource))
             return true;
 
-        foreach (var c in nugetSource)
+        if (nugetSource.Any(char.IsControl))
         {
-            if (char.IsControl(c))
-            {
-                errorMessage = "nugetSource contains control characters, which is not allowed.";
-                return false;
-            }
+            errorMessage = "nugetSource contains control characters, which is not allowed.";
+            return false;
         }
 
         return true;
