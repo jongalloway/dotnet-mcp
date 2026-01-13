@@ -1167,13 +1167,13 @@ Error: No templates found matching 'webapp'
 "What web templates are available?"
 ```
 
-1. **Search for the template:**
+2. **Search for the template:**
 
 ```text
 "Search for web app templates"
 ```
 
-1. **Install missing templates:**
+3. **Install missing templates:**
 
 ```text
 AI may suggest: dotnet_sdk (action=InstallTemplatePack, templatePackage=<template-package>)
@@ -1197,13 +1197,13 @@ Error: The framework 'net7.0' is not supported
 "What .NET SDKs do I have installed?"
 ```
 
-1. **Use a supported framework:**
+2. **Use a supported framework:**
 
 ```text
 "Create the project targeting .NET 10 instead"
 ```
 
-1. **Install required SDK:**
+3. **Install required SDK:**
 Download from [dot.net](https://dot.net)
 
 **Prevention:** Let the AI recommend framework versions based on your installed SDKs.
@@ -1225,13 +1225,13 @@ dotnet build fails with version conflicts
 "List my packages and show any conflicts"
 ```
 
-1. **Restore packages:**
+2. **Restore packages:**
 
 ```text
 "Restore project dependencies"
 ```
 
-1. **Update problematic packages:**
+3. **Update problematic packages:**
 
 ```text
 "Update the <PackageName> package to a compatible version"
@@ -1255,13 +1255,13 @@ dotnet test returns no tests found
 "What testing packages are in my test project?"
 ```
 
-1. **Check test discovery:**
+2. **Check test discovery:**
 
 ```text
 AI: dotnet test --list-tests
 ```
 
-1. **Rebuild test project:**
+3. **Rebuild test project:**
 
 ```text
 "Clean and rebuild the test project"
@@ -1287,7 +1287,7 @@ Error: Could not execute because dotnet-ef was not found
 
 AI executes: `dotnet tool install dotnet-ef --global`
 
-1. **Verify installation:**
+2. **Verify installation:**
 
 ```text
 "Check if dotnet-ef is installed"
@@ -1312,7 +1312,7 @@ HTTPS certificate not trusted
 "Check my HTTPS development certificate"
 ```
 
-1. **Trust the certificate:**
+2. **Trust the certificate:**
 
 ```text
 "Trust my HTTPS development certificate"
@@ -1364,13 +1364,13 @@ User secrets not accessible at runtime
 "Check if user secrets are initialized for my project"
 ```
 
-1. **List secrets:**
+2. **List secrets:**
 
 ```text
 "List all user secrets"
 ```
 
-1. **Check UserSecretsId:**
+3. **Check UserSecretsId:**
 AI can verify the `<UserSecretsId>` exists in .csproj
 
 **Prevention:** Always initialize user secrets before setting values.
@@ -1392,10 +1392,10 @@ Build errors during hot reload
 "Stop and restart hot reload"
 ```
 
-1. **Check supported changes:**
+2. **Check supported changes:**
 Not all code changes support hot reload (e.g., adding new files)
 
-2. **Full rebuild:**
+3. **Full rebuild:**
 
 ```text
 "Do a full rebuild and restart the watch"
@@ -1419,10 +1419,10 @@ Build succeeds for net10.0 but fails for net8.0
 
 AI: `dotnet build --framework net8.0`
 
-1. **Check framework-specific code:**
+2. **Check framework-specific code:**
 Look for conditional compilation issues
 
-2. **Verify package compatibility:**
+3. **Verify package compatibility:**
 
 ```text
 "Check if all my packages support both .NET 8 and 10"
