@@ -80,17 +80,7 @@ public sealed partial class DotNetCliTools
                 // Normalize to absolute path for consistent concurrency target
                 return Path.GetFullPath(workingDirectory);
             }
-            catch (ArgumentException)
-            {
-                // If normalization fails, fall back to current directory
-                // This shouldn't happen as workingDirectory is validated before execution
-            }
-            catch (NotSupportedException)
-            {
-                // If normalization fails, fall back to current directory
-                // This shouldn't happen as workingDirectory is validated before execution
-            }
-            catch (PathTooLongException)
+            catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
             {
                 // If normalization fails, fall back to current directory
                 // This shouldn't happen as workingDirectory is validated before execution
