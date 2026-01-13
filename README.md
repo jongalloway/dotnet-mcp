@@ -723,7 +723,7 @@ Resources provide structured JSON data and are more efficient than tool calls fo
 
 Unified interface for all project operations: **New**, **Restore**, **Build**, **Run**, **Test**, **Publish**, **Clean**, **Analyze**, **Dependencies**, **Validate**, **Pack**, **Watch**, **Format**
 
-**SDK Compatibility Note**: The Test action uses `--project` by default (requires .NET SDK 8+ with MTP or SDK 10+). For older SDKs, set `useLegacyProjectArgument: true` to use the legacy positional argument format.
+**Test Runner Compatibility**: The Test action uses `--project` by default, which is supported by [Microsoft Testing Platform (MTP)](https://learn.microsoft.com/dotnet/core/tools/dotnet-test-mtp) (.NET SDK 8+ with MTP or SDK 10+). The legacy [VSTest](https://learn.microsoft.com/dotnet/core/tools/dotnet-test-vstest) runner does not support `--project`. Set `useLegacyProjectArgument: true` when using VSTest or older SDKs to use the positional argument format.
 
 Example:
 
@@ -742,13 +742,13 @@ await callTool("dotnet_project", {
   configuration: "Release" 
 });
 
-// Run tests (uses --project by default)
+// Run tests with MTP (uses --project by default)
 await callTool("dotnet_project", { 
   action: "Test", 
   project: "MyApi.Tests/MyApi.Tests.csproj" 
 });
 
-// Run tests with legacy SDK (positional argument)
+// Run tests with VSTest or legacy SDK (positional argument)
 await callTool("dotnet_project", { 
   action: "Test", 
   project: "MyApi.Tests/MyApi.Tests.csproj",
@@ -1111,12 +1111,15 @@ See [.github/copilot-instructions.md](.github/copilot-instructions.md) for devel
 
 ### "Unrecognized option '--project'" when running tests
 
-- **Cause**: Older .NET SDK or non-MTP test environment
-- **Solution**: The `dotnet test --project` flag requires .NET SDK 8.0+ with Microsoft Testing Platform (MTP) enabled, or .NET SDK 10.0+. You have two options:
-  1. **Upgrade SDK** (recommended): Install [.NET 10 SDK](https://dotnet.microsoft.com/download)
-  2. **Use legacy mode**: Set `useLegacyProjectArgument: true` when calling `dotnet_project` with the `Test` action to use the older positional argument format (`dotnet test MyProject.csproj` instead of `dotnet test --project MyProject.csproj`)
+- **Cause**: Using VSTest runner or older .NET SDK without Microsoft Testing Platform (MTP)
+- **Background**: The `--project` flag is only supported by the [Microsoft Testing Platform (MTP)](https://learn.microsoft.com/dotnet/core/tools/dotnet-test-mtp) runner. The legacy [VSTest](https://learn.microsoft.com/dotnet/core/tools/dotnet-test-vstest) runner does not support this flag and requires positional project arguments.
+- **Solution**: You have three options:
+  1. **Upgrade to MTP** (recommended): Install [.NET 10 SDK](https://dotnet.microsoft.com/download) (MTP enabled by default) or configure MTP in `global.json` for .NET 8+
+  2. **Use legacy mode**: Set `useLegacyProjectArgument: true` when calling `dotnet_project` with the `Test` action to use the positional argument format (`dotnet test MyProject.csproj`)
+  3. **Use VSTest explicitly**: If you need to use VSTest, always set `useLegacyProjectArgument: true`
 - **Verify support**: Run `dotnet test --help | grep -- --project` to check if your SDK supports the `--project` flag
-- **More info**: See [doc/testing.md](doc/testing.md) for detailed MTP configuration and troubleshooting
+- **More info**: See [doc/testing.md](doc/testing.md) for detailed test runner compatibility and troubleshooting
+- **References**: [dotnet test overview](https://learn.microsoft.com/dotnet/core/tools/dotnet-test) | [MTP](https://learn.microsoft.com/dotnet/core/tools/dotnet-test-mtp) | [VSTest](https://learn.microsoft.com/dotnet/core/tools/dotnet-test-vstest)
 
 ### Need Help?
 

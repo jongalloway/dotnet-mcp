@@ -53,9 +53,23 @@ This repository uses the **Microsoft Testing Platform (MTP)** as configured in `
 }
 ```
 
-With MTP enabled, Microsoft [recommends using `--project`](https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-mstest-runner-intro) instead of positional project arguments:
-- **Recommended (MTP)**: `dotnet test --project MyTests.csproj`
-- **Legacy (pre-MTP)**: `dotnet test MyTests.csproj`
+#### Test Runner Compatibility
+
+The `--project` flag support depends on which test runner is being used:
+
+- **[Microsoft Testing Platform (MTP)](https://learn.microsoft.com/dotnet/core/tools/dotnet-test-mtp)**: Supports `--project` flag
+  - Used when `global.json` configures `"runner": "Microsoft.Testing.Platform"`
+  - Default in .NET SDK 10.0+
+  - **Recommended**: `dotnet test --project MyTests.csproj`
+
+- **[VSTest](https://learn.microsoft.com/dotnet/core/tools/dotnet-test-vstest)**: Does **not** support `--project` flag
+  - Legacy test runner (default in .NET SDK 7.0 and earlier)
+  - **Uses positional argument**: `dotnet test MyTests.csproj`
+
+**References**:
+- [dotnet test - Overview](https://learn.microsoft.com/dotnet/core/tools/dotnet-test)
+- [Microsoft Testing Platform](https://learn.microsoft.com/dotnet/core/tools/dotnet-test-mtp)
+- [VSTest](https://learn.microsoft.com/dotnet/core/tools/dotnet-test-vstest)
 
 ### Compatibility: .NET SDK Requirements
 
@@ -64,13 +78,14 @@ The `--project` flag for `dotnet test` requires:
 - **.NET SDK 10.0+** (MTP enabled by default)
 
 **Troubleshooting**: If you encounter an error like `Unrecognized option '--project'`:
-1. Verify your SDK version supports `--project`:
+1. **Check your test runner**: If using VSTest, you must use `useLegacyProjectArgument: true` since VSTest does not support `--project`
+2. Verify your SDK version supports `--project`:
    ```bash
    dotnet test --help | grep -- --project
    ```
    Note: The `--` tells grep to stop processing options, allowing it to search for the literal `--project` string.
-2. Check if you have `global.json` with MTP runner configuration in your project/repository root
-3. If using an older SDK or non-MTP configuration, the MCP server provides a `useLegacyProjectArgument` parameter as a fallback
+3. Check if you have `global.json` with MTP runner configuration in your project/repository root
+4. If using an older SDK, VSTest, or non-MTP configuration, the MCP server provides a `useLegacyProjectArgument` parameter as a fallback
 
 Examples:
 
