@@ -60,9 +60,13 @@ public class ConcurrencyWorkingDirectoryTests
                 Directory.Delete(workingDir1, recursive: true);
                 Directory.Delete(workingDir2, recursive: true);
             }
-            catch (Exception)
+            catch (IOException ex)
             {
-                // Best-effort cleanup - ignore errors
+                Console.WriteLine($"Warning: Failed to delete test directory during cleanup: {ex.Message}");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                Console.WriteLine($"Warning: Access denied while deleting test directory during cleanup: {ex.Message}");
             }
         }
     }
@@ -101,9 +105,13 @@ public class ConcurrencyWorkingDirectoryTests
             {
                 Directory.Delete(workingDir, recursive: true);
             }
-            catch (Exception)
+            catch (IOException ex)
             {
-                // Best-effort cleanup - ignore errors
+                Console.WriteLine($"Warning: Failed to delete test directory during cleanup: {ex.Message}");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                Console.WriteLine($"Warning: Access denied while deleting test directory during cleanup: {ex.Message}");
             }
         }
     }
@@ -144,9 +152,13 @@ public class ConcurrencyWorkingDirectoryTests
                 Directory.Delete(workingDir1, recursive: true);
                 Directory.Delete(workingDir2, recursive: true);
             }
-            catch (Exception)
+            catch (IOException ex)
             {
-                // Best-effort cleanup - ignore errors
+                Console.WriteLine($"Warning: Failed to delete test directory during cleanup: {ex.Message}");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                Console.WriteLine($"Warning: Access denied while deleting test directory during cleanup: {ex.Message}");
             }
         }
     }
@@ -187,9 +199,13 @@ public class ConcurrencyWorkingDirectoryTests
                 Directory.Delete(workingDir1, recursive: true);
                 Directory.Delete(workingDir2, recursive: true);
             }
-            catch (Exception)
+            catch (IOException ex)
             {
-                // Best-effort cleanup - ignore errors
+                Console.WriteLine($"Warning: Failed to delete test directory during cleanup: {ex.Message}");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                Console.WriteLine($"Warning: Access denied while deleting test directory during cleanup: {ex.Message}");
             }
         }
     }
@@ -230,9 +246,13 @@ public class ConcurrencyWorkingDirectoryTests
                 Directory.Delete(workingDir1, recursive: true);
                 Directory.Delete(workingDir2, recursive: true);
             }
-            catch (Exception)
+            catch (IOException ex)
             {
-                // Best-effort cleanup - ignore errors
+                Console.WriteLine($"Warning: Failed to delete test directory during cleanup: {ex.Message}");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                Console.WriteLine($"Warning: Access denied while deleting test directory during cleanup: {ex.Message}");
             }
         }
     }
@@ -271,9 +291,13 @@ public class ConcurrencyWorkingDirectoryTests
             {
                 Directory.Delete(workingDir, recursive: true);
             }
-            catch (Exception)
+            catch (IOException ex)
             {
-                // Best-effort cleanup - ignore errors
+                Console.WriteLine($"Warning: Failed to delete test directory during cleanup: {ex.Message}");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                Console.WriteLine($"Warning: Access denied while deleting test directory during cleanup: {ex.Message}");
             }
         }
     }
@@ -311,9 +335,13 @@ public class ConcurrencyWorkingDirectoryTests
             {
                 Directory.Delete(workingDir, recursive: true);
             }
-            catch (Exception)
+            catch (IOException ex)
             {
-                // Best-effort cleanup - ignore errors
+                Console.WriteLine($"Warning: Failed to delete test directory during cleanup: {ex.Message}");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                Console.WriteLine($"Warning: Access denied while deleting test directory during cleanup: {ex.Message}");
             }
         }
     }
@@ -381,9 +409,13 @@ public class ConcurrencyWorkingDirectoryTests
             {
                 Directory.Delete(workingDir, recursive: true);
             }
-            catch (Exception)
+            catch (IOException ex)
             {
-                // Best-effort cleanup - ignore errors
+                Console.WriteLine($"Warning: Failed to delete test directory during cleanup: {ex.Message}");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                Console.WriteLine($"Warning: Access denied while deleting test directory during cleanup: {ex.Message}");
             }
         }
     }
