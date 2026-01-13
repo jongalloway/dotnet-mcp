@@ -41,6 +41,36 @@ Important:
 - When specifying a project for `dotnet test`, use `--project` (do not pass a `.csproj` as a positional argument). If you pass a project path positionally, `dotnet test` will emit: `Specifying a project for 'dotnet test' should be via '--project'`.
 - When running from the solution, use `--solution`.
 
+### Why `--project`?
+
+This repository uses the **Microsoft Testing Platform (MTP)** as configured in `global.json`:
+
+```json
+{
+  "test": {
+    "runner": "Microsoft.Testing.Platform"
+  }
+}
+```
+
+With MTP enabled, Microsoft [recommends using `--project`](https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-mstest-runner-intro) instead of positional project arguments:
+- **Recommended (MTP)**: `dotnet test --project MyTests.csproj`
+- **Legacy (pre-MTP)**: `dotnet test MyTests.csproj`
+
+### Compatibility: .NET SDK Requirements
+
+The `--project` flag for `dotnet test` requires:
+- **.NET SDK 8.0+** with Microsoft Testing Platform enabled, OR
+- **.NET SDK 10.0+** (MTP enabled by default)
+
+**Troubleshooting**: If you encounter an error like `Unrecognized option '--project'`:
+1. Verify your SDK version supports `--project`:
+   ```bash
+   dotnet test --help | grep "\-\-project"
+   ```
+2. Check if you have `global.json` with MTP runner configuration in your project/repository root
+3. If using an older SDK or non-MTP configuration, the MCP server provides a `useLegacyProjectArgument` parameter as a fallback
+
 Examples:
 
 ```bash

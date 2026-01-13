@@ -44,6 +44,7 @@ public sealed partial class DotNetCliTools
     /// <param name="diagnostics">Comma-separated list of diagnostic IDs to fix for format action</param>
     /// <param name="severity">Severity level to fix for format action (info, warn, error)</param>
     /// <param name="workingDirectory">Working directory for command execution</param>
+    /// <param name="useLegacyProjectArgument">Use positional project argument instead of --project flag for test action (for older SDKs or non-MTP environments)</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpServerTool]
     [McpMeta("category", "project")]
@@ -81,6 +82,7 @@ public sealed partial class DotNetCliTools
         string? diagnostics = null,
         string? severity = null,
         string? workingDirectory = null,
+        bool? useLegacyProjectArgument = null,
         bool machineReadable = false)
     {
         return await WithWorkingDirectoryAsync(workingDirectory, async () =>
@@ -107,7 +109,7 @@ public sealed partial class DotNetCliTools
                 DotnetProjectAction.Restore => await HandleRestoreAction(project, machineReadable),
                 DotnetProjectAction.Build => await HandleBuildAction(project, configuration, framework, machineReadable),
                 DotnetProjectAction.Run => await HandleRunAction(project, configuration, appArgs, machineReadable),
-                DotnetProjectAction.Test => await HandleTestAction(project, configuration, filter, collect, resultsDirectory, logger, noBuild, noRestore, verbosity, framework, blame, listTests, machineReadable),
+                DotnetProjectAction.Test => await HandleTestAction(project, configuration, filter, collect, resultsDirectory, logger, noBuild, noRestore, verbosity, framework, blame, listTests, useLegacyProjectArgument, machineReadable),
                 DotnetProjectAction.Publish => await HandlePublishAction(project, configuration, output, runtime, machineReadable),
                 DotnetProjectAction.Clean => await HandleCleanAction(project, configuration, machineReadable),
                 DotnetProjectAction.Analyze => await HandleAnalyzeAction(projectPath, machineReadable),
@@ -166,7 +168,7 @@ public sealed partial class DotNetCliTools
             machineReadable: machineReadable);
     }
 
-    private async Task<string> HandleTestAction(string? project, string? configuration, string? filter, string? collect, string? resultsDirectory, string? logger, bool? noBuild, bool? noRestore, string? verbosity, string? framework, bool? blame, bool? listTests, bool machineReadable)
+    private async Task<string> HandleTestAction(string? project, string? configuration, string? filter, string? collect, string? resultsDirectory, string? logger, bool? noBuild, bool? noRestore, string? verbosity, string? framework, bool? blame, bool? listTests, bool? useLegacyProjectArgument, bool machineReadable)
     {
         // Route to existing DotnetProjectTest method
         return await DotnetProjectTest(
@@ -182,6 +184,7 @@ public sealed partial class DotNetCliTools
             framework: framework,
             blame: blame ?? false,
             listTests: listTests ?? false,
+            useLegacyProjectArgument: useLegacyProjectArgument ?? false,
             machineReadable: machineReadable);
     }
 
@@ -562,6 +565,8 @@ public sealed partial class DotNetCliTools
 
     /// <summary>
     /// Run unit tests in a .NET project.
+    /// By default uses --project flag (requires .NET SDK 8+ with MTP or SDK 10+).
+    /// Set useLegacyProjectArgument=true for older SDKs or non-MTP environments.
     /// </summary>
     internal async Task<string> DotnetProjectTest(
         string? project = null,
@@ -576,6 +581,7 @@ public sealed partial class DotNetCliTools
         string? framework = null,
         bool blame = false,
         bool listTests = false,
+        bool useLegacyProjectArgument = false,
         bool machineReadable = false)
     {
         // Validate project path if provided
@@ -595,7 +601,22 @@ public sealed partial class DotNetCliTools
             return $"Error: {frameworkError}";
 
         var args = new StringBuilder("test");
-        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
+        
+        // Handle project argument based on mode
+        if (!string.IsNullOrEmpty(project))
+        {
+            if (useLegacyProjectArgument)
+            {
+                // Legacy: positional argument (for older SDKs / non-MTP)
+                args.Append($" \"{project}\"");
+            }
+            else
+            {
+                // Modern (default): --project flag (MTP-enabled)
+                args.Append($" --project \"{project}\"");
+            }
+        }
+        
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
         if (!string.IsNullOrEmpty(filter)) args.Append($" --filter \"{filter}\"");
         if (!string.IsNullOrEmpty(collect)) args.Append($" --collect \"{collect}\"");
