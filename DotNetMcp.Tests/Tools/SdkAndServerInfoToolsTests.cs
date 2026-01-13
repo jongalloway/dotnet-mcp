@@ -31,7 +31,7 @@ public class SdkAndServerInfoToolsTests
         Assert.NotNull(result);
         Assert.DoesNotContain("Error:", result);
         // SDK info should contain version or runtime information
-        Assert.True(result.Contains("SDK", StringComparison.OrdinalIgnoreCase) || 
+        Assert.True(result.Contains("SDK", StringComparison.OrdinalIgnoreCase) ||
                     result.Contains("Runtime", StringComparison.OrdinalIgnoreCase) ||
                     result.Contains("Version", StringComparison.OrdinalIgnoreCase),
                     "Result should contain SDK information");
@@ -82,7 +82,7 @@ public class SdkAndServerInfoToolsTests
         Assert.NotNull(result);
         Assert.DoesNotContain("Error:", result);
         // Should list SDK versions
-        Assert.True(result.Contains("SDK", StringComparison.OrdinalIgnoreCase) || 
+        Assert.True(result.Contains("SDK", StringComparison.OrdinalIgnoreCase) ||
                     result.Contains("Version", StringComparison.OrdinalIgnoreCase) ||
                     Regex.IsMatch(result, @"\d+\.\d+"),
                     "Result should contain SDK version information");
@@ -109,7 +109,7 @@ public class SdkAndServerInfoToolsTests
         Assert.NotNull(result);
         Assert.DoesNotContain("Error:", result);
         // Should list runtime information
-        Assert.True(result.Contains("Runtime", StringComparison.OrdinalIgnoreCase) || 
+        Assert.True(result.Contains("Runtime", StringComparison.OrdinalIgnoreCase) ||
                     result.Contains("Microsoft.NETCore.App", StringComparison.OrdinalIgnoreCase) ||
                     Regex.IsMatch(result, @"\d+\.\d+"),
                     "Result should contain runtime information");
@@ -124,6 +124,71 @@ public class SdkAndServerInfoToolsTests
         // Assert
         Assert.NotNull(result);
         Assert.DoesNotContain("Error:", result);
+    }
+
+    [Fact]
+    public async Task DotnetSdk_TemplatePackInstall_WithoutTemplatePackage_ReturnsError()
+    {
+        // Act
+        var result = await _tools.DotnetSdk(
+            action: DotNetMcp.Actions.DotnetSdkAction.InstallTemplatePack,
+            templatePackage: null);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("Error:", result);
+        Assert.Contains("templatePackage", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetSdk_TemplatePackInstall_WithMachineReadable_BuildsCorrectCommand()
+    {
+        // Use a local empty directory to avoid NuGet network calls in unit tests.
+        var tempDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-template-pack-test", Guid.NewGuid().ToString("n"));
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            // Act
+            var result = await _tools.DotnetSdk(
+                action: DotNetMcp.Actions.DotnetSdkAction.InstallTemplatePack,
+                templatePackage: tempDir,
+                machineReadable: true);
+
+            // Assert
+            Assert.NotNull(result);
+            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, $"dotnet new install \"{tempDir}\"");
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, recursive: true); } catch { /* best-effort cleanup */ }
+        }
+    }
+
+    [Fact]
+    public async Task DotnetSdk_TemplatePackUninstall_WithMachineReadable_BuildsCorrectCommand()
+    {
+        // Act
+        var result = await _tools.DotnetSdk(
+            action: DotNetMcp.Actions.DotnetSdkAction.UninstallTemplatePack,
+            templatePackage: "Some.Template.Pack",
+            machineReadable: true);
+
+        // Assert
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet new uninstall \"Some.Template.Pack\"");
+    }
+
+    [Fact]
+    public async Task DotnetSdk_ListTemplatePacks_WithMachineReadable_BuildsCorrectCommand()
+    {
+        // Act
+        var result = await _tools.DotnetSdk(
+            action: DotNetMcp.Actions.DotnetSdkAction.ListTemplatePacks,
+            machineReadable: true);
+
+        // Assert
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet new uninstall");
     }
 
     // Server Info Tools

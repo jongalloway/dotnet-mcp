@@ -19,12 +19,14 @@ This guide helps you get the most value from the .NET MCP Server with AI assista
 The .NET MCP Server uses **consolidated tools** that group related operations by domain:
 
 **Consolidated Tools:**
+
 - **8 domain-focused tools** (dotnet_project, dotnet_package, dotnet_ef, etc.)
 - **Action-based** - Single tool with multiple actions (e.g., `dotnet_project` with action "New", "Build", "Test")
 - **Better AI orchestration** - Fewer tools means better tool selection by AI assistants
 - **Clear semantic grouping** - Related operations grouped by domain
 
 **Example:**
+
 ```typescript
 // All project operations use dotnet_project with different actions
 await callTool("dotnet_project", { action: "New", template: "webapi", name: "MyApi" });
@@ -37,6 +39,7 @@ await callTool("dotnet_project", { action: "Test", filter: "Category=Unit" });
 Once you've installed the .NET MCP Server, start with simple requests to verify everything works:
 
 **Verify Installation:**
+
 ```text
 User: "What .NET SDKs do I have installed?"
 AI: Reads dotnet://sdk-info resource
@@ -44,6 +47,7 @@ AI: Reads dotnet://sdk-info resource
 ```
 
 **Explore Available Templates (Consolidated Tool):**
+
 ```text
 User: "What project templates are available?"
 AI: Uses dotnet_sdk with action: "ListTemplates"
@@ -51,6 +55,7 @@ AI: Uses dotnet_sdk with action: "ListTemplates"
 ```
 
 **Check Framework Support:**
+
 ```text
 User: "Which .NET versions are LTS?"
 AI: Reads dotnet://frameworks resource
@@ -62,17 +67,20 @@ AI: Reads dotnet://frameworks resource
 The .NET MCP Server provides two ways to get information:
 
 **Resources (Faster, Read-Only):**
+
 - `dotnet://sdk-info` - SDK information
 - `dotnet://runtime-info` - Runtime information
 - `dotnet://templates` - Template catalog
 - `dotnet://frameworks` - Framework versions with LTS status
 
 **Tools (Command Execution):**
+
 - Use when you need to perform actions (build, run, test)
 - Use when you need the most up-to-date information
 - Returns structured results with stdout/stderr
 
 **Example - Resource vs Tool:**
+
 ```text
 ❌ Slower approach:
 "What templates are available?"
@@ -92,20 +100,24 @@ AI: Reads dotnet://templates resource
 ### 1. Creating a New Console Application
 
 **Simple Prompt:**
+
 ```text
 "Create a new console app called HelloWorld"
 ```
 
 **What the AI Does:**
+
 1. Uses `dotnet_project` with action="New", template="console", name="HelloWorld"
 2. Returns success message with project location
 
 **Advanced Prompt:**
+
 ```text
 "Create a .NET 8 console app called MyApp with top-level statements disabled"
 ```
 
 **What the AI Does:**
+
 1. Uses `dotnet_sdk` with action="TemplateInfo" to check available console template parameters
 2. Uses `dotnet_project` with action="New":
    - template="console"
@@ -116,12 +128,14 @@ AI: Reads dotnet://templates resource
 ### 2. Creating a Web API with Database Support
 
 **Effective Prompt:**
+
 ```text
 "Create a web API project called ProductApi with Entity Framework Core and SQL Server support. 
 Set up user secrets for the connection string."
 ```
 
 **What the AI Does (using consolidated tools):**
+
 ```typescript
 // 1. Create the project
 await callTool("dotnet_project", {
@@ -161,6 +175,7 @@ await callTool("dotnet_dev_certs", {
 ```
 
 **Best Practice:**
+
 - Be specific about what packages you need (EF Core, SQL Server provider, Design tools)
 - Request user secrets setup to avoid committing connection strings
 - The AI knows to install EF tools globally if needed (using `dotnet_tool` with action="Install")
@@ -168,11 +183,13 @@ await callTool("dotnet_dev_certs", {
 ### 3. Adding Unit Tests to an Existing Project
 
 **Effective Prompt:**
+
 ```text
 "Add an xUnit test project called MyApp.Tests and reference the MyApp project"
 ```
 
 **What the AI Does:**
+
 ```bash
 # 1. Create test project
 dotnet new xunit -n MyApp.Tests
@@ -185,12 +202,14 @@ dotnet sln add MyApp.Tests/MyApp.Tests.csproj
 ```
 
 **Advanced Testing Prompt:**
+
 ```text
 "Create integration tests using xUnit, add WebApplicationFactory for testing the API, 
 and configure code coverage reporting"
 ```
 
 **What the AI Does:**
+
 ```bash
 # 1. Create test project
 dotnet new xunit -n MyApp.IntegrationTests
@@ -209,11 +228,13 @@ dotnet test -- --coverage --coverage-output-format cobertura
 ### 4. Package Management Workflow
 
 **Search and Add Packages:**
+
 ```text
 "Find the latest Serilog package for structured logging and add it to my project"
 ```
 
 **What the AI Does:**
+
 ```bash
 # 1. Search for Serilog packages
 dotnet package search serilog --exact-match
@@ -225,11 +246,13 @@ dotnet add package Serilog.Sinks.File
 ```
 
 **Update Packages:**
+
 ```text
 "Update all my NuGet packages to the latest compatible versions"
 ```
 
 **What the AI Does:**
+
 ```bash
 # List outdated packages first
 dotnet list package --outdated
@@ -241,6 +264,7 @@ dotnet add package <PackageName>
 ```
 
 **Best Practice:**
+
 - Let the AI search for packages first to find the exact name
 - The AI can read package metadata to recommend related packages
 - Security: The AI will redact any exposed secrets in package configurations
@@ -248,12 +272,14 @@ dotnet add package <PackageName>
 ### 5. Solution Management
 
 **Create Multi-Project Solution:**
+
 ```text
 "Create a solution called MyCompany.Products with a web API, 
 class library for data models, and xUnit tests. Use the new slnx format."
 ```
 
 **What the AI Does:**
+
 ```bash
 # 1. Create solution
 dotnet new sln -n MyCompany.Products --use-slnx
@@ -279,11 +305,13 @@ dotnet add MyCompany.Products.Tests reference MyCompany.Products.Data
 > **Note on Code Examples:** The examples below show raw `dotnet` CLI commands for readability. When AI assistants execute these operations, they use the `dotnet_ef` tool with appropriate actions like "MigrationsAdd", "DatabaseUpdate".
 
 **Initial Setup:**
+
 ```text
 "I have a DbContext with User and Product entities. Create and apply the initial migration."
 ```
 
 **What the AI Does:**
+
 ```bash
 # 1. Ensure dotnet-ef tool is installed
 dotnet tool install dotnet-ef --global
@@ -299,11 +327,13 @@ dotnet ef migrations list
 ```
 
 **Update Schema:**
+
 ```text
 "I added an Email property to the User entity. Update the database."
 ```
 
 **What the AI Does:**
+
 ```bash
 # Create migration for the change
 dotnet ef migrations add AddUserEmail
@@ -313,11 +343,13 @@ dotnet ef database update
 ```
 
 **Production Deployment:**
+
 ```text
 "Generate an idempotent SQL script for all my migrations so I can review before deploying to production"
 ```
 
 **What the AI Does:**
+
 ```bash
 # Generate script that can be run multiple times safely
 dotnet ef migrations script --idempotent --output deploy.sql
@@ -326,11 +358,13 @@ dotnet ef migrations script --idempotent --output deploy.sql
 ### 7. HTTPS Development Certificates
 
 **Setup HTTPS for Development:**
+
 ```text
 "I'm getting certificate errors when running my web app locally"
 ```
 
 **What the AI Does:**
+
 ```bash
 # 1. Check certificate status
 dotnet dev-certs https --check --trust
@@ -340,11 +374,13 @@ dotnet dev-certs https --trust
 ```
 
 **Docker Development:**
+
 ```text
 "Export the HTTPS certificate for use in Docker containers"
 ```
 
 **What the AI Does:**
+
 ```bash
 # Export certificate with password
 dotnet dev-certs https --export-path ./certs/aspnetapp.pfx 
@@ -354,22 +390,26 @@ dotnet dev-certs https --export-path ./certs/aspnetapp.pfx
 ### 8. Running and Watching Applications
 
 **Development with Hot Reload:**
+
 ```text
 "Run my web app with hot reload enabled so I can see changes immediately"
 ```
 
 **What the AI Does:**
+
 ```bash
 # Run with file watching and hot reload
 dotnet watch run
 ```
 
 **Continuous Testing:**
+
 ```text
 "Run my tests continuously, rerunning them whenever I change code"
 ```
 
 **What the AI Does:**
+
 ```bash
 # Watch tests
 dotnet watch test
@@ -378,11 +418,13 @@ dotnet watch test
 ### 9. Code Formatting and Quality
 
 **Format Code:**
+
 ```text
 "Format all code in my solution according to our .editorconfig rules"
 ```
 
 **What the AI Does:**
+
 ```bash
 # Format entire solution
 dotnet format
@@ -394,11 +436,13 @@ dotnet format --verify-no-changes
 ### 10. Publishing Applications
 
 **Publish for Deployment:**
+
 ```text
 "Publish my web API as a self-contained Linux executable for Ubuntu"
 ```
 
 **What the AI Does:**
+
 ```bash
 # Publish with specific runtime
 dotnet publish -c Release -r linux-x64 --self-contained
@@ -408,11 +452,13 @@ dotnet publish -c Release -r linux-x64 --no-self-contained
 ```
 
 **Container Publishing:**
+
 ```text
 "Publish my app ready for containerization"
 ```
 
 **What the AI Does:**
+
 ```bash
 # Publish for container
 dotnet publish -c Release -r linux-x64 --no-self-contained -o ./publish
@@ -423,6 +469,7 @@ dotnet publish -c Release -r linux-x64 --no-self-contained -o ./publish
 ### Microservices with .NET Aspire Orchestration
 
 **Advanced Prompt:**
+
 ```text
 "Create a microservices application with:
 - Product catalog API (minimal API style)
@@ -435,6 +482,7 @@ dotnet publish -c Release -r linux-x64 --no-self-contained -o ./publish
 ```
 
 **What the AI Does:**
+
 ```bash
 # 1. Create solution
 dotnet new sln -n MicroserviceDemo --use-slnx
@@ -488,6 +536,7 @@ dotnet add MicroserviceDemo.Web.Tests reference MicroserviceDemo.Web
 ```
 
 **Running the Application:**
+
 ```bash
 # Run via Aspire AppHost
 dotnet run --project MicroserviceDemo.AppHost
@@ -497,6 +546,7 @@ dotnet run --project MicroserviceDemo.AppHost
 ### Multi-Database Application with EF Core
 
 **Advanced Prompt:**
+
 ```text
 "Set up an application with two databases:
 - SQL Server for product catalog
@@ -505,6 +555,7 @@ Each with its own DbContext and migrations"
 ```
 
 **What the AI Does:**
+
 ```bash
 # 1. Add SQL Server packages
 dotnet add package Microsoft.EntityFrameworkCore.SqlServer
@@ -529,12 +580,14 @@ dotnet user-secrets set "ConnectionStrings:UserDb"
 ### Cross-Platform Multi-Targeting
 
 **Advanced Prompt:**
+
 ```text
 "Create a class library that targets .NET 8, .NET 10, and .NET Standard 2.0 
 for maximum compatibility. Set up conditional compilation for framework-specific features."
 ```
 
 **What the AI Does:**
+
 ```bash
 # 1. Create the library
 dotnet new classlib -n MyLibrary
@@ -550,6 +603,7 @@ dotnet pack -c Release
 ```
 
 **Testing Multi-Target Library:**
+
 ```bash
 # Run tests against each framework
 dotnet test --framework net8.0
@@ -559,6 +613,7 @@ dotnet test --framework net10.0
 ### Database-First with Scaffold and Customization
 
 **Advanced Prompt:**
+
 ```text
 "Reverse engineer my existing SQL Server database into EF Core entities. 
 Put entities in a Models folder, use nullable reference types, 
@@ -566,6 +621,7 @@ and generate a separate configuration class for each entity."
 ```
 
 **What the AI Does:**
+
 ```bash
 # Scaffold with advanced options
 dotnet ef dbcontext scaffold 
@@ -588,11 +644,13 @@ dotnet ef dbcontext info
 ### Mobile Development Setup (MAUI)
 
 **Advanced Prompt:**
+
 ```text
 "Set up my environment for .NET MAUI development targeting Android, iOS, and Windows"
 ```
 
 **What the AI Does:**
+
 ```bash
 # 1. Search for available MAUI workloads
 dotnet workload search maui
@@ -663,6 +721,7 @@ graph TB
 The NuGet MCP Server provides advanced package discovery and metadata features that complement the .NET MCP's basic package management.
 
 **Install NuGet MCP:**
+
 ```json
 {
   "mcpServers": {
@@ -701,6 +760,7 @@ AI (via .NET MCP):
 ```
 
 **Best Practice for Integration:**
+
 1. Use **NuGet MCP** for package discovery and research
 2. Use **.NET MCP** for adding packages to projects
 3. The AI orchestrates both seamlessly
@@ -730,6 +790,7 @@ AI (via .NET MCP):
 The Aspire MCP Server monitors running .NET Aspire applications and provides telemetry, logging, and distributed tracing capabilities.
 
 **Install Aspire MCP:**
+
 ```json
 {
   "mcpServers": {
@@ -798,6 +859,7 @@ AI monitors fix effectiveness via Aspire MCP
 ```
 
 **Best Practice for Integration:**
+
 1. Use **.NET MCP** to create, build, and run Aspire applications
 2. Use **Aspire MCP** to monitor running applications and diagnose issues
 3. Use **.NET MCP** to apply fixes based on Aspire MCP insights
@@ -907,6 +969,7 @@ await callTool("dotnet_package", { action: "Add", packageId: "Serilog" })
 ```
 
 **Benefits:**
+
 - Clearer semantic intent (domain + action)
 - Better AI tool selection (8 tools instead of 74)
 - Easier workflow composition
@@ -914,11 +977,13 @@ await callTool("dotnet_package", { action: "Add", packageId: "Serilog" })
 ### 2. Be Specific with Your Requests
 
 **❌ Vague Prompt:**
+
 ```text
 "Create a web app"
 ```
 
 **✅ Specific Prompt:**
+
 ```text
 "Create a server-side Blazor web app called CustomerPortal 
 targeting .NET 10 with Individual authentication"
@@ -929,11 +994,13 @@ targeting .NET 10 with Individual authentication"
 ### 3. Leverage Template Discovery
 
 **✅ Good Practice:**
+
 ```text
 "What templates are available for creating APIs?"
 ```
 
 The AI will use `dotnet_sdk` with action="SearchTemplates" to find:
+
 - `webapi` - ASP.NET Core Web API
 - `webapi-minimal` - Minimal API
 - `grpc` - gRPC service
@@ -944,11 +1011,13 @@ Then you can choose: *"Use the minimal API template"*
 ### 4. Request Verification Steps
 
 **✅ Good Practice:**
+
 ```text
 "Create a console app and verify it builds successfully"
 ```
 
 The AI will:
+
 1. Create the project via `dotnet_project` (action="New")
 2. Build it via `dotnet_project` (action="Build")
 3. Report any compilation errors
@@ -958,12 +1027,14 @@ The AI will:
 When you need information but don't want to execute commands:
 
 **✅ Efficient:**
+
 ```text
 "What's the latest LTS .NET version?"
 AI: Reads dotnet://frameworks resource (fast, no execution)
 ```
 
 **❌ Less Efficient:**
+
 ```text
 AI: Executes dotnet_sdk (action: "Info", slower, runs dotnet command)
 ```
@@ -971,6 +1042,7 @@ AI: Executes dotnet_sdk (action: "Info", slower, runs dotnet command)
 ### 6. Bundle Related Operations
 
 **✅ Efficient Prompt:**
+
 ```text
 "Create a web API called OrderApi, add EF Core with SQL Server, 
 create the initial migration, and set up user secrets"
@@ -979,6 +1051,7 @@ create the initial migration, and set up user secrets"
 The AI executes all steps in sequence without additional prompting.
 
 **❌ Inefficient:**
+
 ```text
 "Create a web API"
 [AI creates project]
@@ -991,11 +1064,13 @@ The AI executes all steps in sequence without additional prompting.
 ### 7. Specify Framework Versions When Needed
 
 **When to specify:**
+
 ```text
 "Create a class library targeting .NET 8 for compatibility with existing projects"
 ```
 
 **When not needed:**
+
 ```text
 "Create a new console app"
 # AI will use latest LTS by default
@@ -1004,6 +1079,7 @@ The AI executes all steps in sequence without additional prompting.
 ### 8. Use Parallel Operations for Independent Tasks
 
 **✅ Good for Concurrency:**
+
 ```text
 "Search for the Serilog package AND list my current packages"
 ```
@@ -1011,6 +1087,7 @@ The AI executes all steps in sequence without additional prompting.
 The AI can execute both simultaneously (read-only operations).
 
 **❌ Cannot Run in Parallel:**
+
 ```text
 "Build my project AND add a new package"
 ```
@@ -1020,11 +1097,13 @@ These modify state and must run sequentially.
 ### 9. Request Explanations
 
 **✅ Good Practice:**
+
 ```text
 "Create a MAUI project and explain what workloads I'll need"
 ```
 
 The AI will:
+
 1. Check installed workloads via `dotnet_workload` (action: "List")
 2. Explain which are needed (maui-android, maui-ios, etc.)
 3. Warn about download size
@@ -1033,11 +1112,13 @@ The AI will:
 ### 10. Validate After Major Changes
 
 **✅ Good Practice:**
+
 ```text
 "Update all packages to latest versions and run tests to ensure nothing broke"
 ```
 
 The AI will:
+
 1. Update packages via `dotnet_package` (action: "Update")
 2. Build via `dotnet_project` (action: "Build")
 3. Run tests via `dotnet_project` (action: "Test")
@@ -1046,16 +1127,19 @@ The AI will:
 ### 11. Use User Secrets for Sensitive Data
 
 **✅ Secure:**
+
 ```text
 "Set up user secrets for my API key and database connection string"
 ```
 
 **❌ Insecure:**
+
 ```text
 "Add my API key to appsettings.json"
 ```
 
 The AI knows to recommend user secrets for:
+
 - Connection strings
 - API keys
 - Passwords
@@ -1069,6 +1153,7 @@ The AI knows to recommend user secrets for:
 #### Issue: "Template not found"
 
 **Symptoms:**
+
 ```text
 AI: "Creating project with template 'webapp'..."
 Error: No templates found matching 'webapp'
@@ -1077,18 +1162,21 @@ Error: No templates found matching 'webapp'
 **Solutions:**
 
 1. **Check available templates:**
+
 ```text
 "What web templates are available?"
 ```
 
-2. **Search for the template:**
+1. **Search for the template:**
+
 ```text
 "Search for web app templates"
 ```
 
-3. **Install missing templates:**
+1. **Install missing templates:**
+
 ```text
-AI may suggest: dotnet new install <template-package>
+AI may suggest: dotnet_sdk (action=InstallTemplatePack, templatePackage=<template-package>)
 ```
 
 **Prevention:** Always ask the AI to verify template availability for non-standard templates.
@@ -1096,6 +1184,7 @@ AI may suggest: dotnet new install <template-package>
 #### Issue: "Framework version not supported"
 
 **Symptoms:**
+
 ```text
 Error: The framework 'net7.0' is not supported
 ```
@@ -1103,16 +1192,18 @@ Error: The framework 'net7.0' is not supported
 **Solutions:**
 
 1. **Check installed SDKs:**
+
 ```text
 "What .NET SDKs do I have installed?"
 ```
 
-2. **Use a supported framework:**
+1. **Use a supported framework:**
+
 ```text
 "Create the project targeting .NET 10 instead"
 ```
 
-3. **Install required SDK:**
+1. **Install required SDK:**
 Download from [dot.net](https://dot.net)
 
 **Prevention:** Let the AI recommend framework versions based on your installed SDKs.
@@ -1120,6 +1211,7 @@ Download from [dot.net](https://dot.net)
 #### Issue: "Build failures after adding packages"
 
 **Symptoms:**
+
 ```text
 AI: "Added package successfully"
 dotnet build fails with version conflicts
@@ -1128,16 +1220,19 @@ dotnet build fails with version conflicts
 **Solutions:**
 
 1. **Check for conflicts:**
+
 ```text
 "List my packages and show any conflicts"
 ```
 
-2. **Restore packages:**
+1. **Restore packages:**
+
 ```text
 "Restore project dependencies"
 ```
 
-3. **Update problematic packages:**
+1. **Update problematic packages:**
+
 ```text
 "Update the <PackageName> package to a compatible version"
 ```
@@ -1147,6 +1242,7 @@ dotnet build fails with version conflicts
 #### Issue: "Tests fail to run"
 
 **Symptoms:**
+
 ```text
 dotnet test returns no tests found
 ```
@@ -1154,16 +1250,19 @@ dotnet test returns no tests found
 **Solutions:**
 
 1. **Verify test framework:**
+
 ```text
 "What testing packages are in my test project?"
 ```
 
-2. **Check test discovery:**
+1. **Check test discovery:**
+
 ```text
 AI: dotnet test --list-tests
 ```
 
-3. **Rebuild test project:**
+1. **Rebuild test project:**
+
 ```text
 "Clean and rebuild the test project"
 ```
@@ -1173,6 +1272,7 @@ AI: dotnet test --list-tests
 #### Issue: "EF Core commands not found"
 
 **Symptoms:**
+
 ```text
 Error: Could not execute because dotnet-ef was not found
 ```
@@ -1180,13 +1280,15 @@ Error: Could not execute because dotnet-ef was not found
 **Solutions:**
 
 1. **Install dotnet-ef tool:**
+
 ```text
 "Install the Entity Framework Core tools globally"
 ```
 
 AI executes: `dotnet tool install dotnet-ef --global`
 
-2. **Verify installation:**
+1. **Verify installation:**
+
 ```text
 "Check if dotnet-ef is installed"
 ```
@@ -1196,6 +1298,7 @@ AI executes: `dotnet tool install dotnet-ef --global`
 #### Issue: "Certificate trust errors"
 
 **Symptoms:**
+
 ```text
 Browser shows: "Your connection is not private"
 HTTPS certificate not trusted
@@ -1204,11 +1307,13 @@ HTTPS certificate not trusted
 **Solutions:**
 
 1. **Check certificate status:**
+
 ```text
 "Check my HTTPS development certificate"
 ```
 
-2. **Trust the certificate:**
+1. **Trust the certificate:**
+
 ```text
 "Trust my HTTPS development certificate"
 ```
@@ -1220,6 +1325,7 @@ AI executes: `dotnet dev-certs https --trust`
 #### Issue: "Workload installation fails"
 
 **Symptoms:**
+
 ```text
 Error installing MAUI workloads
 Insufficient permissions or disk space
@@ -1234,6 +1340,7 @@ Workloads can require several GB
 May need administrator/sudo for workload installation
 
 3. **Check workload status:**
+
 ```text
 "List installed workloads and show any errors"
 ```
@@ -1243,6 +1350,7 @@ May need administrator/sudo for workload installation
 #### Issue: "User secrets not loading"
 
 **Symptoms:**
+
 ```text
 Configuration["MySecret"] returns null
 User secrets not accessible at runtime
@@ -1251,16 +1359,18 @@ User secrets not accessible at runtime
 **Solutions:**
 
 1. **Verify secrets initialization:**
+
 ```text
 "Check if user secrets are initialized for my project"
 ```
 
-2. **List secrets:**
+1. **List secrets:**
+
 ```text
 "List all user secrets"
 ```
 
-3. **Check UserSecretsId:**
+1. **Check UserSecretsId:**
 AI can verify the `<UserSecretsId>` exists in .csproj
 
 **Prevention:** Always initialize user secrets before setting values.
@@ -1268,6 +1378,7 @@ AI can verify the `<UserSecretsId>` exists in .csproj
 #### Issue: "Hot reload not working"
 
 **Symptoms:**
+
 ```text
 Changes not reflected when using dotnet watch
 Build errors during hot reload
@@ -1276,14 +1387,16 @@ Build errors during hot reload
 **Solutions:**
 
 1. **Restart watch:**
+
 ```text
 "Stop and restart hot reload"
 ```
 
-2. **Check supported changes:**
+1. **Check supported changes:**
 Not all code changes support hot reload (e.g., adding new files)
 
-3. **Full rebuild:**
+2. **Full rebuild:**
+
 ```text
 "Do a full rebuild and restart the watch"
 ```
@@ -1291,6 +1404,7 @@ Not all code changes support hot reload (e.g., adding new files)
 #### Issue: "Multi-targeting build errors"
 
 **Symptoms:**
+
 ```text
 Build succeeds for net10.0 but fails for net8.0
 ```
@@ -1298,16 +1412,18 @@ Build succeeds for net10.0 but fails for net8.0
 **Solutions:**
 
 1. **Build specific framework:**
+
 ```text
 "Build the project targeting only .NET 8"
 ```
 
 AI: `dotnet build --framework net8.0`
 
-2. **Check framework-specific code:**
+1. **Check framework-specific code:**
 Look for conditional compilation issues
 
-3. **Verify package compatibility:**
+2. **Verify package compatibility:**
+
 ```text
 "Check if all my packages support both .NET 8 and 10"
 ```
@@ -1317,6 +1433,7 @@ Look for conditional compilation issues
 #### Enable Verbose Output
 
 **Request:**
+
 ```text
 "Build my project with detailed output so I can see what's failing"
 ```
@@ -1326,6 +1443,7 @@ AI: `dotnet build --verbosity detailed`
 #### Check MSBuild Logs
 
 **Request:**
+
 ```text
 "Build with binary logging so I can analyze build issues"
 ```
@@ -1337,6 +1455,7 @@ Creates `msbuild.binlog` for analysis with MSBuild Structured Log Viewer.
 #### Validate Project File
 
 **Request:**
+
 ```text
 "Analyze my project file and check for issues"
 ```
@@ -1346,6 +1465,7 @@ AI uses `dotnet_project` (action: "Analyze") to extract and validate project con
 #### Test Specific Framework
 
 **Request:**
+
 ```text
 "Run tests only for .NET 10 target"
 ```
@@ -1385,6 +1505,7 @@ These can always run concurrently with any other operations:
 - `dotnet_sdk` (action: "ListTemplates") - List templates
 - `dotnet_sdk` (action: "SearchTemplates") - Search templates  
 - `dotnet_sdk` (action: "TemplateInfo") - Get template info
+- `dotnet_sdk` (action: "ListTemplatePacks") - List installed template packs
 - `dotnet_package` (action: "Search") - Search NuGet packages
 - `dotnet_package` (action: "List") - List packages
 - `dotnet_sdk` (action: "Info") - Get SDK information
@@ -1397,6 +1518,7 @@ These can always run concurrently with any other operations:
 - All MCP resources (dotnet://sdk-info, etc.)
 
 **Example - Parallel Discovery:**
+
 ```text
 User: "Show me available web templates, search for Entity Framework packages, 
        and list my installed SDKs"
@@ -1416,6 +1538,7 @@ All return immediately without conflicts.
 These can run in parallel IF they operate on different files/projects:
 
 ✅ **Can run together:**
+
 ```bash
 # Different projects
 dotnet build ProjectA/ProjectA.csproj
@@ -1427,6 +1550,7 @@ dotnet sln add Project2 (to SolutionB)
 ```
 
 ❌ **Cannot run together:**
+
 ```bash
 # Same project
 dotnet build MyProject.csproj
@@ -1440,6 +1564,7 @@ dotnet sln remove Project2
 #### ❌ Never Run in Parallel
 
 **Long-Running Operations:**
+
 - `dotnet_project` (action: "Build", on same project)
 - `dotnet_project` (action: "Test", on same project)
 - `dotnet_project` (action: "Run", on same project)
@@ -1447,13 +1572,17 @@ dotnet sln remove Project2
 - `dotnet_project` (action: "Watch", any watch command)
 
 **Global Operations:**
+
 - `dotnet_sdk` (action: "ClearTemplateCache")
+- `dotnet_sdk` (action: "InstallTemplatePack")
+- `dotnet_sdk` (action: "UninstallTemplatePack")
 - `dotnet_dev_certs` (action: "CertificateTrust")
 - `dotnet_dev_certs` (action: "CertificateClean")
 - `dotnet_workload` (action: "Install")
 - `dotnet_workload` (action: "Update")
 
 **Database Operations:**
+
 - `dotnet_ef` (action: "DatabaseUpdate")
 - `dotnet_ef` (action: "DatabaseDrop")
 - `dotnet_ef` (action: "MigrationsAdd", on same DbContext)
@@ -1697,6 +1826,7 @@ AI Strategy:
 ### Reference Documentation
 
 For detailed concurrency information:
+
 - [Concurrency Safety Matrix](concurrency.md) - Complete operation compatibility matrix
 - [Advanced Topics](advanced-topics.md) - Performance optimization details
 
@@ -1714,6 +1844,7 @@ This guide covered:
 ### Quick Reference
 
 **When to use .NET MCP:**
+
 - Creating projects and solutions
 - Building, testing, publishing
 - Managing packages and references
@@ -1721,17 +1852,20 @@ This guide covered:
 - Code formatting and quality
 
 **When to use NuGet MCP:**
+
 - Advanced package search
 - Package compatibility checks
 - Reading package documentation
 
 **When to use Aspire MCP:**
+
 - Monitoring running applications
 - Viewing distributed traces
 - Analyzing performance metrics
 - Debugging production issues
 
 **Best Practices:**
+
 1. Be specific in your requests
 2. Bundle related operations
 3. Use resources for quick queries

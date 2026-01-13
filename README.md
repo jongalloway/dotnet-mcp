@@ -848,7 +848,7 @@ await callTool("dotnet_tool", {
 
 #### dotnet_sdk - SDK and Template Information
 
-Query SDK, runtime, template, and framework information: **Version**, **Info**, **ListSdks**, **ListRuntimes**, **ListTemplates**, **SearchTemplates**, **TemplateInfo**, **ClearTemplateCache**, **FrameworkInfo**, **CacheMetrics**
+Query SDK, runtime, template, and framework information: **Version**, **Info**, **ListSdks**, **ListRuntimes**, **ListTemplates**, **SearchTemplates**, **TemplateInfo**, **ListTemplatePacks**, **InstallTemplatePack**, **UninstallTemplatePack**, **ClearTemplateCache**, **FrameworkInfo**, **CacheMetrics**
 
 Example:
 
@@ -867,6 +867,24 @@ await callTool("dotnet_sdk", {
 await callTool("dotnet_sdk", { 
   action: "SearchTemplates", 
   searchTerm: "web" 
+});
+
+// List installed template packs
+await callTool("dotnet_sdk", {
+  action: "ListTemplatePacks"
+});
+
+// Install a template pack (NuGet package ID + version)
+await callTool("dotnet_sdk", {
+  action: "InstallTemplatePack",
+  templatePackage: "Aspire.ProjectTemplates",
+  templateVersion: "13.1.0"
+});
+
+// Uninstall a template pack
+await callTool("dotnet_sdk", {
+  action: "UninstallTemplatePack",
+  templatePackage: "Aspire.ProjectTemplates"
 });
 ```
 

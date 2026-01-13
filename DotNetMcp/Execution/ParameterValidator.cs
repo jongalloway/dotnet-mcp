@@ -76,6 +76,112 @@ public static partial class ParameterValidator
     }
 
     /// <summary>
+    /// Validate a template package reference used by <c>dotnet new install</c>/<c>dotnet new uninstall</c>.
+    /// Accepts either a NuGet package ID or a path (folder or .nupkg).
+    /// </summary>
+    public static bool ValidateTemplatePackage(string? templatePackage, out string? errorMessage)
+    {
+        errorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(templatePackage))
+        {
+            errorMessage = "templatePackage is required.";
+            return false;
+        }
+
+        // Disallow control characters which can break argument parsing/logging.
+        foreach (var c in templatePackage)
+        {
+            if (char.IsControl(c))
+            {
+                errorMessage = "templatePackage contains control characters, which is not allowed.";
+                return false;
+            }
+        }
+
+        // If the string looks like a path, validate that it exists.
+        var looksLikePath = templatePackage.Contains('\\')
+            || templatePackage.Contains('/')
+            || templatePackage.StartsWith(".", StringComparison.Ordinal)
+            || templatePackage.EndsWith(".nupkg", StringComparison.OrdinalIgnoreCase);
+
+        if (looksLikePath)
+        {
+            if (File.Exists(templatePackage) || Directory.Exists(templatePackage))
+            {
+                return true;
+            }
+
+            errorMessage = $"Path not found: {templatePackage}. Provide an existing folder/.nupkg path, or a NuGet package ID.";
+            return false;
+        }
+
+        // Otherwise treat as package ID (optionally with ::version already appended).
+        // Allow letters/digits plus '.', '-', '_' and ':' (for <id>::<version> syntax).
+        foreach (var c in templatePackage)
+        {
+            if (!(char.IsLetterOrDigit(c) || c is '.' or '-' or '_' or ':'))
+            {
+                errorMessage = $"Invalid templatePackage '{templatePackage}'. Package IDs may contain only letters, digits, '.', '-', '_' (and optionally '::' for version).";
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Validate a template package version string (used as &lt;id&gt;::&lt;version&gt;).
+    /// </summary>
+    public static bool ValidateTemplatePackageVersion(string? templateVersion, out string? errorMessage)
+    {
+        errorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(templateVersion))
+            return true;
+
+        foreach (var c in templateVersion)
+        {
+            if (char.IsControl(c))
+            {
+                errorMessage = "templateVersion contains control characters, which is not allowed.";
+                return false;
+            }
+        }
+
+        // Keep this permissive (supports prerelease/build metadata) but disallow whitespace.
+        if (templateVersion.Any(char.IsWhiteSpace))
+        {
+            errorMessage = "templateVersion must not contain whitespace.";
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Validate an optional NuGet source string for template installation.
+    /// </summary>
+    public static bool ValidateTemplateNugetSource(string? nugetSource, out string? errorMessage)
+    {
+        errorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(nugetSource))
+            return true;
+
+        foreach (var c in nugetSource)
+        {
+            if (char.IsControl(c))
+            {
+                errorMessage = "nugetSource contains control characters, which is not allowed.";
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// Validate a configuration parameter (Debug or Release).
     /// </summary>
     /// <param name="configuration">The configuration string to validate</param>

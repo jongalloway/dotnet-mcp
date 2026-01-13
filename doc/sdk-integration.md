@@ -262,6 +262,9 @@ Template, SDK, runtime, and framework metadata is surfaced via the consolidated 
 - `dotnet_sdk` (action: `ListTemplates`) - Lists installed templates (Template Engine API; CLI fallback when needed)
 - `dotnet_sdk` (action: `SearchTemplates`) - Searches templates by name/description
 - `dotnet_sdk` (action: `TemplateInfo`) - Detailed template info, including parameters/options
+- `dotnet_sdk` (action: `ListTemplatePacks`) - Lists installed template packs (via `dotnet new uninstall` listing behavior)
+- `dotnet_sdk` (action: `InstallTemplatePack`) - Installs a template pack (wraps `dotnet new install`)
+- `dotnet_sdk` (action: `UninstallTemplatePack`) - Uninstalls a template pack (wraps `dotnet new uninstall`)
 - `dotnet_sdk` (action: `ClearTemplateCache`) - Clears template cache (use after installing/uninstalling templates)
 - `dotnet_sdk` (action: `CacheMetrics`) - Cache hit/miss stats for SDK/runtime/templates caching
 
