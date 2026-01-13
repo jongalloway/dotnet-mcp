@@ -32,9 +32,12 @@ The .NET MCP Server has successfully transitioned from **74 individual tools** t
 
 ## Current State Analysis
 
+> Note: This section is **historical context** describing the pre-consolidation (74 individual tools) design.
+> As of v1.0.0, the server exposes the **consolidated tool surface only**.
+
 ### Tool Inventory by Category
 
-The current 74 tools are distributed across 11 functional categories:
+The legacy pre-consolidation 74 tools were distributed across 11 functional categories:
 
 | Category | Tool Count | Examples |
 | -------- | ---------- | -------- |
@@ -50,9 +53,9 @@ The current 74 tools are distributed across 11 functional categories:
 | **Code Quality** | 1 | `dotnet_format` |
 | **Utilities** | 2 | `dotnet_help`, `dotnet_server_capabilities` |
 
-### Current Naming Convention
+### Legacy Naming Convention
 
-Tools follow the pattern `dotnet_{noun}_{verb}`:
+Tools followed the pattern `dotnet_{noun}_{verb}`:
 
 - **Noun**: Domain (project, package, solution, ef, workload, etc.)
 - **Verb**: Action (new, build, add, remove, list, etc.)
@@ -189,26 +192,26 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **Parameters:**
 
 - `action` (required, enum): The project operation to perform
-  - `new` - Create new project from template
-  - `restore` - Restore project dependencies
-  - `build` - Build project
-  - `run` - Build and run project
-  - `test` - Run unit tests
-  - `publish` - Publish project for deployment
-  - `clean` - Clean build outputs
-  - `analyze` - Analyze project file for metadata
-  - `dependencies` - Show dependency graph
-  - `validate` - Validate project health
-  - `pack` - Create NuGet package from project
-  - `watch` - Run with file watching and hot reload
-  - `format` - Format code per .editorconfig
+  - `New` - Create new project from template
+  - `Restore` - Restore project dependencies
+  - `Build` - Build project
+  - `Run` - Build and run project
+  - `Test` - Run unit tests
+  - `Publish` - Publish project for deployment
+  - `Clean` - Clean build outputs
+  - `Analyze` - Analyze project file for metadata
+  - `Dependencies` - Show dependency graph
+  - `Validate` - Validate project health
+  - `Pack` - Create NuGet package from project
+  - `Watch` - Run with file watching and hot reload
+  - `Format` - Format code per .editorconfig
 - `project` (optional, string): Path to project file (defaults to current directory)
 - `machineReadable` (optional, bool): Return structured JSON output (default: false)
 - `workingDirectory` (optional, string): Working directory for command execution
 
 **Action-Specific Parameters:**
 
-**For action="new":**
+**For action="New":**
 
 - `template` (required): Template short name (e.g., 'console', 'webapi')
 - `name` (optional): Project name
@@ -216,25 +219,25 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 - `framework` (optional): Target framework (e.g., 'net10.0')
 - `additionalOptions` (optional): Template-specific options
 
-**For action="build":**
+**For action="Build":**
 
 - `configuration` (optional): Debug or Release
 - `framework` (optional): Build specific framework
 
-**For action="run":**
+**For action="Run":**
 
 - `configuration` (optional): Debug or Release
 - `framework` (optional): Run specific framework
 - `noBuild` (optional, bool): Skip building
 
-**For action="test":**
+**For action="Test":**
 
 - `configuration` (optional): Debug or Release
 - `framework` (optional): Test specific framework
 - `filter` (optional): Test filter expression
 - `noBuild` (optional, bool): Skip building
 
-**For action="publish":**
+**For action="Publish":**
 
 - `configuration` (optional): Debug or Release
 - `framework` (optional): Publish specific framework
@@ -242,7 +245,7 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 - `output` (optional): Output directory
 - `selfContained` (optional, bool): Include runtime
 
-**For action="watch":**
+**For action="Watch":**
 
 - `watchAction` (required, enum): 'run', 'test', or 'build'
 - `configuration` (optional): Debug or Release
@@ -274,60 +277,60 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **Parameters:**
 
 - `action` (required, enum): The package operation to perform
-  - `add` - Add NuGet package to project
-  - `remove` - Remove NuGet package from project
-  - `search` - Search NuGet.org for packages
-  - `update` - Update packages to newer versions
-  - `list` - List package references
-  - `add_reference` - Add project-to-project reference
-  - `remove_reference` - Remove project-to-project reference
-  - `list_references` - List project references
-  - `restore` - Restore packages (alias to project restore)
-  - `clear_cache` - Clear NuGet local caches
+  - `Add` - Add NuGet package to project
+  - `Remove` - Remove NuGet package from project
+  - `Search` - Search NuGet.org for packages
+  - `Update` - Update packages to newer versions
+  - `List` - List package references
+  - `AddReference` - Add project-to-project reference
+  - `RemoveReference` - Remove project-to-project reference
+  - `ListReferences` - List project references
+  - `ClearCache` - Clear NuGet local caches
 - `project` (optional, string): Path to project file
 - `machineReadable` (optional, bool): Return structured JSON output (default: false)
 - `workingDirectory` (optional, string): Working directory for command execution
 
 **Action-Specific Parameters:**
 
-**For action="add":**
+**For action="Add":**
 
 - `packageId` (required): NuGet package ID
 - `version` (optional): Package version
 - `source` (optional): NuGet source URL
 - `framework` (optional): Target framework
 
-**For action="remove":**
+**For action="Remove":**
 
 - `packageId` (required): Package ID to remove
 
-**For action="search":**
+**For action="Search":**
 
 - `searchTerm` (required): Search query
 - `take` (optional, int): Number of results (default: 20)
+- `skip` (optional, int): Skip the first N results (pagination)
 - `prerelease` (optional, bool): Include prerelease versions
+- `exactMatch` (optional, bool): Return exact matches only
 
-**For action="update":**
+**For action="Update":**
 
 - `packageId` (optional): Specific package to update (if omitted, updates all)
 - `version` (optional): Target version
 - `prerelease` (optional, bool): Include prerelease versions
 
-**For action="list":**
+**For action="List":**
 
 - `outdated` (optional, bool): Show only outdated packages
 - `deprecated` (optional, bool): Show only deprecated packages
-- `includeTransitive` (optional, bool): Include transitive dependencies
 
-**For action="add_reference":**
-
-- `referencePath` (required): Path to referenced project
-
-**For action="remove_reference":**
+**For action="AddReference":**
 
 - `referencePath` (required): Path to referenced project
 
-**For action="clear_cache":**
+**For action="RemoveReference":**
+
+- `referencePath` (required): Path to referenced project
+
+**For action="ClearCache":**
 
 - `cacheType` (optional, enum): 'http-cache', 'global-packages', 'temp', 'all' (default: 'all')
 
@@ -352,27 +355,27 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **Parameters:**
 
 - `action` (required, enum): The solution operation to perform
-  - `create` - Create new solution file
-  - `add` - Add projects to solution
-  - `remove` - Remove projects from solution
-  - `list` - List projects in solution
+  - `Create` - Create new solution file
+  - `Add` - Add projects to solution
+  - `List` - List projects in solution
+  - `Remove` - Remove projects from solution
 - `solution` (optional, string): Path to solution file (defaults to searching current directory)
 - `machineReadable` (optional, bool): Return structured JSON output (default: false)
 - `workingDirectory` (optional, string): Working directory for command execution
 
 **Action-Specific Parameters:**
 
-**For action="create":**
+**For action="Create":**
 
 - `name` (required): Solution name
 - `output` (optional): Output directory
 - `format` (optional, enum): 'sln' or 'slnx' (default: 'sln')
 
-**For action="add":**
+**For action="Add":**
 
 - `projects` (required, array): Array of project paths to add
 
-**For action="remove":**
+**For action="Remove":**
 
 - `projects` (required, array): Array of project paths to remove
 
@@ -392,47 +395,53 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **Parameters:**
 
 - `action` (required, enum): The EF operation to perform
-  - `migrations_add` - Create new migration
-  - `migrations_list` - List all migrations
-  - `migrations_remove` - Remove last migration
-  - `migrations_script` - Generate SQL script
-  - `database_update` - Apply migrations to database
-  - `database_drop` - Drop database
-  - `dbcontext_list` - List DbContext classes
-  - `dbcontext_info` - Get DbContext information
-  - `dbcontext_scaffold` - Reverse engineer database
+  - `MigrationsAdd` - Create new migration
+  - `MigrationsList` - List all migrations
+  - `MigrationsRemove` - Remove last migration
+  - `MigrationsScript` - Generate SQL script
+  - `DatabaseUpdate` - Apply migrations to database
+  - `DatabaseDrop` - Drop database
+  - `DbContextList` - List DbContext classes
+  - `DbContextInfo` - Get DbContext information
+  - `DbContextScaffold` - Reverse engineer database
 - `project` (optional, string): Path to project file
 - `machineReadable` (optional, bool): Return structured JSON output (default: false)
 - `workingDirectory` (optional, string): Working directory for command execution
 
 **Action-Specific Parameters:**
 
-**For action="migrations_add":**
+**For action="MigrationsAdd":**
 
 - `name` (required): Migration name
 - `outputDir` (optional): Migrations output directory
 
-**For action="migrations_script":**
+**For action="MigrationsScript":**
 
 - `from` (optional): Starting migration
 - `to` (optional): Ending migration
 - `idempotent` (optional, bool): Generate idempotent script
 - `output` (optional): Output file path
 
-**For action="database_update":**
+**For action="DatabaseUpdate":**
 
 - `migration` (optional): Target migration (defaults to latest)
+- `connection` (optional): Database connection string
 
-**For action="database_drop":**
+**For action="DatabaseDrop":**
 
 - `force` (required, bool): Confirm database deletion
+- `dryRun` (optional, bool): Show what would be dropped without executing
 
-**For action="dbcontext_scaffold":**
+**For action="DbContextScaffold":**
 
-- `connectionString` (required): Database connection string
+- `connection` (required): Database connection string
 - `provider` (required): EF provider (e.g., 'Microsoft.EntityFrameworkCore.SqlServer')
 - `outputDir` (optional): Output directory for entities
-- `contextName` (optional): DbContext class name
+- `contextDir` (optional): Output directory for DbContext
+- `context` (optional): DbContext class name
+- `tables` (optional): Comma-separated table list
+- `schemas` (optional): Comma-separated schema list
+- `useDatabaseNames` (optional, bool): Use database names directly
 
 **Replaces Current Tools:**
 
@@ -455,26 +464,30 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **Parameters:**
 
 - `action` (required, enum): The workload operation to perform
-  - `list` - List installed workloads
-  - `info` - Get detailed workload information
-  - `search` - Search available workloads
-  - `install` - Install workloads
-  - `update` - Update all workloads
-  - `uninstall` - Uninstall workloads
+  - `List` - List installed workloads
+  - `Info` - Get detailed workload information
+  - `Search` - Search available workloads
+  - `Install` - Install workloads
+  - `Update` - Update all workloads
+  - `Uninstall` - Uninstall workloads
+- `workingDirectory` (optional, string): Working directory for command execution
 - `machineReadable` (optional, bool): Return structured JSON output (default: false)
 
 **Action-Specific Parameters:**
 
-**For action="search":**
+**For action="Search":**
 
 - `searchTerm` (optional): Filter workloads by name
 
-**For action="install":**
+**For action="Install":**
 
 - `workloadIds` (required, array): Array of workload IDs to install (e.g., ['maui-android', 'maui-ios'])
 - `skipManifestUpdate` (optional, bool): Skip manifest updates
+- `includePreviews` (optional, bool): Allow prerelease workload manifests
+- `source` (optional): NuGet package source
+- `configFile` (optional): Path to NuGet config file
 
-**For action="uninstall":**
+**For action="Uninstall":**
 
 - `workloadIds` (required, array): Array of workload IDs to uninstall
 
@@ -496,40 +509,40 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **Parameters:**
 
 - `action` (required, enum): The operation to perform
-  - `cert_trust` - Trust HTTPS development certificate
-  - `cert_check` - Check certificate status
-  - `cert_clean` - Remove all development certificates
-  - `cert_export` - Export certificate to file
-  - `secrets_init` - Initialize user secrets
-  - `secrets_set` - Set secret value
-  - `secrets_list` - List all secrets
-  - `secrets_remove` - Remove specific secret
-  - `secrets_clear` - Clear all secrets
+  - `CertificateTrust` - Trust HTTPS development certificate
+  - `CertificateCheck` - Check certificate status
+  - `CertificateClean` - Remove all development certificates
+  - `CertificateExport` - Export certificate to file
+  - `SecretsInit` - Initialize user secrets
+  - `SecretsSet` - Set secret value
+  - `SecretsList` - List all secrets
+  - `SecretsRemove` - Remove specific secret
+  - `SecretsClear` - Clear all secrets
 - `project` (optional, string): Path to project file (for secrets operations)
 - `machineReadable` (optional, bool): Return structured JSON output (default: false)
 
 **Action-Specific Parameters:**
 
-**For action="cert_trust":**
+**For action="CertificateTrust":**
 
 - None (may require elevation)
 
-**For action="cert_check":**
+**For action="CertificateCheck":**
 
 - `trust` (optional, bool): Also check if certificate is trusted
 
-**For action="cert_export":**
+**For action="CertificateExport":**
 
 - `path` (required): Export file path
 - `password` (optional): Certificate password
 - `format` (optional, enum): 'pfx' or 'pem' (default: 'pfx')
 
-**For action="secrets_set":**
+**For action="SecretsSet":**
 
 - `key` (required): Secret key (supports hierarchical keys like "ConnectionStrings:Default")
 - `value` (required): Secret value
 
-**For action="secrets_remove":**
+**For action="SecretsRemove":**
 
 - `key` (required): Secret key to remove
 
@@ -554,35 +567,36 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **Parameters:**
 
 - `action` (required, enum): The information to retrieve
-  - `version` - Get SDK version
-  - `info` - Get detailed SDK and runtime info
-  - `list_sdks` - List installed SDKs
-  - `list_runtimes` - List installed runtimes
-  - `template_list` - List installed templates
-  - `template_search` - Search templates
-  - `template_info` - Get template details
-  - `template_clear_cache` - Clear template cache
-  - `framework_info` - Get framework information
-  - `cache_metrics` - Get cache performance metrics
+  - `Version` - Get SDK version
+  - `Info` - Get detailed SDK and runtime info
+  - `ListSdks` - List installed SDKs
+  - `ListRuntimes` - List installed runtimes
+  - `ListTemplates` - List installed templates
+  - `SearchTemplates` - Search templates
+  - `TemplateInfo` - Get template details
+  - `ClearTemplateCache` - Clear template cache
+  - `FrameworkInfo` - Get framework information
+  - `CacheMetrics` - Get cache performance metrics
+- `workingDirectory` (optional, string): Working directory for command execution
 - `machineReadable` (optional, bool): Return structured JSON output (default: false)
 
 **Action-Specific Parameters:**
 
-**For action="template_search":**
+**For action="SearchTemplates":**
 
 - `searchTerm` (required): Search query
 - `forceReload` (optional, bool): Bypass cache
 
-**For action="template_info":**
+**For action="TemplateInfo":**
 
 - `templateShortName` (required): Template short name
 - `forceReload` (optional, bool): Bypass cache
 
-**For action="template_list":**
+**For action="ListTemplates":**
 
 - `forceReload` (optional, bool): Bypass cache
 
-**For action="framework_info":**
+**For action="FrameworkInfo":**
 
 - `framework` (optional): Specific framework to query (e.g., 'net10.0')
 
@@ -608,44 +622,45 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **Parameters:**
 
 - `action` (required, enum): The tool operation to perform
-  - `install` - Install tool globally or locally
-  - `update` - Update tool
-  - `uninstall` - Uninstall tool
-  - `list` - List installed tools
-  - `restore` - Restore tools from manifest
-  - `search` - Search for tools on NuGet
-  - `run` - Run a tool
-  - `manifest_create` - Create tool manifest
+  - `Install` - Install tool globally or locally
+  - `List` - List installed tools
+  - `Update` - Update tool
+  - `Uninstall` - Uninstall tool
+  - `Restore` - Restore tools from manifest
+  - `CreateManifest` - Create tool manifest
+  - `Search` - Search for tools on NuGet
+  - `Run` - Run a tool
+- `workingDirectory` (optional, string): Working directory for command execution
 - `machineReadable` (optional, bool): Return structured JSON output (default: false)
 
 **Action-Specific Parameters:**
 
-**For action="install":**
+**For action="Install":**
 
 - `packageId` (required): Tool package ID
 - `version` (optional): Specific version
 - `global` (optional, bool): Install globally (default: false)
 - `toolPath` (optional): Custom tool installation path
 
-**For action="update":**
+**For action="Update":**
 
 - `packageId` (required): Tool package ID
 - `global` (optional, bool): Update global tool
 
-**For action="uninstall":**
+**For action="Uninstall":**
 
 - `packageId` (required): Tool package ID
 - `global` (optional, bool): Uninstall global tool
 
-**For action="list":**
+**For action="List":**
 
 - `global` (optional, bool): List global tools (default: false lists local)
 
-**For action="search":**
+**For action="Search":**
 
 - `searchTerm` (required): Search query
 
-**For action="run":**
+**For action="Run":**
 
 - `toolName` (required): Tool command name
 - `args` (optional): Arguments to pass to tool
@@ -680,6 +695,7 @@ Consolidated Tool Surface (8 domain tools + 2 utilities):
 **Why Consolidated Tools from Day One?**
 
 The consolidated tool design was chosen for the 1.0.0 release to:
+
 - Provide better AI orchestration from the start
 - Establish a clean, maintainable architecture
 - Avoid future breaking changes and deprecation cycles
@@ -690,6 +706,7 @@ The consolidated tool design was chosen for the 1.0.0 release to:
 All functionality is provided through 10 consolidated tools using action-based parameters:
 
 **Consolidated Tools**:
+
 ```typescript
 // Project operations
 await callTool("dotnet_project", { action: "Build", project: "MyApp.csproj", configuration: "Release" });
@@ -711,7 +728,7 @@ See the [Tool Definitions](#tool-definitions) section for complete details on al
 
 ### Example 1: Create and Build Web API Project
 
-**Before (Current - 2 separate tools):**
+**Before (Legacy - 2 separate tools):**
 
 ```typescript
 // Tool 1: Create project
@@ -733,7 +750,7 @@ await mcp.callTool("dotnet_project_build", {
 ```typescript
 // Create project
 await mcp.callTool("dotnet_project", {
-  action: "new",
+  action: "New",
   template: "webapi",
   name: "MyApi",
   framework: "net10.0"
@@ -741,7 +758,7 @@ await mcp.callTool("dotnet_project", {
 
 // Build project
 await mcp.callTool("dotnet_project", {
-  action: "build",
+  action: "Build",
   project: "MyApi/MyApi.csproj",
   configuration: "Release"
 });
@@ -749,7 +766,7 @@ await mcp.callTool("dotnet_project", {
 
 ### Example 2: Package Management Workflow
 
-**Before (Current - 3 separate tools):**
+**Before (Legacy - 3 separate tools):**
 
 ```typescript
 // Search for package
@@ -775,28 +792,28 @@ await mcp.callTool("dotnet_package_list", {
 ```typescript
 // Search for package
 await mcp.callTool("dotnet_package", {
-  action: "search",
+  action: "Search",
   searchTerm: "Serilog",
   take: 5
 });
 
 // Add package
 await mcp.callTool("dotnet_package", {
-  action: "add",
+  action: "Add",
   packageId: "Serilog.AspNetCore",
   project: "MyApi/MyApi.csproj"
 });
 
 // List packages
 await mcp.callTool("dotnet_package", {
-  action: "list",
+  action: "List",
   project: "MyApi/MyApi.csproj"
 });
 ```
 
 ### Example 3: Entity Framework Migrations
 
-**Before (Current - 3 separate tools):**
+**Before (Legacy - 3 separate tools):**
 
 ```typescript
 // Add migration
@@ -821,27 +838,27 @@ await mcp.callTool("dotnet_ef_database_update", {
 ```typescript
 // Add migration
 await mcp.callTool("dotnet_ef", {
-  action: "migrations_add",
+  action: "MigrationsAdd",
   name: "AddProductTable",
   project: "MyApi/MyApi.csproj"
 });
 
 // List migrations
 await mcp.callTool("dotnet_ef", {
-  action: "migrations_list",
+  action: "MigrationsList",
   project: "MyApi/MyApi.csproj"
 });
 
 // Apply migrations
 await mcp.callTool("dotnet_ef", {
-  action: "database_update",
+  action: "DatabaseUpdate",
   project: "MyApi/MyApi.csproj"
 });
 ```
 
 ### Example 4: Solution Management
 
-**Before (Current - 3 separate tools):**
+**Before (Legacy - 3 separate tools):**
 
 ```typescript
 // Create solution
@@ -867,21 +884,21 @@ await mcp.callTool("dotnet_solution_list", {
 ```typescript
 // Create solution
 await mcp.callTool("dotnet_solution", {
-  action: "create",
+  action: "Create",
   name: "MyApp",
   format: "slnx"
 });
 
 // Add projects
 await mcp.callTool("dotnet_solution", {
-  action: "add",
+  action: "Add",
   solution: "MyApp.slnx",
   projects: ["MyApi/MyApi.csproj", "MyWeb/MyWeb.csproj"]
 });
 
 // List projects
 await mcp.callTool("dotnet_solution", {
-  action: "list",
+  action: "List",
   solution: "MyApp.slnx"
 });
 ```
@@ -890,7 +907,7 @@ await mcp.callTool("dotnet_solution", {
 
 **Scenario**: User asks: *"Create a Blazor app with authentication, add Serilog for logging, build it, and run tests"*
 
-**Before (Current - AI selects from 74 tools):**
+**Before (Legacy - AI selects from 74 tools):**
 
 ```text
 AI reasoning:
@@ -906,11 +923,11 @@ AI reasoning:
 ```text
 AI reasoning:
 - All project operations → dotnet_project tool
-  - Create: action="new"
-  - Build: action="build"
-  - Test: action="test"
+  - Create: action="New"
+  - Build: action="Build"
+  - Test: action="Test"
 - Package operations → dotnet_package tool
-  - Add: action="add"
+  - Add: action="Add"
 (2 tools to remember, clear action enums for each)
 ```
 
@@ -927,16 +944,17 @@ AI reasoning:
 ```text
 DotNetMcp/Tools/
 ├── Cli/
-│   ├── DotNetCliTools.Core.cs              # Infrastructure
-│   ├── DotNetCliTools.Project.cs           # dotnet_project
-│   ├── DotNetCliTools.Package.cs           # dotnet_package
-│   ├── DotNetCliTools.Solution.cs          # dotnet_solution
-│   ├── DotNetCliTools.EntityFramework.cs   # dotnet_ef
-│   ├── DotNetCliTools.Workload.cs          # dotnet_workload
-│   ├── DotNetCliTools.DevCerts.cs          # dotnet_dev_certs
-│   ├── DotNetCliTools.Sdk.cs               # dotnet_sdk
-│   ├── DotNetCliTools.Tool.cs              # dotnet_tool
-│   └── DotNetCliTools.Utilities.cs         # help, capabilities
+│   ├── DotNetCliTools.Core.cs                          # Infrastructure
+│   ├── DotNetCliTools.Project.Consolidated.cs          # dotnet_project
+│   ├── DotNetCliTools.Package.Consolidated.cs          # dotnet_package
+│   ├── DotNetCliTools.Solution.cs                      # dotnet_solution
+│   ├── DotNetCliTools.EntityFramework.Consolidated.cs  # dotnet_ef
+│   ├── DotNetCliTools.Workload.Consolidated.cs         # dotnet_workload
+│   ├── DotNetCliTools.DevCerts.Consolidated.cs         # dotnet_dev_certs
+│   ├── DotNetCliTools.Tool.Consolidated.cs             # dotnet_tool
+│   └── DotNetCliTools.Utilities.cs                     # help, capabilities
+├── Sdk/
+│   └── DotNetCliTools.Sdk.Consolidated.cs               # dotnet_sdk
 └── Legacy/
     └── DotNetCliTools.Deprecated.cs        # Old tools (v2.x only)
 ```
@@ -945,10 +963,10 @@ DotNetMcp/Tools/
 
 **Shared Validation Helpers:**
 
-- `ValidateAction(string action, string[] allowedActions)` - Enum validation
-- `ValidateProject(string? project)` - Project path validation
-- `ValidateFramework(string? framework)` - Framework validation
-- `ValidateMachineReadable(bool machineReadable)` - Output format
+- `ParameterValidator.ValidateAction<TEnum>(...)` - Action enum validation
+- `ParameterValidator.ValidateRequiredParameter(...)` - Required parameter validation
+- `ErrorResultFactory.CreateActionValidationError(...)` - Action validation error payloads
+- `ErrorResultFactory.CreateValidationError(...)` - General validation error payloads
 
 **Action-Specific Validation:**
 
@@ -961,17 +979,19 @@ DotNetMcp/Tools/
 **Consistent Error Format:**
 
 ```csharp
-if (!IsValidAction(action, allowedActions))
+if (!ParameterValidator.ValidateAction<DotnetProjectAction>(action, out var errorMessage))
 {
-    if (machineReadable)
-    {
-        return ErrorResultFactory.CreateValidationError(
-            $"Invalid action '{action}'. Allowed values: {string.Join(", ", allowedActions)}",
-            parameterName: "action",
-            reason: "invalid value"
-        );
-    }
-    return $"Error: Invalid action '{action}'. Allowed: {string.Join(", ", allowedActions)}";
+  if (machineReadable)
+  {
+    var validActions = Enum.GetNames(typeof(DotnetProjectAction));
+    var error = ErrorResultFactory.CreateActionValidationError(
+      action.ToString(),
+      validActions,
+      toolName: "dotnet_project");
+    return ErrorResultFactory.ToJson(error);
+  }
+
+  return $"Error: {errorMessage}";
 }
 ```
 

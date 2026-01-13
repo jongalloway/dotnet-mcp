@@ -7,6 +7,7 @@ The `CAPABILITY_NOT_AVAILABLE` error code provides a standardized way to communi
 ## Purpose
 
 This error strategy disambiguates between:
+
 - **Method doesn't exist** (standard JSON-RPC -32601 "Method not found")
 - **Method exists but can't run** (`CAPABILITY_NOT_AVAILABLE`)
 
@@ -32,11 +33,13 @@ public static ErrorResponse ReturnCapabilityNotAvailable(
 ```
 
 **Parameters:**
+
 - `feature` - Name of the unavailable capability
 - `reason` - Why the capability is not available
 - `alternatives` - Optional list of alternative actions or tools
 
 **Returns:**
+
 - `ErrorResponse` with:
   - Error code: `CAPABILITY_NOT_AVAILABLE`
   - Category: `Capability`
@@ -134,7 +137,7 @@ public string GetAdvancedMetrics()
             alternatives: new List<string>
             {
                 "Enable advanced metrics in server configuration",
-                "Use basic metrics via dotnet_cache_metrics"
+                "Use basic metrics via dotnet_sdk (action=\"CacheMetrics\")"
             });
         
         return ErrorResultFactory.ToJson(error);
@@ -168,16 +171,19 @@ public Task<string> GetTelemetryData()
 ## Benefits
 
 ### For AI Agents
+
 - **Clear signal**: Agent knows the method exists but can't be used
 - **Actionable alternatives**: Agent can select a different approach
 - **Better planning**: Agent treats this as a constraint rather than an error
 
 ### For Developers
+
 - **Consistent pattern**: Standardized way to handle unavailable features
 - **Self-documenting**: Response clearly explains what's unavailable and why
 - **Graceful degradation**: Alternatives guide users to working solutions
 
 ### For Users
+
 - **Clear messages**: Understand what's unavailable and why
 - **Next steps**: Get concrete alternatives instead of dead ends
 - **Future visibility**: Know what features are planned

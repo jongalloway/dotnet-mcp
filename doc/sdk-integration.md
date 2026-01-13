@@ -255,36 +255,19 @@ var validationJson = await ProjectAnalysisHelper.ValidateProjectAsync("MyApp.csp
 
 ## MCP Tools Using SDK Integration
 
-### Template Tools
+### Template + SDK Metadata Tools (Consolidated)
 
-**`dotnet_template_list(forceReload)`**
-Lists all installed templates using the Template Engine API. Returns structured data with template names, languages, types, and descriptions.
+Template, SDK, runtime, and framework metadata is surfaced via the consolidated `dotnet_sdk` tool:
 
-- Cached for 5 minutes by default
-- Use `forceReload: true` to bypass cache
+- `dotnet_sdk` (action: `ListTemplates`) - Lists installed templates (Template Engine API; CLI fallback when needed)
+- `dotnet_sdk` (action: `SearchTemplates`) - Searches templates by name/description
+- `dotnet_sdk` (action: `TemplateInfo`) - Detailed template info, including parameters/options
+- `dotnet_sdk` (action: `ClearTemplateCache`) - Clears template cache (use after installing/uninstalling templates)
+- `dotnet_sdk` (action: `CacheMetrics`) - Cache hit/miss stats for SDK/runtime/templates caching
 
-**`dotnet_template_search(searchTerm, forceReload)`**
-Searches templates by name or description. More powerful than CLI text parsing.
+Framework metadata is also provided via `dotnet_sdk`:
 
-- Uses cached template data
-- Can force reload for fresh results
-
-**`dotnet_template_info(templateShortName, forceReload)`**
-Gets detailed template information including all available parameters and their types.
-
-- Uses cached template data
-- Can force reload for fresh results
-
-**`dotnet_template_clear_cache()`**
-Clears all caches (templates, SDK, runtime) and resets metrics. Use after installing/uninstalling templates or SDK versions.
-
-**`dotnet_cache_metrics()`**
-Returns cache hit/miss statistics for all cached resources (templates, SDK info, runtime info).
-
-### Framework Tools
-
-**`dotnet_framework_info`**
-Provides framework version information, identifies LTS releases, and classifies frameworks (modern .NET, .NET Core, etc.).
+- `dotnet_sdk` (action: `FrameworkInfo`) - Framework validation and LTS classification (modern .NET / .NET Core / .NET Framework / .NET Standard)
 
 ## MCP Resources with Caching
 
@@ -430,14 +413,11 @@ public async Task<string> DotnetProjectNew(string template)
 
 ### Project Analysis Tools
 
-**`dotnet_project_analyze(projectPath)`**
-Analyzes a .csproj file using MSBuild APIs to extract comprehensive project information. Returns JSON with target frameworks, package references, project references, build properties, analyzers, and configuration.
+MSBuild-based analysis is surfaced via the consolidated `dotnet_project` tool:
 
-**`dotnet_project_dependencies(projectPath)`**
-Builds a dependency graph showing direct package and project dependencies. Returns JSON with dependency counts and notes about using CLI for transitive dependencies.
-
-**`dotnet_project_validate(projectPath)`**
-Validates project health and configuration. Detects common issues like missing SDK, invalid frameworks, deprecated configurations. Returns JSON with errors, warnings, and recommendations.
+- `dotnet_project` (action: `Analyze`) - Extract target frameworks, package refs, project refs, and key properties from a project file
+- `dotnet_project` (action: `Dependencies`) - Direct package + project dependency graph
+- `dotnet_project` (action: `Validate`) - Health checks (framework support, common project config issues)
 
 ## Testing SDK Integration
 
@@ -446,31 +426,31 @@ Test template, framework, and project analysis tools:
 ```
 # Template discovery
 "What .NET templates are available?"
-→ Uses dotnet_template_list
+→ Uses dotnet_sdk (action: "ListTemplates")
 
 # Template search
 "Show me web-related templates"
-→ Uses dotnet_template_search
+→ Uses dotnet_sdk (action: "SearchTemplates")
 
 # Template details
 "What options does the console template have?"
-→ Uses dotnet_template_info
+→ Uses dotnet_sdk (action: "TemplateInfo")
 
 # Framework information
 "Which .NET versions are LTS?"
-→ Uses dotnet_framework_info
+→ Uses dotnet_sdk (action: "FrameworkInfo")
 
 # Project analysis
 "Analyze the MyApp.csproj file and show me what packages it uses"
-→ Uses dotnet_project_analyze
+→ Uses dotnet_project (action: "Analyze")
 
 # Dependency analysis
 "What dependencies does this project have?"
-→ Uses dotnet_project_dependencies
+→ Uses dotnet_project (action: "Dependencies")
 
 # Project validation
 "Check if MyApp.csproj has any configuration issues"
-→ Uses dotnet_project_validate
+→ Uses dotnet_project (action: "Validate")
 ```
 
 ## Future Enhancement Opportunities

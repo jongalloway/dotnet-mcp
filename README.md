@@ -14,10 +14,9 @@ Give your AI assistant superpowers for .NET development! This MCP server connect
 ## Quick Install
 
 Click to install in your preferred environment:
-
-[![VS Code - Install .NET MCP](https://img.shields.io/badge/VS_Code-Install_.NET_MCP-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dnx%22%2C%22args%22%3A%5B%22Community.Mcp.DotNet%400.1.0-%2A%22%2C%22--yes%22%5D%7D)
-[![VS Code Insiders - Install .NET MCP](https://img.shields.io/badge/VS_Code_Insiders-Install_.NET_MCP-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dnx%22%2C%22args%22%3A%5B%22Community.Mcp.DotNet%400.1.0-%2A%22%2C%22--yes%22%5D%7D&quality=insiders)
-[![Visual Studio - Install .NET MCP](https://img.shields.io/badge/Visual_Studio-Install_.NET_MCP-5C2D91?style=flat-square&logo=visualstudio&logoColor=white)](https://vs-open.link/mcp-install?%7B%22name%22%3A%22Community.Mcp.DotNet%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22dnx%22%2C%22args%22%3A%5B%22Community.Mcp.DotNet%400.1.0-%22%2C%22--yes%22%5D%7D)
+[![VS Code - Install .NET MCP](https://img.shields.io/badge/VS_Code-Install_.NET_MCP-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dnx%22%2C%22args%22%3A%5B%22Community.Mcp.DotNet%401.0.0%22%2C%22--yes%22%5D%7D)
+[![VS Code Insiders - Install .NET MCP](https://img.shields.io/badge/VS_Code_Insiders-Install_.NET_MCP-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dnx%22%2C%22args%22%3A%5B%22Community.Mcp.DotNet%401.0.0%22%2C%22--yes%22%5D%7D&quality=insiders)
+[![Visual Studio - Install .NET MCP](https://img.shields.io/badge/Visual_Studio-Install_.NET_MCP-5C2D91?style=flat-square&logo=visualstudio&logoColor=white)](https://vs-open.link/mcp-install?%7B%22name%22%3A%22Community.Mcp.DotNet%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22dnx%22%2C%22args%22%3A%5B%22Community.Mcp.DotNet%401.0.0%22%2C%22--yes%22%5D%7D)
 
 > **Note**: Quick install requires .NET 10 SDK.
 
@@ -128,7 +127,7 @@ AI: Executes dotnet --info and tries to parse support info
 
 ✅ With Resources:
 User: "What .NET versions do I have?"
-AI: Reads dotnet://sdk/list resource (no execution needed)
+AI: Reads dotnet://sdk-info resource (no execution needed)
     Returns: .NET 8.0 (LTS), .NET 9.0 (STS), .NET 10.0 (LTS)
 User: "Which is LTS?"
 AI: Already knows from resource metadata - .NET 8.0, .NET 10.0
@@ -142,9 +141,9 @@ AI: "I'll run: dotnet new blazor --auth Individual"
 Result: Error - template 'blazor' doesn't support --auth parameter
 
 ✅ With MCP:
-AI: Queries dotnet_template_info for 'blazor'
-    Sees available parameters: --interactivity, --use-program-main, --empty
-    Uses dotnet_template_search to find authentication templates
+AI: Uses dotnet_sdk with action: "TemplateInfo" for 'blazor'
+  Sees available parameters: --interactivity, --use-program-main, --empty
+  Uses dotnet_sdk with action: "SearchTemplates" to find authentication templates
 AI: "I'll create a Blazor Web App with authentication using the correct template..."
 Result: Success - uses 'blazor' template with proper authentication configuration
 ```
@@ -181,7 +180,7 @@ sequenceDiagram
     participant SDK as .NET SDK
 
     User->>AI: "Create a console app called MyApp"
-    AI->>MCP: dotnet_project_new(template: "console", name: "MyApp")
+    AI->>MCP: dotnet_project(action: "New", template: "console", name: "MyApp")
     MCP->>SDK: dotnet new console -n MyApp
     SDK-->>MCP: Project created successfully
     MCP-->>AI: Structured result with output
@@ -227,7 +226,7 @@ Follow the instructions below for your specific development environment:
      - **Name**: `dotnet`
      - **Type**: `stdio`
      - **Command**: `dnx`
-     - **Arguments**: `Community.Mcp.DotNet@0.1.0-* --yes`
+     - **Arguments**: `Community.Mcp.DotNet@1.0.0 --yes`
 
 **Manual Configuration** (for source builds or custom setups):
 
@@ -261,7 +260,7 @@ Edit your VS Code settings (`Ctrl+,` or `Cmd+,`, search for "mcp"):
      - **Name**: `dotnet`
      - **Type**: `stdio`
      - **Command**: `dnx`
-     - **Arguments**: `Community.Mcp.DotNet@0.1.0-* --yes`
+     - **Arguments**: `Community.Mcp.DotNet@1.0.0 --yes`
 
 **Manual Configuration** (for source builds or custom setups):
 
@@ -903,14 +902,14 @@ For development or contributing:
 
 ```bash
 git clone https://github.com/jongalloway/dotnet-mcp.git
-cd dotnet-mcp/DotNetMcp
-dotnet build
+cd dotnet-mcp
+dotnet build --project DotNetMcp/DotNetMcp.csproj
 ```
 
 **Run the server**:
 
 ```bash
-dotnet run
+dotnet run --project DotNetMcp/DotNetMcp.csproj
 ```
 
 The server communicates via stdio transport and is designed to be invoked by MCP clients.
@@ -926,15 +925,13 @@ dotnet-mcp/
 │   ├── Program.cs              # Hosting + MCP server wiring
 │   ├── DotNetMcp.csproj        # NuGet/package metadata (PackAsTool, server.json packing)
 │   ├── .mcp/server.json        # MCP server metadata (packed into the NuGet package)
-│   ├── DotNetResources.cs      # MCP resources (SDK/runtime/templates/frameworks)
+│   ├── Resources/              # MCP resources (SDK/runtime/templates/frameworks)
 │   ├── DotNetCliTools.cs       # Tool surface area (split into partials in Tools/)
 │   └── Tools/                  # Tool implementations grouped by domain (project, package, EF, etc.)
 ├── DotNetMcp.Tests/            # Unit + integration tests
 ├── doc/                        # Long-form documentation (architecture, concurrency, testing, etc.)
-├── docs/                       # Project website / published docs assets
 ├── scripts/                    # Maintenance & validation scripts
 ├── artifacts*/                 # Build outputs (CI + local)
-├── issues/                     # Issue templates / triage notes
 ├── .github/                    # CI workflows and repo automation
 ├── DotNetMcp.slnx              # Solution file (.slnx)
 ├── global.json                 # SDK pinning for consistent builds
@@ -946,7 +943,7 @@ Key files to start with:
 
 - `DotNetMcp/Program.cs` - server startup and registration
 - `DotNetMcp/DotNetCliTools.cs` and `DotNetMcp/Tools/` - MCP tool implementations
-- `DotNetMcp/DotNetResources.cs` - read-only MCP resources
+- `DotNetMcp/Resources/DotNetResources.cs` - read-only MCP resources
 - `DotNetMcp/.mcp/server.json` - packaged MCP server metadata
 - `DotNetMcp.Tests/` - tests (including server.json validation and XML doc coverage)
 
@@ -979,7 +976,7 @@ The .NET MCP Server follows the Model Context Protocol specification and provide
 
 ### Server Metadata
 
-The server includes a comprehensive `server.json` configuration file (`.mcp/server.json`) that provides:
+The server includes an MCP Registry `server.json` configuration file (`.mcp/server.json`) that provides:
 
 - **Environment Variables**: Optimized .NET CLI settings for MCP usage
   - `DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1` - Skips first-time setup
@@ -990,17 +987,9 @@ The server includes a comprehensive `server.json` configuration file (`.mcp/serv
   - Registry: NuGet.org
   - Transport: stdio
 
-- **Tool Descriptors**: Comprehensive tool metadata including:
-  - Tool IDs using `dotnet_` prefix to avoid namespace collisions
-  - Category tags (template, project, package, solution, etc.)
-  - Discovery tags for semantic search (e.g., "build", "compile", "test")
-  - `commonlyUsed` flag marking the top 10 most frequently used tools
-  
-- **Resource Descriptors**: Read-only resources for efficient metadata access
-  - `dotnet://sdk-info` - SDK version and path information
-  - `dotnet://runtime-info` - Runtime installation details
-  - `dotnet://templates` - Template catalog with parameters
-  - `dotnet://frameworks` - Framework versions with LTS status
+- **Repository Information**: Links back to the source repo
+
+Tool and resource metadata is discovered at runtime via the MCP protocol (tool/resource listing), using XML docs and `[McpMeta]` attributes in the server code.
 
 ### Tool Namespacing
 
@@ -1008,31 +997,14 @@ All tools use the `dotnet_` prefix in their external IDs to prevent naming colli
 
 **Examples:**
 
-- `dotnet_project_new` - Create new projects
-- `dotnet_project_build` - Build projects
-- `dotnet_package_add` - Add NuGet packages
-- `dotnet_solution_create` - Create solution files
+- `dotnet_project` - Project lifecycle operations (create/build/test/run/publish)
+- `dotnet_package` - NuGet packages and project references
+- `dotnet_solution` - Solution operations
+- `dotnet_sdk` - SDK/runtime/template/framework metadata
 
-### Discovery Tags
+### Discovery Metadata
 
-The top 10 commonly used tools include semantic tags to improve discoverability:
-
-1. **dotnet_template_list** - `["template", "list", "discovery", "project-creation"]`
-2. **dotnet_project_new** - `["project", "create", "new", "template", "initialization"]`
-3. **dotnet_project_restore** - `["project", "restore", "dependencies", "packages", "setup"]`
-4. **dotnet_project_build** - `["project", "build", "compile", "compilation"]`
-5. **dotnet_project_run** - `["project", "run", "execute", "launch", "development"]`
-6. **dotnet_project_test** - `["project", "test", "testing", "unit-test", "validation"]`
-7. **dotnet_package_add** - `["package", "add", "nuget", "dependency", "install"]`
-8. **dotnet_package_search** - `["package", "search", "nuget", "discovery", "find"]`
-9. **dotnet_solution_create** - `["solution", "create", "new", "organization", "multi-project"]`
-10. **dotnet_tool_install** - `["tool", "install", "global", "local", "cli"]`
-
-These tags enable AI assistants to:
-
-- Find relevant tools based on semantic intent
-- Group related operations for workflow suggestions
-- Prioritize commonly used tools in recommendations
+Tool discovery metadata (categories, tags, commonly-used hints) is provided via `[McpMeta]` attributes and surfaced through MCP tool listing.
 
 ### Metadata Access
 
@@ -1099,7 +1071,7 @@ This .NET MCP server focuses on .NET SDK operations (build, run, test, templates
 These MCPs work alongside the .NET MCP to provide comprehensive coverage of the .NET development lifecycle:
 
 | Feature | .NET MCP | NuGet MCP | Aspire MCP |
-|---------|----------|-----------|------------|
+| ------- | -------- | --------- | ---------- |
 | **Primary Focus** | .NET SDK operations | Package metadata/discovery | Runtime monitoring |
 | **Scope** | CLI commands (build, run, test) | NuGet search & automation | Aspire app telemetry |
 | **Stage** | Development time | Development/discovery time | Runtime/production |

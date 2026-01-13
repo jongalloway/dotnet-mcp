@@ -22,14 +22,19 @@ Total: **52 common error codes** with detailed explanations.
 
 When you use `machineReadable=true` with build or test commands, errors are automatically enriched with diagnostic information:
 
-```bash
-# Example: Build with machine-readable output
-dotnet_project_build("MyProject.csproj", machineReadable=true)
+```typescript
+// Example: Build with machine-readable output
+await callTool("dotnet_project", {
+  action: "Build",
+  project: "MyProject.csproj",
+  machineReadable: true
+});
 ```
 
 ### Example Output
 
-#### Before Enhancement (Plain Error):
+#### Before Enhancement (Plain Error)
+
 ```json
 {
   "success": false,
@@ -43,7 +48,8 @@ dotnet_project_build("MyProject.csproj", machineReadable=true)
 }
 ```
 
-#### After Enhancement (Rich Diagnostics):
+#### After Enhancement (Rich Diagnostics)
+
 ```json
 {
   "success": false,
@@ -74,11 +80,13 @@ dotnet_project_build("MyProject.csproj", machineReadable=true)
 **What it means:** The compiler can't find a type or namespace you're trying to use.
 
 **Common causes:**
+
 - Missing NuGet package reference
 - Missing using directive
 - Typo in type or namespace name
 
 **Suggested fixes:**
+
 ```bash
 # Add the missing package
 dotnet add package <PackageName>
@@ -96,11 +104,13 @@ dotnet restore
 **What it means:** The .NET reference assemblies for the target framework aren't installed.
 
 **Common causes:**
+
 - Target framework not installed
 - Missing .NET SDK or targeting pack
 - Incorrect target framework specified
 
 **Suggested fixes:**
+
 ```bash
 # Install the .NET SDK for the target framework
 # Download from: https://dotnet.microsoft.com/download
@@ -121,11 +131,13 @@ dotnet --info
 **What it means:** NuGet can't locate the specified package in any configured package source.
 
 **Common causes:**
+
 - Package name is misspelled
 - Package doesn't exist on NuGet.org
 - Network connectivity problem
 
 **Suggested fixes:**
+
 ```bash
 # Search for the package
 dotnet package search <PackageName>
@@ -145,10 +157,12 @@ dotnet package search <PackageName>
 **What it means:** The installed .NET SDK version is too old to support the target framework.
 
 **Common causes:**
+
 - SDK version is older than target framework
 - Project targets newer framework than SDK supports
 
 **Suggested fixes:**
+
 ```bash
 # Install newer SDK
 # Download from: https://dotnet.microsoft.com/download
@@ -168,11 +182,13 @@ dotnet package search <PackageName>
 **What it means:** The project.assets.json file is missing (needed for builds).
 
 **Common causes:**
+
 - Project not restored
 - obj folder deleted
 - Restore command failed
 
 **Suggested fixes:**
+
 ```bash
 # Restore NuGet packages
 dotnet restore
@@ -196,6 +212,7 @@ The error dictionary provides pattern detection through comprehensive error code
 - **Platform-specific issues** - Detected via NETSDK1082, NETSDK1100 error codes
 
 Each of these error codes provides:
+
 - Plain English explanation of the specific issue
 - Common causes for that type of problem
 - Suggested fixes with specific commands
@@ -222,8 +239,9 @@ All build and test tools support `machineReadable` parameter:
 ```python
 # Python example using MCP
 result = await mcp_client.call_tool(
-    "dotnet_project_build",
+  "dotnet_project",
     {
+    "action": "Build",
         "project": "MyApp.csproj",
         "machineReadable": True
     }
@@ -278,7 +296,7 @@ The error code dictionary is loaded from an embedded JSON resource and cached fo
 
 - **Title** - Short, clear description of the error
 - **Explanation** - Detailed explanation of what causes this error
-- **Category** - Error type (Compilation, Build, Package, SDK, Runtime)
+- **Category** - Error type (Compilation, Build, Package, Runtime)
 - **Common Causes** - List of typical reasons this error occurs
 - **Suggested Fixes** - Actionable steps to resolve the error
 - **Documentation URL** - Link to official Microsoft documentation
@@ -300,6 +318,7 @@ The error diagnostics system includes comprehensive tests:
 - **100% test coverage** of error code lookup and parsing
 
 Run tests with:
+
 ```bash
 dotnet test --filter "FullyQualifiedName~ErrorCodeDictionary"
 dotnet test --filter "FullyQualifiedName~ErrorResultFactory"
