@@ -535,7 +535,9 @@ public sealed partial class DotNetCliTools
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
         if (!string.IsNullOrEmpty(framework)) args.Append($" -f {framework}");
 
-        return await ExecuteWithConcurrencyCheck("build", GetOperationTarget(project), args.ToString(), machineReadable);
+        // Capture working directory for concurrency target selection
+        var workingDir = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
+        return await ExecuteWithConcurrencyCheck("build", GetOperationTarget(project, workingDir), args.ToString(), machineReadable);
     }
 
     /// <summary>
@@ -560,7 +562,9 @@ public sealed partial class DotNetCliTools
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
         if (!string.IsNullOrEmpty(appArgs)) args.Append($" -- {appArgs}");
 
-        return await ExecuteWithConcurrencyCheck("run", GetOperationTarget(project), args.ToString(), machineReadable);
+        // Capture working directory for concurrency target selection
+        var workingDir = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
+        return await ExecuteWithConcurrencyCheck("run", GetOperationTarget(project, workingDir), args.ToString(), machineReadable);
     }
 
     /// <summary>
@@ -629,7 +633,9 @@ public sealed partial class DotNetCliTools
         if (blame) args.Append(" --blame");
         if (listTests) args.Append(" --list-tests");
 
-        return await ExecuteWithConcurrencyCheck("test", GetOperationTarget(project), args.ToString(), machineReadable);
+        // Capture working directory for concurrency target selection
+        var workingDir = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
+        return await ExecuteWithConcurrencyCheck("test", GetOperationTarget(project, workingDir), args.ToString(), machineReadable);
     }
 
     /// <summary>
@@ -660,7 +666,9 @@ public sealed partial class DotNetCliTools
         if (!string.IsNullOrEmpty(output)) args.Append($" -o \"{output}\"");
         if (!string.IsNullOrEmpty(runtime)) args.Append($" -r {runtime}");
 
-        return await ExecuteWithConcurrencyCheck("publish", GetOperationTarget(project), args.ToString(), machineReadable);
+        // Capture working directory for concurrency target selection
+        var workingDir = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
+        return await ExecuteWithConcurrencyCheck("publish", GetOperationTarget(project, workingDir), args.ToString(), machineReadable);
     }
 
     /// <summary>
