@@ -82,8 +82,9 @@ public static partial class ErrorResultFactory
     /// <param name="error">Standard error from the command</param>
     /// <param name="exitCode">Exit code from the command</param>
     /// <param name="command">Optional command that was executed for structured data</param>
+    /// <param name="metadata">Optional metadata to include in success results</param>
     /// <returns>ErrorResponse with parsed errors or SuccessResult if exitCode is 0</returns>
-    public static object CreateResult(string output, string error, int exitCode, string? command = null)
+    public static object CreateResult(string output, string error, int exitCode, string? command = null, Dictionary<string, string>? metadata = null)
     {
         // Success case
         if (exitCode == 0)
@@ -93,7 +94,8 @@ public static partial class ErrorResultFactory
                 Success = true,
                 Command = string.IsNullOrWhiteSpace(command) ? null : SanitizeOutput(command),
                 Output = SanitizeOutput(output),
-                ExitCode = 0
+                ExitCode = 0,
+                Metadata = metadata
             };
         }
 

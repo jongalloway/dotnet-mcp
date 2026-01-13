@@ -25,8 +25,9 @@ public static class DotNetCommandExecutor
     /// <param name="unsafeOutput">When true, disables security redaction of sensitive information (default: false). Use with caution.</param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
     /// <param name="workingDirectory">Optional working directory for command execution</param>
+    /// <param name="metadata">Optional metadata to include in machine-readable success results</param>
     /// <returns>Combined output, error, and exit code information (plain text or JSON based on machineReadable)</returns>
-    public static async Task<string> ExecuteCommandAsync(string arguments, ILogger? logger = null, bool machineReadable = false, bool unsafeOutput = false, CancellationToken cancellationToken = default, string? workingDirectory = null)
+    public static async Task<string> ExecuteCommandAsync(string arguments, ILogger? logger = null, bool machineReadable = false, bool unsafeOutput = false, CancellationToken cancellationToken = default, string? workingDirectory = null, Dictionary<string, string>? metadata = null)
     {
         logger?.LogDebug("Executing: dotnet {Arguments}", arguments);
 
@@ -242,7 +243,7 @@ public static class DotNetCommandExecutor
         // If machine-readable format is requested, return structured JSON
         if (machineReadable)
         {
-            var result = ErrorResultFactory.CreateResult(outputStr, errorStr, process.ExitCode, $"dotnet {arguments}");
+            var result = ErrorResultFactory.CreateResult(outputStr, errorStr, process.ExitCode, $"dotnet {arguments}", metadata);
             return ErrorResultFactory.ToJson(result);
         }
 

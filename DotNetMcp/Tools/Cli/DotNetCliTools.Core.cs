@@ -39,6 +39,7 @@ public sealed partial class DotNetCliTools
         string target,
         string arguments,
         bool machineReadable = false,
+        Dictionary<string, string>? metadata = null,
         CancellationToken cancellationToken = default,
         string? workingDirectory = null)
     {
@@ -55,7 +56,7 @@ public sealed partial class DotNetCliTools
         try
         {
             // Execute the command
-            return await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable, unsafeOutput: false, cancellationToken: cancellationToken, workingDirectory: workingDirectory);
+            return await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable, unsafeOutput: false, cancellationToken: cancellationToken, workingDirectory: workingDirectory, metadata: metadata);
         }
         finally
         {

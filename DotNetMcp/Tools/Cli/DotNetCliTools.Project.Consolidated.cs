@@ -44,7 +44,8 @@ public sealed partial class DotNetCliTools
     /// <param name="diagnostics">Comma-separated list of diagnostic IDs to fix for format action</param>
     /// <param name="severity">Severity level to fix for format action (info, warn, error)</param>
     /// <param name="workingDirectory">Working directory for command execution</param>
-    /// <param name="useLegacyProjectArgument">Use positional project argument instead of --project flag for test action (for older SDKs or non-MTP environments)</param>
+    /// <param name="testRunner">Test runner selection for test action (Auto, MicrosoftTestingPlatform, or VSTest). Auto detects from global.json. Default: Auto</param>
+    /// <param name="useLegacyProjectArgument">DEPRECATED: Use testRunner parameter instead. When true, uses positional project argument (VSTest mode)</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpServerTool]
     [McpMeta("category", "project")]
@@ -82,6 +83,7 @@ public sealed partial class DotNetCliTools
         string? diagnostics = null,
         string? severity = null,
         string? workingDirectory = null,
+        TestRunner? testRunner = null,
         bool? useLegacyProjectArgument = null,
         bool machineReadable = false)
     {
@@ -109,7 +111,7 @@ public sealed partial class DotNetCliTools
                 DotnetProjectAction.Restore => await HandleRestoreAction(project, machineReadable),
                 DotnetProjectAction.Build => await HandleBuildAction(project, configuration, framework, machineReadable),
                 DotnetProjectAction.Run => await HandleRunAction(project, configuration, appArgs, machineReadable),
-                DotnetProjectAction.Test => await HandleTestAction(project, configuration, filter, collect, resultsDirectory, logger, noBuild, noRestore, verbosity, framework, blame, listTests, useLegacyProjectArgument, machineReadable),
+                DotnetProjectAction.Test => await HandleTestAction(project, configuration, filter, collect, resultsDirectory, logger, noBuild, noRestore, verbosity, framework, blame, listTests, testRunner, useLegacyProjectArgument, machineReadable),
                 DotnetProjectAction.Publish => await HandlePublishAction(project, configuration, output, runtime, machineReadable),
                 DotnetProjectAction.Clean => await HandleCleanAction(project, configuration, machineReadable),
                 DotnetProjectAction.Analyze => await HandleAnalyzeAction(projectPath, machineReadable),
@@ -168,7 +170,7 @@ public sealed partial class DotNetCliTools
             machineReadable: machineReadable);
     }
 
-    private async Task<string> HandleTestAction(string? project, string? configuration, string? filter, string? collect, string? resultsDirectory, string? logger, bool? noBuild, bool? noRestore, string? verbosity, string? framework, bool? blame, bool? listTests, bool? useLegacyProjectArgument, bool machineReadable)
+    private async Task<string> HandleTestAction(string? project, string? configuration, string? filter, string? collect, string? resultsDirectory, string? logger, bool? noBuild, bool? noRestore, string? verbosity, string? framework, bool? blame, bool? listTests, TestRunner? testRunner, bool? useLegacyProjectArgument, bool machineReadable)
     {
         // Route to existing DotnetProjectTest method
         return await DotnetProjectTest(
@@ -184,6 +186,7 @@ public sealed partial class DotNetCliTools
             framework: framework,
             blame: blame ?? false,
             listTests: listTests ?? false,
+            testRunner: testRunner,
             useLegacyProjectArgument: useLegacyProjectArgument ?? false,
             machineReadable: machineReadable);
     }
@@ -569,8 +572,8 @@ public sealed partial class DotNetCliTools
 
     /// <summary>
     /// Run unit tests in a .NET project.
-    /// By default uses --project flag (requires .NET SDK 8+ with MTP or SDK 10+).
-    /// Set useLegacyProjectArgument=true for older SDKs or non-MTP environments.
+    /// Test runner can be explicitly specified or auto-detected from global.json.
+    /// Auto mode (default) detects MTP from global.json config, otherwise uses VSTest for legacy compatibility.
     /// </summary>
     internal async Task<string> DotnetProjectTest(
         string? project = null,
@@ -585,6 +588,7 @@ public sealed partial class DotNetCliTools
         string? framework = null,
         bool blame = false,
         bool listTests = false,
+        TestRunner? testRunner = null,
         bool useLegacyProjectArgument = false,
         bool machineReadable = false)
     {
@@ -604,21 +608,59 @@ public sealed partial class DotNetCliTools
         if (!ParameterValidator.ValidateFramework(framework, out var frameworkError))
             return $"Error: {frameworkError}";
 
+        // Determine the effective test runner
+        TestRunner effectiveRunner;
+        string selectionSource;
+        
+        // If useLegacyProjectArgument is true, use VSTest mode for backward compatibility
+        if (useLegacyProjectArgument)
+        {
+            effectiveRunner = TestRunner.VSTest;
+            selectionSource = "useLegacyProjectArgument-parameter";
+        }
+        // If testRunner is explicitly specified, use it
+        else if (testRunner.HasValue && testRunner.Value != TestRunner.Auto)
+        {
+            effectiveRunner = testRunner.Value;
+            selectionSource = "testRunner-parameter";
+        }
+        // Otherwise, auto-detect or default to Auto behavior
+        else
+        {
+            var workingDir = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
+            var (detectedRunner, detectionSource) = SdkIntegration.TestRunnerDetector.DetectTestRunner(
+                workingDirectory: workingDir,
+                projectPath: project,
+                logger: _logger);
+            effectiveRunner = detectedRunner;
+            selectionSource = detectionSource;
+        }
+
+        // Build the command
         var args = new StringBuilder("test");
         
-        // Handle project argument based on mode
+        // Determine project argument style based on effective runner
+        bool usePositionalArg = effectiveRunner == TestRunner.VSTest;
+        string projectArgumentStyle;
+        
         if (!string.IsNullOrEmpty(project))
         {
-            if (useLegacyProjectArgument)
+            if (usePositionalArg)
             {
-                // Legacy: positional argument (for older SDKs / non-MTP)
+                // VSTest: positional argument
                 args.Append($" \"{project}\"");
+                projectArgumentStyle = "positional";
             }
             else
             {
-                // Modern (default): --project flag (MTP-enabled)
+                // MTP: --project flag
                 args.Append($" --project \"{project}\"");
+                projectArgumentStyle = "--project";
             }
+        }
+        else
+        {
+            projectArgumentStyle = "none";
         }
         
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
@@ -634,8 +676,17 @@ public sealed partial class DotNetCliTools
         if (listTests) args.Append(" --list-tests");
 
         // Capture working directory for concurrency target selection
-        var workingDir = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
-        return await ExecuteWithConcurrencyCheck("test", GetOperationTarget(project, workingDir), args.ToString(), machineReadable);
+        var workingDir2 = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
+        
+        // Store metadata for machine-readable output
+        var metadata = new Dictionary<string, string>
+        {
+            ["selectedTestRunner"] = effectiveRunner == TestRunner.MicrosoftTestingPlatform ? "microsoft-testing-platform" : "vstest",
+            ["projectArgumentStyle"] = projectArgumentStyle,
+            ["selectionSource"] = selectionSource
+        };
+        
+        return await ExecuteWithConcurrencyCheck("test", GetOperationTarget(project, workingDir2), args.ToString(), machineReadable, metadata);
     }
 
     /// <summary>
