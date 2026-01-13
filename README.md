@@ -127,7 +127,7 @@ AI: Executes dotnet --info and tries to parse support info
 
 ✅ With Resources:
 User: "What .NET versions do I have?"
-AI: Reads dotnet://sdk/list resource (no execution needed)
+AI: Reads dotnet://sdk-info resource (no execution needed)
     Returns: .NET 8.0 (LTS), .NET 9.0 (STS), .NET 10.0 (LTS)
 User: "Which is LTS?"
 AI: Already knows from resource metadata - .NET 8.0, .NET 10.0
@@ -226,8 +226,7 @@ Follow the instructions below for your specific development environment:
      - **Name**: `dotnet`
      - **Type**: `stdio`
      - **Command**: `dnx`
-    - **Arguments**: `Community.Mcp.DotNet@1.0.0 --yes`
-    - **Arguments**: `Community.Mcp.DotNet@1.0.0 --yes`
+     - **Arguments**: `Community.Mcp.DotNet@1.0.0 --yes`
 
 **Manual Configuration** (for source builds or custom setups):
 
@@ -261,8 +260,7 @@ Edit your VS Code settings (`Ctrl+,` or `Cmd+,`, search for "mcp"):
      - **Name**: `dotnet`
      - **Type**: `stdio`
      - **Command**: `dnx`
-    - **Arguments**: `Community.Mcp.DotNet@1.0.0 --yes`
-    - **Arguments**: `Community.Mcp.DotNet@1.0.0 --yes`
+     - **Arguments**: `Community.Mcp.DotNet@1.0.0 --yes`
 
 **Manual Configuration** (for source builds or custom setups):
 
@@ -904,14 +902,14 @@ For development or contributing:
 
 ```bash
 git clone https://github.com/jongalloway/dotnet-mcp.git
-cd dotnet-mcp/DotNetMcp
-dotnet build
+cd dotnet-mcp
+dotnet build --project DotNetMcp/DotNetMcp.csproj
 ```
 
 **Run the server**:
 
 ```bash
-dotnet run
+dotnet run --project DotNetMcp/DotNetMcp.csproj
 ```
 
 The server communicates via stdio transport and is designed to be invoked by MCP clients.
@@ -927,15 +925,13 @@ dotnet-mcp/
 │   ├── Program.cs              # Hosting + MCP server wiring
 │   ├── DotNetMcp.csproj        # NuGet/package metadata (PackAsTool, server.json packing)
 │   ├── .mcp/server.json        # MCP server metadata (packed into the NuGet package)
-│   ├── DotNetResources.cs      # MCP resources (SDK/runtime/templates/frameworks)
+│   ├── Resources/              # MCP resources (SDK/runtime/templates/frameworks)
 │   ├── DotNetCliTools.cs       # Tool surface area (split into partials in Tools/)
 │   └── Tools/                  # Tool implementations grouped by domain (project, package, EF, etc.)
 ├── DotNetMcp.Tests/            # Unit + integration tests
 ├── doc/                        # Long-form documentation (architecture, concurrency, testing, etc.)
-├── docs/                       # Project website / published docs assets
 ├── scripts/                    # Maintenance & validation scripts
 ├── artifacts*/                 # Build outputs (CI + local)
-├── issues/                     # Issue templates / triage notes
 ├── .github/                    # CI workflows and repo automation
 ├── DotNetMcp.slnx              # Solution file (.slnx)
 ├── global.json                 # SDK pinning for consistent builds
@@ -947,7 +943,7 @@ Key files to start with:
 
 - `DotNetMcp/Program.cs` - server startup and registration
 - `DotNetMcp/DotNetCliTools.cs` and `DotNetMcp/Tools/` - MCP tool implementations
-- `DotNetMcp/DotNetResources.cs` - read-only MCP resources
+- `DotNetMcp/Resources/DotNetResources.cs` - read-only MCP resources
 - `DotNetMcp/.mcp/server.json` - packaged MCP server metadata
 - `DotNetMcp.Tests/` - tests (including server.json validation and XML doc coverage)
 
@@ -1075,7 +1071,7 @@ This .NET MCP server focuses on .NET SDK operations (build, run, test, templates
 These MCPs work alongside the .NET MCP to provide comprehensive coverage of the .NET development lifecycle:
 
 | Feature | .NET MCP | NuGet MCP | Aspire MCP |
-|---------|----------|-----------|------------|
+| ------- | -------- | --------- | ---------- |
 | **Primary Focus** | .NET SDK operations | Package metadata/discovery | Runtime monitoring |
 | **Scope** | CLI commands (build, run, test) | NuGet search & automation | Aspire app telemetry |
 | **Stage** | Development time | Development/discovery time | Runtime/production |
