@@ -68,6 +68,7 @@ The `--project` flag for `dotnet test` requires:
    ```bash
    dotnet test --help | grep -- --project
    ```
+   Note: The `--` tells grep to stop processing options, allowing it to search for the literal `--project` string.
 2. Check if you have `global.json` with MTP runner configuration in your project/repository root
 3. If using an older SDK or non-MTP configuration, the MCP server provides a `useLegacyProjectArgument` parameter as a fallback
 
