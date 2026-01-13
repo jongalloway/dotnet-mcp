@@ -182,18 +182,23 @@ public class TemplateEngineHelper
                 var cliOutput = await TryGetDotnetNewListOutputAsync(templateNameFilter: null, logger);
                 if (!string.IsNullOrWhiteSpace(cliOutput))
                 {
-                    var text = $"Installed .NET Templates (from 'dotnet new list'):\n\n{cliOutput.TrimEnd()}";
-                    if (machineReadable)
+                    // Some environments can write error-prefixed output to stdout while still returning exit code 0.
+                    // Treat that as a failed CLI fallback to avoid returning error messages as valid output.
+                    if (!cliOutput.TrimStart().StartsWith("Error:", StringComparison.OrdinalIgnoreCase))
                     {
-                        return ErrorResultFactory.ToJson(
-                            ErrorResultFactory.CreateResult(
-                                text,
-                                error: string.Empty,
-                                exitCode: 0,
-                                command: "dotnet new list --columns author --columns language --columns type --columns tags"));
-                    }
+                        var text = $"Installed .NET Templates (from 'dotnet new list'):\n\n{cliOutput.TrimEnd()}";
+                        if (machineReadable)
+                        {
+                            return ErrorResultFactory.ToJson(
+                                ErrorResultFactory.CreateResult(
+                                    text,
+                                    error: string.Empty,
+                                    exitCode: 0,
+                                    command: "dotnet new list --columns author --columns language --columns type --columns tags"));
+                        }
 
-                    return text;
+                        return text;
+                    }
                 }
 
                 var message = "No templates found. This might indicate an issue accessing the template engine.";
@@ -278,14 +283,19 @@ public class TemplateEngineHelper
                         help = SanitizeDotnetNewOutput(help);
                         if (!string.IsNullOrWhiteSpace(help))
                         {
-                            var text = $"Template help (from 'dotnet new {templateShortName} --help'):\n\n{help.TrimEnd()}";
-                            if (machineReadable)
+                            // Some environments can write error-prefixed output to stdout while still returning exit code 0.
+                            // Treat that as a failed CLI fallback to avoid returning error messages as valid output.
+                            if (!help.TrimStart().StartsWith("Error:", StringComparison.OrdinalIgnoreCase))
                             {
-                                return ErrorResultFactory.ToJson(
-                                    ErrorResultFactory.CreateResult(text, error: string.Empty, exitCode: 0, command: $"dotnet new {templateShortName} --help"));
-                            }
+                                var text = $"Template help (from 'dotnet new {templateShortName} --help'):\n\n{help.TrimEnd()}";
+                                if (machineReadable)
+                                {
+                                    return ErrorResultFactory.ToJson(
+                                        ErrorResultFactory.CreateResult(text, error: string.Empty, exitCode: 0, command: $"dotnet new {templateShortName} --help"));
+                                }
 
-                            return text;
+                                return text;
+                            }
                         }
                     }
                     catch (InvalidOperationException)
@@ -377,14 +387,19 @@ public class TemplateEngineHelper
                 var cliOutput = await TryGetDotnetNewListOutputAsync(searchTerm, logger);
                 if (!string.IsNullOrWhiteSpace(cliOutput))
                 {
-                    var text = $"Templates matching '{searchTerm}' (from 'dotnet new list'):\n\n{cliOutput.TrimEnd()}";
-                    if (machineReadable)
+                    // Some environments can write error-prefixed output to stdout while still returning exit code 0.
+                    // Treat that as a failed CLI fallback to avoid returning error messages as valid output.
+                    if (!cliOutput.TrimStart().StartsWith("Error:", StringComparison.OrdinalIgnoreCase))
                     {
-                        return ErrorResultFactory.ToJson(
-                            ErrorResultFactory.CreateResult(text, error: string.Empty, exitCode: 0, command: $"dotnet new list \"{searchTerm}\" --columns author --columns language --columns type --columns tags"));
-                    }
+                        var text = $"Templates matching '{searchTerm}' (from 'dotnet new list'):\n\n{cliOutput.TrimEnd()}";
+                        if (machineReadable)
+                        {
+                            return ErrorResultFactory.ToJson(
+                                ErrorResultFactory.CreateResult(text, error: string.Empty, exitCode: 0, command: $"dotnet new list \"{searchTerm}\" --columns author --columns language --columns type --columns tags"));
+                        }
 
-                    return text;
+                        return text;
+                    }
                 }
             }
 
