@@ -66,10 +66,29 @@ public sealed partial class DotNetCliTools
 
     /// <summary>
     /// Gets the operation target for concurrency control. Returns the project path if specified, 
-    /// otherwise returns the current directory.
+    /// otherwise returns the working directory if provided, or the current directory as fallback.
     /// </summary>
-    private static string GetOperationTarget(string? project)
-        => project ?? Directory.GetCurrentDirectory();
+    private static string GetOperationTarget(string? project, string? workingDirectory = null)
+    {
+        if (!string.IsNullOrWhiteSpace(project))
+            return project;
+
+        if (!string.IsNullOrWhiteSpace(workingDirectory))
+        {
+            try
+            {
+                // Normalize to absolute path for consistent concurrency target
+                return Path.GetFullPath(workingDirectory);
+            }
+            catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+            {
+                // If normalization fails, fall back to current directory
+                // This shouldn't happen as workingDirectory is validated before execution
+            }
+        }
+
+        return Directory.GetCurrentDirectory();
+    }
 
     private static bool IsValidAdditionalOptions(string options)
     {
