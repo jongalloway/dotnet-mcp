@@ -1,11 +1,56 @@
 # Changelog
 
+<!-- markdownlint-disable MD024 -->
+
 All notable changes to the .NET MCP Server will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [1.0.0-beta.2] - 2026-01-12
+
+### Added
+
+- Two tiers of scenario tests
+  - Fast MCP scenarios running as part of CI
+  - Release-gate (long-running) scenarios runnable on-demand via workflow dispatch
+
+### Changed
+
+- Performance smoke tests are non-blocking in CI.
+- Path handling: replace `Path.Combine` usages with `Path.Join`.
+
+### Fixed
+
+- Template tooling reliability and CI flakiness
+  - `dotnet_sdk` template listing fallback via `dotnet new list`
+  - Template validation fallback when Template Engine API returns empty
+  - Sanitize `dotnet new` CLI output to avoid spurious `Error:` text
+- CLI diagnostic parsing: deduplicate parsed diagnostics.
+- `dotnet_project` Test action behavior on .NET 10.
+- CI and scenario infrastructure: workflow hardening, cleanup/resource leak fixes, and more scenarios.
+
+### Security
+
+- CodeQL findings in `TemplateEngineHelper`.
+
+## [1.0.0-beta.1] - 2026-01-10
+
+### Added
+
+- Consolidated tool surface (domain tools + utility tools) for better AI orchestration.
+- Machine-readable JSON output and contract/compliance improvements (MCP v0.5 metadata + error codes alignment).
+- Enhanced error diagnostics (CS/MSB/NU/NETSDK) with actionable guidance and documentation links.
+- SDK integration upgrades (Template Engine + MSBuild project analysis) and read-only resources for fast environment discovery.
+- Caching + concurrency improvements (TimeProvider-driven determinism, reduced lock contention, safer disposal behavior).
+- CI/CD hardening: MinVer-based NuGet publishing, separate MCP registry publishing workflow with retry, CodeQL + Codecov.
+- Expanded test coverage including conformance tests, performance smoke tests, and opt-in interactive tests.
+
+### Changed
+
+- Breaking: callers relying on legacy per-command MCP tool names must migrate to consolidated tool names.
 
 ## [1.0.0] - 2026-01-09
 
@@ -95,3 +140,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]: https://github.com/jongalloway/dotnet-mcp/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/jongalloway/dotnet-mcp/releases/tag/v1.0.0
+[1.0.0-beta.2]: https://github.com/jongalloway/dotnet-mcp/releases/tag/v1.0.0-beta.2
+[1.0.0-beta.1]: https://github.com/jongalloway/dotnet-mcp/releases/tag/v1.0.0-beta.1

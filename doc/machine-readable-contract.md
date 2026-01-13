@@ -34,11 +34,13 @@ interface SuccessResult {
 ```
 
 **Required Fields:**
+
 - `success` - Always `true`
 - `output` - Command output (may be empty string)
 - `exitCode` - Always `0`
 
 **Optional Fields:**
+
 - `command` - The executed dotnet command (included for logging/diagnostics)
 
 **Example:**
@@ -88,12 +90,14 @@ interface ErrorData {
 ```
 
 **Required Fields:**
+
 - `success` - Always `false`
 - `errors` - Array with at least one error
 - `exitCode` - Process exit code (or -1 for pre-execution errors)
 - Each error must have: `code`, `message`, `category`, `rawOutput`
 
 **Optional Fields:**
+
 - `hint`, `explanation`, `documentationUrl`, `suggestedFixes`, `alternatives`
 - `mcpErrorCode` - Maps to JSON-RPC 2.0 error codes
 - `data` - Structured data for programmatic error handling
@@ -108,7 +112,7 @@ Errors are classified into the following categories:
 | `Compilation` | C# compiler errors | `CS0103`, `CS1001`, `CS0246` |
 | `Build` | MSBuild errors | `MSB3644`, `MSB4236`, `MSB1003` |
 | `Package` | NuGet package errors | `NU1101`, `NU1102`, `NU1605` |
-| `SDK` | .NET SDK errors | `NETSDK1045`, `NETSDK1004` |
+| `Runtime` | .NET SDK/host/runtime errors not covered by Build/Package/Compilation | `NETSDK1045`, `NETSDK1004` |
 | `Capability` | Feature not available in current environment | `CAPABILITY_NOT_AVAILABLE` |
 | `Concurrency` | Resource locked by another operation | `CONCURRENCY_CONFLICT` |
 | `Cancellation` | Operation cancelled by user | `OPERATION_CANCELLED` |
@@ -121,6 +125,7 @@ Errors are classified into the following categories:
 Validation errors occur **before** command execution when parameters are invalid.
 
 **Characteristics:**
+
 - Error code: `INVALID_PARAMS`
 - Category: `Validation`
 - Exit code: `-1` (no command executed)
@@ -211,6 +216,7 @@ Validation errors occur **before** command execution when parameters are invalid
 **Consolidated tools** use an `action` parameter (enum) to select which operation to perform. Action validation occurs before execution and follows the same pattern as other parameter validation.
 
 **Characteristics:**
+
 - Error code: `INVALID_PARAMS`
 - Category: `Validation`
 - Exit code: `-1`
@@ -224,16 +230,17 @@ Validation errors occur **before** command execution when parameters are invalid
   "errors": [
     {
       "code": "INVALID_PARAMS",
-      "message": "Invalid action 'build'. Allowed values: New, Restore, Build, Run, Test, Publish, Clean, Analyze, Dependencies, Validate, Pack, Watch, Format",
+      "message": "Invalid action 'build' is not supported. For tool 'dotnet_project'.",
       "category": "Validation",
-      "hint": "Verify the parameter values and try again.",
+      "hint": "Valid actions are: New, Restore, Build, Run, Test, Publish, Clean, Analyze, Dependencies, Validate, Pack, Watch, Format",
       "rawOutput": "",
       "mcpErrorCode": -32602,
       "data": {
         "exitCode": -1,
         "additionalData": {
           "parameter": "action",
-          "reason": "invalid value"
+          "providedValue": "build",
+          "validActions": "New, Restore, Build, Run, Test, Publish, Clean, Analyze, Dependencies, Validate, Pack, Watch, Format"
         }
       }
     }
@@ -247,6 +254,7 @@ Validation errors occur **before** command execution when parameters are invalid
 **Example: Successful Consolidated Tool Call**
 
 Request:
+
 ```typescript
 await callTool("dotnet_project", {
   action: "New",
@@ -257,6 +265,7 @@ await callTool("dotnet_project", {
 ```
 
 Response:
+
 ```json
 {
   "success": true,
@@ -271,6 +280,7 @@ Response:
 Command execution errors occur when the dotnet CLI command runs but fails.
 
 **Characteristics:**
+
 - Error code: Varies (`CS####`, `MSB####`, `NU####`, `EXIT_N`)
 - Category: `Compilation`, `Build`, `Package`, `Unknown`
 - Exit code: Non-zero process exit code
@@ -374,6 +384,7 @@ Command execution errors occur when the dotnet CLI command runs but fails.
 Capability errors occur when a feature exists but cannot be executed in the current environment.
 
 **Characteristics:**
+
 - Error code: `CAPABILITY_NOT_AVAILABLE`
 - Category: `Capability`
 - Exit code: `-1`
@@ -479,6 +490,7 @@ Capability errors occur when a feature exists but cannot be executed in the curr
 Concurrency errors occur when a resource is locked by another operation.
 
 **Characteristics:**
+
 - Error code: `CONCURRENCY_CONFLICT`
 - Category: `Concurrency`
 - Exit code: `-1`
@@ -516,6 +528,7 @@ Concurrency errors occur when a resource is locked by another operation.
 Cancellation errors occur when a user cancels a long-running operation.
 
 **Characteristics:**
+
 - Error code: `OPERATION_CANCELLED`
 - Category: `Cancellation`
 - Exit code: `-1`
@@ -557,6 +570,7 @@ Machine-readable responses map to JSON-RPC 2.0 error codes for MCP compatibility
 | Command Execution Failures | `-32603` or `-32002` | InternalError for generic failures, ResourceNotFound for missing resources (e.g., NU1101, MSB1003) |
 
 **Notes:**
+
 - Not all errors have MCP error codes. The `mcpErrorCode` field is optional and only set when applicable.
 - `CAPABILITY_NOT_AVAILABLE` may surface as either `-32001` (when using the factory overload that accepts feature, alternatives, command, and details) or `-32603` (when using the overload with feature, reason, and alternatives). Clients should treat both codes as representing the same high-level capability-not-available condition.
 - Resource-not-found errors (NU1101, NU1102, MSB1003, NETSDK1004, MSB4236) use `-32002` (ResourceNotFound).
@@ -567,6 +581,7 @@ Machine-readable responses map to JSON-RPC 2.0 error codes for MCP compatibility
 All machine-readable output applies **automatic security redaction** to protect sensitive information:
 
 **Redacted Patterns:**
+
 - Connection strings (database credentials, passwords)
 - API keys and tokens (Azure, AWS, SendGrid, etc.)
 - Certificates and private keys
@@ -574,6 +589,7 @@ All machine-readable output applies **automatic security redaction** to protect 
 - Authorization headers
 
 **Redacted Fields:**
+
 - `command` - Command arguments with secrets removed
 - `output` - Command output with secrets removed
 - `stderr` - Error output with secrets removed
@@ -582,16 +598,19 @@ All machine-readable output applies **automatic security redaction** to protect 
 **Example Redaction:**
 
 Before:
+
 ```
 Server=localhost;Database=MyDb;User=admin;Password=SuperSecret123!
 ```
 
 After:
+
 ```
 Server=localhost;Database=MyDb;User=admin;Password=[REDACTED]
 ```
 
 To disable redaction for debugging (use with caution):
+
 ```csharp
 await _tools.DotnetSdkVersion(machineReadable: true, unsafeOutput: true);
 ```
@@ -603,6 +622,7 @@ The following examples demonstrate machine-readable responses from consolidated 
 ### Creating a Project with Consolidated Tools
 
 **Request:**
+
 ```typescript
 await callTool("dotnet_project", {
   action: "New",
@@ -614,6 +634,7 @@ await callTool("dotnet_project", {
 ```
 
 **Success Response:**
+
 ```json
 {
   "success": true,
@@ -626,6 +647,7 @@ await callTool("dotnet_project", {
 ### Building a Project
 
 **Request:**
+
 ```typescript
 await callTool("dotnet_project", {
   action: "Build",
@@ -636,6 +658,7 @@ await callTool("dotnet_project", {
 ```
 
 **Success Response:**
+
 ```json
 {
   "success": true,
@@ -648,6 +671,7 @@ await callTool("dotnet_project", {
 ### Managing Packages with Consolidated Tools
 
 **Request:**
+
 ```typescript
 await callTool("dotnet_package", {
   action: "Search",
@@ -658,6 +682,7 @@ await callTool("dotnet_package", {
 ```
 
 **Success Response:**
+
 ```json
 {
   "success": true,
@@ -668,6 +693,7 @@ await callTool("dotnet_package", {
 ```
 
 **Adding a package:**
+
 ```typescript
 await callTool("dotnet_package", {
   action: "Add",
@@ -678,6 +704,7 @@ await callTool("dotnet_package", {
 ```
 
 **Success Response:**
+
 ```json
 {
   "success": true,
@@ -690,6 +717,7 @@ await callTool("dotnet_package", {
 ### Entity Framework with Consolidated Tools
 
 **Request:**
+
 ```typescript
 await callTool("dotnet_ef", {
   action: "MigrationsAdd",
@@ -700,6 +728,7 @@ await callTool("dotnet_ef", {
 ```
 
 **Success Response:**
+
 ```json
 {
   "success": true,
@@ -710,6 +739,7 @@ await callTool("dotnet_ef", {
 ```
 
 **Invalid action example:**
+
 ```typescript
 await callTool("dotnet_ef", {
   action: "InvalidAction",
@@ -719,6 +749,7 @@ await callTool("dotnet_ef", {
 ```
 
 **Error Response:**
+
 ```json
 {
   "success": false,
@@ -746,6 +777,7 @@ await callTool("dotnet_ef", {
 ### Solution Management
 
 **Request:**
+
 ```typescript
 await callTool("dotnet_solution", {
   action: "Create",
@@ -756,6 +788,7 @@ await callTool("dotnet_solution", {
 ```
 
 **Success Response:**
+
 ```json
 {
   "success": true,
@@ -766,6 +799,7 @@ await callTool("dotnet_solution", {
 ```
 
 **Request:**
+
 ```typescript
 await callTool("dotnet_solution", {
   action: "Add",
@@ -776,6 +810,7 @@ await callTool("dotnet_solution", {
 ```
 
 **Success Response:**
+
 ```json
 {
   "success": true,
@@ -824,7 +859,7 @@ public async Task MyTool_WithMachineReadableTrue_ReturnsValidJson()
 - Initial stable contract
 - Success envelope: `SuccessResult`
 - Error envelope: `ErrorResponse` with `ErrorResult[]`
-- Error categories: Validation, Compilation, Build, Package, SDK, Capability, Concurrency, Cancellation
+- Error categories: Validation, Compilation, Build, Package, Runtime, Capability, Concurrency, Cancellation
 - MCP error code mapping for JSON-RPC 2.0 compatibility
 - Automatic security redaction
 - Enhanced error diagnostics (explanation, documentation URLs, suggested fixes)
