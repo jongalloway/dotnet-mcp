@@ -764,12 +764,20 @@ await callTool("dotnet_package", {
 
 #### dotnet_solution - Solution File Management
 
+**Full parity with `dotnet sln` / `dotnet solution` CLI commands.**
+
 Manage solution files and project membership: **Create**, **Add**, **List**, **Remove**
 
-Example:
+Examples:
 
 ```typescript
-// Create a solution
+// Create a solution (classic .sln format)
+await callTool("dotnet_solution", { 
+  action: "Create", 
+  name: "MyApp"
+});
+
+// Create a solution (new .slnx XML format)
 await callTool("dotnet_solution", { 
   action: "Create", 
   name: "MyApp", 
@@ -781,6 +789,19 @@ await callTool("dotnet_solution", {
   action: "Add", 
   solution: "MyApp.slnx", 
   projects: ["MyApi/MyApi.csproj", "MyWeb/MyWeb.csproj"] 
+});
+
+// List projects in solution
+await callTool("dotnet_solution", { 
+  action: "List", 
+  solution: "MyApp.slnx"
+});
+
+// Remove projects from solution
+await callTool("dotnet_solution", { 
+  action: "Remove", 
+  solution: "MyApp.slnx", 
+  projects: ["MyWeb/MyWeb.csproj"] 
 });
 ```
 

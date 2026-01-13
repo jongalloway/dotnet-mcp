@@ -271,6 +271,8 @@ dotnet add package <PackageName>
 
 ### 5. Solution Management
 
+> **Note:** The `dotnet_solution` tool provides **full parity with `dotnet sln` / `dotnet solution` CLI commands**. All solution operations (create, add, list, remove) are available through the MCP server.
+
 **Create Multi-Project Solution:**
 
 ```text
@@ -281,23 +283,49 @@ class library for data models, and xUnit tests. Use the new slnx format."
 **What the AI Does:**
 
 ```bash
-# 1. Create solution
-dotnet new sln -n MyCompany.Products --use-slnx
+# 1. Create solution via dotnet_solution (action: "Create")
+dotnet new sln -n MyCompany.Products --format slnx
 
-# 2. Create projects
+# 2. Create projects via dotnet_project (action: "New")
 dotnet new webapi -n MyCompany.Products.Api
 dotnet new classlib -n MyCompany.Products.Data
 dotnet new xunit -n MyCompany.Products.Tests
 
-# 3. Add projects to solution
-dotnet sln add MyCompany.Products.Api
-dotnet sln add MyCompany.Products.Data
-dotnet sln add MyCompany.Products.Tests
+# 3. Add projects to solution via dotnet_solution (action: "Add")
+dotnet solution MyCompany.Products.slnx add MyCompany.Products.Api
+dotnet solution MyCompany.Products.slnx add MyCompany.Products.Data
+dotnet solution MyCompany.Products.slnx add MyCompany.Products.Tests
 
-# 4. Add project references
+# 4. Add project references via dotnet_package (action: "AddReference")
 dotnet add MyCompany.Products.Api reference MyCompany.Products.Data
 dotnet add MyCompany.Products.Tests reference MyCompany.Products.Api
 dotnet add MyCompany.Products.Tests reference MyCompany.Products.Data
+```
+
+**List Projects in Solution:**
+
+```text
+"Show me which projects are in the MyCompany.Products solution."
+```
+
+**What the AI Does:**
+
+```bash
+# List projects via dotnet_solution (action: "List")
+dotnet solution MyCompany.Products.slnx list
+```
+
+**Remove Project from Solution:**
+
+```text
+"Remove the MyCompany.Products.Tests project from the solution."
+```
+
+**What the AI Does:**
+
+```bash
+# Remove project via dotnet_solution (action: "Remove")
+dotnet solution MyCompany.Products.slnx remove MyCompany.Products.Tests
 ```
 
 ### 6. Database Migrations with Entity Framework
