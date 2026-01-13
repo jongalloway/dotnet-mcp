@@ -160,7 +160,7 @@ public class SdkAndServerInfoToolsTests
         }
         finally
         {
-            try { Directory.Delete(tempDir, recursive: true); } catch { /* best-effort cleanup */ }
+            try { Directory.Delete(tempDir, recursive: true); } catch (Exception) { /* best-effort cleanup */ }
         }
     }
 
