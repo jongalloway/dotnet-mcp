@@ -1256,7 +1256,6 @@ Program.cs(15,10): error CS1001: Identifier expected";
         
         // Verify metadata indicates already installed
         Assert.NotNull(successResult.Metadata);
-        Assert.True(successResult.Metadata.ContainsKey("alreadyInstalled"));
         Assert.Equal("true", successResult.Metadata["alreadyInstalled"]);
         Assert.True(successResult.Metadata.ContainsKey("message"));
         Assert.Equal("Template pack already installed", successResult.Metadata["message"]);
