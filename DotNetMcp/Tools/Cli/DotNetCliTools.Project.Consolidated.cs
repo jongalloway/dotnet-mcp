@@ -627,9 +627,9 @@ public sealed partial class DotNetCliTools
         // Otherwise, auto-detect or default to Auto behavior
         else
         {
-            var workingDir = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
+            var workingDirForDetection = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
             var (detectedRunner, detectionSource) = SdkIntegration.TestRunnerDetector.DetectTestRunner(
-                workingDirectory: workingDir,
+                workingDirectory: workingDirForDetection,
                 projectPath: project,
                 logger: _logger);
             effectiveRunner = detectedRunner;
@@ -675,9 +675,6 @@ public sealed partial class DotNetCliTools
         if (blame) args.Append(" --blame");
         if (listTests) args.Append(" --list-tests");
 
-        // Capture working directory for concurrency target selection
-        var workingDir2 = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
-        
         // Store metadata for machine-readable output
         var metadata = new Dictionary<string, string>
         {
@@ -686,7 +683,9 @@ public sealed partial class DotNetCliTools
             ["selectionSource"] = selectionSource
         };
         
-        return await ExecuteWithConcurrencyCheck("test", GetOperationTarget(project, workingDir2), args.ToString(), machineReadable, metadata);
+        // Use working directory for concurrency target selection
+        var workingDirForTarget = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
+        return await ExecuteWithConcurrencyCheck("test", GetOperationTarget(project, workingDirForTarget), args.ToString(), machineReadable, metadata);
     }
 
     /// <summary>

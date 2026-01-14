@@ -107,9 +107,6 @@ interface ErrorData {
 **Optional Fields:**
 
 - `metadata` - Tool-specific metadata (e.g., for dotnet_project Test action, includes test runner selection)
-
-**Optional Fields:**
-
 - `hint`, `explanation`, `documentationUrl`, `suggestedFixes`, `alternatives`
 - `mcpErrorCode` - Maps to JSON-RPC 2.0 error codes
 - `data` - Structured data for programmatic error handling
