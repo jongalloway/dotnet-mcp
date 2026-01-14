@@ -32,26 +32,33 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Setup .NET
+        id: setup_dotnet
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "10.0.x"
 
       - name: Display .NET info
+        id: dotnet_info
         run: dotnet --info
 
       - name: Restore dependencies
+        id: restore
         run: dotnet restore DotNetMcp.slnx
 
       - name: Build
+        id: build
         run: dotnet build DotNetMcp.slnx --no-restore --configuration Release
 
       - name: Validate server.json
+        id: validate_server_json
         run: pwsh -File scripts/validate-server-json.ps1
 
       - name: Run MCP Conformance Tests
+        id: conformance_tests
         run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-class "*McpConformanceTests"
 
       - name: Run MCP Scenario Tests
+        id: scenario_tests
         # Run on all CI builds by default. Allow manual workflow runs to skip if desired.
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.runScenarioTests == 'true' }}
         env:
@@ -59,9 +66,11 @@ jobs:
         run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
 
       - name: Test
+        id: test
         run: dotnet test --solution DotNetMcp.slnx --no-build --configuration Release --verbosity normal -- --coverage --coverage-output-format cobertura
 
       - name: Collect coverage artifact
+        id: collect_coverage
         shell: bash
         run: |
           set -euo pipefail
@@ -74,6 +83,7 @@ jobs:
           cp "${coverage_file}" coverage.cobertura.xml
 
       - name: Upload coverage to Codecov
+        id: upload_codecov
         # Only upload from pushes (PR workflows from forks don't have secrets).
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         uses: codecov/codecov-action@v5
@@ -83,12 +93,14 @@ jobs:
           fail_ci_if_error: false
 
       - name: Upload coverage artifact
+        id: upload_coverage_artifact
         uses: actions/upload-artifact@v6
         with:
           name: coverage-cobertura
           path: coverage.cobertura.xml
 
       - name: Run Performance Smoke Tests
+        id: performance_smoke
         # Performance tests are informational only and should not block CI
         # Results are uploaded as artifacts for review
         continue-on-error: true
@@ -104,8 +116,43 @@ jobs:
           cat performance-results.txt
 
       - name: Upload performance results artifact
+        id: upload_performance_artifact
         uses: actions/upload-artifact@v6
         with:
           name: performance-results
           path: performance-results.txt
           if-no-files-found: warn
+
+      - name: Write workflow summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## dotnet-mcp CI summary"
+            echo ""
+            echo "- Workflow: \`${{ github.workflow }}\`"
+            echo "- Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo "- Ref: \`${{ github.ref }}\`"
+            echo "- SHA: \`${{ github.sha }}\`"
+            echo ""
+            echo "### Step outcomes"
+            echo "| Step | Outcome |"
+            echo "| --- | --- |"
+            echo "| Setup .NET | ${{ steps.setup_dotnet.outcome }} |"
+            echo "| dotnet --info | ${{ steps.dotnet_info.outcome }} |"
+            echo "| Restore | ${{ steps.restore.outcome }} |"
+            echo "| Build | ${{ steps.build.outcome }} |"
+            echo "| Validate server.json | ${{ steps.validate_server_json.outcome }} |"
+            echo "| Conformance tests | ${{ steps.conformance_tests.outcome }} |"
+            echo "| Scenario tests | ${{ steps.scenario_tests.outcome }} |"
+            echo "| Test (+coverage) | ${{ steps.test.outcome }} |"
+            echo "| Collect coverage artifact | ${{ steps.collect_coverage.outcome }} |"
+            echo "| Upload Codecov | ${{ steps.upload_codecov.outcome }} |"
+            echo "| Upload coverage artifact | ${{ steps.upload_coverage_artifact.outcome }} |"
+            echo "| Performance smoke | ${{ steps.performance_smoke.outcome }} |"
+            echo "| Upload performance artifact | ${{ steps.upload_performance_artifact.outcome }} |"
+            echo ""
+            echo "### Artifacts"
+            echo "- coverage-cobertura"
+            echo "- performance-results"
+          } >> "${GITHUB_STEP_SUMMARY}"
