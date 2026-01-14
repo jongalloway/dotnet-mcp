@@ -9,6 +9,12 @@ namespace DotNetMcp;
 public static partial class ErrorResultFactory
 {
     /// <summary>
+    /// Exit code returned by dotnet CLI when a template pack is already installed.
+    /// This is treated as success for idempotent template installation operations.
+    /// </summary>
+    internal const int TemplatePackAlreadyInstalledExitCode = 106;
+
+    /// <summary>
     /// Create a standardized error response for when a capability exists but is not available
     /// due to environment limitations, feature flags, or unimplemented functionality.
     /// </summary>
@@ -83,10 +89,14 @@ public static partial class ErrorResultFactory
     /// <param name="exitCode">Exit code from the command</param>
     /// <param name="command">Optional command that was executed for structured data</param>
     /// <param name="metadata">Optional metadata to include in success results</param>
-    /// <returns>ErrorResponse with parsed errors or SuccessResult if exitCode is 0</returns>
+    /// <returns>
+    /// SuccessResult when the command succeeds (exitCode is 0, or 106 for "new install"
+    /// template commands where the template pack is already installed); otherwise
+    /// ErrorResponse with parsed errors.
+    /// </returns>
     public static object CreateResult(string output, string error, int exitCode, string? command = null, Dictionary<string, string>? metadata = null)
     {
-        // Success case
+        // Success case (exit code 0)
         if (exitCode == 0)
         {
             return new SuccessResult
@@ -96,6 +106,23 @@ public static partial class ErrorResultFactory
                 Output = SanitizeOutput(output),
                 ExitCode = 0,
                 Metadata = metadata
+            };
+        }
+
+        // Exit code 106: Template pack already installed - treat as success with metadata
+        if (exitCode == TemplatePackAlreadyInstalledExitCode && command?.Contains("new install", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            var resultMetadata = metadata != null ? new Dictionary<string, string>(metadata) : new Dictionary<string, string>();
+            resultMetadata["alreadyInstalled"] = "true";
+            resultMetadata["message"] = "Template pack already installed";
+
+            return new SuccessResult
+            {
+                Success = true,
+                Command = string.IsNullOrWhiteSpace(command) ? null : SanitizeOutput(command),
+                Output = SanitizeOutput(output),
+                ExitCode = TemplatePackAlreadyInstalledExitCode,
+                Metadata = resultMetadata
             };
         }
 
