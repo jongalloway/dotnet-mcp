@@ -388,7 +388,7 @@ public static class DotNetCommandExecutor
     /// <param name="workingDirectory">Optional working directory for command execution</param>
     /// <returns>Started Process object</returns>
     /// <exception cref="InvalidOperationException">Thrown if the process cannot be started</exception>
-    public static Process StartProcessAsync(string arguments, ILogger? logger = null, string? workingDirectory = null)
+    public static Process StartProcess(string arguments, ILogger? logger = null, string? workingDirectory = null)
     {
         logger?.LogDebug("Starting process: dotnet {Arguments}", arguments);
 

@@ -226,7 +226,7 @@ public sealed partial class DotNetCliTools
         try
         {
             // Start the process without waiting
-            var process = DotNetCommandExecutor.StartProcessAsync(args.ToString(), _logger, workingDir);
+            var process = DotNetCommandExecutor.StartProcess(args.ToString(), _logger, workingDir);
             var sessionRegistered = false;
 
             try
@@ -235,22 +235,19 @@ public sealed partial class DotNetCliTools
                 if (!_processSessionManager.RegisterSession(sessionId, process, "run", target))
                 {
                     // Registration failed - unlikely but handle it
+                    // Kill and dispose the process since we couldn't register it
                     try
                     {
-                        try
-                        {
-                            process.Kill(entireProcessTree: true);
-                        }
-                        finally
-                        {
-                            // Ensure the process is disposed even if Kill throws
-                            process.Dispose();
-                        }
+                        process.Kill(entireProcessTree: true);
                     }
                     catch (Exception ex)
                     {
                         // Best effort cleanup - log for troubleshooting
-                        _logger.LogDebug(ex, "Failed to cleanup process during registration failure for session {SessionId}", sessionId);
+                        _logger.LogDebug(ex, "Failed to kill process during registration failure for session {SessionId}", sessionId);
+                    }
+                    finally
+                    {
+                        process.Dispose();
                     }
 
                     if (machineReadable)
@@ -270,12 +267,24 @@ public sealed partial class DotNetCliTools
                 // Note: This is a fire-and-forget task by design. The process lifetime is independent
                 // of the API call that started it. The cleanup will run when the process exits,
                 // or be orphaned if the server shuts down (which is acceptable for a background process).
+                // The ProcessSessionManager owns the process and will dispose it during cleanup.
                 _ = Task.Run(async () =>
                 {
                     try
                     {
                         await process.WaitForExitAsync();
-                        _logger.LogDebug("Background run process {SessionId} exited with code {ExitCode}", sessionId, process.ExitCode);
+                        // Safely capture exit code before logging, in case the process is disposed
+                        int exitCode;
+                        try
+                        {
+                            exitCode = process.ExitCode;
+                            _logger.LogDebug("Background run process {SessionId} exited with code {ExitCode}", sessionId, exitCode);
+                        }
+                        catch (InvalidOperationException)
+                        {
+                            // Process was disposed before we could get the exit code
+                            _logger.LogDebug("Background run process {SessionId} exited (exit code unavailable)", sessionId);
+                        }
                         
                         // Clean up the session
                         _processSessionManager.CleanupCompletedSessions();
@@ -310,6 +319,8 @@ public sealed partial class DotNetCliTools
             }
             finally
             {
+                // Only dispose the process if registration failed
+                // When registration succeeds, the ProcessSessionManager owns the process and handles disposal
                 if (!sessionRegistered)
                 {
                     try

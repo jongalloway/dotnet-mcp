@@ -90,50 +90,37 @@ Console.WriteLine(""Application finished"");
 
         var pid = int.Parse(pidString!);
 
-        // Verify the process is running
-        Process? process = null;
-        try
+        // Verify the process is running and stop it
+        using (var process = Process.GetProcessById(pid))
         {
-            process = Process.GetProcessById(pid);
             Assert.False(process.HasExited, "Process should still be running");
-        }
-        catch (ArgumentException)
-        {
-            Assert.Fail($"Process with PID {pid} should be running but was not found");
-        }
 
-        // Stop the process using the sessionId
-        var stopJsonText = await client.CallToolTextAsync(
-            toolName: "dotnet_project",
-            args: new Dictionary<string, object?>
-            {
-                ["action"] = "Stop",
-                ["sessionId"] = sessionId,
-                ["machineReadable"] = true
-            },
-            cancellationToken);
+            // Stop the process using the sessionId
+            var stopJsonText = await client.CallToolTextAsync(
+                toolName: "dotnet_project",
+                args: new Dictionary<string, object?>
+                {
+                    ["action"] = "Stop",
+                    ["sessionId"] = sessionId,
+                    ["machineReadable"] = true
+                },
+                cancellationToken);
 
-        using var stopJson = ScenarioHelpers.ParseJson(stopJsonText);
-        ScenarioHelpers.AssertMachineReadableSuccess(stopJson.RootElement);
+            using var stopJson = ScenarioHelpers.ParseJson(stopJsonText);
+            ScenarioHelpers.AssertMachineReadableSuccess(stopJson.RootElement);
 
-        // Wait a moment for the process to actually terminate
-        await Task.Delay(2000, cancellationToken);
+            // Wait a moment for the process to actually terminate
+            await Task.Delay(2000, cancellationToken);
 
-        // Verify the process has been terminated
-        if (process != null)
-        {
+            // Verify the process has been terminated
             try
             {
                 process.Refresh();
                 Assert.True(process.HasExited, "Process should have exited after Stop");
             }
-            catch (ArgumentException)
+            catch (InvalidOperationException)
             {
                 // Process no longer exists - this is expected and acceptable
-            }
-            finally
-            {
-                process.Dispose();
             }
         }
     }
