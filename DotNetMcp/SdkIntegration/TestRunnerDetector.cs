@@ -46,16 +46,14 @@ public static class TestRunnerDetector
             var jsonText = File.ReadAllText(globalJsonPath);
             using var doc = JsonDocument.Parse(jsonText);
             
-            if (doc.RootElement.TryGetProperty("test", out var testElement))
+            if (doc.RootElement.TryGetProperty("test", out var testElement) &&
+                testElement.TryGetProperty("runner", out var runnerElement))
             {
-                if (testElement.TryGetProperty("runner", out var runnerElement))
+                var runnerValue = runnerElement.GetString();
+                if (runnerValue == "Microsoft.Testing.Platform")
                 {
-                    var runnerValue = runnerElement.GetString();
-                    if (runnerValue == "Microsoft.Testing.Platform")
-                    {
-                        logger?.LogDebug("Detected MTP runner from global.json");
-                        return (Actions.TestRunner.MicrosoftTestingPlatform, "global.json");
-                    }
+                    logger?.LogDebug("Detected MTP runner from global.json");
+                    return (Actions.TestRunner.MicrosoftTestingPlatform, "global.json");
                 }
             }
         }
