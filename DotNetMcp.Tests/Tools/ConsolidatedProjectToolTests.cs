@@ -803,4 +803,221 @@ public class ConsolidatedProjectToolTests
     }
 
     #endregion
+
+    #region TestRunner Parameter Tests
+
+    [Fact]
+    public async Task DotnetProject_Test_WithTestRunnerMTP_UsesProjectFlag()
+    {
+        // Test that Test action uses --project when testRunner is explicitly MicrosoftTestingPlatform
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.Test,
+            project: "MyTests.csproj",
+            testRunner: TestRunner.MicrosoftTestingPlatform,
+            machineReadable: true);
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet test --project \"MyTests.csproj\"");
+        
+        // Verify metadata
+        Assert.Contains("\"selectedTestRunner\": \"microsoft-testing-platform\"", result);
+        Assert.Contains("\"projectArgumentStyle\": \"--project\"", result);
+        Assert.Contains("\"selectionSource\": \"testRunner-parameter\"", result);
+    }
+
+    [Fact]
+    public async Task DotnetProject_Test_WithTestRunnerVSTest_UsesPositionalArg()
+    {
+        // Test that Test action uses positional argument when testRunner is explicitly VSTest
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.Test,
+            project: "MyTests.csproj",
+            testRunner: TestRunner.VSTest,
+            machineReadable: true);
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet test \"MyTests.csproj\"");
+        
+        // Verify metadata
+        Assert.Contains("\"selectedTestRunner\": \"vstest\"", result);
+        Assert.Contains("\"projectArgumentStyle\": \"positional\"", result);
+        Assert.Contains("\"selectionSource\": \"testRunner-parameter\"", result);
+    }
+
+    [Fact]
+    public async Task DotnetProject_Test_WithTestRunnerAuto_DetectsFromGlobalJson()
+    {
+        // Arrange: Create temp directory with global.json configured for MTP
+        var tempDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-test-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        var globalJsonPath = Path.Join(tempDir, "global.json");
+
+        try
+        {
+            File.WriteAllText(globalJsonPath, """
+            {
+                "test": {
+                    "runner": "Microsoft.Testing.Platform"
+                }
+            }
+            """);
+
+            // Act
+            var result = await _tools.DotnetProject(
+                action: DotnetProjectAction.Test,
+                project: "MyTests.csproj",
+                testRunner: TestRunner.Auto,
+                workingDirectory: tempDir,
+                machineReadable: true);
+
+            // Assert
+            Assert.NotNull(result);
+            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet test --project \"MyTests.csproj\"");
+            
+            // Verify metadata indicates MTP was detected from global.json
+            Assert.Contains("\"selectedTestRunner\": \"microsoft-testing-platform\"", result);
+            Assert.Contains("\"projectArgumentStyle\": \"--project\"", result);
+            Assert.Contains("\"selectionSource\": \"global.json\"", result);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(tempDir, recursive: true);
+            }
+            catch (IOException)
+            {
+                // Best-effort cleanup
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Best-effort cleanup
+            }
+        }
+    }
+
+    [Fact]
+    public async Task DotnetProject_Test_WithTestRunnerAuto_NoGlobalJson_DefaultsToVSTest()
+    {
+        // Arrange: Create temp directory without global.json
+        var tempDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-test-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            // Act
+            var result = await _tools.DotnetProject(
+                action: DotnetProjectAction.Test,
+                project: "MyTests.csproj",
+                testRunner: TestRunner.Auto,
+                workingDirectory: tempDir,
+                machineReadable: true);
+
+            // Assert: Should default to VSTest (positional arg)
+            Assert.NotNull(result);
+            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet test \"MyTests.csproj\"");
+            
+            // Verify metadata indicates default VSTest
+            Assert.Contains("\"selectedTestRunner\": \"vstest\"", result);
+            Assert.Contains("\"projectArgumentStyle\": \"positional\"", result);
+            Assert.Contains("\"selectionSource\": \"default\"", result);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(tempDir, recursive: true);
+            }
+            catch (IOException)
+            {
+                // Best-effort cleanup
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Best-effort cleanup
+            }
+        }
+    }
+
+    [Fact]
+    public async Task DotnetProject_Test_UseLegacyProjectArgument_OverridesTestRunner()
+    {
+        // Test backward compatibility: useLegacyProjectArgument should override testRunner
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.Test,
+            project: "MyTests.csproj",
+            testRunner: TestRunner.MicrosoftTestingPlatform,
+            useLegacyProjectArgument: true,
+            machineReadable: true);
+
+        Assert.NotNull(result);
+        // useLegacyProjectArgument=true should force positional arg (VSTest mode)
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet test \"MyTests.csproj\"");
+        
+        // Verify metadata shows VSTest was selected due to legacy parameter
+        Assert.Contains("\"selectedTestRunner\": \"vstest\"", result);
+        Assert.Contains("\"projectArgumentStyle\": \"positional\"", result);
+        Assert.Contains("\"selectionSource\": \"useLegacyProjectArgument-parameter\"", result);
+    }
+
+    [Fact]
+    public async Task DotnetProject_Test_WithoutProject_NoMetadataForProjectArgStyle()
+    {
+        // Test that when no project is specified, projectArgumentStyle is "none"
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.Test,
+            testRunner: TestRunner.MicrosoftTestingPlatform,
+            machineReadable: true);
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet test");
+        
+        // Verify metadata
+        Assert.Contains("\"selectedTestRunner\": \"microsoft-testing-platform\"", result);
+        Assert.Contains("\"projectArgumentStyle\": \"none\"", result);
+    }
+
+    [Fact]
+    public async Task DotnetProject_Test_DefaultTestRunner_IsAuto()
+    {
+        // Test that when testRunner is not specified, it defaults to Auto behavior
+        // Arrange: Create temp directory without global.json (so Auto should default to VSTest)
+        var tempDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-test-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            // Act: Don't specify testRunner parameter
+            var result = await _tools.DotnetProject(
+                action: DotnetProjectAction.Test,
+                project: "MyTests.csproj",
+                workingDirectory: tempDir,
+                machineReadable: true);
+
+            // Assert: Should use VSTest (default behavior for Auto when no global.json)
+            Assert.NotNull(result);
+            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet test \"MyTests.csproj\"");
+            
+            // Verify metadata
+            Assert.Contains("\"selectedTestRunner\": \"vstest\"", result);
+            Assert.Contains("\"selectionSource\": \"default\"", result);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(tempDir, recursive: true);
+            }
+            catch (IOException)
+            {
+                // Best-effort cleanup
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Best-effort cleanup
+            }
+        }
+    }
+
+    #endregion
 }

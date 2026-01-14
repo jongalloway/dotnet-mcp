@@ -169,4 +169,11 @@ public sealed class ErrorResponse
     /// </summary>
     [JsonPropertyName("exitCode")]
     public int ExitCode { get; init; }
+
+    /// <summary>
+    /// Optional metadata providing additional context about the operation.
+    /// Used for tool-specific information like test runner selection.
+    /// </summary>
+    [JsonPropertyName("metadata")]
+    public Dictionary<string, string>? Metadata { get; init; }
 }

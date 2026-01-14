@@ -139,7 +139,8 @@ public static partial class ErrorResultFactory
         {
             Success = false,
             Errors = errors,
-            ExitCode = exitCode
+            ExitCode = exitCode,
+            Metadata = metadata
         };
     }
 
