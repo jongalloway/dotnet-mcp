@@ -89,7 +89,11 @@ public static partial class ErrorResultFactory
     /// <param name="exitCode">Exit code from the command</param>
     /// <param name="command">Optional command that was executed for structured data</param>
     /// <param name="metadata">Optional metadata to include in success results</param>
-    /// <returns>ErrorResponse with parsed errors or SuccessResult if exitCode is 0</returns>
+    /// <returns>
+    /// SuccessResult when the command succeeds (exitCode is 0, or 106 for "new install"
+    /// template commands where the template pack is already installed); otherwise
+    /// ErrorResponse with parsed errors.
+    /// </returns>
     public static object CreateResult(string output, string error, int exitCode, string? command = null, Dictionary<string, string>? metadata = null)
     {
         // Success case (exit code 0)
