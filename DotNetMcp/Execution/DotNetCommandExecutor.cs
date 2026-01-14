@@ -377,4 +377,72 @@ public static class DotNetCommandExecutor
         // Apply redaction to output before returning
         return SecretRedactor.Redact(output);
     }
+
+    /// <summary>
+    /// Start a dotnet command process and return it without waiting for completion.
+    /// Used for background execution scenarios like 'dotnet run' in background mode.
+    /// The caller is responsible for managing the process lifecycle (monitoring, disposal).
+    /// </summary>
+    /// <param name="arguments">The command-line arguments to pass to dotnet.exe</param>
+    /// <param name="logger">Optional logger for debug messages</param>
+    /// <param name="workingDirectory">Optional working directory for command execution</param>
+    /// <returns>Started Process object</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the process cannot be started</exception>
+    public static Process StartProcess(string arguments, ILogger? logger = null, string? workingDirectory = null)
+    {
+        logger?.LogDebug("Starting process: dotnet {Arguments}", arguments);
+
+        workingDirectory ??= WorkingDirectoryOverride.Value;
+
+        string? normalizedWorkingDirectory = null;
+        if (!string.IsNullOrWhiteSpace(workingDirectory))
+        {
+            try
+            {
+                normalizedWorkingDirectory = Path.GetFullPath(workingDirectory);
+            }
+            catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+            {
+                throw new InvalidOperationException($"Invalid workingDirectory path: {workingDirectory}. {ex.Message}", ex);
+            }
+
+            if (!Directory.Exists(normalizedWorkingDirectory))
+            {
+                throw new DirectoryNotFoundException(
+                    $"Directory not found: {normalizedWorkingDirectory}. The workingDirectory parameter must point to an existing directory.");
+            }
+        }
+
+        var psi = new ProcessStartInfo
+        {
+            FileName = "dotnet",
+            Arguments = arguments,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        if (!string.IsNullOrWhiteSpace(normalizedWorkingDirectory))
+        {
+            psi.WorkingDirectory = normalizedWorkingDirectory;
+        }
+
+        var process = new Process { StartInfo = psi };
+
+        try
+        {
+            process.Start();
+            logger?.LogDebug("Process started with PID: {ProcessId}", process.Id);
+            return process;
+        }
+        catch (Exception ex)
+        {
+            // Catch all exceptions during process start to ensure proper cleanup
+            // Common exceptions: Win32Exception, InvalidOperationException, FileNotFoundException, UnauthorizedAccessException
+            logger?.LogError(ex, "Failed to start dotnet process");
+            process.Dispose();
+            throw new InvalidOperationException($"dotnet command could not be started: {ex.Message}", ex);
+        }
+    }
 }

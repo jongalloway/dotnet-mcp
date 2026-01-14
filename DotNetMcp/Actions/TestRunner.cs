@@ -25,3 +25,21 @@ public enum TestRunner
     /// </summary>
     VSTest
 }
+
+/// <summary>
+/// Start mode for long-running dotnet commands like run.
+/// Determines whether the command blocks until completion or returns immediately with a session ID.
+/// </summary>
+public enum StartMode
+{
+    /// <summary>
+    /// Run in foreground mode - blocks until the process exits (default behavior).
+    /// </summary>
+    Foreground,
+
+    /// <summary>
+    /// Run in background mode - starts the process and returns immediately with a session ID.
+    /// Allows the process to be stopped later using dotnet_project Stop action.
+    /// </summary>
+    Background
+}
