@@ -21,6 +21,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        id: checkout
         with:
           fetch-depth: 0 # Required for MinVer to access Git history and tags
 
@@ -31,6 +32,7 @@ jobs:
           mkdir -p "$HOME/.nuget/packages"
 
       - name: Setup .NET
+        id: setup_dotnet
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "10.0.x"
@@ -38,12 +40,15 @@ jobs:
           cache-dependency-path: "**/*.csproj"
 
       - name: Restore dependencies
+        id: restore
         run: dotnet restore DotNetMcp/DotNetMcp.csproj
 
       - name: Build
+        id: build
         run: dotnet build DotNetMcp/DotNetMcp.csproj --configuration Release --no-restore
 
       - name: Pack
+        id: pack
         run: dotnet pack DotNetMcp/DotNetMcp.csproj --configuration Release --no-build --output ./artifacts
 
       - name: Detect package artifact
@@ -88,6 +93,7 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Validate server.json in package
+        id: validate_server_json
         run: |
           echo "📋 Validating server.json in package..."
           for package in ./artifacts/*.nupkg; do
@@ -130,8 +136,8 @@ jobs:
           echo "Actor: ${{ github.actor }}"
 
       - name: NuGet login (OIDC ? temp API key)
-        uses: NuGet/login@v1
         id: nuget_login
+        uses: NuGet/login@v1
         with:
           user: ${{ secrets.NUGET_USER }}
 
@@ -173,6 +179,7 @@ jobs:
           done
 
       - name: Push to NuGet
+        id: push_nuget
         run: |
           SUCCESS=0
           SKIPPED=0
@@ -213,10 +220,40 @@ jobs:
           echo "✅ NuGet push completed"
 
       - name: Upload package artifact (for registry publish)
+        id: upload_nupkg_artifact
         uses: actions/upload-artifact@v6
         with:
           name: dotnet-mcp-nupkg
           path: ./artifacts/*.nupkg
+
+      - name: Write workflow summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## NuGet publish summary"
+            echo ""
+            echo "- Package: \`${{ steps.package.outputs.package_id }}\` \`${{ steps.package.outputs.version }}\`"
+            echo "- Ref: \`${{ github.ref }}\`"
+            echo "- Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo ""
+            echo "### Step outcomes"
+            echo "| Step | Outcome |"
+            echo "| --- | --- |"
+            echo "| Checkout | ${{ steps.checkout.outcome }} |"
+            echo "| Setup .NET | ${{ steps.setup_dotnet.outcome }} |"
+            echo "| Restore | ${{ steps.restore.outcome }} |"
+            echo "| Build | ${{ steps.build.outcome }} |"
+            echo "| Pack | ${{ steps.pack.outcome }} |"
+            echo "| Detect package | ${{ steps.package.outcome }} |"
+            echo "| Validate server.json | ${{ steps.validate_server_json.outcome }} |"
+            echo "| NuGet login | ${{ steps.nuget_login.outcome }} |"
+            echo "| Push to NuGet | ${{ steps.push_nuget.outcome }} |"
+            echo "| Upload nupkg artifact | ${{ steps.upload_nupkg_artifact.outcome }} |"
+            echo ""
+            echo "### Artifacts"
+            echo "- dotnet-mcp-nupkg"
+          } >> "${GITHUB_STEP_SUMMARY}"
 
   publish-registry:
     needs: publish
@@ -231,17 +268,20 @@ jobs:
 
     steps:
       - name: Checkout repository
+        id: checkout
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Download package artifact
+        id: download_nupkg
         uses: actions/download-artifact@v7
         with:
           name: dotnet-mcp-nupkg
           path: ./artifacts
 
       - name: Extract server.json from package
+        id: extract_server_json
         shell: bash
         run: |
           set -euo pipefail
@@ -282,9 +322,34 @@ jobs:
           cp /tmp/server.json ./server.json
 
       - name: Install MCP Publisher
+        id: install_publisher
         uses: ./.github/actions/install-mcp-publisher
         with:
           checksum: ${{ env.MCP_PUBLISHER_SHA256 }}
 
       - name: Publish to MCP Registry
+        id: publish_registry
         uses: ./.github/actions/publish-mcp-registry
+
+      - name: Write workflow summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## MCP Registry publish summary (from NuGet publish workflow)"
+            echo ""
+            echo "- Package: \`${{ needs.publish.outputs.package_id }}\` \`${{ needs.publish.outputs.version }}\`"
+            echo "- Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo ""
+            echo "### Step outcomes"
+            echo "| Step | Outcome |"
+            echo "| --- | --- |"
+            echo "| Checkout | ${{ steps.checkout.outcome }} |"
+            echo "| Download nupkg artifact | ${{ steps.download_nupkg.outcome }} |"
+            echo "| Extract server.json | ${{ steps.extract_server_json.outcome }} |"
+            echo "| Install publisher | ${{ steps.install_publisher.outcome }} |"
+            echo "| Publish registry | ${{ steps.publish_registry.outcome }} |"
+            echo ""
+            echo "### Artifacts"
+            echo "- dotnet-mcp-nupkg (input)"
+          } >> "${GITHUB_STEP_SUMMARY}"

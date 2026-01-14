@@ -1,7 +1,7 @@
 name: Publish MCP Registry
 
 env:
-    PACKAGE_ID: Community.Mcp.DotNet
+  PACKAGE_ID: Community.Mcp.DotNet
 
 on:
   workflow_dispatch:
@@ -12,126 +12,153 @@ on:
         type: string
 
 jobs:
-    publish-registry:
-        runs-on: ubuntu-latest
-        permissions:
-            contents: read
-            id-token: write # Required for GitHub OIDC login (mcp-publisher)
+  publish-registry:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Required for GitHub OIDC login (mcp-publisher)
 
-        concurrency:
-            group: "publish-mcp-registry-${{ github.repository }}-${{ github.ref }}"
-            cancel-in-progress: false
+    concurrency:
+      group: "publish-mcp-registry-${{ github.repository }}-${{ github.ref }}"
+      cancel-in-progress: false
 
-        steps:
-            - name: Checkout repository
-              uses: actions/checkout@v6
-              with:
-                  fetch-depth: 0
+    steps:
+      - name: Checkout repository
+        id: checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
-            - name: Prepare package (wait, download, extract server.json)
-              id: prepare
-              shell: bash
-              run: |
-                  set -euo pipefail
+      - name: Prepare package (wait, download, extract server.json)
+        id: prepare
+        shell: bash
+        run: |
+          set -euo pipefail
 
-                  package_id='${{ env.PACKAGE_ID }}'
-                  if [ -z "${package_id:-}" ]; then
-                    echo "❌ ERROR: PACKAGE_ID env var is empty"
-                    exit 1
-                  fi
+          package_id='${{ env.PACKAGE_ID }}'
+          if [ -z "${package_id:-}" ]; then
+            echo "❌ ERROR: PACKAGE_ID env var is empty"
+            exit 1
+          fi
 
-                  # 1) Determine version from workflow input or git tag
-                  input_version='${{ inputs.packageVersion }}'
-                  if [ -n "${input_version:-}" ]; then
-                    version="$input_version"
-                  else
-                    tag=$(git tag --points-at HEAD | grep '^v' | sort -V | tail -n 1 || true)
-                    if [ -z "${tag:-}" ]; then
-                      if [ "${GITHUB_EVENT_NAME:-}" = "workflow_dispatch" ]; then
-                        echo "❌ ERROR: No v* tag found on the checked-out commit (${GITHUB_SHA:-})."
-                        echo "When triggering this workflow manually you must either:"
-                        echo "  - Provide the 'packageVersion' input, or"
-                        echo "  - Trigger the workflow from a commit that has a v* tag."
-                      else
-                        echo "❌ ERROR: Could not determine version from a v* tag on this commit."
-                        echo "Provide workflow_dispatch input 'packageVersion' to publish a specific version."
-                      fi
-                      exit 1
-                    fi
-                    version="${tag#v}"
-                  fi
+          # 1) Determine version from workflow input or git tag
+          input_version='${{ inputs.packageVersion }}'
+          if [ -n "${input_version:-}" ]; then
+            version="$input_version"
+          else
+            tag=$(git tag --points-at HEAD | grep '^v' | sort -V | tail -n 1 || true)
+            if [ -z "${tag:-}" ]; then
+              if [ "${GITHUB_EVENT_NAME:-}" = "workflow_dispatch" ]; then
+                echo "❌ ERROR: No v* tag found on the checked-out commit (${GITHUB_SHA:-})."
+                echo "When triggering this workflow manually you must either:"
+                echo "  - Provide the 'packageVersion' input, or"
+                echo "  - Trigger the workflow from a commit that has a v* tag."
+              else
+                echo "❌ ERROR: Could not determine version from a v* tag on this commit."
+                echo "Provide workflow_dispatch input 'packageVersion' to publish a specific version."
+              fi
+              exit 1
+            fi
+            version="${tag#v}"
+          fi
 
-                  package_id_lc=$(echo "$package_id" | tr '[:upper:]' '[:lower:]')
-                  url="https://api.nuget.org/v3-flatcontainer/${package_id_lc}/${version}/${package_id_lc}.${version}.nupkg"
+          package_id_lc=$(echo "$package_id" | tr '[:upper:]' '[:lower:]')
+          url="https://api.nuget.org/v3-flatcontainer/${package_id_lc}/${version}/${package_id_lc}.${version}.nupkg"
 
-                  echo "Package ID: $package_id"
-                  echo "Version: $version"
-                  echo "NuGet URL: $url"
+          echo "Package ID: $package_id"
+          echo "Version: $version"
+          echo "NuGet URL: $url"
 
-                  # 2) Wait for NuGet to serve the version, then download
-                  # Retry configuration: 12 attempts with exponential backoff starting at 10s, capped at 120s.
-                  # This allows up to ~16.5 minutes total wait time for NuGet eventual consistency.
-                  max_attempts=12
-                  sleep_seconds=10
-                  mkdir -p ./artifacts
-                  out="./artifacts/${package_id}.${version}.nupkg"
+          # 2) Wait for NuGet to serve the version, then download
+          # Retry configuration: 12 attempts with exponential backoff starting at 10s, capped at 120s.
+          # This allows up to ~16.5 minutes total wait time for NuGet eventual consistency.
+          max_attempts=12
+          sleep_seconds=10
+          mkdir -p ./artifacts
+          out="./artifacts/${package_id}.${version}.nupkg"
 
-                  for attempt in $(seq 1 $max_attempts); do
-                    echo "Attempt $attempt/$max_attempts (sleep=${sleep_seconds}s)"
+          for attempt in $(seq 1 $max_attempts); do
+            echo "Attempt $attempt/$max_attempts (sleep=${sleep_seconds}s)"
 
-                    if curl -s -f -I "$url" > /dev/null 2>&1; then
-                      echo "✅ NuGet is serving ${package_id} ${version}"
-                      curl -fsSL "$url" -o "$out"
-                      echo "✅ Downloaded to: $out"
-                      break
-                    fi
+            if curl -s -f -I "$url" > /dev/null 2>&1; then
+              echo "✅ NuGet is serving ${package_id} ${version}"
+              curl -fsSL "$url" -o "$out"
+              echo "✅ Downloaded to: $out"
+              break
+            fi
 
-                    if [ "$attempt" -lt "$max_attempts" ]; then
-                      echo "Not visible yet; waiting..."
-                      sleep "$sleep_seconds"
-                      sleep_seconds=$(( sleep_seconds * 2 ))
-                      if [ "$sleep_seconds" -gt 120 ]; then
-                        sleep_seconds=120
-                      fi
-                    else
-                      echo "Not visible yet; no retries remaining"
-                    fi
-                  done
+            if [ "$attempt" -lt "$max_attempts" ]; then
+              echo "Not visible yet; waiting..."
+              sleep "$sleep_seconds"
+              sleep_seconds=$(( sleep_seconds * 2 ))
+              if [ "$sleep_seconds" -gt 120 ]; then
+                sleep_seconds=120
+              fi
+            else
+              echo "Not visible yet; no retries remaining"
+            fi
+          done
 
-                  if [ ! -f "$out" ]; then
-                    echo "❌ Timed out waiting for NuGet to serve the new version."
-                    echo "This is usually eventual consistency; re-run this workflow in a few minutes."
-                    exit 1
-                  fi
+          if [ ! -f "$out" ]; then
+            echo "❌ Timed out waiting for NuGet to serve the new version."
+            echo "This is usually eventual consistency; re-run this workflow in a few minutes."
+            exit 1
+          fi
 
-                  # 3) Extract server.json (mcp-publisher expects it at repo root)
-                  if ! unzip -p "$out" ".mcp/server.json" > /tmp/server.json; then
-                    echo "❌ ERROR: Failed to extract .mcp/server.json from package"
-                    exit 1
-                  fi
+          # 3) Extract server.json (mcp-publisher expects it at repo root)
+          if ! unzip -p "$out" ".mcp/server.json" > /tmp/server.json; then
+            echo "❌ ERROR: Failed to extract .mcp/server.json from package"
+            exit 1
+          fi
 
-                  if [ ! -s /tmp/server.json ]; then
-                    echo "❌ ERROR: Extracted server.json is empty"
-                    exit 1
-                  fi
+          if [ ! -s /tmp/server.json ]; then
+            echo "❌ ERROR: Extracted server.json is empty"
+            exit 1
+          fi
 
-                  cp /tmp/server.json ./server.json
+          cp /tmp/server.json ./server.json
 
-                  echo "package_id=$package_id" >> "$GITHUB_OUTPUT"
-                  echo "package_id_lc=$package_id_lc" >> "$GITHUB_OUTPUT"
-                  echo "version=$version" >> "$GITHUB_OUTPUT"
-                  echo "package_path=$out" >> "$GITHUB_OUTPUT"
+          echo "package_id=$package_id" >> "$GITHUB_OUTPUT"
+          echo "package_id_lc=$package_id_lc" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "package_path=$out" >> "$GITHUB_OUTPUT"
 
-            - name: Install MCP Publisher
-              uses: ./.github/actions/install-mcp-publisher
-              with:
-                checksum: ${{ env.MCP_PUBLISHER_SHA256 }}
+      - name: Install MCP Publisher
+        id: install_publisher
+        uses: ./.github/actions/install-mcp-publisher
+        with:
+          checksum: ${{ env.MCP_PUBLISHER_SHA256 }}
 
-            - name: Publish to MCP Registry
-              uses: ./.github/actions/publish-mcp-registry
+      - name: Publish to MCP Registry
+        id: publish_registry
+        uses: ./.github/actions/publish-mcp-registry
 
-            - name: Cleanup root server.json
-              if: always()
-              shell: bash
-              run: |
-                  rm -f ./server.json
+      - name: Cleanup root server.json
+        id: cleanup
+        if: always()
+        shell: bash
+        run: |
+          rm -f ./server.json
+
+      - name: Write workflow summary
+        if: always()
+        shell: pwsh
+        run: |
+          $summary = @"
+          ## MCP Registry publish summary
+
+          - Package: `${{ steps.prepare.outputs.package_id }}` `${{ steps.prepare.outputs.version }}`
+          - NuGet URL: https://api.nuget.org/v3-flatcontainer/${{ steps.prepare.outputs.package_id_lc }}/${{ steps.prepare.outputs.version }}/${{ steps.prepare.outputs.package_id_lc }}.${{ steps.prepare.outputs.version }}.nupkg
+          - Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          ### Step outcomes
+          | Step | Outcome |
+          | --- | --- |
+          | Checkout | ${{ steps.checkout.outcome }} |
+          | Prepare package | ${{ steps.prepare.outcome }} |
+          | Install publisher | ${{ steps.install_publisher.outcome }} |
+          | Publish registry | ${{ steps.publish_registry.outcome }} |
+          | Cleanup | ${{ steps.cleanup.outcome }} |
+          "@
+
+          $summary | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
