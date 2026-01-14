@@ -66,16 +66,18 @@ public class BackgroundRunTests : IDisposable
 
             var projectPath = Path.Join(tempDir, "TestApp.csproj");
 
-            // Build it
+            // Build it with Release configuration to match CI test execution
             await _tools.DotnetProject(
                 action: DotnetProjectAction.Build,
                 project: projectPath,
+                configuration: "Release",
                 machineReadable: false);
 
             // Run in foreground mode (default) - should block until exit
             var result = await _tools.DotnetProject(
                 action: DotnetProjectAction.Run,
                 project: projectPath,
+                configuration: "Release",
                 noBuild: true,
                 startMode: StartMode.Foreground,
                 machineReadable: true);
@@ -129,16 +131,18 @@ Console.WriteLine(""Finished"");
 ";
             File.WriteAllText(programFile, programContent);
 
-            // Build it
+            // Build it with Release configuration to match CI test execution
             await _tools.DotnetProject(
                 action: DotnetProjectAction.Build,
                 project: projectPath,
+                configuration: "Release",
                 machineReadable: false);
 
             // Run in background mode
             var result = await _tools.DotnetProject(
                 action: DotnetProjectAction.Run,
                 project: projectPath,
+                configuration: "Release",
                 noBuild: true,
                 startMode: StartMode.Background,
                 machineReadable: true);
@@ -210,16 +214,18 @@ using System.Threading;
 Thread.Sleep(TimeSpan.FromSeconds(30));
 ");
 
-            // Build it
+            // Build it with Release configuration to match CI test execution
             await _tools.DotnetProject(
                 action: DotnetProjectAction.Build,
                 project: projectPath,
+                configuration: "Release",
                 machineReadable: false);
 
             // Run with noBuild=true in background
             var result = await _tools.DotnetProject(
                 action: DotnetProjectAction.Run,
                 project: projectPath,
+                configuration: "Release",
                 noBuild: true,
                 startMode: StartMode.Background,
                 machineReadable: true);
@@ -252,6 +258,8 @@ Thread.Sleep(TimeSpan.FromSeconds(30));
     [Fact]
     public async Task DotnetProject_Stop_WithBackgroundSession_TerminatesProcess()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         // Create a console app
         var tempDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-test-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
@@ -277,16 +285,18 @@ Thread.Sleep(TimeSpan.FromMinutes(5));
 Console.WriteLine(""App finished"");
 ");
 
-            // Build
+            // Build with Release configuration to match CI test execution
             await _tools.DotnetProject(
                 action: DotnetProjectAction.Build,
                 project: projectPath,
+                configuration: "Release",
                 machineReadable: false);
 
             // Start in background
             var runResult = await _tools.DotnetProject(
                 action: DotnetProjectAction.Run,
                 project: projectPath,
+                configuration: "Release",
                 noBuild: true,
                 startMode: StartMode.Background,
                 machineReadable: true);
@@ -309,7 +319,7 @@ Console.WriteLine(""App finished"");
             Assert.Contains("\"success\": true", stopResult);
 
             // Wait a bit for the process to actually terminate
-            await Task.Delay(1000);
+            await Task.Delay(1000, cancellationToken);
 
             // Verify process is terminated
             try
@@ -340,6 +350,8 @@ Console.WriteLine(""App finished"");
     [Fact]
     public async Task DotnetProject_Run_BackgroundMode_CleansUpSessionAfterProcessExits()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         // Create a console app that exits quickly
         var tempDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-test-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
@@ -365,16 +377,18 @@ Thread.Sleep(TimeSpan.FromSeconds(2));
 Console.WriteLine(""Done"");
 ");
 
-            // Build
+            // Build with Release configuration to match CI test execution
             await _tools.DotnetProject(
                 action: DotnetProjectAction.Build,
                 project: projectPath,
+                configuration: "Release",
                 machineReadable: false);
 
             // Start in background
             var runResult = await _tools.DotnetProject(
                 action: DotnetProjectAction.Run,
                 project: projectPath,
+                configuration: "Release",
                 noBuild: true,
                 startMode: StartMode.Background,
                 machineReadable: true);
@@ -387,11 +401,11 @@ Console.WriteLine(""Done"");
             Assert.True(sessionExists);
 
             // Wait for the process to exit
-            await Task.Delay(5000);
+            await Task.Delay(5000, cancellationToken);
 
             // Session should be cleaned up automatically (the cleanup happens in the background task)
             // Give it a moment for the cleanup task to run
-            await Task.Delay(1000);
+            await Task.Delay(1000, cancellationToken);
 
             // Try to get the session - it might still be there if cleanup hasn't run yet
             // But we can verify by checking active sessions

@@ -581,13 +581,15 @@ public class DotNetCliToolsTests
 
         try
         {
+            var manifestDirectory = Path.Join(tempDirectory, ".config");
+
             var result = await _tools.DotnetTool(
                 action: DotNetMcp.Actions.DotnetToolAction.CreateManifest,
                 output: tempDirectory,
                 machineReadable: true);
 
             Assert.NotNull(result);
-            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, $"dotnet new tool-manifest -o \"{tempDirectory}\"");
+            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, $"dotnet new tool-manifest -o \"{manifestDirectory}\"");
         }
         finally
         {
@@ -605,13 +607,15 @@ public class DotNetCliToolsTests
 
         try
         {
+            var manifestDirectory = Path.Join(tempDirectory, ".config");
+
             var result = await _tools.DotnetTool(
                 action: DotNetMcp.Actions.DotnetToolAction.CreateManifest,
                 output: tempDirectory,
                 machineReadable: true);
 
             Assert.NotNull(result);
-            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, $"dotnet new tool-manifest -o \"{tempDirectory}\"");
+            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, $"dotnet new tool-manifest -o \"{manifestDirectory}\"");
         }
         finally
         {
@@ -629,6 +633,8 @@ public class DotNetCliToolsTests
 
         try
         {
+            var manifestDirectory = Path.Join(tempDirectory, ".config");
+
             var result = await _tools.DotnetTool(
                 action: DotNetMcp.Actions.DotnetToolAction.CreateManifest,
                 output: tempDirectory,
@@ -636,7 +642,7 @@ public class DotNetCliToolsTests
                 machineReadable: true);
 
             Assert.NotNull(result);
-            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, $"dotnet new tool-manifest -o \"{tempDirectory}\" --force");
+            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, $"dotnet new tool-manifest -o \"{manifestDirectory}\" --force");
         }
         finally
         {
@@ -654,6 +660,8 @@ public class DotNetCliToolsTests
 
         try
         {
+            var manifestDirectory = Path.Join(tempDirectory, ".config");
+
             var result = await _tools.DotnetTool(
                 action: DotNetMcp.Actions.DotnetToolAction.CreateManifest,
                 output: tempDirectory,
@@ -661,7 +669,7 @@ public class DotNetCliToolsTests
                 machineReadable: true);
 
             Assert.NotNull(result);
-            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, $"dotnet new tool-manifest -o \"{tempDirectory}\" --force");
+            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, $"dotnet new tool-manifest -o \"{manifestDirectory}\" --force");
         }
         finally
         {

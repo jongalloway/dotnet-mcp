@@ -68,7 +68,7 @@ jobs:
               if: always()
               shell: pwsh
               run: |
-                  $summary = @"
+                  $summary = @'
                   ## dotnet-mcp release scenarios summary
 
                   - OS: `${{ matrix.os }}`
@@ -85,6 +85,6 @@ jobs:
                   | Build | ${{ steps.build.outcome }} |
                   | Validate server.json | ${{ steps.validate_server_json.outcome }} |
                   | Scenario + Release scenarios | ${{ steps.release_scenarios.outcome }} |
-                  "@
+                  '@
 
                   $summary | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
