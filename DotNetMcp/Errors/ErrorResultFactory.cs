@@ -86,7 +86,7 @@ public static partial class ErrorResultFactory
     /// <returns>ErrorResponse with parsed errors or SuccessResult if exitCode is 0</returns>
     public static object CreateResult(string output, string error, int exitCode, string? command = null, Dictionary<string, string>? metadata = null)
     {
-        // Success case
+        // Success case (exit code 0)
         if (exitCode == 0)
         {
             return new SuccessResult
@@ -96,6 +96,23 @@ public static partial class ErrorResultFactory
                 Output = SanitizeOutput(output),
                 ExitCode = 0,
                 Metadata = metadata
+            };
+        }
+
+        // Exit code 106: Template pack already installed - treat as success with metadata
+        if (exitCode == 106 && command?.Contains("new install", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            var resultMetadata = metadata != null ? new Dictionary<string, string>(metadata) : new Dictionary<string, string>();
+            resultMetadata["alreadyInstalled"] = "true";
+            resultMetadata["message"] = "Template pack already installed";
+
+            return new SuccessResult
+            {
+                Success = true,
+                Command = string.IsNullOrWhiteSpace(command) ? null : SanitizeOutput(command),
+                Output = SanitizeOutput(output),
+                ExitCode = 106,
+                Metadata = resultMetadata
             };
         }
 

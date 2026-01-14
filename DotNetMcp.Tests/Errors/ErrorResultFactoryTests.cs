@@ -1232,5 +1232,122 @@ Program.cs(15,10): error CS1001: Identifier expected";
     }
 
     #endregion
+
+    #region Exit Code 106 (Template Pack Already Installed) Tests
+
+    [Fact]
+    public void CreateResult_WithExitCode106AndNewInstallCommand_ReturnsSuccessWithMetadata()
+    {
+        // Arrange
+        var output = "Template pack 'Aspire.ProjectTemplates' is already installed.";
+        var error = "";
+        var exitCode = 106;
+        var command = "dotnet new install Aspire.ProjectTemplates";
+
+        // Act
+        var result = ErrorResultFactory.CreateResult(output, error, exitCode, command);
+
+        // Assert
+        Assert.IsType<SuccessResult>(result);
+        var successResult = (SuccessResult)result;
+        Assert.True(successResult.Success);
+        Assert.Equal(106, successResult.ExitCode);
+        Assert.Contains("already installed", successResult.Output, StringComparison.OrdinalIgnoreCase);
+        
+        // Verify metadata indicates already installed
+        Assert.NotNull(successResult.Metadata);
+        Assert.True(successResult.Metadata.ContainsKey("alreadyInstalled"));
+        Assert.Equal("true", successResult.Metadata["alreadyInstalled"]);
+        Assert.True(successResult.Metadata.ContainsKey("message"));
+        Assert.Equal("Template pack already installed", successResult.Metadata["message"]);
+    }
+
+    [Fact]
+    public void CreateResult_WithExitCode106AndNewInstallCommand_PreservesExistingMetadata()
+    {
+        // Arrange
+        var output = "Template pack already installed.";
+        var error = "";
+        var exitCode = 106;
+        var command = "dotnet new install Some.Package";
+        var metadata = new Dictionary<string, string>
+        {
+            ["existingKey"] = "existingValue"
+        };
+
+        // Act
+        var result = ErrorResultFactory.CreateResult(output, error, exitCode, command, metadata);
+
+        // Assert
+        Assert.IsType<SuccessResult>(result);
+        var successResult = (SuccessResult)result;
+        Assert.True(successResult.Success);
+        
+        // Verify both existing and new metadata
+        Assert.NotNull(successResult.Metadata);
+        Assert.Equal("existingValue", successResult.Metadata["existingKey"]);
+        Assert.Equal("true", successResult.Metadata["alreadyInstalled"]);
+        Assert.Equal("Template pack already installed", successResult.Metadata["message"]);
+    }
+
+    [Fact]
+    public void CreateResult_WithExitCode106ButNotNewInstallCommand_ReturnsError()
+    {
+        // Arrange - Exit code 106 but different command (not "new install")
+        var output = "";
+        var error = "Some error";
+        var exitCode = 106;
+        var command = "dotnet build";
+
+        // Act
+        var result = ErrorResultFactory.CreateResult(output, error, exitCode, command);
+
+        // Assert - Should be treated as error since it's not a "new install" command
+        Assert.IsType<ErrorResponse>(result);
+        var errorResponse = (ErrorResponse)result;
+        Assert.False(errorResponse.Success);
+        Assert.Equal(106, errorResponse.ExitCode);
+    }
+
+    [Fact]
+    public void CreateResult_WithExitCode106AndNullCommand_ReturnsError()
+    {
+        // Arrange - Exit code 106 but no command context
+        var output = "";
+        var error = "Some error";
+        var exitCode = 106;
+
+        // Act
+        var result = ErrorResultFactory.CreateResult(output, error, exitCode, null);
+
+        // Assert - Should be treated as error without command context
+        Assert.IsType<ErrorResponse>(result);
+        var errorResponse = (ErrorResponse)result;
+        Assert.False(errorResponse.Success);
+        Assert.Equal(106, errorResponse.ExitCode);
+    }
+
+    [Fact]
+    public void CreateResult_WithExitCode106_SerializesToValidJson()
+    {
+        // Arrange
+        var output = "Template pack already installed";
+        var error = "";
+        var exitCode = 106;
+        var command = "dotnet new install Test.Templates";
+
+        // Act
+        var result = ErrorResultFactory.CreateResult(output, error, exitCode, command);
+        var json = ErrorResultFactory.ToJson(result);
+
+        // Assert
+        Assert.NotNull(json);
+        Assert.Contains("\"success\": true", json);
+        Assert.Contains("\"exitCode\": 106", json);
+        Assert.Contains("\"alreadyInstalled\": \"true\"", json);
+        Assert.Contains("\"message\": \"Template pack already installed\"", json);
+    }
+
+    #endregion
 }
 
