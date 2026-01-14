@@ -15,7 +15,7 @@ public class TemplateToolsTests
     public TemplateToolsTests()
     {
         _concurrencyManager = new ConcurrencyManager();
-        _tools = new DotNetCliTools(NullLogger<DotNetCliTools>.Instance, _concurrencyManager);
+        _tools = new DotNetCliTools(NullLogger<DotNetCliTools>.Instance, _concurrencyManager, new ProcessSessionManager());
     }
 
     [Fact]

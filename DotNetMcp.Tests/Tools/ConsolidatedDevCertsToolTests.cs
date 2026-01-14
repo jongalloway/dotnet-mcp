@@ -16,7 +16,7 @@ public class ConsolidatedDevCertsToolTests
     public ConsolidatedDevCertsToolTests()
     {
         _concurrencyManager = new ConcurrencyManager();
-        _tools = new DotNetCliTools(NullLogger<DotNetCliTools>.Instance, _concurrencyManager);
+        _tools = new DotNetCliTools(NullLogger<DotNetCliTools>.Instance, _concurrencyManager, new ProcessSessionManager());
     }
 
     #region Certificate Trust Action Tests

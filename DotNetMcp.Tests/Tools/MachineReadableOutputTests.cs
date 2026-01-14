@@ -16,7 +16,7 @@ public class MachineReadableOutputTests
     {
         _logger = NullLogger<DotNetCliTools>.Instance;
         _concurrencyManager = new ConcurrencyManager();
-        _tools = new DotNetCliTools(_logger, _concurrencyManager);
+        _tools = new DotNetCliTools(_logger, _concurrencyManager, new ProcessSessionManager());
     }
 
     [Fact]

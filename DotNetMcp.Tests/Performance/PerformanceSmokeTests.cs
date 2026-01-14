@@ -40,7 +40,7 @@ public class PerformanceSmokeTests
     public PerformanceSmokeTests()
     {
         var concurrencyManager = new ConcurrencyManager();
-        _tools = new DotNetCliTools(NullLogger<DotNetCliTools>.Instance, concurrencyManager);
+        _tools = new DotNetCliTools(NullLogger<DotNetCliTools>.Instance, concurrencyManager, new ProcessSessionManager());
     }
     
     /// <summary>

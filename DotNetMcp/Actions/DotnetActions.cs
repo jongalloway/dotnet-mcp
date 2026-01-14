@@ -82,7 +82,10 @@ public enum DotnetProjectAction
     Watch,
 
     /// <summary>Format code according to .editorconfig</summary>
-    Format
+    Format,
+
+    /// <summary>Stop a running process session (run/watch)</summary>
+    Stop
 }
 
 /// <summary>

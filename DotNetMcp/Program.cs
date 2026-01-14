@@ -13,6 +13,9 @@ builder.Logging.AddConsole(options =>
 // Register ConcurrencyManager as a singleton
 builder.Services.AddSingleton<ConcurrencyManager>();
 
+// Register ProcessSessionManager as a singleton
+builder.Services.AddSingleton<ProcessSessionManager>();
+
 builder.Services.AddMcpServer()
     .WithStdioServerTransport()
     .WithTools<DotNetCliTools>()
