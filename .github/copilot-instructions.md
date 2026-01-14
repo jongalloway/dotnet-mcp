@@ -74,6 +74,13 @@ The server uses a **hybrid architecture**:
 - This repo uses the standard .NET local tool manifest location: `.config/dotnet-tools.json`.
 - Avoid creating or editing a root-level `dotnet-tools.json` (it is not the default manifest path for `dotnet tool restore`).
 
+#### Important: Keep the manifest stable
+
+- `.config/dotnet-tools.json` is source-controlled to keep tool versions reproducible in CI and agent sessions.
+- Do not modify tool versions in this file unless the user explicitly asks you to update tools.
+- If a command/tool run causes the manifest to change (for example, bumping a tool version), revert it unless the change was explicitly requested.
+- This repo includes a top-level `_comment` field in the manifest as a reminder; do not remove it.
+
 ### Building the Project
 
 When building the project, always use the full path to the project file:
