@@ -44,7 +44,7 @@ public class SolutionToolsTests
 
             // Assert
             Assert.NotNull(result);
-            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet new sln -n \"MySolution\"");
+            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet new sln -n \"MySolution\" --format sln");
         }
         finally
         {
