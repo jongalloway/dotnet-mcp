@@ -47,6 +47,7 @@ public sealed partial class DotNetCliTools
     /// <param name="testRunner">Test runner selection for test action (Auto, MicrosoftTestingPlatform, or VSTest). Auto detects from global.json. Default: Auto</param>
     /// <param name="useLegacyProjectArgument">DEPRECATED: Use testRunner parameter instead. When true, uses positional project argument (VSTest mode)</param>
     /// <param name="sessionId">Session ID for stop action (required when action is Stop)</param>
+    /// <param name="startMode">Start mode for run action (Foreground or Background). Foreground blocks until exit, Background returns immediately with sessionId. Default: Foreground</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpServerTool]
     [McpMeta("category", "project")]
@@ -87,6 +88,7 @@ public sealed partial class DotNetCliTools
         TestRunner? testRunner = null,
         bool? useLegacyProjectArgument = null,
         string? sessionId = null,
+        StartMode? startMode = null,
         bool machineReadable = false)
     {
         return await WithWorkingDirectoryAsync(workingDirectory, async () =>
@@ -112,7 +114,7 @@ public sealed partial class DotNetCliTools
                 DotnetProjectAction.New => await HandleNewAction(template, name, output, framework, additionalOptions, machineReadable),
                 DotnetProjectAction.Restore => await HandleRestoreAction(project, machineReadable),
                 DotnetProjectAction.Build => await HandleBuildAction(project, configuration, framework, machineReadable),
-                DotnetProjectAction.Run => await HandleRunAction(project, configuration, appArgs, noBuild, machineReadable),
+                DotnetProjectAction.Run => await HandleRunAction(project, configuration, appArgs, noBuild, startMode, machineReadable),
                 DotnetProjectAction.Test => await HandleTestAction(project, configuration, filter, collect, resultsDirectory, logger, noBuild, noRestore, verbosity, framework, blame, listTests, testRunner, useLegacyProjectArgument, machineReadable),
                 DotnetProjectAction.Publish => await HandlePublishAction(project, configuration, output, runtime, machineReadable),
                 DotnetProjectAction.Clean => await HandleCleanAction(project, configuration, machineReadable),
@@ -163,15 +165,147 @@ public sealed partial class DotNetCliTools
             machineReadable: machineReadable);
     }
 
-    private async Task<string> HandleRunAction(string? project, string? configuration, string? appArgs, bool? noBuild, bool machineReadable)
+    private async Task<string> HandleRunAction(string? project, string? configuration, string? appArgs, bool? noBuild, StartMode? startMode, bool machineReadable)
     {
-        // Route to existing DotnetProjectRun method
-        return await DotnetProjectRun(
-            project: project,
-            configuration: configuration,
-            appArgs: appArgs,
-            noBuild: noBuild ?? false,
-            machineReadable: machineReadable);
+        var effectiveStartMode = startMode ?? StartMode.Foreground;
+
+        // If foreground mode, use existing behavior
+        if (effectiveStartMode == StartMode.Foreground)
+        {
+            return await DotnetProjectRun(
+                project: project,
+                configuration: configuration,
+                appArgs: appArgs,
+                noBuild: noBuild ?? false,
+                machineReadable: machineReadable);
+        }
+
+        // Background mode - start process and return immediately with session metadata
+        // Validate project path if provided
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    projectError!,
+                    parameterName: "project",
+                    reason: "invalid extension");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return $"Error: {projectError}";
+        }
+
+        // Validate configuration
+        if (!ParameterValidator.ValidateConfiguration(configuration, out var configError))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    configError!,
+                    parameterName: "configuration",
+                    reason: "invalid value");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return $"Error: {configError}";
+        }
+
+        // Build the command arguments
+        var args = new StringBuilder("run");
+        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
+        if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
+        if (noBuild ?? false) args.Append(" --no-build");
+        if (!string.IsNullOrEmpty(appArgs)) args.Append($" -- {appArgs}");
+
+        // Determine the target for session tracking
+        var workingDir = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
+        var target = GetOperationTarget(project, workingDir);
+
+        // Generate a session ID
+        var sessionId = Guid.NewGuid().ToString();
+
+        try
+        {
+            // Start the process without waiting
+            var process = DotNetCommandExecutor.StartProcessAsync(args.ToString(), _logger, workingDir);
+
+            // Register the session
+            if (!_processSessionManager.RegisterSession(sessionId, process, "run", target))
+            {
+                // Registration failed - unlikely but handle it
+                try
+                {
+                    process.Kill(entireProcessTree: true);
+                    process.Dispose();
+                }
+                catch
+                {
+                    // Best effort cleanup
+                }
+
+                if (machineReadable)
+                {
+                    var error = ErrorResultFactory.CreateValidationError(
+                        "Failed to register process session. Session ID may already exist.",
+                        parameterName: "sessionId",
+                        reason: "duplicate");
+                    return ErrorResultFactory.ToJson(error);
+                }
+                return "Error: Failed to register process session. Session ID may already exist.";
+            }
+
+            // Attach cleanup continuation for when process exits
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await process.WaitForExitAsync();
+                    _logger.LogDebug("Background run process {SessionId} exited with code {ExitCode}", sessionId, process.ExitCode);
+                    
+                    // Clean up the session
+                    _processSessionManager.CleanupCompletedSessions();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error in background process cleanup for session {SessionId}", sessionId);
+                }
+            });
+
+            // Return success with session metadata
+            if (machineReadable)
+            {
+                var result = new SuccessResult
+                {
+                    Success = true,
+                    Output = $"Process started in background mode",
+                    ExitCode = 0,
+                    Metadata = new Dictionary<string, string>
+                    {
+                        ["sessionId"] = sessionId,
+                        ["pid"] = process.Id.ToString(),
+                        ["operationType"] = "run",
+                        ["target"] = target,
+                        ["startMode"] = "background"
+                    }
+                };
+                return ErrorResultFactory.ToJson(result);
+            }
+
+            return $"Process started in background mode\nSession ID: {sessionId}\nPID: {process.Id}\nTarget: {target}\n\nUse 'dotnet_project' with action 'Stop' and sessionId '{sessionId}' to terminate the process.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to start background run process");
+            
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    $"Failed to start process: {ex.Message}",
+                    parameterName: "startMode",
+                    reason: "process start failed");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return $"Error: Failed to start process: {ex.Message}";
+        }
     }
 
     private async Task<string> HandleTestAction(string? project, string? configuration, string? filter, string? collect, string? resultsDirectory, string? logger, bool? noBuild, bool? noRestore, string? verbosity, string? framework, bool? blame, bool? listTests, TestRunner? testRunner, bool? useLegacyProjectArgument, bool machineReadable)
