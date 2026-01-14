@@ -237,9 +237,10 @@ public sealed partial class DotNetCliTools
                     process.Kill(entireProcessTree: true);
                     process.Dispose();
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Best effort cleanup
+                    // Best effort cleanup - log for troubleshooting
+                    _logger.LogDebug(ex, "Failed to cleanup process during registration failure for session {SessionId}", sessionId);
                 }
 
                 if (machineReadable)
@@ -254,6 +255,9 @@ public sealed partial class DotNetCliTools
             }
 
             // Attach cleanup continuation for when process exits
+            // Note: This is a fire-and-forget task by design. The process lifetime is independent
+            // of the API call that started it. The cleanup will run when the process exits,
+            // or be orphaned if the server shuts down (which is acceptable for a background process).
             _ = Task.Run(async () =>
             {
                 try

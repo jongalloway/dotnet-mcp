@@ -436,8 +436,10 @@ public static class DotNetCommandExecutor
             logger?.LogDebug("Process started with PID: {ProcessId}", process.Id);
             return process;
         }
-        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
+        catch (Exception ex)
         {
+            // Catch all exceptions during process start to ensure proper cleanup
+            // Common exceptions: Win32Exception, InvalidOperationException, FileNotFoundException, UnauthorizedAccessException
             logger?.LogError(ex, "Failed to start dotnet process");
             process.Dispose();
             throw new InvalidOperationException($"dotnet command could not be started: {ex.Message}", ex);
