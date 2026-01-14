@@ -252,6 +252,8 @@ Thread.Sleep(TimeSpan.FromSeconds(30));
     [Fact]
     public async Task DotnetProject_Stop_WithBackgroundSession_TerminatesProcess()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         // Create a console app
         var tempDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-test-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
@@ -309,7 +311,7 @@ Console.WriteLine(""App finished"");
             Assert.Contains("\"success\": true", stopResult);
 
             // Wait a bit for the process to actually terminate
-            await Task.Delay(1000);
+            await Task.Delay(1000, cancellationToken);
 
             // Verify process is terminated
             try
@@ -340,6 +342,8 @@ Console.WriteLine(""App finished"");
     [Fact]
     public async Task DotnetProject_Run_BackgroundMode_CleansUpSessionAfterProcessExits()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         // Create a console app that exits quickly
         var tempDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-test-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
@@ -387,11 +391,11 @@ Console.WriteLine(""Done"");
             Assert.True(sessionExists);
 
             // Wait for the process to exit
-            await Task.Delay(5000);
+            await Task.Delay(5000, cancellationToken);
 
             // Session should be cleaned up automatically (the cleanup happens in the background task)
             // Give it a moment for the cleanup task to run
-            await Task.Delay(1000);
+            await Task.Delay(1000, cancellationToken);
 
             // Try to get the session - it might still be there if cleanup hasn't run yet
             // But we can verify by checking active sessions

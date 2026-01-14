@@ -363,6 +363,8 @@ public class EdgeCaseAndIntegrationTests
         // Use an isolated output directory to avoid relying on current working directory state.
         var tempDirectory = Directory.CreateTempSubdirectory("dotnet-mcp-tests");
 
+        var manifestDirectory = Path.Join(tempDirectory.FullName, ".config");
+
         string result;
         try
         {
@@ -380,7 +382,7 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert - verify the command was built correctly (regardless of execution result in test environment)
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, $"dotnet new tool-manifest -o \"{tempDirectory.FullName}\" --force");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, $"dotnet new tool-manifest -o \"{manifestDirectory}\" --force");
     }
 
     [Fact]

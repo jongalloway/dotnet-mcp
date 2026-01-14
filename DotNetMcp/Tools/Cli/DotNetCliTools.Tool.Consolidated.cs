@@ -178,8 +178,14 @@ public sealed partial class DotNetCliTools
 
     private async Task<string> HandleCreateManifestAction(string? output, bool force, bool machineReadable)
     {
+        // Note: .NET SDK 10 may default to creating dotnet-tools.json in the working directory.
+        // This repo standardizes on the local tool manifest location: .config/dotnet-tools.json.
+        var manifestDirectory = string.IsNullOrWhiteSpace(output)
+            ? ".config"
+            : Path.Join(output, ".config");
+
         var command = new StringBuilder("new tool-manifest");
-        if (!string.IsNullOrEmpty(output)) command.Append($" -o \"{output}\"");
+        command.Append($" -o \"{manifestDirectory}\"");
         if (force) command.Append(" --force");
 
         return await ExecuteDotNetCommand(command.ToString(), machineReadable);
