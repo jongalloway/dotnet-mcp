@@ -73,19 +73,42 @@ The `--project` flag support depends on which test runner is being used:
 
 ### Compatibility: .NET SDK Requirements
 
-The `--project` flag for `dotnet test` requires:
-- **.NET SDK 8.0+** with Microsoft Testing Platform enabled, OR
-- **.NET SDK 10.0+** (MTP enabled by default)
+The `dotnet_project` Test action now supports **automatic test runner detection**:
+- Detects Microsoft Testing Platform (MTP) from `global.json` configuration
+- Defaults to VSTest for legacy compatibility when MTP is not detected
+- Supports explicit test runner selection via `testRunner` parameter
 
-**Troubleshooting**: If you encounter an error like `Unrecognized option '--project'`:
-1. **Check your test runner**: If using VSTest, you must use `useLegacyProjectArgument: true` since VSTest does not support `--project`
-2. Verify your SDK version supports `--project`:
-   ```bash
-   dotnet test --help | grep -- --project
+**Test Runner Selection**:
+
+The MCP server chooses between `--project` flag (MTP) and positional argument (VSTest) based on:
+1. **Explicit `testRunner` parameter**: `MicrosoftTestingPlatform`, `VSTest`, or `Auto` (default)
+2. **Auto-detection**: Checks for `{ "test": { "runner": "Microsoft.Testing.Platform" } }` in `global.json`
+3. **Legacy fallback**: Uses `useLegacyProjectArgument: true` parameter (deprecated)
+4. **Default**: VSTest mode (positional argument) for safety with legacy projects
+
+**SDK Requirements**:
+- **MTP mode** (`--project` flag) requires:
+  - .NET SDK 8.0+ with Microsoft Testing Platform enabled, OR
+  - .NET SDK 10.0+ (MTP enabled by default)
+- **VSTest mode** (positional argument) works with all SDK versions
+
+**Troubleshooting**: If you encounter `Unrecognized option '--project'` or `MSB1001: Unknown switch`:
+1. **Auto mode** (recommended): Add to your `global.json`:
+   ```json
+   {
+     "test": {
+       "runner": "Microsoft.Testing.Platform"
+     }
+   }
    ```
-   Note: The `--` tells grep to stop processing options, allowing it to search for the literal `--project` string.
-3. Check if you have `global.json` with MTP runner configuration in your project/repository root
-4. If using an older SDK, VSTest, or non-MTP configuration, the MCP server provides a `useLegacyProjectArgument` parameter as a fallback
+2. **Explicit mode**: Use `testRunner: "VSTest"` for VSTest or `testRunner: "MicrosoftTestingPlatform"` for MTP
+3. **Legacy parameter**: Use `useLegacyProjectArgument: true` (deprecated, use `testRunner` instead)
+4. **Verify support**: Run `dotnet test --help | grep -- --project` to check if your SDK supports `--project`
+
+**Machine-Readable Output**: When `machineReadable: true`, test results include metadata:
+- `selectedTestRunner`: `microsoft-testing-platform` or `vstest`
+- `projectArgumentStyle`: `--project`, `positional`, or `none`
+- `selectionSource`: `global.json`, `testRunner-parameter`, `useLegacyProjectArgument-parameter`, or `default`
 
 Examples:
 

@@ -723,7 +723,14 @@ Resources provide structured JSON data and are more efficient than tool calls fo
 
 Unified interface for all project operations: **New**, **Restore**, **Build**, **Run**, **Test**, **Publish**, **Clean**, **Analyze**, **Dependencies**, **Validate**, **Pack**, **Watch**, **Format**
 
-**Test Runner Compatibility**: The Test action uses `--project` by default, which is supported by [Microsoft Testing Platform (MTP)](https://learn.microsoft.com/dotnet/core/tools/dotnet-test-mtp) (.NET SDK 8+ with MTP or SDK 10+). The legacy [VSTest](https://learn.microsoft.com/dotnet/core/tools/dotnet-test-vstest) runner does not support `--project`. Set `useLegacyProjectArgument: true` when using VSTest or older SDKs to use the positional argument format.
+**Test Runner Compatibility**: The Test action automatically detects the test runner from `global.json` configuration. If `global.json` contains `{ "test": { "runner": "Microsoft.Testing.Platform" } }`, it uses the `--project` flag (MTP mode). Otherwise, it defaults to positional argument (VSTest mode) for legacy compatibility.
+
+You can explicitly specify the test runner using the `testRunner` parameter:
+- `Auto` (default) - Auto-detect from global.json
+- `MicrosoftTestingPlatform` - Use --project flag (requires .NET SDK 8+ with MTP or SDK 10+)
+- `VSTest` - Use positional argument (compatible with all SDK versions)
+
+The `useLegacyProjectArgument` parameter is deprecated; use `testRunner: "VSTest"` instead.
 
 Example:
 
@@ -742,17 +749,24 @@ await callTool("dotnet_project", {
   configuration: "Release" 
 });
 
-// Run tests with MTP (uses --project by default)
+// Run tests (auto-detects test runner from global.json)
 await callTool("dotnet_project", { 
   action: "Test", 
   project: "MyApi.Tests/MyApi.Tests.csproj" 
 });
 
-// Run tests with VSTest or legacy SDK (positional argument)
+// Run tests with explicit test runner (MTP)
 await callTool("dotnet_project", { 
   action: "Test", 
   project: "MyApi.Tests/MyApi.Tests.csproj",
-  useLegacyProjectArgument: true
+  testRunner: "MicrosoftTestingPlatform"
+});
+
+// Run tests with explicit test runner (VSTest)
+await callTool("dotnet_project", { 
+  action: "Test", 
+  project: "MyApi.Tests/MyApi.Tests.csproj",
+  testRunner: "VSTest"
 });
 ```
 
@@ -1109,14 +1123,14 @@ See [.github/copilot-instructions.md](.github/copilot-instructions.md) for devel
 - **Cause**: Server crashed or failed to start
 - **Solution**: Check logs in your MCP client, ensure .NET SDK is in PATH
 
-### "Unrecognized option '--project'" when running tests
+### "Unrecognized option '--project'" or "Unknown switch" when running tests
 
-- **Cause**: Using VSTest runner or older .NET SDK without Microsoft Testing Platform (MTP)
-- **Background**: The `--project` flag is only supported by the [Microsoft Testing Platform (MTP)](https://learn.microsoft.com/dotnet/core/tools/dotnet-test-mtp) runner. The legacy [VSTest](https://learn.microsoft.com/dotnet/core/tools/dotnet-test-vstest) runner does not support this flag and requires positional project arguments.
-- **Solution**: You have three options:
-  1. **Upgrade to MTP** (recommended): Install [.NET 10 SDK](https://dotnet.microsoft.com/download) (MTP enabled by default) or configure MTP in `global.json` for .NET 8+
-  2. **Use legacy mode**: Set `useLegacyProjectArgument: true` when calling `dotnet_project` with the `Test` action to use the positional argument format (`dotnet test MyProject.csproj`)
-  3. **Use VSTest explicitly**: If you need to use VSTest, always set `useLegacyProjectArgument: true`
+- **Cause**: Test runner mismatch or SDK version incompatibility
+- **Background**: The `--project` flag is only supported by [Microsoft Testing Platform (MTP)](https://learn.microsoft.com/dotnet/core/tools/dotnet-test-mtp). The legacy [VSTest](https://learn.microsoft.com/dotnet/core/tools/dotnet-test-vstest) runner uses positional arguments instead.
+- **Solution**: The MCP server now auto-detects the test runner from `global.json`:
+  1. **Auto mode** (default): Add `{ "test": { "runner": "Microsoft.Testing.Platform" } }` to `global.json` if using MTP, otherwise it defaults to VSTest
+  2. **Explicit mode**: Set `testRunner: "MicrosoftTestingPlatform"` or `testRunner: "VSTest"` when calling `dotnet_project` Test action
+  3. **Legacy parameter**: Use `useLegacyProjectArgument: true` (deprecated, use `testRunner: "VSTest"` instead)
 - **Verify support**: Run `dotnet test --help | grep -- --project` to check if your SDK supports the `--project` flag
 - **More info**: See [doc/testing.md](doc/testing.md) for detailed test runner compatibility and troubleshooting
 - **References**: [dotnet test overview](https://learn.microsoft.com/dotnet/core/tools/dotnet-test) | [MTP](https://learn.microsoft.com/dotnet/core/tools/dotnet-test-mtp) | [VSTest](https://learn.microsoft.com/dotnet/core/tools/dotnet-test-vstest)
