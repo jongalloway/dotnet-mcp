@@ -492,6 +492,76 @@ All operations support cancellation, but it's most useful for:
 - **Watch operations** - File watchers that run until cancelled
 - **Publish operations** - Deployment tasks with long durations
 
+## Process Session Management (v1.2+)
+
+The .NET MCP Server provides process session management for tracking and controlling long-running operations like `dotnet run` and `dotnet watch`. This feature helps prevent file-lock errors (MSB3026/MSB3027) that occur when multiple builds access the same output files.
+
+### Stop Action
+
+The `dotnet_project` tool includes a **Stop** action that can terminate long-running process sessions by their session ID.
+
+```typescript
+// Stop a running process session
+await callTool("dotnet_project", {
+  action: "Stop",
+  sessionId: "abc-123-def-456"
+});
+```
+
+**Response (Success):**
+
+```json
+{
+  "success": true,
+  "output": "Successfully stopped session 'abc-123-def-456'",
+  "exitCode": 0,
+  "metadata": {
+    "sessionId": "abc-123-def-456",
+    "stopped": "true"
+  }
+}
+```
+
+**Response (Session Not Found):**
+
+```json
+{
+  "success": false,
+  "errors": [{
+    "code": "INVALID_PARAMS",
+    "message": "Session 'abc-123-def-456' not found. It may have already completed or been stopped.",
+    "category": "Validation",
+    "hint": "Verify the session ID is correct and the process hasn't already exited"
+  }]
+}
+```
+
+### Process Termination
+
+When a session is stopped:
+- The entire process tree is terminated using `Process.Kill(entireProcessTree: true)`
+- All child processes are cleaned up to prevent orphaned processes
+- The session is removed from tracking
+- No lingering file locks remain
+
+### Use Cases
+
+**Problem**: Long-running `dotnet run` processes cause build errors:
+```
+MSB3026: Could not copy "MyApp.dll" to "bin\Debug\net10.0\MyApp.dll". 
+The process cannot access the file because it is being used by another process.
+```
+
+**Solution**: Use the Stop action to cleanly terminate the running process before building:
+
+1. Note the session ID from a long-running operation (if available)
+2. Call `dotnet_project` with `action: "Stop"` and the session ID
+3. Proceed with build/test operations without file lock conflicts
+
+### Session ID Format
+
+Session IDs are GUIDs (e.g., `"550e8400-e29b-41d4-a716-446655440000"`) generated when a process session is registered. Future versions may include session IDs in machine-readable output from Run and Watch actions.
+
 ---
 
-**Note**: This documentation applies to .NET MCP Server v1.1+. Concurrency characteristics may change in future versions based on .NET SDK updates and MCP protocol enhancements.
+**Note**: This documentation applies to .NET MCP Server v1.2+. Concurrency characteristics may change in future versions based on .NET SDK updates and MCP protocol enhancements.

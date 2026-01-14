@@ -721,7 +721,11 @@ Resources provide structured JSON data and are more efficient than tool calls fo
 
 #### dotnet_project - Project Lifecycle Management
 
-Unified interface for all project operations: **New**, **Restore**, **Build**, **Run**, **Test**, **Publish**, **Clean**, **Analyze**, **Dependencies**, **Validate**, **Pack**, **Watch**, **Format**
+Unified interface for all project operations: **New**, **Restore**, **Build**, **Run**, **Test**, **Publish**, **Clean**, **Analyze**, **Dependencies**, **Validate**, **Pack**, **Watch**, **Format**, **Stop**
+
+**New in this release:**
+- **Stop action**: Terminates long-running process sessions (like `dotnet run`) by session ID
+- **noBuild parameter**: Skip building before running (mirrors `dotnet run --no-build`)
 
 **Test Runner Compatibility**: The Test action automatically detects the test runner from `global.json` configuration. If `global.json` contains `{ "test": { "runner": "Microsoft.Testing.Platform" } }`, it uses the `--project` flag (MTP mode). Otherwise, it defaults to positional argument (VSTest mode) for legacy compatibility.
 
@@ -747,6 +751,20 @@ await callTool("dotnet_project", {
   action: "Build", 
   project: "MyApi/MyApi.csproj", 
   configuration: "Release" 
+});
+
+// Run without building (use pre-built binaries)
+await callTool("dotnet_project", {
+  action: "Run",
+  project: "MyApi/MyApi.csproj",
+  noBuild: true
+});
+
+// Stop a running process session
+// Note: Session ID would be obtained from a long-running operation's output
+await callTool("dotnet_project", {
+  action: "Stop",
+  sessionId: "abc-123-def-456"
 });
 
 // Run tests (auto-detects test runner from global.json)
