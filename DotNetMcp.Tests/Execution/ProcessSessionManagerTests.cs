@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using DotNetMcp;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -32,9 +33,13 @@ public class ProcessSessionManagerTests : IDisposable
                 }
                 process.Dispose();
             }
-            catch
+            catch (InvalidOperationException)
             {
-                // Best effort cleanup
+                // Best effort cleanup for invalid process state
+            }
+            catch (Win32Exception)
+            {
+                // Best effort cleanup for OS-related process errors
             }
         }
         _manager.Clear();

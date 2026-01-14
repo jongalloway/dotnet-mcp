@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 
@@ -111,7 +112,7 @@ public sealed class ProcessSessionManager
                 sessionId, ex.Message);
             return true;
         }
-        catch (Exception ex)
+        catch (Win32Exception ex)
         {
             errorMessage = $"Failed to stop session '{sessionId}': {ex.Message}";
             _logger?.LogError(ex, "Error stopping session {SessionId}", sessionId);
