@@ -761,10 +761,12 @@ await callTool("dotnet_project", {
 });
 
 // Stop a running process session
-// Note: Session ID would be obtained from a long-running operation's output
+// Note: The Stop action is available for manually registered sessions.
+// Future enhancement: Run/Watch will automatically register and return session IDs.
+// For now, sessions must be registered programmatically using ProcessSessionManager.
 await callTool("dotnet_project", {
   action: "Stop",
-  sessionId: "abc-123-def-456"
+  sessionId: "550e8400-e29b-41d4-a716-446655440000"
 });
 
 // Run tests (auto-detects test runner from global.json)

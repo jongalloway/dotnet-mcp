@@ -552,15 +552,19 @@ MSB3026: Could not copy "MyApp.dll" to "bin\Debug\net10.0\MyApp.dll".
 The process cannot access the file because it is being used by another process.
 ```
 
-**Solution**: Use the Stop action to cleanly terminate the running process before building:
+**Solution**: Use the Stop action to cleanly terminate running processes:
 
-1. Note the session ID from a long-running operation (if available)
-2. Call `dotnet_project` with `action: "Stop"` and the session ID
+1. For manually registered sessions: Use ProcessSessionManager.RegisterSession() to track processes and obtain a session ID
+2. Call `dotnet_project` with `action: "Stop"` and the session ID to terminate the process
 3. Proceed with build/test operations without file lock conflicts
+
+**Note**: Automatic session registration for Run/Watch actions is planned for a future enhancement.
 
 ### Session ID Format
 
-Session IDs are GUIDs (e.g., `"550e8400-e29b-41d4-a716-446655440000"`) generated when a process session is registered. Future versions may include session IDs in machine-readable output from Run and Watch actions.
+Session IDs are GUIDs (e.g., `"550e8400-e29b-41d4-a716-446655440000"`) generated when a process session is registered.
+
+**Note**: The current implementation provides the infrastructure for process session management (ProcessSessionManager class with RegisterSession, TryStopSession, etc.), but Run and Watch actions do not yet automatically register sessions or return session IDs in their output. The Stop action is available and functional for any manually registered sessions. A future enhancement will integrate session registration into Run/Watch operations to provide automatic session ID tracking.
 
 ---
 

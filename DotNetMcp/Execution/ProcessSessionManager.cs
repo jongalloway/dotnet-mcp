@@ -88,6 +88,7 @@ public sealed class ProcessSessionManager
             {
                 _logger?.LogInformation("Session {SessionId} process already exited (Exit code: {ExitCode})",
                     sessionId, session.Process.ExitCode);
+                session.Process.Dispose();
                 return true;
             }
 
@@ -103,6 +104,7 @@ public sealed class ProcessSessionManager
             }
 
             _logger?.LogInformation("Successfully stopped session {SessionId}", sessionId);
+            session.Process.Dispose();
             return true;
         }
         catch (InvalidOperationException ex)
@@ -110,12 +112,28 @@ public sealed class ProcessSessionManager
             // Process already exited - this is expected and not an error
             _logger?.LogDebug("Session {SessionId} process already exited during stop: {Message}",
                 sessionId, ex.Message);
+            try
+            {
+                session.Process.Dispose();
+            }
+            catch (InvalidOperationException)
+            {
+                // Process already disposed
+            }
             return true;
         }
         catch (Win32Exception ex)
         {
             errorMessage = $"Failed to stop session '{sessionId}': {ex.Message}";
             _logger?.LogError(ex, "Error stopping session {SessionId}", sessionId);
+            try
+            {
+                session.Process.Dispose();
+            }
+            catch (InvalidOperationException)
+            {
+                // Process already disposed
+            }
             return false;
         }
     }
@@ -188,6 +206,7 @@ public sealed class ProcessSessionManager
 
     /// <summary>
     /// Cleans up completed sessions (processes that have exited).
+    /// Disposes the Process objects to release system resources.
     /// </summary>
     public int CleanupCompletedSessions()
     {
@@ -210,8 +229,20 @@ public sealed class ProcessSessionManager
 
             foreach (var sessionId in completed)
             {
+                if (_sessions.TryGetValue(sessionId, out var session))
+                {
+                    try
+                    {
+                        session.Process.Dispose();
+                        _logger?.LogDebug("Disposed process and cleaned up completed session {SessionId}", sessionId);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // Process already disposed
+                        _logger?.LogDebug("Cleaned up completed session {SessionId} (process already disposed)", sessionId);
+                    }
+                }
                 _sessions.Remove(sessionId);
-                _logger?.LogDebug("Cleaned up completed session {SessionId}", sessionId);
             }
 
             return completed.Count;
@@ -244,11 +275,47 @@ public sealed class ProcessSessionManager
 
     /// <summary>
     /// Clears all sessions. Used for testing.
+    /// Disposes all tracked processes before removing them to avoid resource leaks.
     /// </summary>
     public void Clear()
     {
         lock (_lock)
         {
+            // Take a snapshot to avoid modifying the dictionary while iterating
+            var sessions = _sessions.Values.ToList();
+
+            foreach (var session in sessions)
+            {
+                var process = session.Process;
+                try
+                {
+                    // If the process is still running, attempt to terminate it
+                    // Ignore failures here since this is primarily a test helper
+                    try
+                    {
+                        if (!process.HasExited)
+                        {
+                            process.Kill(entireProcessTree: true);
+                        }
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // Process is already exited or cannot be killed; ignore
+                    }
+                    catch (Win32Exception)
+                    {
+                        // Process might have already exited or we lack permission; ignore
+                    }
+
+                    process.Dispose();
+                    _logger?.LogDebug("Disposed process for session {SessionId} during Clear()", session.SessionId);
+                }
+                catch (InvalidOperationException)
+                {
+                    // Process already disposed; nothing more to do
+                }
+            }
+
             _sessions.Clear();
         }
     }
