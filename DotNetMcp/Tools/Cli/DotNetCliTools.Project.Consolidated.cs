@@ -227,74 +227,102 @@ public sealed partial class DotNetCliTools
         {
             // Start the process without waiting
             var process = DotNetCommandExecutor.StartProcessAsync(args.ToString(), _logger, workingDir);
+            var sessionRegistered = false;
 
-            // Register the session
-            if (!_processSessionManager.RegisterSession(sessionId, process, "run", target))
+            try
             {
-                // Registration failed - unlikely but handle it
-                try
+                // Register the session
+                if (!_processSessionManager.RegisterSession(sessionId, process, "run", target))
                 {
-                    process.Kill(entireProcessTree: true);
-                    process.Dispose();
-                }
-                catch (Exception ex)
-                {
-                    // Best effort cleanup - log for troubleshooting
-                    _logger.LogDebug(ex, "Failed to cleanup process during registration failure for session {SessionId}", sessionId);
+                    // Registration failed - unlikely but handle it
+                    try
+                    {
+                        try
+                        {
+                            process.Kill(entireProcessTree: true);
+                        }
+                        finally
+                        {
+                            // Ensure the process is disposed even if Kill throws
+                            process.Dispose();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Best effort cleanup - log for troubleshooting
+                        _logger.LogDebug(ex, "Failed to cleanup process during registration failure for session {SessionId}", sessionId);
+                    }
+
+                    if (machineReadable)
+                    {
+                        var error = ErrorResultFactory.CreateValidationError(
+                            "Failed to register process session. Session ID may already exist.",
+                            parameterName: "sessionId",
+                            reason: "duplicate");
+                        return ErrorResultFactory.ToJson(error);
+                    }
+                    return "Error: Failed to register process session. Session ID may already exist.";
                 }
 
+                sessionRegistered = true;
+
+                // Attach cleanup continuation for when process exits
+                // Note: This is a fire-and-forget task by design. The process lifetime is independent
+                // of the API call that started it. The cleanup will run when the process exits,
+                // or be orphaned if the server shuts down (which is acceptable for a background process).
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await process.WaitForExitAsync();
+                        _logger.LogDebug("Background run process {SessionId} exited with code {ExitCode}", sessionId, process.ExitCode);
+                        
+                        // Clean up the session
+                        _processSessionManager.CleanupCompletedSessions();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error in background process cleanup for session {SessionId}", sessionId);
+                    }
+                });
+
+                // Return success with session metadata
                 if (machineReadable)
                 {
-                    var error = ErrorResultFactory.CreateValidationError(
-                        "Failed to register process session. Session ID may already exist.",
-                        parameterName: "sessionId",
-                        reason: "duplicate");
-                    return ErrorResultFactory.ToJson(error);
-                }
-                return "Error: Failed to register process session. Session ID may already exist.";
-            }
-
-            // Attach cleanup continuation for when process exits
-            // Note: This is a fire-and-forget task by design. The process lifetime is independent
-            // of the API call that started it. The cleanup will run when the process exits,
-            // or be orphaned if the server shuts down (which is acceptable for a background process).
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await process.WaitForExitAsync();
-                    _logger.LogDebug("Background run process {SessionId} exited with code {ExitCode}", sessionId, process.ExitCode);
-                    
-                    // Clean up the session
-                    _processSessionManager.CleanupCompletedSessions();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error in background process cleanup for session {SessionId}", sessionId);
-                }
-            });
-
-            // Return success with session metadata
-            if (machineReadable)
-            {
-                var result = new SuccessResult
-                {
-                    Success = true,
-                    Output = $"Process started in background mode",
-                    ExitCode = 0,
-                    Metadata = new Dictionary<string, string>
+                    var result = new SuccessResult
                     {
-                        ["sessionId"] = sessionId,
-                        ["pid"] = process.Id.ToString(),
-                        ["operationType"] = "run",
-                        ["target"] = target,
-                        ["startMode"] = "background"
-                    }
-                };
-                return ErrorResultFactory.ToJson(result);
-            }
+                        Success = true,
+                        Output = $"Process started in background mode",
+                        ExitCode = 0,
+                        Metadata = new Dictionary<string, string>
+                        {
+                            ["sessionId"] = sessionId,
+                            ["pid"] = process.Id.ToString(),
+                            ["operationType"] = "run",
+                            ["target"] = target,
+                            ["startMode"] = "background"
+                        }
+                    };
+                    return ErrorResultFactory.ToJson(result);
+                }
 
-            return $"Process started in background mode\nSession ID: {sessionId}\nPID: {process.Id}\nTarget: {target}\n\nUse 'dotnet_project' with action 'Stop' and sessionId '{sessionId}' to terminate the process.";
+                return $"Process started in background mode\nSession ID: {sessionId}\nPID: {process.Id}\nTarget: {target}\n\nUse 'dotnet_project' with action 'Stop' and sessionId '{sessionId}' to terminate the process.";
+            }
+            finally
+            {
+                if (!sessionRegistered)
+                {
+                    try
+                    {
+                        process.Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        // Best effort disposal; log at debug to avoid noisy failures during cleanup
+                        _logger.LogDebug(ex, "Failed to dispose process for session {SessionId}", sessionId);
+                    }
+                }
+            }
         }
         catch (Exception ex)
         {
