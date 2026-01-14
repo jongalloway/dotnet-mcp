@@ -9,6 +9,12 @@ namespace DotNetMcp;
 public static partial class ErrorResultFactory
 {
     /// <summary>
+    /// Exit code returned by dotnet CLI when a template pack is already installed.
+    /// This is treated as success for idempotent template installation operations.
+    /// </summary>
+    internal const int TemplatePackAlreadyInstalledExitCode = 106;
+
+    /// <summary>
     /// Create a standardized error response for when a capability exists but is not available
     /// due to environment limitations, feature flags, or unimplemented functionality.
     /// </summary>
@@ -100,7 +106,7 @@ public static partial class ErrorResultFactory
         }
 
         // Exit code 106: Template pack already installed - treat as success with metadata
-        if (exitCode == 106 && command?.Contains("new install", StringComparison.OrdinalIgnoreCase) == true)
+        if (exitCode == TemplatePackAlreadyInstalledExitCode && command?.Contains("new install", StringComparison.OrdinalIgnoreCase) == true)
         {
             var resultMetadata = metadata != null ? new Dictionary<string, string>(metadata) : new Dictionary<string, string>();
             resultMetadata["alreadyInstalled"] = "true";
@@ -111,7 +117,7 @@ public static partial class ErrorResultFactory
                 Success = true,
                 Command = string.IsNullOrWhiteSpace(command) ? null : SanitizeOutput(command),
                 Output = SanitizeOutput(output),
-                ExitCode = 106,
+                ExitCode = TemplatePackAlreadyInstalledExitCode,
                 Metadata = resultMetadata
             };
         }

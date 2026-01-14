@@ -257,9 +257,9 @@ public static class DotNetCommandExecutor
         }
 
         // Special handling for exit code 106 (template pack already installed)
-        if (process.ExitCode == 106 && arguments.Contains("new install", StringComparison.OrdinalIgnoreCase))
+        if (process.ExitCode == ErrorResultFactory.TemplatePackAlreadyInstalledExitCode && arguments.Contains("new install", StringComparison.OrdinalIgnoreCase))
         {
-            textResult.AppendLine("Template pack already installed (exit code 106 treated as success)");
+            textResult.AppendLine($"Template pack already installed (exit code {ErrorResultFactory.TemplatePackAlreadyInstalledExitCode} treated as success)");
         }
 
         textResult.AppendLine($"Exit Code: {process.ExitCode}");
