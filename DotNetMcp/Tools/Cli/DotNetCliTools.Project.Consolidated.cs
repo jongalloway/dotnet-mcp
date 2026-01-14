@@ -46,13 +46,14 @@ public sealed partial class DotNetCliTools
     /// <param name="workingDirectory">Working directory for command execution</param>
     /// <param name="testRunner">Test runner selection for test action (Auto, MicrosoftTestingPlatform, or VSTest). Auto detects from global.json. Default: Auto</param>
     /// <param name="useLegacyProjectArgument">DEPRECATED: Use testRunner parameter instead. When true, uses positional project argument (VSTest mode)</param>
+    /// <param name="sessionId">Session ID for stop action (required when action is Stop)</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpServerTool]
     [McpMeta("category", "project")]
     [McpMeta("priority", 10.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("consolidatedTool", true)]
-    [McpMeta("actions", JsonValue = """["New","Restore","Build","Run","Test","Publish","Clean","Analyze","Dependencies","Validate","Pack","Watch","Format"]""")]
+    [McpMeta("actions", JsonValue = """["New","Restore","Build","Run","Test","Publish","Clean","Analyze","Dependencies","Validate","Pack","Watch","Format","Stop"]""")]
     public async partial Task<string> DotnetProject(
         DotnetProjectAction action,
         string? project = null,
@@ -85,6 +86,7 @@ public sealed partial class DotNetCliTools
         string? workingDirectory = null,
         TestRunner? testRunner = null,
         bool? useLegacyProjectArgument = null,
+        string? sessionId = null,
         bool machineReadable = false)
     {
         return await WithWorkingDirectoryAsync(workingDirectory, async () =>
@@ -110,7 +112,7 @@ public sealed partial class DotNetCliTools
                 DotnetProjectAction.New => await HandleNewAction(template, name, output, framework, additionalOptions, machineReadable),
                 DotnetProjectAction.Restore => await HandleRestoreAction(project, machineReadable),
                 DotnetProjectAction.Build => await HandleBuildAction(project, configuration, framework, machineReadable),
-                DotnetProjectAction.Run => await HandleRunAction(project, configuration, appArgs, machineReadable),
+                DotnetProjectAction.Run => await HandleRunAction(project, configuration, appArgs, noBuild, machineReadable),
                 DotnetProjectAction.Test => await HandleTestAction(project, configuration, filter, collect, resultsDirectory, logger, noBuild, noRestore, verbosity, framework, blame, listTests, testRunner, useLegacyProjectArgument, machineReadable),
                 DotnetProjectAction.Publish => await HandlePublishAction(project, configuration, output, runtime, machineReadable),
                 DotnetProjectAction.Clean => await HandleCleanAction(project, configuration, machineReadable),
@@ -120,6 +122,7 @@ public sealed partial class DotNetCliTools
                 DotnetProjectAction.Pack => await HandlePackAction(project, configuration, output, includeSymbols, includeSource, machineReadable),
                 DotnetProjectAction.Watch => await HandleWatchAction(watchAction, project, configuration, appArgs, filter, noHotReload, machineReadable),
                 DotnetProjectAction.Format => await HandleFormatAction(project, verify, includeGenerated, diagnostics, severity, machineReadable),
+                DotnetProjectAction.Stop => await HandleStopAction(sessionId, machineReadable),
                 _ => machineReadable
                     ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateValidationError(
                         $"Action '{action}' is not supported.",
@@ -160,13 +163,14 @@ public sealed partial class DotNetCliTools
             machineReadable: machineReadable);
     }
 
-    private async Task<string> HandleRunAction(string? project, string? configuration, string? appArgs, bool machineReadable)
+    private async Task<string> HandleRunAction(string? project, string? configuration, string? appArgs, bool? noBuild, bool machineReadable)
     {
         // Route to existing DotnetProjectRun method
         return await DotnetProjectRun(
             project: project,
             configuration: configuration,
             appArgs: appArgs,
+            noBuild: noBuild ?? false,
             machineReadable: machineReadable);
     }
 
@@ -339,6 +343,56 @@ public sealed partial class DotNetCliTools
             diagnostics: diagnostics,
             severity: severity,
             machineReadable: machineReadable);
+    }
+
+    private Task<string> HandleStopAction(string? sessionId, bool machineReadable)
+    {
+        // Validate required parameter
+        if (!ParameterValidator.ValidateRequiredParameter(sessionId, "sessionId", out var errorMessage))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    errorMessage!,
+                    parameterName: "sessionId",
+                    reason: "required");
+                return Task.FromResult(ErrorResultFactory.ToJson(error));
+            }
+            return Task.FromResult($"Error: {errorMessage}");
+        }
+
+        // Try to stop the session
+        if (_processSessionManager.TryStopSession(sessionId!, out var stopError))
+        {
+            if (machineReadable)
+            {
+                var result = new SuccessResult
+                {
+                    Success = true,
+                    Output = $"Successfully stopped session '{sessionId}'",
+                    ExitCode = 0,
+                    Metadata = new Dictionary<string, string>
+                    {
+                        ["sessionId"] = sessionId!,
+                        ["stopped"] = "true"
+                    }
+                };
+                return Task.FromResult(ErrorResultFactory.ToJson(result));
+            }
+            return Task.FromResult($"Successfully stopped session '{sessionId}'");
+        }
+        else
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    stopError!,
+                    parameterName: "sessionId",
+                    reason: "not found or already stopped");
+                return Task.FromResult(ErrorResultFactory.ToJson(error));
+            }
+            return Task.FromResult($"Error: {stopError}");
+        }
     }
 
     // ===== Watch helper methods (moved from DotNetCliTools.Watch.cs) =====
@@ -550,6 +604,7 @@ public sealed partial class DotNetCliTools
         string? project = null,
         string? configuration = null,
         string? appArgs = null,
+        bool noBuild = false,
         bool machineReadable = false)
     {
         // Validate project path if provided
@@ -563,6 +618,7 @@ public sealed partial class DotNetCliTools
         var args = new StringBuilder("run");
         if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
+        if (noBuild) args.Append(" --no-build");
         if (!string.IsNullOrEmpty(appArgs)) args.Append($" -- {appArgs}");
 
         // Capture working directory for concurrency target selection

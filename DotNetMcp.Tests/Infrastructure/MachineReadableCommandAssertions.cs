@@ -49,5 +49,10 @@ internal static class MachineReadableCommandAssertions
         Assert.Fail("Could not find executed command in machine-readable result JSON (expected either root.command or errors[*].data.command).");
         return string.Empty;
     }
+
+    /// <summary>
+    /// Gets the executed command from machine-readable output. Alias for ExtractExecutedDotnetCommand.
+    /// </summary>
+    public static string GetExecutedCommand(string resultJson) => ExtractExecutedDotnetCommand(resultJson);
 }
 

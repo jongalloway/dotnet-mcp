@@ -132,6 +132,7 @@ public class ToolMetadataSerializationTests
         
         // Register dependencies
         services.AddSingleton<ConcurrencyManager>();
+        services.AddSingleton<ProcessSessionManager>();
         services.AddLogging();
 
         // Act - This should not throw and should register all tools
@@ -148,11 +149,16 @@ public class ToolMetadataSerializationTests
         var concurrencyManager = serviceProvider.GetRequiredService<ConcurrencyManager>();
         Assert.NotNull(concurrencyManager);
         
+        // Verify we can resolve ProcessSessionManager
+        var processSessionManager = serviceProvider.GetRequiredService<ProcessSessionManager>();
+        Assert.NotNull(processSessionManager);
+        
         // Verify we can create a DotNetCliTools instance
         var toolsInstance = ActivatorUtilities.CreateInstance<DotNetCliTools>(
             serviceProvider,
             NullLogger<DotNetCliTools>.Instance,
-            concurrencyManager);
+            concurrencyManager,
+            processSessionManager);
         Assert.NotNull(toolsInstance);
     }
 

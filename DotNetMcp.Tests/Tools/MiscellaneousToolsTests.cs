@@ -18,7 +18,7 @@ public class MiscellaneousToolsTests
     public MiscellaneousToolsTests()
     {
         _concurrencyManager = new ConcurrencyManager();
-        _tools = new DotNetCliTools(NullLogger<DotNetCliTools>.Instance, _concurrencyManager);
+        _tools = new DotNetCliTools(NullLogger<DotNetCliTools>.Instance, _concurrencyManager, new ProcessSessionManager());
     }
 
     private static async Task<string> ExecuteInTempDirectoryAsync(Func<Task<string>> action)

@@ -17,7 +17,7 @@ public class ConsolidatedProjectToolTests
     public ConsolidatedProjectToolTests()
     {
         _concurrencyManager = new ConcurrencyManager();
-        _tools = new DotNetCliTools(NullLogger<DotNetCliTools>.Instance, _concurrencyManager);
+        _tools = new DotNetCliTools(NullLogger<DotNetCliTools>.Instance, _concurrencyManager, new ProcessSessionManager());
     }
 
     [Fact]
@@ -1017,6 +1017,112 @@ public class ConsolidatedProjectToolTests
                 // Best-effort cleanup
             }
         }
+    }
+
+    #endregion
+
+    #region Stop Action Tests
+
+    [Fact]
+    public async Task DotnetProject_Stop_WithMissingSessionId_ReturnsValidationError()
+    {
+        // Act
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.Stop,
+            machineReadable: true);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("sessionId", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("required", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_Stop_WithNonExistentSessionId_ReturnsError()
+    {
+        // Arrange
+        var nonExistentSessionId = Guid.NewGuid().ToString();
+
+        // Act
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.Stop,
+            sessionId: nonExistentSessionId,
+            machineReadable: true);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("not found", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_Stop_PlainText_WithNonExistentSessionId_ReturnsErrorMessage()
+    {
+        // Arrange
+        var nonExistentSessionId = Guid.NewGuid().ToString();
+
+        // Act
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.Stop,
+            sessionId: nonExistentSessionId,
+            machineReadable: false);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.StartsWith("Error:", result);
+        Assert.Contains("not found", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    #endregion
+
+    #region NoBuild Parameter Tests
+
+    [Fact]
+    public async Task DotnetProject_Run_WithNoBuild_IncludesNoBuildFlag()
+    {
+        // Act
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.Run,
+            project: "MyProject.csproj",
+            noBuild: true,
+            machineReadable: true);
+
+        // Assert
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet run --project \"MyProject.csproj\" --no-build");
+    }
+
+    [Fact]
+    public async Task DotnetProject_Run_WithoutNoBuild_DoesNotIncludeNoBuildFlag()
+    {
+        // Act
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.Run,
+            project: "MyProject.csproj",
+            noBuild: false,
+            machineReadable: true);
+
+        // Assert
+        Assert.NotNull(result);
+        var commandExecuted = MachineReadableCommandAssertions.GetExecutedCommand(result);
+        Assert.DoesNotContain("--no-build", commandExecuted);
+    }
+
+    [Fact]
+    public async Task DotnetProject_Run_WithNoBuildNull_DoesNotIncludeNoBuildFlag()
+    {
+        // Act
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.Run,
+            project: "MyProject.csproj",
+            noBuild: null,
+            machineReadable: true);
+
+        // Assert
+        Assert.NotNull(result);
+        var commandExecuted = MachineReadableCommandAssertions.GetExecutedCommand(result);
+        Assert.DoesNotContain("--no-build", commandExecuted);
     }
 
     #endregion
