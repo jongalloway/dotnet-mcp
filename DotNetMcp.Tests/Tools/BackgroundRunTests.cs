@@ -66,16 +66,18 @@ public class BackgroundRunTests : IDisposable
 
             var projectPath = Path.Join(tempDir, "TestApp.csproj");
 
-            // Build it
+            // Build it with Release configuration to match CI test execution
             await _tools.DotnetProject(
                 action: DotnetProjectAction.Build,
                 project: projectPath,
+                configuration: "Release",
                 machineReadable: false);
 
             // Run in foreground mode (default) - should block until exit
             var result = await _tools.DotnetProject(
                 action: DotnetProjectAction.Run,
                 project: projectPath,
+                configuration: "Release",
                 noBuild: true,
                 startMode: StartMode.Foreground,
                 machineReadable: true);
@@ -129,16 +131,18 @@ Console.WriteLine(""Finished"");
 ";
             File.WriteAllText(programFile, programContent);
 
-            // Build it
+            // Build it with Release configuration to match CI test execution
             await _tools.DotnetProject(
                 action: DotnetProjectAction.Build,
                 project: projectPath,
+                configuration: "Release",
                 machineReadable: false);
 
             // Run in background mode
             var result = await _tools.DotnetProject(
                 action: DotnetProjectAction.Run,
                 project: projectPath,
+                configuration: "Release",
                 noBuild: true,
                 startMode: StartMode.Background,
                 machineReadable: true);
@@ -210,16 +214,18 @@ using System.Threading;
 Thread.Sleep(TimeSpan.FromSeconds(30));
 ");
 
-            // Build it
+            // Build it with Release configuration to match CI test execution
             await _tools.DotnetProject(
                 action: DotnetProjectAction.Build,
                 project: projectPath,
+                configuration: "Release",
                 machineReadable: false);
 
             // Run with noBuild=true in background
             var result = await _tools.DotnetProject(
                 action: DotnetProjectAction.Run,
                 project: projectPath,
+                configuration: "Release",
                 noBuild: true,
                 startMode: StartMode.Background,
                 machineReadable: true);
@@ -279,16 +285,18 @@ Thread.Sleep(TimeSpan.FromMinutes(5));
 Console.WriteLine(""App finished"");
 ");
 
-            // Build
+            // Build with Release configuration to match CI test execution
             await _tools.DotnetProject(
                 action: DotnetProjectAction.Build,
                 project: projectPath,
+                configuration: "Release",
                 machineReadable: false);
 
             // Start in background
             var runResult = await _tools.DotnetProject(
                 action: DotnetProjectAction.Run,
                 project: projectPath,
+                configuration: "Release",
                 noBuild: true,
                 startMode: StartMode.Background,
                 machineReadable: true);
@@ -369,16 +377,18 @@ Thread.Sleep(TimeSpan.FromSeconds(2));
 Console.WriteLine(""Done"");
 ");
 
-            // Build
+            // Build with Release configuration to match CI test execution
             await _tools.DotnetProject(
                 action: DotnetProjectAction.Build,
                 project: projectPath,
+                configuration: "Release",
                 machineReadable: false);
 
             // Start in background
             var runResult = await _tools.DotnetProject(
                 action: DotnetProjectAction.Run,
                 project: projectPath,
+                configuration: "Release",
                 noBuild: true,
                 startMode: StartMode.Background,
                 machineReadable: true);
