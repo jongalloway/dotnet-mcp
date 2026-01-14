@@ -25,22 +25,24 @@ public sealed partial class DotNetCliTools
         var args = new StringBuilder("new sln");
         args.Append($" -n \"{name}\"");
         if (!string.IsNullOrEmpty(output)) args.Append($" -o \"{output}\"");
-        if (!string.IsNullOrEmpty(format))
+        
+        // Determine the format to use
+        var effectiveFormat = format ?? "sln"; // Default to 'sln' for backward compatibility
+        
+        if (effectiveFormat != "sln" && effectiveFormat != "slnx")
         {
-            if (format != "sln" && format != "slnx")
+            if (machineReadable)
             {
-                if (machineReadable)
-                {
-                    var error = ErrorResultFactory.CreateValidationError(
-                        "format must be either 'sln' or 'slnx'.",
-                        parameterName: "format",
-                        reason: "invalid value");
-                    return ErrorResultFactory.ToJson(error);
-                }
-                return "Error: format must be either 'sln' or 'slnx'.";
+                var error = ErrorResultFactory.CreateValidationError(
+                    "format must be either 'sln' or 'slnx'.",
+                    parameterName: "format",
+                    reason: "invalid value");
+                return ErrorResultFactory.ToJson(error);
             }
-            args.Append($" --format {format}");
+            return "Error: format must be either 'sln' or 'slnx'.";
         }
+        
+        args.Append($" --format {effectiveFormat}");
         return await ExecuteDotNetCommand(args.ToString(), machineReadable);
     }
 

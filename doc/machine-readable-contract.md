@@ -30,6 +30,7 @@ interface SuccessResult {
   command?: string;            // The executed command (optional, for diagnostics)
   output: string;              // Command output (required)
   exitCode: 0;                 // Always 0 for success
+  metadata?: Record<string, string>; // Optional metadata (tool-specific context)
 }
 ```
 
@@ -42,15 +43,21 @@ interface SuccessResult {
 **Optional Fields:**
 
 - `command` - The executed dotnet command (included for logging/diagnostics)
+- `metadata` - Tool-specific metadata providing additional context (e.g., test runner selection)
 
 **Example:**
 
 ```json
 {
   "success": true,
-  "command": "dotnet --version",
-  "output": "10.0.100",
-  "exitCode": 0
+  "command": "dotnet test --project MyTests.csproj",
+  "output": "Test run passed",
+  "exitCode": 0,
+  "metadata": {
+    "selectedTestRunner": "microsoft-testing-platform",
+    "projectArgumentStyle": "--project",
+    "selectionSource": "global.json"
+  }
 }
 ```
 
@@ -65,6 +72,7 @@ interface ErrorResponse {
   success: false;              // Always false for errors
   errors: ErrorResult[];       // Array of one or more errors (required)
   exitCode: number;            // Process exit code (required)
+  metadata?: Record<string, string>; // Optional metadata (tool-specific context)
 }
 
 interface ErrorResult {
@@ -98,6 +106,7 @@ interface ErrorData {
 
 **Optional Fields:**
 
+- `metadata` - Tool-specific metadata (e.g., for dotnet_project Test action, includes test runner selection)
 - `hint`, `explanation`, `documentationUrl`, `suggestedFixes`, `alternatives`
 - `mcpErrorCode` - Maps to JSON-RPC 2.0 error codes
 - `data` - Structured data for programmatic error handling
@@ -819,6 +828,73 @@ await callTool("dotnet_solution", {
   "exitCode": 0
 }
 ```
+
+## Tool-Specific Metadata
+
+Some tools include additional metadata in both success and error responses to provide context about how the operation was performed. This is particularly useful for AI orchestrators to understand the decisions made during execution.
+
+### dotnet_project Test Action Metadata
+
+The `dotnet_project` Test action includes metadata about test runner selection when `machineReadable: true`:
+
+**Metadata Fields:**
+
+- `selectedTestRunner`: The test runner that was used (`microsoft-testing-platform` or `vstest`)
+- `projectArgumentStyle`: The argument style used (`--project`, `positional`, or `none`)
+- `selectionSource`: How the runner was selected (`global.json`, `testRunner-parameter`, `useLegacyProjectArgument-parameter`, or `default`)
+
+**Success Example with Metadata:**
+
+```json
+{
+  "success": true,
+  "command": "dotnet test --project MyTests.csproj",
+  "output": "Passed!  - Failed:     0, Passed:    42, Skipped:     0, Total:    42, Duration: 1.2s",
+  "exitCode": 0,
+  "metadata": {
+    "selectedTestRunner": "microsoft-testing-platform",
+    "projectArgumentStyle": "--project",
+    "selectionSource": "global.json"
+  }
+}
+```
+
+**Error Example with Metadata:**
+
+```json
+{
+  "success": false,
+  "errors": [
+    {
+      "code": "MSB1001",
+      "message": "Unknown switch.",
+      "category": "Build",
+      "hint": "Unrecognized option. Check the command syntax.",
+      "rawOutput": "MSBUILD : error MSB1001: Unknown switch.\nSwitch: --project",
+      "data": {
+        "command": "dotnet test --project MyTests.csproj",
+        "exitCode": 1,
+        "stderr": "MSBUILD : error MSB1001: Unknown switch."
+      }
+    }
+  ],
+  "exitCode": 1,
+  "metadata": {
+    "selectedTestRunner": "microsoft-testing-platform",
+    "projectArgumentStyle": "--project",
+    "selectionSource": "testRunner-parameter"
+  }
+}
+```
+
+**Metadata Selection Sources:**
+
+- `global.json` - MTP detected from `{ "test": { "runner": "Microsoft.Testing.Platform" } }` in global.json
+- `testRunner-parameter` - Explicit `testRunner` parameter value used (MicrosoftTestingPlatform or VSTest)
+- `useLegacyProjectArgument-parameter` - Legacy `useLegacyProjectArgument: true` parameter used (deprecated)
+- `default` - No configuration found, defaulted to VSTest for legacy compatibility
+
+This metadata helps AI orchestrators understand why a particular command failed and what to try next.
 
 ## Compliance Requirements
 
