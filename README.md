@@ -1063,6 +1063,7 @@ Key files to start with:
 - 📖 [Tool Surface Consolidation](doc/tool-surface-consolidation.md) - **Consolidated tool design and architecture**
 - 📖 [SDK Integration Details](doc/sdk-integration.md) - Technical architecture and SDK usage
 - 📖 [Advanced Topics](doc/advanced-topics.md) - Performance, logging, and security details
+- 📖 [Releasing](doc/releasing.md) - How to cut a release (checklists + scripts)
 - 📖 [Concurrency Safety](doc/concurrency.md) - Parallel execution guidance for AI orchestrators
 - 📖 [Testing](doc/testing.md) - How to run tests (including opt-in interactive tests)
 - 📖 [Model Context Protocol](https://modelcontextprotocol.io/) - Official MCP specification
