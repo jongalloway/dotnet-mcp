@@ -79,6 +79,9 @@ artifacts-local/
 coverage.cobertura.xml
 performance-results.txt
 
+# Local scratch (kept out of repo)
+temp/
+
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
 
