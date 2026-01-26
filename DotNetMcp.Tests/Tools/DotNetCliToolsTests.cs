@@ -383,62 +383,72 @@ public class DotNetCliToolsTests
     [Fact]
     public async Task DotnetToolInstall_WithPackageName_ExecutesCommand()
     {
-        // Validates that tool install with package name works
+        // Validates that tool install with package name builds correct command
         var result = await _tools.DotnetTool(
             action: DotNetMcp.Actions.DotnetToolAction.Install,
-            packageId: "dotnet-ef");
+            packageId: "dotnet-ef",
+            machineReadable: true);
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet tool install \"dotnet-ef\"");
     }
 
     [Fact]
     public async Task DotnetToolInstall_WithGlobalFlag_ExecutesCommand()
     {
-        // Validates that global tool install works
+        // Validates that global tool install builds correct command
         var result = await _tools.DotnetTool(
             action: DotNetMcp.Actions.DotnetToolAction.Install,
             packageId: "dotnet-ef",
-            global: true);
+            global: true,
+            machineReadable: true);
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet tool install \"dotnet-ef\" --global");
     }
 
     [Fact]
     public async Task DotnetToolInstall_WithVersion_ExecutesCommand()
     {
-        // Validates that tool install with specific version works
+        // Validates that tool install with specific version builds correct command
         var result = await _tools.DotnetTool(
             action: DotNetMcp.Actions.DotnetToolAction.Install,
             packageId: "dotnet-ef",
-            version: "8.0.0");
+            version: "8.0.0",
+            machineReadable: true);
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet tool install \"dotnet-ef\" --version 8.0.0");
     }
 
     [Fact]
     public async Task DotnetToolInstall_WithFramework_ExecutesCommand()
     {
-        // Validates that tool install with framework works
+        // Validates that tool install with framework builds correct command
         var result = await _tools.DotnetTool(
             action: DotNetMcp.Actions.DotnetToolAction.Install,
             packageId: "dotnet-ef",
-            framework: "net8.0");
+            framework: "net8.0",
+            machineReadable: true);
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet tool install \"dotnet-ef\" --framework net8.0");
     }
 
     [Fact]
     public async Task DotnetToolInstall_WithAllParameters_ExecutesCommand()
     {
-        // Validates that all parameters work together
+        // Validates that all parameters build correct command
         var result = await _tools.DotnetTool(
             action: DotNetMcp.Actions.DotnetToolAction.Install,
             packageId: "dotnet-ef",
             global: true,
             version: "8.0.0",
-            framework: "net8.0");
+            framework: "net8.0",
+            machineReadable: true);
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet tool install \"dotnet-ef\" --global --version 8.0.0 --framework net8.0");
     }
 
     [Fact]
@@ -482,36 +492,42 @@ public class DotNetCliToolsTests
     [Fact]
     public async Task DotnetToolUpdate_WithPackageName_ExecutesCommand()
     {
-        // Validates that tool update with package name works
+        // Validates that tool update with package name builds correct command
         var result = await _tools.DotnetTool(
             action: DotNetMcp.Actions.DotnetToolAction.Update,
-            packageId: "dotnet-ef");
+            packageId: "dotnet-ef",
+            machineReadable: true);
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet tool update \"dotnet-ef\"");
     }
 
     [Fact]
     public async Task DotnetToolUpdate_WithGlobalFlag_ExecutesCommand()
     {
-        // Validates that global tool update works
+        // Validates that global tool update builds correct command
         var result = await _tools.DotnetTool(
             action: DotNetMcp.Actions.DotnetToolAction.Update,
             packageId: "dotnet-ef",
-            global: true);
+            global: true,
+            machineReadable: true);
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet tool update \"dotnet-ef\" --global");
     }
 
     [Fact]
     public async Task DotnetToolUpdate_WithVersion_ExecutesCommand()
     {
-        // Validates that tool update to specific version works
+        // Validates that tool update to specific version builds correct command
         var result = await _tools.DotnetTool(
             action: DotNetMcp.Actions.DotnetToolAction.Update,
             packageId: "dotnet-ef",
-            version: "8.0.1");
+            version: "8.0.1",
+            machineReadable: true);
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet tool update \"dotnet-ef\" --version 8.0.1");
     }
 
     [Fact]
@@ -530,24 +546,28 @@ public class DotNetCliToolsTests
     [Fact]
     public async Task DotnetToolUninstall_WithPackageName_ExecutesCommand()
     {
-        // Validates that tool uninstall with package name works
+        // Validates that tool uninstall with package name builds correct command
         var result = await _tools.DotnetTool(
             action: DotNetMcp.Actions.DotnetToolAction.Uninstall,
-            packageId: "dotnet-ef");
+            packageId: "dotnet-ef",
+            machineReadable: true);
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet tool uninstall \"dotnet-ef\"");
     }
 
     [Fact]
     public async Task DotnetToolUninstall_WithGlobalFlag_ExecutesCommand()
     {
-        // Validates that global tool uninstall works
+        // Validates that global tool uninstall builds correct command
         var result = await _tools.DotnetTool(
             action: DotNetMcp.Actions.DotnetToolAction.Uninstall,
             packageId: "dotnet-ef",
-            global: true);
+            global: true,
+            machineReadable: true);
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet tool uninstall \"dotnet-ef\" --global");
     }
 
     [Fact]

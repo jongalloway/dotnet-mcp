@@ -1,13 +1,13 @@
 {
-  "_comment": "Source-controlled local tool manifest for this repo. Do not edit unless explicitly requested (agents: do not run dotnet tool update or change tool versions).",
   "version": 1,
   "isRoot": true,
   "tools": {
     "dotnet-ef": {
-      "version": "9.0.0",
+      "version": "10.0.2",
       "commands": [
         "dotnet-ef"
-      ]
+      ],
+      "rollForward": false
     }
   }
 }

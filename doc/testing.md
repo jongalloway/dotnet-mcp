@@ -117,6 +117,42 @@ dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release
 dotnet test --solution DotNetMcp.slnx -c Release
 ```
 
+## Parallelization
+
+Tests run in parallel by default. Configuration differs between local development and CI:
+
+### Local Development
+
+The repository includes `DotNetMcp.Tests/xunit.runner.json` which configures:
+
+```json
+{
+  "maxParallelThreads": 0,
+  "parallelAlgorithm": "aggressive"
+}
+```
+
+- `maxParallelThreads: 0` - Uses all available CPU cores
+- `parallelAlgorithm: "aggressive"` - Runs test classes in parallel when safe
+
+### CI (GitHub Actions)
+
+CI overrides the thread count to avoid resource contention on shared runners:
+
+```bash
+dotnet test --project ... -- --max-threads 6
+```
+
+The `--max-threads 6` setting is optimized for `ubuntu-latest` runners (4 vCPUs, 16GB RAM), allowing slight oversubscription for I/O-bound tests.
+
+### Manual Override
+
+To run with a specific thread count locally:
+
+```bash
+dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release -- --max-threads 4
+```
+
 Run tests from the solution:
 
 ```bash
@@ -363,6 +399,28 @@ Avoid creating redundant tests that only differ by the `machineReadable` flag un
 
 - Prefer `-c Release` for CI parity.
 - If you're iterating on a single area, use Microsoft Testing Platform filters after `--`, for example: `dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release -- --filter-class DotNetMcp.Tests.CacheMetricsTests`.
+
+### Performance: Use `machineReadable: true` for Command Verification
+
+When testing command-building logic (not actual CLI execution), use `machineReadable: true` to avoid slow CLI operations:
+
+```csharp
+// Fast: Verifies command construction without executing dotnet CLI
+var result = await _tools.DotnetTool(
+    action: DotnetToolAction.Install,
+    packageId: "dotnet-ef",
+    machineReadable: true);
+
+MachineReadableCommandAssertions.AssertExecutedDotnetCommand(
+    result, 
+    "dotnet tool install \"dotnet-ef\"");
+```
+
+This pattern:
+- Returns structured JSON with the executed command
+- Avoids NuGet network calls and package downloads
+- Reduces test time from seconds to milliseconds
+- Should be used for all command-building verification tests
 
 ## Path handling
 

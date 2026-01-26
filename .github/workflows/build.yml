@@ -55,7 +55,7 @@ jobs:
 
       - name: Run MCP Conformance Tests
         id: conformance_tests
-        run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-class "*McpConformanceTests"
+        run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --max-threads 6 --filter-class "*McpConformanceTests"
 
       - name: Run MCP Scenario Tests
         id: scenario_tests
@@ -63,11 +63,11 @@ jobs:
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.runScenarioTests == 'true' }}
         env:
           DOTNET_MCP_SCENARIO_TESTS: "1"
-        run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
+        run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --max-threads 6 --filter-namespace "*DotNetMcp.Tests.Scenarios*"
 
       - name: Test
         id: test
-        run: dotnet test --solution DotNetMcp.slnx --no-build --configuration Release --verbosity normal -- --coverage --coverage-output-format cobertura
+        run: dotnet test --solution DotNetMcp.slnx --no-build --configuration Release --verbosity normal -- --max-threads 6 --coverage --coverage-output-format cobertura
 
       - name: Collect coverage artifact
         id: collect_coverage
@@ -111,7 +111,7 @@ jobs:
           dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj \
             --no-build --configuration Release \
             --verbosity detailed \
-            -- --filter-namespace "*Performance*" > performance-results.txt 2>&1 || true
+            -- --max-threads 6 --filter-namespace "*Performance*" > performance-results.txt 2>&1 || true
           echo "Performance smoke tests completed"
           cat performance-results.txt
 

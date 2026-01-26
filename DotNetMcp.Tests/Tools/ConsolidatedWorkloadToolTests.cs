@@ -470,18 +470,18 @@ public class ConsolidatedWorkloadToolTests
     [Fact]
     public async Task DotnetWorkload_AllActions_RouteCorrectly()
     {
-        // Test that all enum values are handled
+        // Test that all enum values are handled using machineReadable mode for faster execution
         var actions = Enum.GetValues<DotnetWorkloadAction>();
         
-        // Act - test each action and verify it routes correctly
+        // Act - test each action with machineReadable=true to verify routing
         var results = await Task.WhenAll(actions.Select(async action => new
         {
             Action = action,
             Result = action switch
             {
-                DotnetWorkloadAction.Install => await _tools.DotnetWorkload(action, workloadIds: new[] { "test-id" }),
-                DotnetWorkloadAction.Uninstall => await _tools.DotnetWorkload(action, workloadIds: new[] { "test-id" }),
-                _ => await _tools.DotnetWorkload(action)
+                DotnetWorkloadAction.Install => await _tools.DotnetWorkload(action, workloadIds: new[] { "test-id" }, machineReadable: true),
+                DotnetWorkloadAction.Uninstall => await _tools.DotnetWorkload(action, workloadIds: new[] { "test-id" }, machineReadable: true),
+                _ => await _tools.DotnetWorkload(action, machineReadable: true)
             }
         }));
 

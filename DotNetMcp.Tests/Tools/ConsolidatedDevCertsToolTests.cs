@@ -613,19 +613,19 @@ public class ConsolidatedDevCertsToolTests
     [Fact]
     public async Task DotnetDevCerts_AllActions_RouteCorrectly()
     {
-        // Test that all enum values are handled
+        // Test that all enum values are handled using machineReadable for faster execution
         var actions = Enum.GetValues<DotnetDevCertsAction>();
         
-        // Act - test each action and verify it routes correctly
+        // Act - test each action with machineReadable=true to verify routing
         var results = await Task.WhenAll(actions.Select(async action => new
         {
             Action = action,
             Result = action switch
             {
-                DotnetDevCertsAction.CertificateExport => await _tools.DotnetDevCerts(action, path: "/tmp/test.pfx"),
-                DotnetDevCertsAction.SecretsSet => await _tools.DotnetDevCerts(action, key: "TestKey", value: "TestValue"),
-                DotnetDevCertsAction.SecretsRemove => await _tools.DotnetDevCerts(action, key: "TestKey"),
-                _ => await _tools.DotnetDevCerts(action)
+                DotnetDevCertsAction.CertificateExport => await _tools.DotnetDevCerts(action, path: "/tmp/test.pfx", machineReadable: true),
+                DotnetDevCertsAction.SecretsSet => await _tools.DotnetDevCerts(action, key: "TestKey", value: "TestValue", machineReadable: true),
+                DotnetDevCertsAction.SecretsRemove => await _tools.DotnetDevCerts(action, key: "TestKey", machineReadable: true),
+                _ => await _tools.DotnetDevCerts(action, machineReadable: true)
             }
         }));
 
