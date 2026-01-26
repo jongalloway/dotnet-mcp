@@ -25,6 +25,15 @@ jobs:
         with:
           fetch-depth: 0 # Required for MinVer to access Git history and tags
 
+      - name: Validate ref for manual runs
+        if: github.event_name == 'workflow_dispatch' && !startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          echo "❌ This workflow should be run on a version tag (refs/tags/v*)."
+          echo "You triggered it on: ${{ github.ref }}"
+          echo "Re-run and select the release tag (e.g., v1.0.0) as the ref."
+          exit 1
+
       - name: Ensure NuGet cache folder exists
         shell: bash
         run: |

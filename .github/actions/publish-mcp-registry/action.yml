@@ -49,6 +49,13 @@ runs:
             exit 0
           fi
 
+          # If the registry reports the version already exists, treat as a successful no-op.
+          # This makes publishing idempotent for re-runs of the same version.
+          if grep -Ei '(already exists|already published|version.*exists)' publish.log; then
+            echo "✅ MCP registry publish already completed for this version"
+            exit 0
+          fi
+
           # Retry only for known eventual-consistency style errors from the MCP registry.
           # Match multiple common phrasings in a case-insensitive way to avoid relying on a single exact string.
           if grep -Ei '(exists but version|version.*not.*available|eventual consistency|propagate|propagation delay)' publish.log; then

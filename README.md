@@ -14,9 +14,9 @@ Give your AI assistant superpowers for .NET development! This MCP server connect
 ## Quick Install
 
 Click to install in your preferred environment:
-[![VS Code - Install .NET MCP](https://img.shields.io/badge/VS_Code-Install_.NET_MCP-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dnx%22%2C%22args%22%3A%5B%22Community.Mcp.DotNet%401.0.0%22%2C%22--yes%22%5D%7D)
-[![VS Code Insiders - Install .NET MCP](https://img.shields.io/badge/VS_Code_Insiders-Install_.NET_MCP-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dnx%22%2C%22args%22%3A%5B%22Community.Mcp.DotNet%401.0.0%22%2C%22--yes%22%5D%7D&quality=insiders)
-[![Visual Studio - Install .NET MCP](https://img.shields.io/badge/Visual_Studio-Install_.NET_MCP-5C2D91?style=flat-square&logo=visualstudio&logoColor=white)](https://vs-open.link/mcp-install?%7B%22name%22%3A%22Community.Mcp.DotNet%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22dnx%22%2C%22args%22%3A%5B%22Community.Mcp.DotNet%401.0.0%22%2C%22--yes%22%5D%7D)
+[![VS Code - Install .NET MCP](https://img.shields.io/badge/VS_Code-Install_.NET_MCP-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dnx%22%2C%22args%22%3A%5B%22Community.Mcp.DotNet%401.%2A%22%2C%22--yes%22%5D%7D)
+[![VS Code Insiders - Install .NET MCP](https://img.shields.io/badge/VS_Code_Insiders-Install_.NET_MCP-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dnx%22%2C%22args%22%3A%5B%22Community.Mcp.DotNet%401.%2A%22%2C%22--yes%22%5D%7D&quality=insiders)
+[![Visual Studio - Install .NET MCP](https://img.shields.io/badge/Visual_Studio-Install_.NET_MCP-5C2D91?style=flat-square&logo=visualstudio&logoColor=white)](https://vs-open.link/mcp-install?%7B%22name%22%3A%22Community.Mcp.DotNet%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22dnx%22%2C%22args%22%3A%5B%22Community.Mcp.DotNet%401.%2A%22%2C%22--yes%22%5D%7D)
 
 > **Note**: Quick install requires .NET 10 SDK.
 
@@ -56,6 +56,14 @@ Your AI assistant gets direct access to:
 - NuGet package search and metadata
 - Framework version information (including LTS status)
 - Your solution and project structure
+
+### ⚡ **Token-Efficient by Design**
+
+Instead of relying on the LLM to infer state by reading and re-reading console output, the server exposes purpose-built .NET tools with **structured inputs and outputs**. In practice, this typically means fewer tokens per task and less back-and-forth.
+
+- Deterministic tool schemas reduce prompt/response overhead
+- `machineReadable: true` returns structured JSON (no log scraping)
+- MCP Resources provide lightweight metadata without running commands
 
 ### 🎯 **Why Not Just Let the AI Call `dotnet` Directly?**
 
@@ -226,7 +234,7 @@ Follow the instructions below for your specific development environment:
      - **Name**: `dotnet`
      - **Type**: `stdio`
      - **Command**: `dnx`
-     - **Arguments**: `Community.Mcp.DotNet@1.0.0 --yes`
+    - **Arguments**: `Community.Mcp.DotNet@1.* --yes`
 
 **Manual Configuration** (for source builds or custom setups):
 
@@ -260,7 +268,7 @@ Edit your VS Code settings (`Ctrl+,` or `Cmd+,`, search for "mcp"):
      - **Name**: `dotnet`
      - **Type**: `stdio`
      - **Command**: `dnx`
-     - **Arguments**: `Community.Mcp.DotNet@1.0.0 --yes`
+    - **Arguments**: `Community.Mcp.DotNet@1.* --yes`
 
 **Manual Configuration** (for source builds or custom setups):
 
@@ -285,7 +293,7 @@ Edit your VS Code settings (`Ctrl+,` or `Cmd+,`, search for "mcp"):
   "mcpServers": {
     "dotnet": {
       "command": "dnx",
-      "args": ["Community.Mcp.DotNet@1.0.0", "--yes"]
+      "args": ["Community.Mcp.DotNet@1.*", "--yes"]
     }
   }
 }
@@ -298,7 +306,7 @@ Edit your VS Code settings (`Ctrl+,` or `Cmd+,`, search for "mcp"):
   "mcpServers": {
     "dotnet": {
       "command": "dnx",
-      "args": ["Community.Mcp.DotNet@1.0.0", "--yes"]
+      "args": ["Community.Mcp.DotNet@1.*", "--yes"]
     }
   }
 }
@@ -349,7 +357,7 @@ For details, see GitHub's documentation: [Extending GitHub Copilot coding agent 
     "dotnet": {
       "type": "local",
       "command": "dnx",
-      "args": ["Community.Mcp.DotNet@1.0.0", "--yes"],
+      "args": ["Community.Mcp.DotNet@1.*", "--yes"],
       "tools": [
         "dotnet_project",
         "dotnet_package",
@@ -724,12 +732,14 @@ Resources provide structured JSON data and are more efficient than tool calls fo
 Unified interface for all project operations: **New**, **Restore**, **Build**, **Run**, **Test**, **Publish**, **Clean**, **Analyze**, **Dependencies**, **Validate**, **Pack**, **Watch**, **Format**, **Stop**
 
 **New in this release:**
+
 - **Stop action**: Terminates long-running process sessions (like `dotnet run`) by session ID
 - **noBuild parameter**: Skip building before running (mirrors `dotnet run --no-build`)
 
 **Test Runner Compatibility**: The Test action automatically detects the test runner from `global.json` configuration. If `global.json` contains `{ "test": { "runner": "Microsoft.Testing.Platform" } }`, it uses the `--project` flag (MTP mode). Otherwise, it defaults to positional argument (VSTest mode) for legacy compatibility.
 
 You can explicitly specify the test runner using the `testRunner` parameter:
+
 - `Auto` (default) - Auto-detect from global.json
 - `MicrosoftTestingPlatform` - Use --project flag (requires .NET SDK 8+ with MTP or SDK 10+)
 - `VSTest` - Use positional argument (compatible with all SDK versions)
