@@ -93,12 +93,12 @@ For production deployments, you can integrate OpenTelemetry for distributed trac
 
 ### Installation
 
-Add OpenTelemetry packages to your deployment environment:
+Add OpenTelemetry packages to your deployment environment (latest stable versions recommended):
 
 ```bash
-dotnet add package OpenTelemetry.Extensions.Hosting --version 1.10.0
-dotnet add package OpenTelemetry.Exporter.Console --version 1.10.0
-dotnet add package OpenTelemetry.Exporter.OpenTelemetryProtocol --version 1.10.0
+dotnet add package OpenTelemetry.Extensions.Hosting
+dotnet add package OpenTelemetry.Exporter.Console
+dotnet add package OpenTelemetry.Exporter.OpenTelemetryProtocol
 ```
 
 ### Configuration Example
@@ -148,7 +148,8 @@ var serviceName = openTelemetryConfig.GetValue<string>("ServiceName") ?? "dotnet
 var serviceVersion = openTelemetryConfig.GetValue<string>("ServiceVersion") ?? "1.0.0";
 
 // Configure OpenTelemetry tracing
-if (openTelemetryConfig.GetSection("Traces").GetValue<bool>("Enabled"))
+var tracesEnabled = openTelemetryConfig.GetSection("Traces").GetValue<bool>("Enabled");
+if (tracesEnabled)
 {
     builder.Services.AddOpenTelemetry()
         .ConfigureResource(resource => resource
@@ -159,10 +160,12 @@ if (openTelemetryConfig.GetSection("Traces").GetValue<bool>("Enabled"))
                 .AddSource("DotNetMcp.*")
                 .AddSource("ModelContextProtocol.*");
             
-            if (openTelemetryConfig.GetSection("Traces:ConsoleExporter").Value == "true")
+            var consoleExporter = openTelemetryConfig.GetSection("Traces:ConsoleExporter").GetValue<bool>("Enabled");
+            if (consoleExporter)
                 tracing.AddConsoleExporter();
             
-            if (openTelemetryConfig.GetSection("Traces:OtlpExporter:Enabled").Value == "true")
+            var otlpEnabled = openTelemetryConfig.GetSection("Traces:OtlpExporter:Enabled").GetValue<bool>("Enabled");
+            if (otlpEnabled)
             {
                 var endpoint = openTelemetryConfig.GetValue<string>("Traces:OtlpExporter:Endpoint");
                 tracing.AddOtlpExporter(options =>
@@ -175,7 +178,8 @@ if (openTelemetryConfig.GetSection("Traces").GetValue<bool>("Enabled"))
 }
 
 // Configure OpenTelemetry metrics
-if (openTelemetryConfig.GetSection("Metrics").GetValue<bool>("Enabled"))
+var metricsEnabled = openTelemetryConfig.GetSection("Metrics").GetValue<bool>("Enabled");
+if (metricsEnabled)
 {
     builder.Services.AddOpenTelemetry()
         .WithMetrics(metrics =>
@@ -184,10 +188,12 @@ if (openTelemetryConfig.GetSection("Metrics").GetValue<bool>("Enabled"))
                 .AddMeter("DotNetMcp.*")
                 .AddMeter("ModelContextProtocol.*");
             
-            if (openTelemetryConfig.GetSection("Metrics:ConsoleExporter").Value == "true")
+            var consoleExporter = openTelemetryConfig.GetSection("Metrics:ConsoleExporter").GetValue<bool>("Enabled");
+            if (consoleExporter)
                 metrics.AddConsoleExporter();
             
-            if (openTelemetryConfig.GetSection("Metrics:OtlpExporter:Enabled").Value == "true")
+            var otlpEnabled = openTelemetryConfig.GetSection("Metrics:OtlpExporter:Enabled").GetValue<bool>("Enabled");
+            if (otlpEnabled)
             {
                 var endpoint = openTelemetryConfig.GetValue<string>("Metrics:OtlpExporter:Endpoint");
                 metrics.AddOtlpExporter(options =>
@@ -310,15 +316,13 @@ dotnet-mcp 2>&1 | grep "Request handler completed"
 
 ## References
 
-- [MCP C# SDK v0.6 Telemetry Features](https://github.com/modelcontextprotocol/csharp-sdk/releases/tag/v0.6.0-preview.1)
-- [OpenTelemetry Semantic Conventions for MCP](https://github.com/modelcontextprotocol/csharp-sdk/pull/1139)
-- [Request Duration Logging PR](https://github.com/modelcontextprotocol/csharp-sdk/pull/1092)
+- [MCP C# SDK v0.6 Release Notes](https://github.com/modelcontextprotocol/csharp-sdk/releases/tag/v0.6.0-preview.1)
 - [OpenTelemetry .NET Documentation](https://opentelemetry.io/docs/languages/net/)
 - [Performance Baseline Measurements](./performance-baseline.md)
 
 ## Future Enhancements
 
-Planned telemetry improvements (see [Issue #322](https://github.com/jongalloway/dotnet-mcp/issues/322)):
+Planned telemetry improvements:
 
 - Custom ActivitySource for tool execution spans
 - Metrics for cache hit/miss rates
