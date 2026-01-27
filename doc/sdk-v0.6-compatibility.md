@@ -4,7 +4,67 @@
 
 This document summarizes the compatibility audit conducted for the ModelContextProtocol C# SDK v0.6.0-preview.1 integration with dotnet-mcp.
 
-**Conclusion**: dotnet-mcp is fully compatible with SDK v0.6. Minor code changes made to adopt new features.
+**Conclusion**: dotnet-mcp is fully compatible with SDK v0.6. Minor code changes made to adopt new features, including icon support for improved AI assistant UX.
+
+## New Features Adopted
+
+### Icon Support
+
+SDK v0.6 introduces icon support for tools, resources, prompts, and server-level metadata. This improves visual presentation in AI assistant interfaces.
+
+#### Implementation
+
+**Tool-Level Icons**: All 11 MCP tools now have icons configured via the `IconSource` property on `[McpServerTool]`:
+
+```csharp
+[McpServerTool(IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/.../file_folder_flat.svg")]
+[McpMeta("category", "project")]
+public async partial Task<string> DotnetProject(...)
+```
+
+**Server-Level Icons**: Configured in `Program.cs` via `AddMcpServer` options:
+
+```csharp
+builder.Services.AddMcpServer(options =>
+{
+    options.ServerInfo = new Implementation
+    {
+        Name = "dotnet-mcp",
+        Icons =
+        [
+            new Icon
+            {
+                Source = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/.../gear_flat.svg",
+                MimeType = "image/svg+xml",
+                Sizes = ["any"],
+                Theme = "light"
+            },
+            new Icon
+            {
+                Source = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/.../gear_3d.png",
+                MimeType = "image/png",
+                Sizes = ["256x256"]
+            }
+        ]
+    };
+});
+```
+
+#### Icon Mapping by Category
+
+| Category | Icon | Description |
+|----------|------|-------------|
+| `project` | 📁 File Folder | Project management operations |
+| `package` | 📦 Package | NuGet package operations |
+| `solution` | 🗂️ Card File Box | Solution file management |
+| `sdk` | ⚙️ Gear | .NET SDK information |
+| `tool` | 🛠️ Hammer and Wrench | .NET tool management |
+| `workload` | 📚 Books | Workload management |
+| `ef` | 💾 Floppy Disk | Entity Framework Core |
+| `security` | 🔒 Locked | Certificates and secrets |
+| `help` | 💡 Light Bulb | Help and information |
+
+All icons use [Microsoft Fluent UI Emoji](https://github.com/microsoft/fluentui-emoji) for consistency and visual appeal.
 
 ## SDK v0.6 Changes Overview
 
