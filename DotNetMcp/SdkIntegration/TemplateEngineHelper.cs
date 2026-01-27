@@ -26,28 +26,57 @@ public class TemplateEngineHelper
     // Line separators used for splitting dotnet CLI output
     private static readonly string[] LineSeparators = ["\r\n", "\n"];
 
-    // Lock for thread-safe singleton reset
-    private static readonly object _singletonLock = new();
+    // ReaderWriterLockSlim for coordinating access to template engine singletons
+    // Readers (template queries) can run concurrently, writers (ClearCacheAsync) are exclusive
+    private static readonly ReaderWriterLockSlim _singletonLock = new(LockRecursionPolicy.NoRecursion);
 
     // Lazy singleton for template engine components to avoid repeated initialization overhead (~1.5s per init)
-    private static Lazy<EngineEnvironmentSettings> _engineSettings = CreateLazyEngineSettings();
-    private static Lazy<TemplatePackageManager> _packageManager = CreateLazyPackageManager();
+    // These are recreated by ClearCacheAsync when template installations/uninstallations occur
+    private static TemplateEngineSingletons _singletons = new();
 
     /// <summary>
-    /// Creates a lazy singleton for EngineEnvironmentSettings.
+    /// Encapsulates the template engine singletons with their lifecycle binding.
+    /// Each instance pair is created together to ensure proper lifecycle management.
     /// </summary>
-    private static Lazy<EngineEnvironmentSettings> CreateLazyEngineSettings() => new(
-        () => new EngineEnvironmentSettings(
-            new DefaultTemplateEngineHost("dotnet-mcp", "1.0.0"),
-            virtualizeSettings: true),
-        LazyThreadSafetyMode.ExecutionAndPublication);
+    private sealed class TemplateEngineSingletons
+    {
+        private readonly Lazy<EngineEnvironmentSettings> _engineSettings;
+        private readonly Lazy<TemplatePackageManager> _packageManager;
 
-    /// <summary>
-    /// Creates a lazy singleton for TemplatePackageManager.
-    /// </summary>
-    private static Lazy<TemplatePackageManager> CreateLazyPackageManager() => new(
-        () => new TemplatePackageManager(_engineSettings.Value),
-        LazyThreadSafetyMode.ExecutionAndPublication);
+        public TemplateEngineSingletons()
+        {
+            // Capture the engine settings instance to bind it to this package manager
+            _engineSettings = new Lazy<EngineEnvironmentSettings>(
+                () => new EngineEnvironmentSettings(
+                    new DefaultTemplateEngineHost("dotnet-mcp", "1.0.0"),
+                    virtualizeSettings: true),
+                LazyThreadSafetyMode.PublicationOnly); // PublicationOnly to avoid caching exceptions
+
+            // Capture the engine settings Lazy instance (not the field) to ensure proper binding
+            var capturedEngineSettings = _engineSettings;
+            _packageManager = new Lazy<TemplatePackageManager>(
+                () => new TemplatePackageManager(capturedEngineSettings.Value),
+                LazyThreadSafetyMode.PublicationOnly); // PublicationOnly to avoid caching exceptions
+        }
+
+        public async Task<IEnumerable<ITemplateInfo>> GetTemplatesAsync()
+        {
+            return await _packageManager.Value.GetTemplatesAsync(default);
+        }
+
+        public void Dispose()
+        {
+            // Dispose in reverse construction order: package manager first, then settings
+            if (_packageManager.IsValueCreated)
+            {
+                _packageManager.Value.Dispose();
+            }
+            if (_engineSettings.IsValueCreated)
+            {
+                _engineSettings.Value.Dispose();
+            }
+        }
+    }
 
     // Test hooks (internal for DotNetMcp.Tests via InternalsVisibleTo)
     internal static Func<Task<IEnumerable<ITemplateInfo>>>? LoadTemplatesOverride { get; set; }
@@ -63,6 +92,7 @@ public class TemplateEngineHelper
     /// <summary>
     /// Load templates from the Template Engine.
     /// Uses lazy singleton pattern to avoid repeated initialization overhead.
+    /// Protected by ReaderWriterLockSlim to coordinate with ClearCacheAsync.
     /// </summary>
     private static async Task<IEnumerable<ITemplateInfo>> LoadTemplatesAsync()
     {
@@ -71,8 +101,19 @@ public class TemplateEngineHelper
             return await LoadTemplatesOverride();
         }
 
-        // Use the singleton template package manager to avoid repeated initialization
-        return await _packageManager.Value.GetTemplatesAsync(default);
+        // Enter read lock to safely access the singletons
+        // Multiple readers can execute concurrently, but ClearCacheAsync (writer) is exclusive
+        _singletonLock.EnterReadLock();
+        try
+        {
+            // Call GetTemplatesAsync while holding read lock
+            // This prevents ClearCacheAsync from disposing the singletons during this call
+            return await _singletons.GetTemplatesAsync();
+        }
+        finally
+        {
+            _singletonLock.ExitReadLock();
+        }
     }
 
     private static async Task<string?> TryGetDotnetNewListOutputAsync(string? templateNameFilter, ILogger? logger)
@@ -177,34 +218,29 @@ public class TemplateEngineHelper
     /// Also resets cache metrics and reinitializes the template engine singletons.
     /// </summary>
     /// <remarks>
-    /// This method is thread-safe with respect to concurrent ClearCacheAsync calls (protected by lock).
-    /// However, it should not be called concurrently with template query operations (GetInstalledTemplatesAsync, etc.)
-    /// as this could result in accessing disposed objects. In practice, this is not an issue because:
-    /// 1. In tests, the CachingIntegrationTests collection ensures sequential execution
-    /// 2. In production, clearing cache after template installation is not concurrent with queries
+    /// This method uses ReaderWriterLockSlim to coordinate with template query operations.
+    /// It enters a write lock to ensure no in-flight template queries are accessing the singletons,
+    /// then safely disposes old singletons and creates new ones.
     /// </remarks>
     public static async Task ClearCacheAsync(ILogger? logger = null)
     {
         await _cacheManager.ClearAsync();
         _cacheManager.ResetMetrics();
         
-        // Reset template engine singletons to pick up any template changes
-        // Use lock to prevent race conditions during singleton reset
-        lock (_singletonLock)
+        // Enter write lock to safely swap singletons
+        // This blocks until all in-flight template queries (read locks) complete
+        _singletonLock.EnterWriteLock();
+        try
         {
-            // Dispose the old instances (if created) and allow lazy re-initialization
-            if (_engineSettings.IsValueCreated)
-            {
-                _engineSettings.Value.Dispose();
-            }
-            if (_packageManager.IsValueCreated)
-            {
-                _packageManager.Value.Dispose();
-            }
+            // Dispose old singletons (no queries are active due to write lock)
+            _singletons.Dispose();
             
-            // Recreate lazy instances for next use
-            _engineSettings = CreateLazyEngineSettings();
-            _packageManager = CreateLazyPackageManager();
+            // Create new singletons - subsequent queries will use these
+            _singletons = new TemplateEngineSingletons();
+        }
+        finally
+        {
+            _singletonLock.ExitWriteLock();
         }
         
         logger?.LogInformation("Template cache, metrics, and engine singletons cleared");
