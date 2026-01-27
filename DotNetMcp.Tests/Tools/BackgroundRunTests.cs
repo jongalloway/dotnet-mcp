@@ -73,6 +73,19 @@ public class BackgroundRunTests : IDisposable
                 configuration: "Release",
                 machineReadable: false);
 
+            // Ensure build artifacts exist before running
+            var binPath = Path.Join(tempDir, "bin", "Release", "net10.0");
+            var exePath = Path.Join(binPath, "TestApp.dll");
+            
+            // Give the file system a moment to settle (especially in CI)
+            await Task.Delay(500, TestContext.Current.CancellationToken);
+            
+            // Verify the built DLL exists
+            if (!File.Exists(exePath))
+            {
+                throw new InvalidOperationException($"Build artifact not found at: {exePath}");
+            }
+
             // Run in foreground mode (default) - should block until exit
             var result = await _tools.DotnetProject(
                 action: DotnetProjectAction.Run,

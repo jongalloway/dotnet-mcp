@@ -1,31 +1,51 @@
-# SDK v0.5 Compatibility Audit
+# SDK v0.6 Compatibility Audit
 
 ## Summary
 
-This document summarizes the compatibility audit conducted for the ModelContextProtocol C# SDK v0.5.0-preview.1 integration with dotnet-mcp.
+This document summarizes the compatibility audit conducted for the ModelContextProtocol C# SDK v0.6.0-preview.1 integration with dotnet-mcp.
 
-**Conclusion**: dotnet-mcp is fully compatible with SDK v0.5. No code changes required.
+**Conclusion**: dotnet-mcp is fully compatible with SDK v0.6. Minor code changes made to adopt new features.
 
-## SDK v0.5 Changes Overview
+## SDK v0.6 Changes Overview
 
-The SDK v0.5.0-preview.1 introduced significant changes to high-level client-side APIs:
+The SDK v0.6.0-preview.1 introduced several improvements and optimizations:
 
-### RequestOptions and Meta (Client-Side Only)
+### 1. Fully-Qualified Type Names in Generated Signatures (#1135)
 
-- **Breaking Change**: Client methods like `ListToolsAsync`, `CallToolAsync`, `GetPromptAsync`, etc., now require a `RequestOptions` parameter instead of individual parameters like `JsonSerializerOptions` or `ProgressToken`.
-- **Meta Support**: The new `RequestOptions` incorporates support for "Meta" data, enabling richer request customization.
-- **Impact on dotnet-mcp**: **None** - dotnet-mcp is a server implementation that responds to tool requests, not a client making them.
+- **Change**: The SDK now uses fully-qualified type names in generated partial method signatures.
+- **Benefit**: Resolves ambiguity issues with action enums and other types.
+- **Impact on dotnet-mcp**: The `GlobalUsings.cs` file with `global using DotNetMcp.Actions;` is still needed for convenience, but is no longer strictly required for compilation.
 
-### Obsolete APIs Removed
+### 2. CS1066 Suppressor for Optional Parameters (#1110)
 
-- `McpServerFactory`, `McpClientFactory`, `IMcpEndpoint`, `IMcpClient`, `IMcpServer` interfaces removed.
-- **Impact on dotnet-mcp**: **None** - dotnet-mcp uses modern DI-based server setup via `AddMcpServer()`.
+- **Change**: The SDK now automatically suppresses CS1066 warnings for MCP server methods with optional parameters.
+- **Impact on dotnet-mcp**: **Removed manual CS1066 suppression** from `DotNetMcp.csproj`. The project now builds cleanly without manual suppressions.
+
+### 3. Incremental Scope Consent - SEP-835 (#1084)
+
+- **Change**: Support for incremental scope consent in authorization flows.
+- **Impact on dotnet-mcp**: **None** - This feature is not applicable to our server implementation as we don't implement authorization flows.
+
+### 4. Resource Subscribe Improvements (#676)
+
+- **Change**: Resource subscribe is now automatically true if a handler is provided.
+- **Impact on dotnet-mcp**: **None** - Our resource implementation already follows the recommended pattern.
+
+### 5. Optimized JSON-RPC Deserialization (#1138)
+
+- **Change**: Single-pass parsing optimization for `JsonRpcMessage` deserialization.
+- **Impact on dotnet-mcp**: **Performance improvement** with no code changes required.
+
+### 6. Breaking Changes
+
+- **`s_additionalProperties` removed from `McpClientTool`** (#1080) - **No impact** (we don't use client-side APIs)
+- **Session timeout fix** (#1106) - **No impact** on our operations
 
 ## dotnet-mcp SDK Usage
 
 ### Server-Side APIs Used
 
-dotnet-mcp only uses server-side SDK APIs, which are **not affected** by the v0.5 changes:
+dotnet-mcp only uses server-side SDK APIs, which continue to work correctly with v0.6:
 
 1. **`AddMcpServer()`** - Configures the MCP server in the DI container
 2. **`WithStdioServerTransport()`** - Sets up stdio transport
@@ -34,7 +54,7 @@ dotnet-mcp only uses server-side SDK APIs, which are **not affected** by the v0.
 
 ### Attributes Used
 
-All server-side attributes work correctly with v0.5:
+All server-side attributes work correctly with v0.6:
 
 1. **`[McpServerToolType]`** - Marks classes containing tool methods
 2. **`[McpServerTool]`** - Marks methods as MCP tools
@@ -44,9 +64,9 @@ All server-side attributes work correctly with v0.5:
 
 ## Testing
 
-### New Regression Tests
+### Regression Tests
 
-Added comprehensive test suite in `ToolMetadataSerializationTests` (8 tests):
+All existing tests pass with SDK v0.6:
 
 1. ✅ **AllToolMethods_HaveMcpServerToolAttribute** - Verifies all tools are discoverable
 2. ✅ **ToolMethods_WithMcpMetaAttributes_CanBeDiscovered** - Tests metadata reflection
@@ -59,9 +79,7 @@ Added comprehensive test suite in `ToolMetadataSerializationTests` (8 tests):
 
 ### Test Results
 
-- **Total Tests**: 316 (308 passed, 8 skipped)
-- **New Tests**: 8 (all passed)
-- **Result**: ✅ All tests pass
+- **Result**: ✅ All tests pass with SDK v0.6
 
 ## Metadata Verification
 
@@ -113,11 +131,11 @@ All metadata categories are properly implemented:
 
 - [MCP C# SDK GitHub](https://github.com/modelcontextprotocol/csharp-sdk)
 - [MCP C# SDK Documentation](https://modelcontextprotocol.github.io/csharp-sdk/)
-- [SDK v0.5 Release Notes](https://github.com/modelcontextprotocol/csharp-sdk/releases)
+- [SDK v0.6 Release Notes](https://github.com/modelcontextprotocol/csharp-sdk/releases/tag/v0.6.0-preview.1)
 - [Model Context Protocol Specification](https://modelcontextprotocol.io/)
 
 ## Audit Date
 
-**Date**: 2025-12-18  
-**SDK Version**: ModelContextProtocol 0.5.0-preview.1  
-**Result**: ✅ Compatible - No changes required
+**Date**: 2026-01-27  
+**SDK Version**: ModelContextProtocol 0.6.0-preview.1  
+**Result**: ✅ Compatible - Minor improvements adopted
