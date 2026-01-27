@@ -26,14 +26,26 @@ public class TemplateEngineHelper
     // Line separators used for splitting dotnet CLI output
     private static readonly string[] LineSeparators = ["\r\n", "\n"];
 
+    // Lock for thread-safe singleton reset
+    private static readonly object _singletonLock = new();
+
     // Lazy singleton for template engine components to avoid repeated initialization overhead (~1.5s per init)
-    private static Lazy<EngineEnvironmentSettings> _engineSettings = new(
+    private static Lazy<EngineEnvironmentSettings> _engineSettings = CreateLazyEngineSettings();
+    private static Lazy<TemplatePackageManager> _packageManager = CreateLazyPackageManager();
+
+    /// <summary>
+    /// Creates a lazy singleton for EngineEnvironmentSettings.
+    /// </summary>
+    private static Lazy<EngineEnvironmentSettings> CreateLazyEngineSettings() => new(
         () => new EngineEnvironmentSettings(
             new DefaultTemplateEngineHost("dotnet-mcp", "1.0.0"),
             virtualizeSettings: true),
         LazyThreadSafetyMode.ExecutionAndPublication);
 
-    private static Lazy<TemplatePackageManager> _packageManager = new(
+    /// <summary>
+    /// Creates a lazy singleton for TemplatePackageManager.
+    /// </summary>
+    private static Lazy<TemplatePackageManager> CreateLazyPackageManager() => new(
         () => new TemplatePackageManager(_engineSettings.Value),
         LazyThreadSafetyMode.ExecutionAndPublication);
 
@@ -170,26 +182,23 @@ public class TemplateEngineHelper
         _cacheManager.ResetMetrics();
         
         // Reset template engine singletons to pick up any template changes
-        // This disposes the old instances (if created) and allows lazy re-initialization
-        if (_engineSettings.IsValueCreated)
+        // Use lock to prevent race conditions during singleton reset
+        lock (_singletonLock)
         {
-            _engineSettings.Value.Dispose();
+            // Dispose the old instances (if created) and allow lazy re-initialization
+            if (_engineSettings.IsValueCreated)
+            {
+                _engineSettings.Value.Dispose();
+            }
+            if (_packageManager.IsValueCreated)
+            {
+                _packageManager.Value.Dispose();
+            }
+            
+            // Recreate lazy instances for next use
+            _engineSettings = CreateLazyEngineSettings();
+            _packageManager = CreateLazyPackageManager();
         }
-        if (_packageManager.IsValueCreated)
-        {
-            _packageManager.Value.Dispose();
-        }
-        
-        // Recreate lazy instances for next use
-        _engineSettings = new Lazy<EngineEnvironmentSettings>(
-            () => new EngineEnvironmentSettings(
-                new DefaultTemplateEngineHost("dotnet-mcp", "1.0.0"),
-                virtualizeSettings: true),
-            LazyThreadSafetyMode.ExecutionAndPublication);
-        
-        _packageManager = new Lazy<TemplatePackageManager>(
-            () => new TemplatePackageManager(_engineSettings.Value),
-            LazyThreadSafetyMode.ExecutionAndPublication);
         
         logger?.LogInformation("Template cache, metrics, and engine singletons cleared");
     }
