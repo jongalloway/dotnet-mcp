@@ -341,17 +341,19 @@ public class ToolMetadataSerializationTests
         var methods = toolType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
         var toolMethods = methods.Where(m => m.GetCustomAttribute<McpServerToolAttribute>() != null).ToList();
 
-        var categoryIconMapping = new Dictionary<string, string>
+        // Category icon mapping - categories with multiple icons use arrays
+        var categoryIconMapping = new Dictionary<string, string[]>
         {
-            { "project", "file_folder_flat.svg" },
-            { "package", "package_flat.svg" },
-            { "solution", "card_file_box_flat.svg" },
-            { "sdk", "gear_flat.svg" },
-            { "tool", "hammer_and_wrench_flat.svg" },
-            { "workload", "books_flat.svg" },
-            { "ef", "floppy_disk_flat.svg" },
-            { "security", "locked_flat.svg" },
-            { "help", "light_bulb_flat.svg" }
+            { "project", new[] { "file_folder_flat.svg" } },
+            { "package", new[] { "package_flat.svg" } },
+            { "solution", new[] { "card_file_box_flat.svg" } },
+            { "sdk", new[] { "gear_flat.svg" } },
+            { "tool", new[] { "hammer_and_wrench_flat.svg" } },
+            { "workload", new[] { "books_flat.svg" } },
+            { "ef", new[] { "floppy_disk_flat.svg" } },
+            { "security", new[] { "locked_flat.svg" } },
+            // Help category has multiple icons depending on the specific tool
+            { "help", new[] { "light_bulb_flat.svg", "bar_chart_flat.svg", "information_flat.svg" } }
         };
 
         // Act & Assert
@@ -365,12 +367,18 @@ public class ToolMetadataSerializationTests
             {
                 // JsonValue contains the value in JSON format (e.g., "\"project\"")
                 var categoryValue = categoryMeta.JsonValue?.Trim('"');
-                if (categoryValue != null && categoryIconMapping.TryGetValue(categoryValue, out var expectedIcon))
+                if (categoryValue != null && categoryIconMapping.TryGetValue(categoryValue, out var expectedIcons))
                 {
                     Assert.NotNull(attr);
                     Assert.NotNull(attr.IconSource);
-                    Assert.True(attr.IconSource.Contains(expectedIcon, StringComparison.OrdinalIgnoreCase),
-                        $"Tool {method.Name} in category '{categoryValue}' should use icon containing '{expectedIcon}', but has '{attr.IconSource}'");
+                    
+                    // Check if the icon matches any of the expected icons for this category
+                    var iconMatches = expectedIcons.Any(expectedIcon =>
+                        attr.IconSource.Contains(expectedIcon, StringComparison.OrdinalIgnoreCase));
+                    
+                    Assert.True(iconMatches,
+                        $"Tool {method.Name} in category '{categoryValue}' should use one of these icons: " +
+                        $"{string.Join(", ", expectedIcons)}, but has '{attr.IconSource}'");
                 }
             }
         }

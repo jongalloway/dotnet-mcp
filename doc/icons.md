@@ -49,17 +49,21 @@ All 11 MCP tools have icons configured via the `IconSource` property:
 Icons are organized by category for easy maintenance:
 
 ```csharp
-var categoryIconMapping = new Dictionary<string, string>
+var categoryIconMapping = new Dictionary<string, string[]>
 {
-    { "project", "file_folder_flat.svg" },      // 📁
-    { "package", "package_flat.svg" },          // 📦
-    { "solution", "card_file_box_flat.svg" },   // 🗂️
-    { "sdk", "gear_flat.svg" },                 // ⚙️
-    { "tool", "hammer_and_wrench_flat.svg" },   // 🛠️
-    { "workload", "books_flat.svg" },           // 📚
-    { "ef", "floppy_disk_flat.svg" },           // 💾
-    { "security", "locked_flat.svg" },          // 🔒
-    { "help", "light_bulb_flat.svg" }           // 💡 (varies)
+    { "project", new[] { "file_folder_flat.svg" } },      // 📁
+    { "package", new[] { "package_flat.svg" } },          // 📦
+    { "solution", new[] { "card_file_box_flat.svg" } },   // 🗂️
+    { "sdk", new[] { "gear_flat.svg" } },                 // ⚙️
+    { "tool", new[] { "hammer_and_wrench_flat.svg" } },   // 🛠️
+    { "workload", new[] { "books_flat.svg" } },           // 📚
+    { "ef", new[] { "floppy_disk_flat.svg" } },           // 💾
+    { "security", new[] { "locked_flat.svg" } },          // 🔒
+    // Help category uses different icons per tool to better represent functionality:
+    // - dotnet_help: light_bulb_flat.svg (💡 - helpful guidance)
+    // - dotnet_server_capabilities: bar_chart_flat.svg (📊 - metrics/capabilities)
+    // - dotnet_server_info: information_flat.svg (ℹ️ - information)
+    { "help", new[] { "light_bulb_flat.svg", "bar_chart_flat.svg", "information_flat.svg" } }
 };
 ```
 
