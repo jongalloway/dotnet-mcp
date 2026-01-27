@@ -26,6 +26,17 @@ public class TemplateEngineHelper
     // Line separators used for splitting dotnet CLI output
     private static readonly string[] LineSeparators = ["\r\n", "\n"];
 
+    // Lazy singleton for template engine components to avoid repeated initialization overhead (~1.5s per init)
+    private static Lazy<EngineEnvironmentSettings> _engineSettings = new(
+        () => new EngineEnvironmentSettings(
+            new DefaultTemplateEngineHost("dotnet-mcp", "1.0.0"),
+            virtualizeSettings: true),
+        LazyThreadSafetyMode.ExecutionAndPublication);
+
+    private static Lazy<TemplatePackageManager> _packageManager = new(
+        () => new TemplatePackageManager(_engineSettings.Value),
+        LazyThreadSafetyMode.ExecutionAndPublication);
+
     // Test hooks (internal for DotNetMcp.Tests via InternalsVisibleTo)
     internal static Func<Task<IEnumerable<ITemplateInfo>>>? LoadTemplatesOverride { get; set; }
 
@@ -39,6 +50,7 @@ public class TemplateEngineHelper
 
     /// <summary>
     /// Load templates from the Template Engine.
+    /// Uses lazy singleton pattern to avoid repeated initialization overhead.
     /// </summary>
     private static async Task<IEnumerable<ITemplateInfo>> LoadTemplatesAsync()
     {
@@ -47,13 +59,8 @@ public class TemplateEngineHelper
             return await LoadTemplatesOverride();
         }
 
-        var host = new DefaultTemplateEngineHost("dotnet-mcp", "1.0.0");
-        using var engineEnvironmentSettings = new EngineEnvironmentSettings(
-            host,
-            virtualizeSettings: true);
-
-        using var templatePackageManager = new TemplatePackageManager(engineEnvironmentSettings);
-        return await templatePackageManager.GetTemplatesAsync(default);
+        // Use the singleton template package manager to avoid repeated initialization
+        return await _packageManager.Value.GetTemplatesAsync(default);
     }
 
     private static async Task<string?> TryGetDotnetNewListOutputAsync(string? templateNameFilter, ILogger? logger)
@@ -155,13 +162,36 @@ public class TemplateEngineHelper
 
     /// <summary>
     /// Clear the template cache asynchronously. Useful after installing or uninstalling templates.
-    /// Also resets cache metrics.
+    /// Also resets cache metrics and reinitializes the template engine singletons.
     /// </summary>
     public static async Task ClearCacheAsync(ILogger? logger = null)
     {
         await _cacheManager.ClearAsync();
         _cacheManager.ResetMetrics();
-        logger?.LogInformation("Template cache and metrics cleared");
+        
+        // Reset template engine singletons to pick up any template changes
+        // This disposes the old instances (if created) and allows lazy re-initialization
+        if (_engineSettings.IsValueCreated)
+        {
+            _engineSettings.Value.Dispose();
+        }
+        if (_packageManager.IsValueCreated)
+        {
+            _packageManager.Value.Dispose();
+        }
+        
+        // Recreate lazy instances for next use
+        _engineSettings = new Lazy<EngineEnvironmentSettings>(
+            () => new EngineEnvironmentSettings(
+                new DefaultTemplateEngineHost("dotnet-mcp", "1.0.0"),
+                virtualizeSettings: true),
+            LazyThreadSafetyMode.ExecutionAndPublication);
+        
+        _packageManager = new Lazy<TemplatePackageManager>(
+            () => new TemplatePackageManager(_engineSettings.Value),
+            LazyThreadSafetyMode.ExecutionAndPublication);
+        
+        logger?.LogInformation("Template cache, metrics, and engine singletons cleared");
     }
 
     /// <summary>
