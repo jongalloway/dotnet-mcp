@@ -49,7 +49,7 @@ public sealed partial class DotNetCliTools
     /// <param name="sessionId">Session ID for stop action (required when action is Stop)</param>
     /// <param name="startMode">Start mode for run action (Foreground or Background). Foreground blocks until exit, Background returns immediately with sessionId. Default: Foreground</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
+    [McpServerTool(IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/File%20Folder/Flat/file_folder_flat.svg")]
     [McpMeta("category", "project")]
     [McpMeta("priority", 10.0)]
     [McpMeta("commonlyUsed", true)]
