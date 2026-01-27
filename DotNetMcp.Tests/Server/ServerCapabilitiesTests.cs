@@ -143,7 +143,7 @@ public class ServerCapabilitiesTests
     }
 
     [Fact]
-    public async Task DotnetServerCapabilities_Supports_Telemetry_IsFalse()
+    public async Task DotnetServerCapabilities_Supports_Telemetry_IsTrue()
     {
         // Act
         var result = await _tools.DotnetServerCapabilities();
@@ -153,8 +153,8 @@ public class ServerCapabilitiesTests
             .GetProperty("telemetry")
             .GetBoolean();
 
-        // Assert - Telemetry is a future feature, should be false initially
-        Assert.False(telemetry);
+        // Assert - Telemetry is enabled via SDK v0.6+ (request duration logging, OpenTelemetry semantic conventions)
+        Assert.True(telemetry);
     }
 
     [Fact]
@@ -231,7 +231,7 @@ public class ServerCapabilitiesTests
         Assert.True(capabilities.Supports.StructuredErrors);
         Assert.True(capabilities.Supports.MachineReadable);
         Assert.True(capabilities.Supports.Cancellation);
-        Assert.False(capabilities.Supports.Telemetry);
+        Assert.True(capabilities.Supports.Telemetry);
         Assert.NotNull(capabilities.SdkVersions);
         Assert.NotEmpty(capabilities.SdkVersions.Installed);
         Assert.Equal("net10.0", capabilities.SdkVersions.Recommended);
