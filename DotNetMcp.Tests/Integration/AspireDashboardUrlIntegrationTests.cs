@@ -48,53 +48,6 @@ Application started. Press Ctrl+C to shut down.
     }
 
     [Fact]
-    public async Task DotNetCommandExecutor_WithAspireOutput_IncludesUrlsInMetadata()
-    {
-        // This test verifies that the DotNetCommandExecutor properly integrates Aspire URLs
-        // into the metadata when machineReadable=true
-        
-        // Since we can't easily run a real Aspire app in tests, this test documents the expected behavior
-        // The actual integration is tested via the AspireOutputParser tests and code inspection
-        
-        // Expected behavior:
-        // 1. When dotnet run is executed on an Aspire app with machineReadable=true
-        // 2. The output contains Aspire dashboard URLs
-        // 3. DotNetCommandExecutor.ExecuteCommandAsync detects Aspire output
-        // 4. AspireOutputParser.ParseAspireUrls extracts URLs
-        // 5. URLs are added to the metadata dictionary
-        // 6. SuccessResult is returned with metadata containing:
-        //    - dashboardLoginUrl: Full login URL with token
-        //    - dashboardUrl: Base dashboard URL without token
-        //    - resourceServiceUrl: Resource service endpoint (if present)
-        //    - otlpEndpointUrl: OTLP endpoint (if present)
-        
-        Assert.True(true); // This is a documentation test
-    }
-
-    [Fact]
-    public async Task DotnetProject_Run_WithMachineReadable_CanIncludeAspireUrls()
-    {
-        // This test documents the expected behavior when running an Aspire app via dotnet_project
-        
-        // Example expected JSON output when machineReadable=true:
-        // {
-        //   "success": true,
-        //   "output": "...",
-        //   "exitCode": 0,
-        //   "metadata": {
-        //     "dashboardLoginUrl": "https://localhost:17213/login?t=2b4a2ebc362b7fef9b5ccf73e702647b",
-        //     "dashboardUrl": "https://localhost:17213",
-        //     "resourceServiceUrl": "https://localhost:22057",
-        //     "otlpEndpointUrl": "https://localhost:21030"
-        //   }
-        // }
-        
-        // For non-Aspire apps, the metadata would not include these fields
-        
-        Assert.True(true); // This is a documentation test
-    }
-
-    [Fact]
     public void ParseAspireUrls_WithRealWorldOutput_ExtractsCorrectly()
     {
         // Test with realistic Aspire output format
@@ -106,7 +59,7 @@ info: Microsoft.Hosting.Lifetime[0]
 info: Aspire.Hosting.DistributedApplication[0]
       Aspire version: 10.0.0
 info: Aspire.Hosting.DistributedApplication[0]
-      Login to the dashboard at https://localhost:15213/login?t=a1b2c3d4e5f6
+      Login to the dashboard at https://localhost:15213/login?t=a1b2c3d4e5f67890
 ";
 
         // Act
@@ -114,7 +67,7 @@ info: Aspire.Hosting.DistributedApplication[0]
 
         // Assert
         Assert.Equal(2, urls.Count);
-        Assert.Equal("https://localhost:15213/login?t=a1b2c3d4e5f6", urls["dashboardLoginUrl"]);
+        Assert.Equal("https://localhost:15213/login?t=a1b2c3d4e5f67890", urls["dashboardLoginUrl"]);
         Assert.Equal("https://localhost:15213", urls["dashboardUrl"]);
     }
 
@@ -122,21 +75,21 @@ info: Aspire.Hosting.DistributedApplication[0]
     public void ParseAspireUrls_WithVariousFormats_HandlesAllCorrectly()
     {
         // Test variant 1: "Dashboard:" prefix
-        var output1 = "Dashboard: https://localhost:17213/login?t=abc123";
+        var output1 = "Dashboard: https://localhost:17213/login?t=abc123def4567890";
         var urls1 = AspireOutputParser.ParseAspireUrls(output1);
         Assert.Contains("dashboardLoginUrl", urls1.Keys);
 
         // Test variant 2: "Login to the dashboard at" prefix
-        var output2 = "Login to the dashboard at https://localhost:17213/login?t=abc123";
+        var output2 = "Login to the dashboard at https://localhost:17213/login?t=abc123def4567890";
         var urls2 = AspireOutputParser.ParseAspireUrls(output2);
         Assert.Contains("dashboardLoginUrl", urls2.Keys);
 
         // Test variant 3: Both http and https
-        var output3 = "Dashboard: http://localhost:17213/login?t=abc123";
+        var output3 = "Dashboard: http://localhost:17213/login?t=abc123def4567890";
         var urls3 = AspireOutputParser.ParseAspireUrls(output3);
         Assert.StartsWith("http://", urls3["dashboardLoginUrl"]);
 
-        var output4 = "Dashboard: https://localhost:17213/login?t=abc123";
+        var output4 = "Dashboard: https://localhost:17213/login?t=abc123def4567890";
         var urls4 = AspireOutputParser.ParseAspireUrls(output4);
         Assert.StartsWith("https://", urls4["dashboardLoginUrl"]);
     }

@@ -230,10 +230,23 @@ public static class DotNetCommandExecutor
             logger?.LogWarning("Error output was truncated due to size limit");
         }
 
-        // Apply security redaction unless unsafeOutput is explicitly enabled
+        // Get raw output for potential Aspire URL parsing (before redaction)
         var outputStr = output.ToString().TrimEnd();
         var errorStr = error.ToString().TrimEnd();
 
+        // Parse Aspire dashboard URLs before redaction (if machine-readable output is requested)
+        // This is done before redaction because the dashboard login token would be redacted otherwise
+        Dictionary<string, string>? aspireUrls = null;
+        if (machineReadable)
+        {
+            var combinedOutput = $"{outputStr}\n{errorStr}";
+            if (AspireOutputParser.IsAspireOutput(combinedOutput))
+            {
+                aspireUrls = AspireOutputParser.ParseAspireUrls(combinedOutput);
+            }
+        }
+
+        // Apply security redaction unless unsafeOutput is explicitly enabled
         if (!unsafeOutput)
         {
             outputStr = SecretRedactor.Redact(outputStr);
@@ -243,23 +256,18 @@ public static class DotNetCommandExecutor
         // If machine-readable format is requested, return structured JSON
         if (machineReadable)
         {
-            // Parse Aspire dashboard URLs if present
-            var combinedOutput = $"{outputStr}\n{errorStr}";
-            if (AspireOutputParser.IsAspireOutput(combinedOutput))
+            // Merge Aspire URLs into metadata (if any were found)
+            if (aspireUrls != null && aspireUrls.Count > 0)
             {
-                var aspireUrls = AspireOutputParser.ParseAspireUrls(combinedOutput);
-                if (aspireUrls.Count > 0)
+                // Merge Aspire URLs into metadata (preserving existing metadata if any)
+                if (metadata == null)
                 {
-                    // Merge Aspire URLs into metadata (preserving existing metadata if any)
-                    if (metadata == null)
-                    {
-                        metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                    }
-                    
-                    foreach (var kvp in aspireUrls)
-                    {
-                        metadata[kvp.Key] = kvp.Value;
-                    }
+                    metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                }
+                
+                foreach (var kvp in aspireUrls)
+                {
+                    metadata[kvp.Key] = kvp.Value;
                 }
             }
 

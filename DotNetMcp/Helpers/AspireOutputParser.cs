@@ -11,20 +11,21 @@ public static partial class AspireOutputParser
     // Aspire dashboard login URL pattern - matches lines like:
     // "Dashboard: https://localhost:17213/login?t=2b4a2ebc362b7fef9b5ccf73e702647b"
     // "Login to the dashboard at https://localhost:17213/login?t=2b4a2ebc362b7fef9b5ccf73e702647b"
-    [GeneratedRegex(@"(?:Dashboard:\s*|Login\s+to\s+the\s+dashboard\s+at\s+)(https?://[^\s]+/login\?t=[a-fA-F0-9]+)", RegexOptions.IgnoreCase)]
+    // Token must be at least 16 hex characters to avoid false positives
+    [GeneratedRegex(@"(?:Dashboard:\s*|Login\s+to\s+the\s+dashboard\s+at\s+)(https?://[A-Za-z0-9\-\._~:/\?#\[\]@!$&'()*+,;=%]+/login\?t=[a-fA-F0-9]{16,})", RegexOptions.IgnoreCase)]
     private static partial Regex DashboardLoginUrlRegex();
 
     // Resource service endpoint URL pattern - matches lines like:
     // "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL: https://localhost:22057"
     // "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL: https://localhost:22057"
     // "Resource service endpoint: https://localhost:22057"
-    [GeneratedRegex(@"(?:ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL:\s*|DOTNET_RESOURCE_SERVICE_ENDPOINT_URL:\s*|Resource\s+service\s+endpoint:\s*)(https?://[^\s]+)", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"(?:ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL:\s*|DOTNET_RESOURCE_SERVICE_ENDPOINT_URL:\s*|Resource\s+service\s+endpoint:\s*)(https?://[A-Za-z0-9\-\._~:/\?#\[\]@!$&'()*+,;=%]+)", RegexOptions.IgnoreCase)]
     private static partial Regex ResourceServiceUrlRegex();
 
     // OTLP endpoint URL pattern - matches lines like:
     // "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL: https://localhost:21030"
     // "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL: https://localhost:21030"
-    [GeneratedRegex(@"(?:ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL:\s*|DOTNET_DASHBOARD_OTLP_ENDPOINT_URL:\s*|OTLP\s+endpoint:\s*)(https?://[^\s]+)", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"(?:ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL:\s*|DOTNET_DASHBOARD_OTLP_ENDPOINT_URL:\s*|OTLP\s+endpoint:\s*)(https?://[A-Za-z0-9\-\._~:/\?#\[\]@!$&'()*+,;=%]+)", RegexOptions.IgnoreCase)]
     private static partial Regex OtlpEndpointUrlRegex();
 
     /// <summary>

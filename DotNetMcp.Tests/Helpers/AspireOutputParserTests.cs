@@ -29,7 +29,7 @@ Application started. Press Ctrl+C to shut down.
         // Arrange
         var output = @"
 info: Aspire.Hosting.DistributedApplication[0]
-      Login to the dashboard at https://localhost:15000/login?t=abc123def456
+      Login to the dashboard at https://localhost:15000/login?t=abc123def4567890
 ";
 
         // Act
@@ -37,7 +37,7 @@ info: Aspire.Hosting.DistributedApplication[0]
 
         // Assert
         Assert.Equal(2, result.Count);
-        Assert.Equal("https://localhost:15000/login?t=abc123def456", result["dashboardLoginUrl"]);
+        Assert.Equal("https://localhost:15000/login?t=abc123def4567890", result["dashboardLoginUrl"]);
         Assert.Equal("https://localhost:15000", result["dashboardUrl"]);
     }
 
@@ -47,7 +47,7 @@ info: Aspire.Hosting.DistributedApplication[0]
         // Arrange
         var output = @"
 ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL: https://localhost:22057
-Dashboard: https://localhost:17213/login?t=abc123
+Dashboard: https://localhost:17213/login?t=abc123def4567890
 ";
 
         // Act
@@ -65,7 +65,7 @@ Dashboard: https://localhost:17213/login?t=abc123
         // Arrange
         var output = @"
 ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL: https://localhost:21030
-Dashboard: https://localhost:17213/login?t=abc123
+Dashboard: https://localhost:17213/login?t=abc123def4567890
 ";
 
         // Act
@@ -159,7 +159,7 @@ Application is running on https://localhost:5001
     public void IsAspireOutput_WithDashboardUrl_ReturnsTrue()
     {
         // Arrange
-        var output = "Dashboard: https://localhost:17213/login?t=abc123";
+        var output = "Dashboard: https://localhost:17213/login?t=abc123def4567890";
 
         // Act
         var result = AspireOutputParser.IsAspireOutput(output);
@@ -172,7 +172,7 @@ Application is running on https://localhost:5001
     public void IsAspireOutput_WithLoginToDashboardAt_ReturnsTrue()
     {
         // Arrange
-        var output = "Login to the dashboard at https://localhost:17213/login?t=abc123";
+        var output = "Login to the dashboard at https://localhost:17213/login?t=abc123def4567890";
 
         // Act
         var result = AspireOutputParser.IsAspireOutput(output);
@@ -249,7 +249,7 @@ Application is running on https://localhost:5001
     {
         // Arrange
         var output = @"
-DASHBOARD: https://localhost:17213/login?t=abc123
+DASHBOARD: https://localhost:17213/login?t=abc123def4567890
 aspire_resource_service_endpoint_url: https://localhost:22057
 ";
 
@@ -265,7 +265,7 @@ aspire_resource_service_endpoint_url: https://localhost:22057
     {
         // Arrange - testing with http (not https) which is sometimes used in dev
         var output = @"
-Dashboard: http://localhost:17213/login?t=abc123def456
+Dashboard: http://localhost:17213/login?t=abc123def4567890
 ";
 
         // Act
@@ -273,7 +273,7 @@ Dashboard: http://localhost:17213/login?t=abc123def456
 
         // Assert
         Assert.Equal(2, result.Count);
-        Assert.Equal("http://localhost:17213/login?t=abc123def456", result["dashboardLoginUrl"]);
+        Assert.Equal("http://localhost:17213/login?t=abc123def4567890", result["dashboardLoginUrl"]);
         Assert.Equal("http://localhost:17213", result["dashboardUrl"]);
     }
 
@@ -282,7 +282,7 @@ Dashboard: http://localhost:17213/login?t=abc123def456
     {
         // Arrange - testing with uppercase hexadecimal characters in token
         var output = @"
-Dashboard: https://localhost:17213/login?t=ABC123DEF456
+Dashboard: https://localhost:17213/login?t=ABC123DEF4567890
 ";
 
         // Act
@@ -290,7 +290,7 @@ Dashboard: https://localhost:17213/login?t=ABC123DEF456
 
         // Assert
         Assert.Equal(2, result.Count);
-        Assert.Equal("https://localhost:17213/login?t=ABC123DEF456", result["dashboardLoginUrl"]);
+        Assert.Equal("https://localhost:17213/login?t=ABC123DEF4567890", result["dashboardLoginUrl"]);
         Assert.Equal("https://localhost:17213", result["dashboardUrl"]);
     }
 
@@ -298,12 +298,25 @@ Dashboard: https://localhost:17213/login?t=ABC123DEF456
     public void ParseAspireUrls_KeysAreCaseInsensitive()
     {
         // Arrange
-        var output = "Dashboard: https://localhost:17213/login?t=abc123";
+        var output = "Dashboard: https://localhost:17213/login?t=abc123def4567890";
         var result = AspireOutputParser.ParseAspireUrls(output);
 
         // Act & Assert - verify case-insensitive access
         Assert.True(result.ContainsKey("dashboardLoginUrl"));
         Assert.True(result.ContainsKey("DASHBOARDLOGINURL"));
         Assert.True(result.ContainsKey("DashboardLoginUrl"));
+    }
+
+    [Fact]
+    public void ParseAspireUrls_WithShortToken_DoesNotMatch()
+    {
+        // Arrange - token less than 16 characters should not match (prevents false positives)
+        var output = "Dashboard: https://localhost:17213/login?t=abc123";
+
+        // Act
+        var result = AspireOutputParser.ParseAspireUrls(output);
+
+        // Assert - should not parse due to token being too short
+        Assert.Empty(result);
     }
 }
