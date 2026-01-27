@@ -1048,7 +1048,7 @@ Key files to start with:
 ## Technology Stack
 
 - **Protocol**: [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)
-- **SDK**: [MCP SDK for .NET](https://github.com/modelcontextprotocol/csharp-sdk) v0.5.0-preview.1
+- **SDK**: [MCP SDK for .NET](https://github.com/modelcontextprotocol/csharp-sdk) v0.6.0-preview.1
 - **Runtime**: .NET 10.0 (target framework)
 - **Transport**: stdio (standard input/output)
 - **NuGet Packages**:

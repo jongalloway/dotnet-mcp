@@ -8,8 +8,8 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- Suppress CS1591 for missing XML comments on non-tool classes -->
     <!-- The source generator creates [Description] attributes from XML documentation for MCP tool methods -->
-    <!-- Suppress CS1066: optional parameter defaults are intentionally used on tool methods for MCP metadata/schema, but are not consumed in all invocation contexts -->
-    <NoWarn>$(NoWarn);CS1591;CS1066</NoWarn>
+    <!-- CS1066 is now automatically suppressed by the SDK for MCP server methods -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
 
     <!-- NuGet Package Metadata -->
     <PackageId>Community.Mcp.DotNet</PackageId>
@@ -49,7 +49,7 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.2" />
     <PackageReference Include="Microsoft.TemplateEngine.Abstractions" Version="10.0.102" />
     <PackageReference Include="Microsoft.TemplateEngine.Edge" Version="10.0.102" />
-    <PackageReference Include="ModelContextProtocol" Version="0.5.0-preview.1" />
+    <PackageReference Include="ModelContextProtocol" Version="0.6.0-preview.1" />
     <PackageReference Include="MinVer" Version="7.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
