@@ -243,6 +243,22 @@ public static class DotNetCommandExecutor
         // If machine-readable format is requested, return structured JSON
         if (machineReadable)
         {
+            // Parse Aspire dashboard URLs if present
+            var combinedOutput = $"{outputStr}\n{errorStr}";
+            if (AspireOutputParser.IsAspireOutput(combinedOutput))
+            {
+                var aspireUrls = AspireOutputParser.ParseAspireUrls(combinedOutput);
+                if (aspireUrls.Count > 0)
+                {
+                    // Merge Aspire URLs into metadata
+                    metadata ??= new Dictionary<string, string>();
+                    foreach (var kvp in aspireUrls)
+                    {
+                        metadata[kvp.Key] = kvp.Value;
+                    }
+                }
+            }
+
             var result = ErrorResultFactory.CreateResult(outputStr, errorStr, process.ExitCode, $"dotnet {arguments}", metadata);
             return ErrorResultFactory.ToJson(result);
         }
