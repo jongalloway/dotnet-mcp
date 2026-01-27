@@ -131,7 +131,7 @@ public sealed partial class DotNetCliTools
     /// <param name="format">Solution file format: 'sln' (classic) or 'slnx' (XML-based). Default is 'sln'. (optional, used with 'create' action)</param>
     /// <param name="projects">Array of project file paths (required for 'add' and 'remove' actions)</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
+    [McpServerTool(IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Card%20File%20Box/Flat/card_file_box_flat.svg")]
     [McpMeta("category", "solution")]
     [McpMeta("priority", 10.0)]
     [McpMeta("commonlyUsed", true)]

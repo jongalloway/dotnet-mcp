@@ -23,7 +23,7 @@ public sealed partial class DotNetCliTools
     /// <param name="configFile">Path to NuGet configuration file to use (used with Install and Update actions)</param>
     /// <param name="workingDirectory">Working directory for command execution</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
+    [McpServerTool(IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Books/Flat/books_flat.svg")]
     [McpMeta("category", "workload")]
     [McpMeta("priority", 8.0)]
     [McpMeta("commonlyUsed", false)]

@@ -708,6 +708,8 @@ dotnet workload update
 
 ## Available Tools
 
+All tools include **visual icons** for improved discoverability in AI assistant interfaces. Icons use [Microsoft Fluent UI Emoji](https://github.com/microsoft/fluentui-emoji) for consistent visual representation (📁 projects, 📦 packages, ⚙️ SDK, 🛠️ tools, etc.).
+
 The server provides comprehensive .NET development capabilities through **consolidated MCP tools** that group related operations by domain, making it easier for AI assistants to select the right tool and compose workflows.
 
 > **Note**: The .NET MCP Server uses **consolidated tools only**. Each consolidated tool provides multiple related operations through an `action` parameter. This design improves AI orchestration and provides better semantic organization compared to having individual tools for each operation.

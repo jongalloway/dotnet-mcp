@@ -268,4 +268,119 @@ public class ToolMetadataSerializationTests
             // The category metadata should exist (value is set via constructor, not directly accessible)
         }
     }
+
+    /// <summary>
+    /// Verifies that all tool methods have icons configured via the IconSource property
+    /// on the McpServerTool attribute. This ensures improved AI assistant UX.
+    /// </summary>
+    [Fact]
+    public void AllToolMethods_HaveIcons()
+    {
+        // Arrange
+        var toolType = typeof(DotNetCliTools);
+        var methods = toolType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+
+        // Act
+        var toolMethods = methods.Where(m => m.GetCustomAttribute<McpServerToolAttribute>() != null).ToList();
+
+        // Assert
+        Assert.NotEmpty(toolMethods);
+
+        var toolsWithoutIcons = new List<string>();
+        foreach (var method in toolMethods)
+        {
+            var attr = method.GetCustomAttribute<McpServerToolAttribute>();
+            Assert.NotNull(attr);
+            
+            if (string.IsNullOrWhiteSpace(attr.IconSource))
+            {
+                toolsWithoutIcons.Add(method.Name);
+            }
+        }
+
+        // All tools should have icons
+        Assert.Empty(toolsWithoutIcons);
+    }
+
+    /// <summary>
+    /// Verifies that tool icons use valid URLs pointing to Fluent UI emoji assets.
+    /// </summary>
+    [Fact]
+    public void ToolIcons_UseValidFluentUIUrls()
+    {
+        // Arrange
+        var toolType = typeof(DotNetCliTools);
+        var methods = toolType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+        var toolMethods = methods.Where(m => m.GetCustomAttribute<McpServerToolAttribute>() != null).ToList();
+
+        // Act & Assert
+        foreach (var method in toolMethods)
+        {
+            var attr = method.GetCustomAttribute<McpServerToolAttribute>();
+            Assert.NotNull(attr);
+            Assert.NotNull(attr.IconSource);
+            
+            // Icons should use Fluent UI emoji from the official Microsoft repository
+            Assert.StartsWith("https://raw.githubusercontent.com/microsoft/fluentui-emoji/", attr.IconSource);
+            
+            // Icons should be either SVG or PNG format
+            Assert.True(
+                attr.IconSource.EndsWith(".svg") || attr.IconSource.EndsWith(".png"),
+                $"Tool {method.Name} has icon with unexpected format: {attr.IconSource}");
+        }
+    }
+
+    /// <summary>
+    /// Verifies that commonly used tools have appropriate icon choices based on their category.
+    /// </summary>
+    [Fact]
+    public void CommonlyUsedTools_HaveAppropriateIcons()
+    {
+        // Arrange
+        var toolType = typeof(DotNetCliTools);
+        var methods = toolType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+        var toolMethods = methods.Where(m => m.GetCustomAttribute<McpServerToolAttribute>() != null).ToList();
+
+        // Category icon mapping - categories with multiple icons use arrays
+        var categoryIconMapping = new Dictionary<string, string[]>
+        {
+            { "project", new[] { "file_folder_flat.svg" } },
+            { "package", new[] { "package_flat.svg" } },
+            { "solution", new[] { "card_file_box_flat.svg" } },
+            { "sdk", new[] { "gear_flat.svg" } },
+            { "tool", new[] { "hammer_and_wrench_flat.svg" } },
+            { "workload", new[] { "books_flat.svg" } },
+            { "ef", new[] { "floppy_disk_flat.svg" } },
+            { "security", new[] { "locked_flat.svg" } },
+            // Help category has multiple icons depending on the specific tool
+            { "help", new[] { "light_bulb_flat.svg", "bar_chart_flat.svg", "information_flat.svg" } }
+        };
+
+        // Act & Assert
+        foreach (var method in toolMethods)
+        {
+            var attr = method.GetCustomAttribute<McpServerToolAttribute>();
+            var metaAttrs = method.GetCustomAttributes<McpMetaAttribute>().ToList();
+            var categoryMeta = metaAttrs.FirstOrDefault(m => m.Name == "category");
+            
+            if (categoryMeta != null)
+            {
+                // JsonValue contains the value in JSON format (e.g., "\"project\"")
+                var categoryValue = categoryMeta.JsonValue?.Trim('"');
+                if (categoryValue != null && categoryIconMapping.TryGetValue(categoryValue, out var expectedIcons))
+                {
+                    Assert.NotNull(attr);
+                    Assert.NotNull(attr.IconSource);
+                    
+                    // Check if the icon matches any of the expected icons for this category
+                    var iconMatches = expectedIcons.Any(expectedIcon =>
+                        attr.IconSource.Contains(expectedIcon, StringComparison.OrdinalIgnoreCase));
+                    
+                    Assert.True(iconMatches,
+                        $"Tool {method.Name} in category '{categoryValue}' should use one of these icons: " +
+                        $"{string.Join(", ", expectedIcons)}, but has '{attr.IconSource}'");
+                }
+            }
+        }
+    }
 }

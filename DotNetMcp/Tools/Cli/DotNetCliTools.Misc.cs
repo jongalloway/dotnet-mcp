@@ -14,7 +14,7 @@ public sealed partial class DotNetCliTools
     /// </summary>
     /// <param name="command">The dotnet command to get help for (e.g., 'build', 'new', 'run'). If not specified, shows general dotnet help.</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
-    [McpServerTool]
+    [McpServerTool(IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Light%20Bulb/Flat/light_bulb_flat.svg")]
     [McpMeta("category", "help")]
     [McpMeta("priority", 5.0)]
     public async partial Task<string> DotnetHelp(
@@ -25,7 +25,7 @@ public sealed partial class DotNetCliTools
     /// <summary>
     /// Get a machine-readable JSON snapshot of server capabilities, versions, and supported features for agent orchestration and discovery.
     /// </summary>
-    [McpServerTool]
+    [McpServerTool(IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Bar%20Chart/Flat/bar_chart_flat.svg")]
     [McpMeta("category", "help")]
     [McpMeta("priority", 8.0)]
     [McpMeta("commonlyUsed", true)]
@@ -86,7 +86,7 @@ public sealed partial class DotNetCliTools
     /// Get detailed human-readable information about .NET MCP Server capabilities, including supported features, concurrency safety, and available resources.
     /// Provides guidance for AI orchestrators on parallel execution.
     /// </summary>
-    [McpServerTool]
+    [McpServerTool(IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Information/Flat/information_flat.svg")]
     [McpMeta("category", "help")]
     [McpMeta("priority", 5.0)]
     public partial Task<string> DotnetServerInfo()
