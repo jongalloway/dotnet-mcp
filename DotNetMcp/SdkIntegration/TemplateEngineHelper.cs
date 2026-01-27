@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 using Microsoft.TemplateEngine.Abstractions;
 using Microsoft.TemplateEngine.Edge;
@@ -38,7 +39,7 @@ public class TemplateEngineHelper
     /// Encapsulates the template engine singletons with their lifecycle binding.
     /// Each instance pair is created together to ensure proper lifecycle management.
     /// </summary>
-    private sealed class TemplateEngineSingletons
+    private sealed class TemplateEngineSingletons : IDisposable
     {
         private readonly Lazy<EngineEnvironmentSettings> _engineSettings;
         private readonly Lazy<TemplatePackageManager> _packageManager;
@@ -232,11 +233,14 @@ public class TemplateEngineHelper
         _singletonLock.EnterWriteLock();
         try
         {
+            // Create new singletons first to avoid null state if construction throws
+            var newSingletons = new TemplateEngineSingletons();
+            
             // Dispose old singletons (no queries are active due to write lock)
             _singletons.Dispose();
             
-            // Create new singletons - subsequent queries will use these
-            _singletons = new TemplateEngineSingletons();
+            // Assign new singletons - subsequent queries will use these
+            _singletons = newSingletons;
         }
         finally
         {
