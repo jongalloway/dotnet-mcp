@@ -69,7 +69,7 @@ public sealed partial class DotNetCliTools
                 StructuredErrors = true,
                 MachineReadable = true,
                 Cancellation = true,
-                Telemetry = false  // Future feature
+                Telemetry = true  // SDK v0.6+ provides request duration logging and OpenTelemetry semantic conventions
             },
             SdkVersions = new SdkVersionInfo
             {

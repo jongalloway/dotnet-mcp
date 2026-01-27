@@ -1063,6 +1063,7 @@ Key files to start with:
 - 📖 [AI Assistant Best Practices Guide](doc/ai-assistant-guide.md) - **Workflows, prompts, integration patterns, and troubleshooting**
 - 📖 [Machine-Readable JSON Contract](doc/machine-readable-contract.md) - **v1.0 stable contract for programmatic tool consumption**
 - 📖 [Tool Surface Consolidation](doc/tool-surface-consolidation.md) - **Consolidated tool design and architecture**
+- 📖 [Telemetry and Observability](doc/telemetry.md) - **Request duration logging, OpenTelemetry integration, and performance monitoring**
 - 📖 [SDK Integration Details](doc/sdk-integration.md) - Technical architecture and SDK usage
 - 📖 [Advanced Topics](doc/advanced-topics.md) - Performance, logging, and security details
 - 📖 [Releasing](doc/releasing.md) - How to cut a release (checklists + scripts)
