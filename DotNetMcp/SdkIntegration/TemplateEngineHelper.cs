@@ -176,6 +176,13 @@ public class TemplateEngineHelper
     /// Clear the template cache asynchronously. Useful after installing or uninstalling templates.
     /// Also resets cache metrics and reinitializes the template engine singletons.
     /// </summary>
+    /// <remarks>
+    /// This method is thread-safe with respect to concurrent ClearCacheAsync calls (protected by lock).
+    /// However, it should not be called concurrently with template query operations (GetInstalledTemplatesAsync, etc.)
+    /// as this could result in accessing disposed objects. In practice, this is not an issue because:
+    /// 1. In tests, the CachingIntegrationTests collection ensures sequential execution
+    /// 2. In production, clearing cache after template installation is not concurrent with queries
+    /// </remarks>
     public static async Task ClearCacheAsync(ILogger? logger = null)
     {
         await _cacheManager.ClearAsync();
