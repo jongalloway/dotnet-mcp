@@ -160,11 +160,11 @@ if (tracesEnabled)
                 .AddSource("DotNetMcp.*")
                 .AddSource("ModelContextProtocol.*");
             
-            var consoleExporter = openTelemetryConfig.GetSection("Traces:ConsoleExporter").GetValue<bool>("Enabled");
+            var consoleExporter = openTelemetryConfig.GetValue<bool>("Traces:ConsoleExporter");
             if (consoleExporter)
                 tracing.AddConsoleExporter();
             
-            var otlpEnabled = openTelemetryConfig.GetSection("Traces:OtlpExporter:Enabled").GetValue<bool>("Enabled");
+            var otlpEnabled = openTelemetryConfig.GetValue<bool>("Traces:OtlpExporter:Enabled");
             if (otlpEnabled)
             {
                 var endpoint = openTelemetryConfig.GetValue<string>("Traces:OtlpExporter:Endpoint");
@@ -188,11 +188,11 @@ if (metricsEnabled)
                 .AddMeter("DotNetMcp.*")
                 .AddMeter("ModelContextProtocol.*");
             
-            var consoleExporter = openTelemetryConfig.GetSection("Metrics:ConsoleExporter").GetValue<bool>("Enabled");
+            var consoleExporter = openTelemetryConfig.GetValue<bool>("Metrics:ConsoleExporter");
             if (consoleExporter)
                 metrics.AddConsoleExporter();
             
-            var otlpEnabled = openTelemetryConfig.GetSection("Metrics:OtlpExporter:Enabled").GetValue<bool>("Enabled");
+            var otlpEnabled = openTelemetryConfig.GetValue<bool>("Metrics:OtlpExporter:Enabled");
             if (otlpEnabled)
             {
                 var endpoint = openTelemetryConfig.GetValue<string>("Metrics:OtlpExporter:Endpoint");
