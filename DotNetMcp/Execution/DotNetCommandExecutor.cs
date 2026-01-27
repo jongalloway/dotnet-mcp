@@ -250,8 +250,12 @@ public static class DotNetCommandExecutor
                 var aspireUrls = AspireOutputParser.ParseAspireUrls(combinedOutput);
                 if (aspireUrls.Count > 0)
                 {
-                    // Merge Aspire URLs into metadata
-                    metadata ??= new Dictionary<string, string>();
+                    // Merge Aspire URLs into metadata (preserving existing metadata if any)
+                    if (metadata == null)
+                    {
+                        metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    }
+                    
                     foreach (var kvp in aspireUrls)
                     {
                         metadata[kvp.Key] = kvp.Value;

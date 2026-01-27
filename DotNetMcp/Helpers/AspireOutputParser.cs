@@ -11,12 +11,13 @@ public static partial class AspireOutputParser
     // Aspire dashboard login URL pattern - matches lines like:
     // "Dashboard: https://localhost:17213/login?t=2b4a2ebc362b7fef9b5ccf73e702647b"
     // "Login to the dashboard at https://localhost:17213/login?t=2b4a2ebc362b7fef9b5ccf73e702647b"
-    [GeneratedRegex(@"(?:Dashboard:\s*|Login\s+to\s+the\s+dashboard\s+at\s+)(https?://[^\s]+/login\?t=[a-f0-9]+)", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"(?:Dashboard:\s*|Login\s+to\s+the\s+dashboard\s+at\s+)(https?://[^\s]+/login\?t=[a-fA-F0-9]+)", RegexOptions.IgnoreCase)]
     private static partial Regex DashboardLoginUrlRegex();
 
     // Resource service endpoint URL pattern - matches lines like:
-    // "Now listening on: https://localhost:22057"
     // "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL: https://localhost:22057"
+    // "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL: https://localhost:22057"
+    // "Resource service endpoint: https://localhost:22057"
     [GeneratedRegex(@"(?:ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL:\s*|DOTNET_RESOURCE_SERVICE_ENDPOINT_URL:\s*|Resource\s+service\s+endpoint:\s*)(https?://[^\s]+)", RegexOptions.IgnoreCase)]
     private static partial Regex ResourceServiceUrlRegex();
 

@@ -278,6 +278,23 @@ Dashboard: http://localhost:17213/login?t=abc123def456
     }
 
     [Fact]
+    public void ParseAspireUrls_WithUppercaseToken_ExtractsUrls()
+    {
+        // Arrange - testing with uppercase hexadecimal characters in token
+        var output = @"
+Dashboard: https://localhost:17213/login?t=ABC123DEF456
+";
+
+        // Act
+        var result = AspireOutputParser.ParseAspireUrls(output);
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        Assert.Equal("https://localhost:17213/login?t=ABC123DEF456", result["dashboardLoginUrl"]);
+        Assert.Equal("https://localhost:17213", result["dashboardUrl"]);
+    }
+
+    [Fact]
     public void ParseAspireUrls_KeysAreCaseInsensitive()
     {
         // Arrange
