@@ -158,9 +158,14 @@ if (tracesEnabled)
             .AddService(serviceName, serviceVersion: serviceVersion))
         .WithTracing(tracing =>
         {
-            tracing
-                .AddSource("DotNetMcp")
-                .AddSource("ModelContextProtocol");
+            // NOTE: To capture custom spans from your application, you must first create corresponding
+            // ActivitySource instances (e.g., new ActivitySource("DotNetMcp")) in your code.
+            // The SDK does not currently implement custom ActivitySources (see Future Enhancements).
+            // When implemented, register them here:
+            //
+            // tracing
+            //     .AddSource("DotNetMcp")
+            //     .AddSource("ModelContextProtocol");
             
             var tracesSection = openTelemetryConfig.GetSection("Traces");
             var consoleExporter = tracesSection.GetValue<bool>("ConsoleExporter");
@@ -188,9 +193,14 @@ if (metricsEnabled)
     builder.Services.AddOpenTelemetry()
         .WithMetrics(metrics =>
         {
-            metrics
-                .AddMeter("DotNetMcp")
-                .AddMeter("ModelContextProtocol");
+            // NOTE: To collect custom metrics from your application, you must first create corresponding
+            // Meter instances (e.g., new Meter("DotNetMcp")) in your code.
+            // The SDK does not currently implement custom Meters (see Future Enhancements).
+            // When implemented, register them here:
+            //
+            // metrics
+            //     .AddMeter("DotNetMcp")
+            //     .AddMeter("ModelContextProtocol");
             
             var metricsSection = openTelemetryConfig.GetSection("Metrics");
             var consoleExporter = metricsSection.GetValue<bool>("ConsoleExporter");
