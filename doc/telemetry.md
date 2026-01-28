@@ -81,6 +81,8 @@ Or via `appsettings.json`:
 }
 ```
 
+> **Note**: The `appsettings.json` files in this repository are for local development of dotnet-mcp and are not packaged with the `Community.Mcp.DotNet` tool. When using the installed tool (for example via `dnx`), environment variables are the recommended way to configure logging and other settings, since they work regardless of installation method. If you prefer configuration files, create an `appsettings.json` in your working directory with the desired settings.
+
 ### Log Categories
 
 - **`ModelContextProtocol.*`** - SDK-level logs (request handling, transport, serialization)
@@ -157,17 +159,19 @@ if (tracesEnabled)
         .WithTracing(tracing =>
         {
             tracing
-                .AddSource("DotNetMcp.*")
-                .AddSource("ModelContextProtocol.*");
+                .AddSource("DotNetMcp")
+                .AddSource("ModelContextProtocol");
             
-            var consoleExporter = openTelemetryConfig.GetValue<bool>("Traces:ConsoleExporter");
+            var tracesSection = openTelemetryConfig.GetSection("Traces");
+            var consoleExporter = tracesSection.GetValue<bool>("ConsoleExporter");
             if (consoleExporter)
                 tracing.AddConsoleExporter();
             
-            var otlpEnabled = openTelemetryConfig.GetValue<bool>("Traces:OtlpExporter:Enabled");
+            var otlpSection = tracesSection.GetSection("OtlpExporter");
+            var otlpEnabled = otlpSection.GetValue<bool>("Enabled");
             if (otlpEnabled)
             {
-                var endpoint = openTelemetryConfig.GetValue<string>("Traces:OtlpExporter:Endpoint");
+                var endpoint = otlpSection.GetValue<string>("Endpoint");
                 tracing.AddOtlpExporter(options =>
                 {
                     if (!string.IsNullOrEmpty(endpoint))
@@ -185,17 +189,19 @@ if (metricsEnabled)
         .WithMetrics(metrics =>
         {
             metrics
-                .AddMeter("DotNetMcp.*")
-                .AddMeter("ModelContextProtocol.*");
+                .AddMeter("DotNetMcp")
+                .AddMeter("ModelContextProtocol");
             
-            var consoleExporter = openTelemetryConfig.GetValue<bool>("Metrics:ConsoleExporter");
+            var metricsSection = openTelemetryConfig.GetSection("Metrics");
+            var consoleExporter = metricsSection.GetValue<bool>("ConsoleExporter");
             if (consoleExporter)
                 metrics.AddConsoleExporter();
             
-            var otlpEnabled = openTelemetryConfig.GetValue<bool>("Metrics:OtlpExporter:Enabled");
+            var otlpSection = metricsSection.GetSection("OtlpExporter");
+            var otlpEnabled = otlpSection.GetValue<bool>("Enabled");
             if (otlpEnabled)
             {
-                var endpoint = openTelemetryConfig.GetValue<string>("Metrics:OtlpExporter:Endpoint");
+                var endpoint = otlpSection.GetValue<string>("Endpoint");
                 metrics.AddOtlpExporter(options =>
                 {
                     if (!string.IsNullOrEmpty(endpoint))
@@ -223,12 +229,14 @@ See [doc/performance-baseline.md](./performance-baseline.md) for baseline perfor
 
 ### Resource Access Patterns
 
-Resource access is logged with duration and caching information:
+Resource access is logged with duration:
 
 ```
 info: ModelContextProtocol.Server.McpServer[LogRequestHandlerCompleted]
-      Request handler completed: resources/read (dotnet://info) in 45ms (cached)
+      Request handler completed: resources/read (dotnet://info) in 45ms
 ```
+
+> **Note**: The SDK logs request duration automatically. Cache status indicators like "(cached)" would require custom logging in your resource implementation.
 
 ### Error Rates
 
