@@ -452,4 +452,70 @@ public class ConsolidatedSdkToolTests
     }
 
     #endregion
+
+    #region Template Pack Install Tests
+
+    [Fact]
+    public async Task DotnetSdk_InstallTemplatePack_WithVersion_UsesAtSymbol()
+    {
+        // Arrange
+        var tempDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-template-pack-test", Guid.NewGuid().ToString("n"));
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            // Act
+            var result = await _tools.DotnetSdk(
+                action: DotnetSdkAction.InstallTemplatePack,
+                templatePackage: tempDir,
+                templateVersion: "1.0.0",
+                machineReadable: true);
+
+            // Assert
+            Assert.NotNull(result);
+            // Verify the @ symbol is used for version specification
+            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, $"dotnet new install \"{tempDir}@1.0.0\"");
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, recursive: true); }
+            catch (IOException) { /* best-effort cleanup */ }
+            catch (UnauthorizedAccessException) { /* best-effort cleanup */ }
+        }
+    }
+
+    [Fact]
+    public async Task DotnetSdk_InstallTemplatePack_WithVersionAndAtSymbolInPackage_ReturnsError()
+    {
+        // Arrange - templatePackage already contains @
+        var result = await _tools.DotnetSdk(
+            action: DotnetSdkAction.InstallTemplatePack,
+            templatePackage: "MyPackage@1.0.0",
+            templateVersion: "2.0.0",
+            machineReadable: true);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("templatePackage", result);
+        Assert.Contains("already contains", result);
+    }
+
+    [Fact]
+    public async Task DotnetSdk_InstallTemplatePack_WithVersionAndDoubleColonInPackage_ReturnsError()
+    {
+        // Arrange - templatePackage already contains :: (legacy syntax)
+        var result = await _tools.DotnetSdk(
+            action: DotnetSdkAction.InstallTemplatePack,
+            templatePackage: "MyPackage::1.0.0",
+            templateVersion: "2.0.0",
+            machineReadable: true);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("templatePackage", result);
+        Assert.Contains("already contains", result);
+    }
+
+    #endregion
 }

@@ -113,11 +113,11 @@ public static partial class ParameterValidator
             return false;
         }
 
-        // Otherwise treat as package ID (optionally with ::version already appended).
-        // Allow letters/digits plus '.', '-', '_' and ':' (for <id>::<version> syntax).
-        if (templatePackage.Any(c => !(char.IsLetterOrDigit(c) || c is '.' or '-' or '_' or ':')))
+        // Otherwise treat as package ID (optionally with @version or ::version already appended).
+        // Allow letters/digits plus '.', '-', '_', '@', and ':' (for <id>@<version> or legacy <id>::<version> syntax).
+        if (templatePackage.Any(c => !(char.IsLetterOrDigit(c) || c is '.' or '-' or '_' or '@' or ':')))
         {
-            errorMessage = $"Invalid templatePackage '{templatePackage}'. Package IDs may contain only letters, digits, '.', '-', '_' (and optionally '::' for version).";
+            errorMessage = $"Invalid templatePackage '{templatePackage}'. Package IDs may contain only letters, digits, '.', '-', '_' (and optionally '@' or '::' for version).";
             return false;
         }
 
@@ -125,7 +125,7 @@ public static partial class ParameterValidator
     }
 
     /// <summary>
-    /// Validate a template package version string (used as &lt;id&gt;::&lt;version&gt;).
+    /// Validate a template package version string (used as &lt;id&gt;@&lt;version&gt;).
     /// </summary>
     public static bool ValidateTemplatePackageVersion(string? templateVersion, out string? errorMessage)
     {

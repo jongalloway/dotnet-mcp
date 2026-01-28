@@ -18,7 +18,7 @@ public sealed partial class DotNetCliTools
     /// <param name="searchTerm">Search query for template search operations</param>
     /// <param name="templateShortName">Template short name for template info operations (e.g., 'console', 'webapi')</param>
     /// <param name="templatePackage">Template package ID (NuGet) or path (folder or .nupkg) for template install/uninstall operations</param>
-    /// <param name="templateVersion">Optional version for template package install (used as &lt;package&gt;::&lt;version&gt;)</param>
+    /// <param name="templateVersion">Optional version for template package install (used as &lt;package&gt;@&lt;version&gt;)</param>
     /// <param name="nugetSource">Optional NuGet source to use for template install (e.g., a feed URL)</param>
     /// <param name="interactive">Allows install to prompt for authentication/interaction if required</param>
     /// <param name="force">Allows installing template packages from specified sources even if they override an existing template package</param>
@@ -176,12 +176,12 @@ public sealed partial class DotNetCliTools
             return $"Error: {sourceError}";
         }
 
-        // Avoid ambiguous syntax: either pass version separately or use <id>::<version> in templatePackage.
+        // Avoid ambiguous syntax: either pass version separately or use <id>@<version> in templatePackage.
         if (!string.IsNullOrWhiteSpace(templateVersion)
             && !string.IsNullOrWhiteSpace(templatePackage)
-            && templatePackage.Contains("::", StringComparison.Ordinal))
+            && (templatePackage.Contains("@", StringComparison.Ordinal) || templatePackage.Contains("::", StringComparison.Ordinal)))
         {
-            var message = "templatePackage already contains '::'. Provide version either via templatePackage (e.g., 'My.Templates::1.2.3') or via templateVersion, not both.";
+            var message = "templatePackage already contains '@' or '::'. Provide version either via templatePackage (e.g., 'My.Templates@1.2.3') or via templateVersion, not both.";
             if (machineReadable)
             {
                 var error = ErrorResultFactory.CreateValidationError(message, parameterName: "templateVersion", reason: "conflict");
@@ -267,7 +267,7 @@ public sealed partial class DotNetCliTools
     /// Install a template package/pack using <c>dotnet new install</c>.
     /// </summary>
     /// <param name="templatePackage">NuGet package ID or path to folder/.nupkg</param>
-    /// <param name="templateVersion">Optional version to install (used as &lt;id&gt;::&lt;version&gt;)</param>
+    /// <param name="templateVersion">Optional version to install (used as &lt;id&gt;@&lt;version&gt;)</param>
     /// <param name="nugetSource">Optional NuGet source to use (feed URL or local source)</param>
     /// <param name="interactive">Allow user interaction for authentication</param>
     /// <param name="force">Allow overriding a template pack from another source</param>
@@ -283,7 +283,7 @@ public sealed partial class DotNetCliTools
         bool machineReadable = false)
     {
         var packageExpression = !string.IsNullOrWhiteSpace(templateVersion)
-            ? $"{templatePackage}::{templateVersion}"
+            ? $"{templatePackage}@{templateVersion}"
             : templatePackage;
 
         var args = new StringBuilder($"new install \"{packageExpression}\"");
