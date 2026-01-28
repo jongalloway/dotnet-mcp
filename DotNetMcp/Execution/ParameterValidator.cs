@@ -114,10 +114,66 @@ public static partial class ParameterValidator
         }
 
         // Otherwise treat as package ID (optionally with @version or ::version already appended).
-        // Allow letters/digits plus '.', '-', '_', '@', and ':' (for <id>@<version> or legacy <id>::<version> syntax).
-        if (templatePackage.Any(c => !(char.IsLetterOrDigit(c) || c is '.' or '-' or '_' or '@' or ':')))
+        // NuGet package IDs may only contain letters, digits, '.', '-', '_'.
+        // Version separators '@' or '::' are allowed, but only as a single separator, not in the package ID itself.
+        
+        // Check for version separators
+        var hasAtSeparator = templatePackage.Contains('@');
+        var hasDoubleColonSeparator = templatePackage.Contains("::");
+        
+        // Disallow both separators at once (ambiguous)
+        if (hasAtSeparator && hasDoubleColonSeparator)
         {
-            errorMessage = $"Invalid templatePackage '{templatePackage}'. Package IDs may contain only letters, digits, '.', '-', '_' (and optionally '@' or '::' for version).";
+            errorMessage = $"Invalid templatePackage '{templatePackage}'. Cannot contain both '@' and '::' separators.";
+            return false;
+        }
+        
+        // Split on the separator if present, otherwise validate the whole string as package ID
+        string packageId;
+        string? version = null;
+        
+        if (hasAtSeparator)
+        {
+            var parts = templatePackage.Split('@', 2);
+            packageId = parts[0];
+            version = parts.Length > 1 ? parts[1] : null;
+            
+            // Disallow multiple @ symbols
+            if (parts.Length > 1 && parts[1].Contains('@'))
+            {
+                errorMessage = $"Invalid templatePackage '{templatePackage}'. Only one '@' separator is allowed.";
+                return false;
+            }
+        }
+        else if (hasDoubleColonSeparator)
+        {
+            var parts = templatePackage.Split(new[] { "::" }, 2, StringSplitOptions.None);
+            packageId = parts[0];
+            version = parts.Length > 1 ? parts[1] : null;
+            
+            // Disallow multiple :: separators
+            if (parts.Length > 1 && parts[1].Contains("::"))
+            {
+                errorMessage = $"Invalid templatePackage '{templatePackage}'. Only one '::' separator is allowed.";
+                return false;
+            }
+        }
+        else
+        {
+            packageId = templatePackage;
+        }
+        
+        // Validate package ID: only letters, digits, '.', '-', '_' allowed (no @ or :)
+        if (packageId.Any(c => !(char.IsLetterOrDigit(c) || c is '.' or '-' or '_')))
+        {
+            errorMessage = $"Invalid package ID '{packageId}'. Package IDs may contain only letters, digits, '.', '-', '_'.";
+            return false;
+        }
+        
+        // If a version was specified, validate it's not empty
+        if (version != null && string.IsNullOrWhiteSpace(version))
+        {
+            errorMessage = $"Invalid templatePackage '{templatePackage}'. Version separator found but version is empty.";
             return false;
         }
 

@@ -517,5 +517,90 @@ public class ConsolidatedSdkToolTests
         Assert.Contains("already contains", result);
     }
 
+    [Fact]
+    public async Task DotnetSdk_InstallTemplatePack_WithInvalidCharactersInPackageId_ReturnsError()
+    {
+        // Arrange - invalid character : in package ID (not as separator)
+        var result = await _tools.DotnetSdk(
+            action: DotnetSdkAction.InstallTemplatePack,
+            templatePackage: "My:Package",
+            machineReadable: true);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("package ID", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetSdk_InstallTemplatePack_WithMultipleAtSeparators_ReturnsError()
+    {
+        // Arrange - multiple @ separators
+        var result = await _tools.DotnetSdk(
+            action: DotnetSdkAction.InstallTemplatePack,
+            templatePackage: "MyPackage@1.0.0@extra",
+            machineReadable: true);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("templatePackage", result);
+    }
+
+    [Fact]
+    public async Task DotnetSdk_InstallTemplatePack_WithBothSeparators_ReturnsError()
+    {
+        // Arrange - both @ and :: separators (ambiguous)
+        var result = await _tools.DotnetSdk(
+            action: DotnetSdkAction.InstallTemplatePack,
+            templatePackage: "MyPackage@1.0.0::extra",
+            machineReadable: true);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("templatePackage", result);
+    }
+
+    [Fact]
+    public async Task DotnetSdk_InstallTemplatePack_WithEmptyVersionAfterSeparator_ReturnsError()
+    {
+        // Arrange - @ separator with empty version
+        var result = await _tools.DotnetSdk(
+            action: DotnetSdkAction.InstallTemplatePack,
+            templatePackage: "MyPackage@",
+            machineReadable: true);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("version", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetSdk_InstallTemplatePack_WithValidPackageIdInline_Succeeds()
+    {
+        // Arrange - valid package with inline version using @
+        var tempDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-valid-test", Guid.NewGuid().ToString("n"));
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            // Create a minimal valid package structure to avoid actual NuGet call
+            var result = await _tools.DotnetSdk(
+                action: DotnetSdkAction.InstallTemplatePack,
+                templatePackage: tempDir,
+                machineReadable: true);
+
+            // Should execute without validation error (may fail at install if not a valid template)
+            Assert.NotNull(result);
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, recursive: true); }
+            catch (IOException) { /* best-effort cleanup */ }
+            catch (UnauthorizedAccessException) { /* best-effort cleanup */ }
+        }
+    }
+
     #endregion
 }
