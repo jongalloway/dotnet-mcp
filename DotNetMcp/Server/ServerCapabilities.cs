@@ -63,7 +63,9 @@ public sealed class ServerFeatureSupport
     public bool Cancellation { get; init; }
 
     /// <summary>
-    /// Whether the server supports telemetry reporting (future feature)
+    /// Whether the server supports telemetry reporting.
+    /// When enabled, the server emits request duration logs and follows OpenTelemetry semantic conventions (SDK v0.6+).
+    /// See doc/telemetry.md for configuration details.
     /// </summary>
     [JsonPropertyName("telemetry")]
     public bool Telemetry { get; init; }

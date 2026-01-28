@@ -20,6 +20,11 @@ For comprehensive performance testing and regression detection, see [Issue #151]
 - More comprehensive tool coverage
 - Memory profiling
 
+For telemetry and observability features, see [doc/telemetry.md](./telemetry.md):
+- Request duration logging (SDK v0.6+)
+- OpenTelemetry semantic conventions
+- Distributed tracing integration
+
 ## Test Methodology
 
 ### Configuration
@@ -130,3 +135,48 @@ If results are consistently better:
 - Cache behavior significantly affects results (warmup is critical)
 - Results are informational only - tests never fail CI builds
 - For production performance budgets, use BenchmarkDotNet (Issue #151)
+
+## Using Telemetry for Performance Monitoring
+
+The MCP SDK v0.6+ automatically logs request duration for all tool invocations. To monitor performance in real-time:
+
+### View Request Durations
+
+All tool executions are logged with duration at `Information` level:
+
+```bash
+# Run the server and filter for request completion logs
+dotnet-mcp 2>&1 | grep "Request handler completed"
+```
+
+Example output:
+```
+info: ModelContextProtocol.Server.McpServer[LogRequestHandlerCompleted]
+      Request handler completed: tools/call (DotnetSdkVersion) in 125ms
+      
+info: ModelContextProtocol.Server.McpServer[LogRequestHandlerCompleted]
+      Request handler completed: tools/call (DotnetTemplateList) in 486ms
+```
+
+### Analyze Performance Trends
+
+Enable debug logging to see detailed execution traces:
+
+```bash
+export Logging__LogLevel__Default=Debug
+dotnet-mcp 2>&1 | tee performance-log.txt
+```
+
+Then analyze the log for:
+- Average duration by tool
+- P95 latency (95th percentile)
+- Slowest operations
+- Cache effectiveness
+
+### Compare Against Baselines
+
+Compare logged durations against the baselines in this document:
+- DotnetSdkVersion: Expected ~100ms, investigate if >200ms
+- DotnetTemplateList: Expected ~500ms (first run), ~50ms (cached)
+
+For detailed telemetry configuration and OpenTelemetry integration, see [doc/telemetry.md](./telemetry.md).
