@@ -46,15 +46,17 @@ public sealed partial class DotNetCliTools
     /// <param name="workingDirectory">Working directory for command execution</param>
     /// <param name="testRunner">Test runner selection for test action (Auto, MicrosoftTestingPlatform, or VSTest). Auto detects from global.json. Default: Auto</param>
     /// <param name="useLegacyProjectArgument">DEPRECATED: Use testRunner parameter instead. When true, uses positional project argument (VSTest mode)</param>
-    /// <param name="sessionId">Session ID for stop action (required when action is Stop)</param>
+    /// <param name="sessionId">Session ID for stop/logs actions (required when action is Stop or Logs)</param>
     /// <param name="startMode">Start mode for run action (Foreground or Background). Foreground blocks until exit, Background returns immediately with sessionId. Default: Foreground</param>
+    /// <param name="tailLines">Number of most recent log lines to return for logs action (optional, returns all if not specified)</param>
+    /// <param name="since">Return logs only after this timestamp (ISO 8601 format) for logs action (optional)</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpServerTool(IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/File%20Folder/Flat/file_folder_flat.svg")]
     [McpMeta("category", "project")]
     [McpMeta("priority", 10.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("consolidatedTool", true)]
-    [McpMeta("actions", JsonValue = """["New","Restore","Build","Run","Test","Publish","Clean","Analyze","Dependencies","Validate","Pack","Watch","Format","Stop"]""")]
+    [McpMeta("actions", JsonValue = """["New","Restore","Build","Run","Test","Publish","Clean","Analyze","Dependencies","Validate","Pack","Watch","Format","Stop","Logs"]""")]
     public async partial Task<string> DotnetProject(
         DotnetProjectAction action,
         string? project = null,
@@ -89,6 +91,8 @@ public sealed partial class DotNetCliTools
         bool? useLegacyProjectArgument = null,
         string? sessionId = null,
         StartMode? startMode = null,
+        int? tailLines = null,
+        string? since = null,
         bool machineReadable = false)
     {
         return await WithWorkingDirectoryAsync(workingDirectory, async () =>
@@ -125,6 +129,7 @@ public sealed partial class DotNetCliTools
                 DotnetProjectAction.Watch => await HandleWatchAction(watchAction, project, configuration, appArgs, filter, noHotReload, machineReadable),
                 DotnetProjectAction.Format => await HandleFormatAction(project, verify, includeGenerated, diagnostics, severity, machineReadable),
                 DotnetProjectAction.Stop => await HandleStopAction(sessionId, machineReadable),
+                DotnetProjectAction.Logs => await HandleLogsAction(sessionId, tailLines, since, machineReadable),
                 _ => machineReadable
                     ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateValidationError(
                         $"Action '{action}' is not supported.",
@@ -570,6 +575,176 @@ public sealed partial class DotNetCliTools
             }
             return Task.FromResult($"Error: {stopError}");
         }
+    }
+
+    private Task<string> HandleLogsAction(string? sessionId, int? tailLines, string? since, bool machineReadable)
+    {
+        // Validate sessionId
+        if (!ParameterValidator.ValidateRequiredParameter(sessionId, "sessionId", out var errorMessage))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    errorMessage!,
+                    parameterName: "sessionId",
+                    reason: "required");
+                return Task.FromResult(ErrorResultFactory.ToJson(error));
+            }
+            return Task.FromResult($"Error: {errorMessage}");
+        }
+
+        // Parse since parameter if provided
+        DateTime? sinceTimestamp = null;
+        if (!string.IsNullOrWhiteSpace(since))
+        {
+            if (!DateTime.TryParse(since, out var parsedSince))
+            {
+                if (machineReadable)
+                {
+                    var error = ErrorResultFactory.CreateValidationError(
+                        $"Invalid 'since' timestamp format. Expected ISO 8601 format (e.g., '2024-01-01T12:00:00Z').",
+                        parameterName: "since",
+                        reason: "invalid format");
+                    return Task.FromResult(ErrorResultFactory.ToJson(error));
+                }
+                return Task.FromResult($"Error: Invalid 'since' timestamp format. Expected ISO 8601 format (e.g., '2024-01-01T12:00:00Z').");
+            }
+            sinceTimestamp = parsedSince.ToUniversalTime();
+        }
+
+        // Validate tailLines if provided
+        if (tailLines.HasValue && tailLines.Value < 1)
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    "tailLines must be a positive integer.",
+                    parameterName: "tailLines",
+                    reason: "invalid value");
+                return Task.FromResult(ErrorResultFactory.ToJson(error));
+            }
+            return Task.FromResult("Error: tailLines must be a positive integer.");
+        }
+
+        // Get logs from ProcessSessionManager
+        var logs = _processSessionManager.GetSessionLogs(sessionId!, tailLines, sinceTimestamp);
+
+        if (logs == null)
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    $"Session '{sessionId}' not found. It may have already completed or been stopped.",
+                    parameterName: "sessionId",
+                    reason: "not found");
+                return Task.FromResult(ErrorResultFactory.ToJson(error));
+            }
+            return Task.FromResult($"Error: Session '{sessionId}' not found. It may have already completed or been stopped.");
+        }
+
+        // Format the response
+        if (machineReadable)
+        {
+            var metadata = new Dictionary<string, string>
+            {
+                ["sessionId"] = logs.SessionId,
+                ["operationType"] = logs.OperationType,
+                ["target"] = logs.Target,
+                ["startTime"] = logs.StartTime.ToString("O"),
+                ["isRunning"] = logs.IsRunning.ToString().ToLowerInvariant(),
+                ["totalOutputLines"] = logs.TotalOutputLines.ToString(),
+                ["totalErrorLines"] = logs.TotalErrorLines.ToString(),
+                ["returnedOutputLines"] = logs.OutputLines.Length.ToString(),
+                ["returnedErrorLines"] = logs.ErrorLines.Length.ToString()
+            };
+
+            if (tailLines.HasValue)
+            {
+                metadata["tailLines"] = tailLines.Value.ToString();
+            }
+
+            if (sinceTimestamp.HasValue)
+            {
+                metadata["since"] = sinceTimestamp.Value.ToString("O");
+            }
+
+            // Combine output and error lines in chronological order
+            var combinedLines = logs.OutputLines
+                .Select(line => new { line.Timestamp, line.Content, IsError = false })
+                .Concat(logs.ErrorLines.Select(line => new { line.Timestamp, line.Content, IsError = true }))
+                .OrderBy(x => x.Timestamp)
+                .ToList();
+
+            var outputBuilder = new StringBuilder();
+            foreach (var line in combinedLines)
+            {
+                if (line.IsError)
+                {
+                    outputBuilder.AppendLine($"[stderr] {line.Content}");
+                }
+                else
+                {
+                    outputBuilder.AppendLine(line.Content);
+                }
+            }
+
+            var result = new SuccessResult
+            {
+                Success = true,
+                Output = outputBuilder.ToString().TrimEnd(),
+                ExitCode = 0,
+                Metadata = metadata
+            };
+
+            return Task.FromResult(ErrorResultFactory.ToJson(result));
+        }
+
+        // Plain text format
+        var textResult = new StringBuilder();
+        textResult.AppendLine($"Logs for session '{logs.SessionId}':");
+        textResult.AppendLine($"Operation Type: {logs.OperationType}");
+        textResult.AppendLine($"Target: {logs.Target}");
+        textResult.AppendLine($"Start Time: {logs.StartTime:O}");
+        textResult.AppendLine($"Status: {(logs.IsRunning ? "Running" : "Completed")}");
+        textResult.AppendLine($"Total Output Lines: {logs.TotalOutputLines}");
+        textResult.AppendLine($"Total Error Lines: {logs.TotalErrorLines}");
+        
+        if (tailLines.HasValue || sinceTimestamp.HasValue)
+        {
+            textResult.AppendLine($"Returned Output Lines: {logs.OutputLines.Length}");
+            textResult.AppendLine($"Returned Error Lines: {logs.ErrorLines.Length}");
+        }
+
+        textResult.AppendLine();
+        textResult.AppendLine("=== Output ===");
+
+        // Combine output and error lines in chronological order
+        var allLines = logs.OutputLines
+            .Select(line => new { line.Timestamp, line.Content, IsError = false })
+            .Concat(logs.ErrorLines.Select(line => new { line.Timestamp, line.Content, IsError = true }))
+            .OrderBy(x => x.Timestamp)
+            .ToList();
+
+        if (allLines.Count == 0)
+        {
+            textResult.AppendLine("(no output yet)");
+        }
+        else
+        {
+            foreach (var line in allLines)
+            {
+                if (line.IsError)
+                {
+                    textResult.AppendLine($"[stderr] {line.Content}");
+                }
+                else
+                {
+                    textResult.AppendLine(line.Content);
+                }
+            }
+        }
+
+        return Task.FromResult(textResult.ToString());
     }
 
     // ===== Watch helper methods (moved from DotNetCliTools.Watch.cs) =====
