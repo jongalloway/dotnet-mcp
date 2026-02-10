@@ -219,14 +219,93 @@ public class TestRunnerDetectorTests
     }
 
     [Fact]
-    public void DetectTestRunner_NoSearchDirectory_DefaultsToVSTest()
+    public void DetectTestRunner_NoSearchDirectory_UsesCurrentDirectory()
     {
-        // Act: Neither workingDirectory nor projectPath provided
-        var (runner, source) = TestRunnerDetector.DetectTestRunner();
+        // Arrange: Create temp directory for current directory test
+        var tempDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-test-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        var currentDir = Directory.GetCurrentDirectory();
+        
+        try
+        {
+            // Change to temp directory without global.json
+            Directory.SetCurrentDirectory(tempDir);
+            
+            // Act: Neither workingDirectory nor projectPath provided
+            // Should fall back to current directory and default to VSTest (no global.json)
+            var (runner, source) = TestRunnerDetector.DetectTestRunner();
 
-        // Assert
-        Assert.Equal(TestRunner.VSTest, runner);
-        Assert.Equal("default", source);
+            // Assert
+            Assert.Equal(TestRunner.VSTest, runner);
+            Assert.Equal("default", source);
+        }
+        finally
+        {
+            // Restore original directory
+            Directory.SetCurrentDirectory(currentDir);
+            try
+            {
+                Directory.Delete(tempDir, recursive: true);
+            }
+            catch (IOException)
+            {
+                // Best-effort cleanup
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Best-effort cleanup
+            }
+        }
+    }
+
+    [Fact]
+    public void DetectTestRunner_NoSearchDirectory_FindsGlobalJsonInCurrentDirectory()
+    {
+        // Arrange: Create temp directory with global.json
+        var tempDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-test-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        var globalJsonPath = Path.Join(tempDir, "global.json");
+        var currentDir = Directory.GetCurrentDirectory();
+        
+        try
+        {
+            // Create global.json with MTP configuration
+            File.WriteAllText(globalJsonPath, """
+            {
+                "test": {
+                    "runner": "Microsoft.Testing.Platform"
+                }
+            }
+            """);
+            
+            // Change to temp directory with global.json
+            Directory.SetCurrentDirectory(tempDir);
+            
+            // Act: Neither workingDirectory nor projectPath provided
+            // Should fall back to current directory and find global.json
+            var (runner, source) = TestRunnerDetector.DetectTestRunner();
+
+            // Assert: Should detect MTP from global.json in current directory
+            Assert.Equal(TestRunner.MicrosoftTestingPlatform, runner);
+            Assert.Equal("global.json", source);
+        }
+        finally
+        {
+            // Restore original directory
+            Directory.SetCurrentDirectory(currentDir);
+            try
+            {
+                Directory.Delete(tempDir, recursive: true);
+            }
+            catch (IOException)
+            {
+                // Best-effort cleanup
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Best-effort cleanup
+            }
+        }
     }
 
     [Fact]
