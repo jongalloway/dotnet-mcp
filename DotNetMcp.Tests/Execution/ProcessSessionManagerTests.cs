@@ -337,7 +337,9 @@ public class ProcessSessionManagerTests : IDisposable
                 FileName = "sleep",
                 Arguments = "3600", // Sleep for 1 hour (will be killed in cleanup)
                 UseShellExecute = false,
-                CreateNoWindow = true
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
             }
         };
         process.Start();
