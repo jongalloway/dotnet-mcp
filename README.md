@@ -731,10 +731,12 @@ Resources provide structured JSON data and are more efficient than tool calls fo
 
 #### dotnet_project - Project Lifecycle Management
 
-Unified interface for all project operations: **New**, **Restore**, **Build**, **Run**, **Test**, **Publish**, **Clean**, **Analyze**, **Dependencies**, **Validate**, **Pack**, **Watch**, **Format**, **Stop**
+Unified interface for all project operations: **New**, **Restore**, **Build**, **Run**, **Test**, **Publish**, **Clean**, **Analyze**, **Dependencies**, **Validate**, **Pack**, **Watch**, **Format**, **Stop**, **Logs**
 
 **New in this release:**
 
+- **Logs action**: Retrieve stdout/stderr logs from background process sessions
+- **Background mode for Run**: Start processes in the background with `startMode: "Background"` and retrieve logs via session ID
 - **Stop action**: Terminates long-running process sessions (like `dotnet run`) by session ID
 - **noBuild parameter**: Skip building before running (mirrors `dotnet run --no-build`)
 
@@ -765,20 +767,45 @@ await callTool("dotnet_project", {
   configuration: "Release" 
 });
 
-// Run without building (use pre-built binaries)
-await callTool("dotnet_project", {
+// Run in background mode to get session ID
+const runResult = await callTool("dotnet_project", {
   action: "Run",
   project: "MyApi/MyApi.csproj",
-  noBuild: true
+  noBuild: true,
+  startMode: "Background",
+  machineReadable: true
+});
+const sessionId = runResult.metadata.sessionId;
+
+// Wait a moment for the application to start...
+
+// Retrieve logs from the background session
+await callTool("dotnet_project", {
+  action: "Logs",
+  sessionId: sessionId,
+  machineReadable: true
 });
 
-// Stop a running process session
-// Note: The Stop action is available for manually registered sessions.
-// Future enhancement: Run/Watch will automatically register and return session IDs.
-// For now, sessions must be registered programmatically using ProcessSessionManager.
+// Retrieve only the last 50 lines of logs
+await callTool("dotnet_project", {
+  action: "Logs",
+  sessionId: sessionId,
+  tailLines: 50,
+  machineReadable: true
+});
+
+// Retrieve logs since a specific timestamp
+await callTool("dotnet_project", {
+  action: "Logs",
+  sessionId: sessionId,
+  since: "2024-01-01T12:00:00Z",
+  machineReadable: true
+});
+
+// Stop the background process
 await callTool("dotnet_project", {
   action: "Stop",
-  sessionId: "550e8400-e29b-41d4-a716-446655440000"
+  sessionId: sessionId
 });
 
 // Run tests (auto-detects test runner from global.json)

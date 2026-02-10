@@ -237,6 +237,94 @@ public class ProcessSessionManagerTests : IDisposable
         Assert.False(result);
     }
 
+    [Fact]
+    public async Task GetSessionLogs_WithExistingSession_ReturnsLogs()
+    {
+        // Arrange
+        var sessionId = Guid.NewGuid().ToString();
+        var process = CreateTestProcessWithOutput();
+        _manager.RegisterSession(sessionId, process, "run", "/test/project.csproj");
+
+        // Wait for output to be captured
+        await Task.Delay(1000);
+
+        // Act
+        var logs = _manager.GetSessionLogs(sessionId);
+
+        // Assert
+        Assert.NotNull(logs);
+        Assert.Equal(sessionId, logs.SessionId);
+        Assert.Equal("run", logs.OperationType);
+        Assert.True(logs.IsRunning);
+        Assert.NotEmpty(logs.OutputLines);
+    }
+
+    [Fact]
+    public void GetSessionLogs_WithNonExistentSession_ReturnsNull()
+    {
+        // Arrange
+        var sessionId = Guid.NewGuid().ToString();
+
+        // Act
+        var logs = _manager.GetSessionLogs(sessionId);
+
+        // Assert
+        Assert.Null(logs);
+    }
+
+    [Fact]
+    public async Task GetSessionLogs_WithTailLines_ReturnsLimitedOutput()
+    {
+        // Arrange
+        var sessionId = Guid.NewGuid().ToString();
+        var process = CreateTestProcessWithOutput();
+        _manager.RegisterSession(sessionId, process, "run", "/test/project.csproj");
+
+        // Wait for output to be captured
+        await Task.Delay(1000);
+
+        // Act - request only 2 lines
+        var logs = _manager.GetSessionLogs(sessionId, tailLines: 2);
+
+        // Assert
+        Assert.NotNull(logs);
+        var totalLines = logs.OutputLines.Length + logs.ErrorLines.Length;
+        Assert.True(totalLines <= 2, $"Expected at most 2 lines, got {totalLines}");
+    }
+
+    [Fact]
+    public async Task GetSessionLogs_WithSinceTimestamp_ReturnsFilteredOutput()
+    {
+        // Arrange
+        var sessionId = Guid.NewGuid().ToString();
+        var process = CreateTestProcessWithOutput();
+        var startTime = DateTime.UtcNow;
+        _manager.RegisterSession(sessionId, process, "run", "/test/project.csproj");
+
+        // Wait for initial output
+        await Task.Delay(500);
+        
+        var filterTime = DateTime.UtcNow;
+        
+        // Wait for more output
+        await Task.Delay(500);
+
+        // Act - get logs since the filter time
+        var logs = _manager.GetSessionLogs(sessionId, since: filterTime);
+
+        // Assert
+        Assert.NotNull(logs);
+        // All returned lines should be after the filter time
+        foreach (var line in logs.OutputLines)
+        {
+            Assert.True(line.Timestamp >= filterTime, $"Line timestamp {line.Timestamp} should be >= {filterTime}");
+        }
+        foreach (var line in logs.ErrorLines)
+        {
+            Assert.True(line.Timestamp >= filterTime, $"Line timestamp {line.Timestamp} should be >= {filterTime}");
+        }
+    }
+
     /// <summary>
     /// Creates a test process that can be tracked. Uses a simple sleep command.
     /// </summary>
@@ -249,7 +337,31 @@ public class ProcessSessionManagerTests : IDisposable
                 FileName = "sleep",
                 Arguments = "3600", // Sleep for 1 hour (will be killed in cleanup)
                 UseShellExecute = false,
-                CreateNoWindow = true
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            }
+        };
+        process.Start();
+        _processesToCleanup.Add(process);
+        return process;
+    }
+
+    /// <summary>
+    /// Creates a test process that produces output on stdout and stderr.
+    /// </summary>
+    private Process CreateTestProcessWithOutput()
+    {
+        var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = "sh",
+                Arguments = "-c \"for i in 1 2 3 4 5; do echo Line $i; echo Error $i >&2; sleep 0.1; done; sleep 3600\"",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
             }
         };
         process.Start();

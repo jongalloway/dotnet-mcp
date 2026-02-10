@@ -85,7 +85,10 @@ public enum DotnetProjectAction
     Format,
 
     /// <summary>Stop a running process session (run/watch)</summary>
-    Stop
+    Stop,
+
+    /// <summary>Retrieve logs/output from a background session</summary>
+    Logs
 }
 
 /// <summary>
