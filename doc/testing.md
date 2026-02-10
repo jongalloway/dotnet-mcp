@@ -338,6 +338,19 @@ The exclusion patterns are validated by:
 - Codecov reporting (visible in PR comments and coverage reports)
 - CI uploads coverage artifacts that can be inspected locally
 - The `download-coverage-artifact.ps1` script can be used to examine raw coverage data
+- The `validate-coverage-exclusions.ps1` script validates exclusion patterns locally
+
+To validate exclusion patterns against the latest coverage data:
+
+```powershell
+pwsh -File scripts/validate-coverage-exclusions.ps1
+```
+
+This script will:
+- Parse the codecov.yml configuration
+- Analyze the latest coverage report
+- Show which files will be excluded/included
+- Warn if expected patterns are not working
 
 If you notice coverage anomalies (e.g., generated files appearing in reports), check:
 1. The `codecov.yml` configuration has the correct patterns
