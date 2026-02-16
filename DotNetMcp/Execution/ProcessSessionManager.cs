@@ -1,5 +1,7 @@
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Text;
 using Microsoft.Extensions.Logging;
 
 namespace DotNetMcp;
@@ -7,12 +9,19 @@ namespace DotNetMcp;
 /// <summary>
 /// Manages long-running process sessions for operations like 'dotnet run' and 'dotnet watch'.
 /// Tracks processes by session ID and provides clean termination semantics.
+/// Captures stdout/stderr output for background processes with configurable size limits.
 /// </summary>
 public sealed class ProcessSessionManager
 {
     private readonly Dictionary<string, ProcessSession> _sessions = new();
     private readonly Lock _lock = new();
     private readonly ILogger? _logger;
+
+    /// <summary>
+    /// Maximum number of output lines to buffer per session (default: 1000).
+    /// Prevents unbounded memory growth for long-running processes.
+    /// </summary>
+    private const int MaxOutputLines = 1000;
 
     public ProcessSessionManager(ILogger? logger = null)
     {
@@ -42,13 +51,53 @@ public sealed class ProcessSessionManager
                 return false;
             }
 
+            var outputBuffer = new ConcurrentQueue<OutputLine>();
+            var errorBuffer = new ConcurrentQueue<OutputLine>();
+
+            // Set up output capture handlers
+            process.OutputDataReceived += (sender, e) =>
+            {
+                if (e.Data != null)
+                {
+                    var line = new OutputLine { Timestamp = DateTime.UtcNow, Content = e.Data };
+                    outputBuffer.Enqueue(line);
+                    
+                    // Trim buffer if it exceeds max size
+                    while (outputBuffer.Count > MaxOutputLines)
+                    {
+                        outputBuffer.TryDequeue(out _);
+                    }
+                }
+            };
+
+            process.ErrorDataReceived += (sender, e) =>
+            {
+                if (e.Data != null)
+                {
+                    var line = new OutputLine { Timestamp = DateTime.UtcNow, Content = e.Data };
+                    errorBuffer.Enqueue(line);
+                    
+                    // Trim buffer if it exceeds max size
+                    while (errorBuffer.Count > MaxOutputLines)
+                    {
+                        errorBuffer.TryDequeue(out _);
+                    }
+                }
+            };
+
+            // Start reading output streams
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+
             _sessions[sessionId] = new ProcessSession
             {
                 SessionId = sessionId,
                 Process = process,
                 OperationType = operationType,
                 Target = target,
-                StartTime = DateTime.UtcNow
+                StartTime = DateTime.UtcNow,
+                OutputBuffer = outputBuffer,
+                ErrorBuffer = errorBuffer
             };
 
             _logger?.LogInformation("Registered session {SessionId} for {OperationType} on {Target} (PID: {ProcessId})",
@@ -274,6 +323,73 @@ public sealed class ProcessSessionManager
     }
 
     /// <summary>
+    /// Gets logs (stdout/stderr) for a session.
+    /// </summary>
+    /// <param name="sessionId">Session ID to retrieve logs for</param>
+    /// <param name="tailLines">Number of most recent lines to return (optional, returns all if not specified)</param>
+    /// <param name="since">Only return lines after this timestamp (optional)</param>
+    /// <returns>Session logs if found, null otherwise</returns>
+    public ProcessSessionLogs? GetSessionLogs(string sessionId, int? tailLines = null, DateTime? since = null)
+    {
+        lock (_lock)
+        {
+            if (!_sessions.TryGetValue(sessionId, out var session))
+                return null;
+
+            var outputLines = session.OutputBuffer.ToArray();
+            var errorLines = session.ErrorBuffer.ToArray();
+
+            // Apply timestamp filter if specified
+            if (since.HasValue)
+            {
+                outputLines = outputLines.Where(l => l.Timestamp >= since.Value).ToArray();
+                errorLines = errorLines.Where(l => l.Timestamp >= since.Value).ToArray();
+            }
+
+            // Apply tail filter if specified
+            if (tailLines.HasValue && tailLines.Value > 0)
+            {
+                var totalLines = outputLines.Length + errorLines.Length;
+                if (totalLines > tailLines.Value)
+                {
+                    // Combine all lines, sort by timestamp, and take the last N
+                    var allLines = outputLines.Select(l => (l, isError: false))
+                        .Concat(errorLines.Select(l => (l, isError: true)))
+                        .OrderBy(x => x.l.Timestamp)
+                        .TakeLast(tailLines.Value)
+                        .ToList();
+
+                    outputLines = allLines.Where(x => !x.isError).Select(x => x.l).ToArray();
+                    errorLines = allLines.Where(x => x.isError).Select(x => x.l).ToArray();
+                }
+            }
+
+            bool isRunning;
+            try
+            {
+                isRunning = !session.Process.HasExited;
+            }
+            catch (InvalidOperationException)
+            {
+                isRunning = false;
+            }
+
+            return new ProcessSessionLogs
+            {
+                SessionId = session.SessionId,
+                OperationType = session.OperationType,
+                Target = session.Target,
+                StartTime = session.StartTime,
+                IsRunning = isRunning,
+                OutputLines = outputLines,
+                ErrorLines = errorLines,
+                TotalOutputLines = session.OutputBuffer.Count,
+                TotalErrorLines = session.ErrorBuffer.Count
+            };
+        }
+    }
+
+    /// <summary>
     /// Clears all sessions. Used for testing.
     /// Disposes all tracked processes before removing them to avoid resource leaks.
     /// </summary>
@@ -327,6 +443,8 @@ public sealed class ProcessSessionManager
         public required string OperationType { get; init; }
         public required string Target { get; init; }
         public required DateTime StartTime { get; init; }
+        public required ConcurrentQueue<OutputLine> OutputBuffer { get; init; }
+        public required ConcurrentQueue<OutputLine> ErrorBuffer { get; init; }
     }
 }
 
@@ -341,4 +459,29 @@ public sealed class ProcessSessionInfo
     public required string Target { get; init; }
     public required DateTime StartTime { get; init; }
     public required bool IsRunning { get; init; }
+}
+
+/// <summary>
+/// A single line of output from a process with timestamp.
+/// </summary>
+public sealed class OutputLine
+{
+    public required DateTime Timestamp { get; init; }
+    public required string Content { get; init; }
+}
+
+/// <summary>
+/// Logs/output from a process session.
+/// </summary>
+public sealed class ProcessSessionLogs
+{
+    public required string SessionId { get; init; }
+    public required string OperationType { get; init; }
+    public required string Target { get; init; }
+    public required DateTime StartTime { get; init; }
+    public required bool IsRunning { get; init; }
+    public required OutputLine[] OutputLines { get; init; }
+    public required OutputLine[] ErrorLines { get; init; }
+    public required int TotalOutputLines { get; init; }
+    public required int TotalErrorLines { get; init; }
 }
