@@ -78,7 +78,8 @@ public class BackgroundRunTests : IDisposable
             var exePath = Path.Join(binPath, "TestApp.dll");
             
             // Give the file system a moment to settle (especially in CI)
-            await Task.Delay(500, TestContext.Current.CancellationToken);
+            // Increased from 500ms to 1000ms to improve reliability in CI environments
+            await Task.Delay(1000, TestContext.Current.CancellationToken);
             
             // Verify the built DLL exists
             if (!File.Exists(exePath))
