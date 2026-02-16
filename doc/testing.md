@@ -263,6 +263,100 @@ Notes:
 - Requires GitHub CLI (`gh`) and auth (`gh auth login`).
 - Output is saved under `artifacts/coverage/run-<runId>/`.
 
+### Coverage Exclusions Policy
+
+This project follows a clear policy on what code is included in coverage measurements and what is intentionally excluded.
+
+#### What We Measure
+
+Coverage metrics focus on **production code** that we author and maintain:
+- All source files in `DotNetMcp/` (excluding generated code)
+- Tool implementations, helpers, and business logic
+- Error handling and validation code
+- SDK integration code
+
+#### What We Exclude
+
+The following categories are excluded from coverage reports:
+
+1. **Build Artifacts** (`obj/`, `bin/`)
+   - Intermediate build outputs
+   - Compiled assemblies
+   - These are build products, not source code
+
+2. **Auto-Generated Files**
+   - `*.g.cs` - Generated C# files (e.g., Regex source generators)
+   - `*.GlobalUsings.g.cs` - SDK-generated global usings
+   - `*.AssemblyInfo.cs` - SDK-generated assembly metadata
+   - `*.AssemblyAttributes.cs` - SDK-generated assembly attributes
+
+3. **Source Generator Outputs**
+   - `generated/` directories
+   - Files in generator-specific directories (e.g., `System.Text.RegularExpressions.Generator/`)
+   - These are generated at build time by source generators
+
+4. **Test Projects**
+   - `**/*.Tests/**` - Test code itself is not measured
+   - We measure how well tests cover production code, not the tests themselves
+
+#### Where Exclusions Are Enforced
+
+Exclusions are implemented in multiple locations to ensure consistency:
+
+1. **Codecov Configuration** (`codecov.yml`)
+   - Primary exclusion mechanism for Codecov reporting
+   - Defines patterns for files to ignore
+   - See the `ignore:` section in `codecov.yml` for the complete list
+
+2. **CI Workflow** (`.github/workflows/build.yml`)
+   - Coverage is collected using Microsoft Testing Platform
+   - Raw coverage data includes all files; exclusions happen at report processing
+   - Coverage artifact is uploaded for diagnostics
+
+3. **Coverage Collector** (Microsoft Testing Platform)
+   - Collects coverage from all compiled code by default
+   - Exclusions are applied post-collection by Codecov
+
+#### Why This Policy
+
+- **Generated code** should not affect coverage metrics because:
+  - We don't author or maintain it
+  - It's auto-generated at build time
+  - Changes to it are not under our control
+  
+- **Build artifacts** (`obj/`, `bin/`) should be excluded because:
+  - They are compiler outputs, not source code
+  - Including them would duplicate coverage of the same code
+  
+- **Test code** should be excluded because:
+  - Coverage measures how well tests cover production code
+  - Measuring test coverage of tests is not useful
+
+#### Validation
+
+The exclusion patterns are validated by:
+- Codecov reporting (visible in PR comments and coverage reports)
+- CI uploads coverage artifacts that can be inspected locally
+- The `download-coverage-artifact.ps1` script can be used to examine raw coverage data
+- The `validate-coverage-exclusions.ps1` script validates exclusion patterns locally
+
+To validate exclusion patterns against the latest coverage data:
+
+```powershell
+pwsh -File scripts/validate-coverage-exclusions.ps1
+```
+
+This script will:
+- Parse the codecov.yml configuration
+- Analyze the latest coverage report
+- Show which files will be excluded/included
+- Warn if expected patterns are not working
+
+If you notice coverage anomalies (e.g., generated files appearing in reports), check:
+1. The `codecov.yml` configuration has the correct patterns
+2. The file paths match the exclusion patterns
+3. Codecov is processing the exclusions correctly (check PR comments)
+
 ## Test project layout
 
 - `DotNetMcp.Tests/` contains the test suite.
