@@ -25,8 +25,17 @@ public static class TestRunnerDetector
 
         if (searchDirectory == null)
         {
-            logger?.LogDebug("No search directory available for test runner detection, defaulting to VSTest");
-            return (Actions.TestRunner.VSTest, "default");
+            // Fall back to current directory if neither working directory nor project path provided
+            try
+            {
+                searchDirectory = Directory.GetCurrentDirectory();
+                logger?.LogDebug("Using current directory for test runner detection: {Directory}", searchDirectory);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                logger?.LogDebug(ex, "Failed to get current directory for test runner detection, defaulting to VSTest");
+                return (Actions.TestRunner.VSTest, "default");
+            }
         }
 
         // Walk up directory tree looking for global.json

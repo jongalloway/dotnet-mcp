@@ -940,6 +940,237 @@ public class ConsolidatedProjectToolTests
     }
 
     [Fact]
+    public async Task DotnetProject_Test_WithGlobalJsonInProjectDirectory_DetectsMTP()
+    {
+        // Arrange: Create temp directory with a subdirectory containing project and global.json
+        var tempRootDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-test-root-" + Guid.NewGuid().ToString("N"));
+        var projectDir = Path.Join(tempRootDir, "tests");
+        Directory.CreateDirectory(projectDir);
+        var globalJsonPath = Path.Join(projectDir, "global.json");
+        var projectPath = Path.Join(projectDir, "MyTests.csproj");
+
+        try
+        {
+            // Create global.json with MTP configuration in the project directory
+            File.WriteAllText(globalJsonPath, """
+            {
+                "test": {
+                    "runner": "Microsoft.Testing.Platform"
+                }
+            }
+            """);
+
+            // Act: Call test from root directory WITHOUT workingDirectory parameter
+            // This should use the project path's directory for detection
+            var result = await _tools.DotnetProject(
+                action: DotnetProjectAction.Test,
+                project: projectPath,
+                testRunner: TestRunner.Auto,
+                workingDirectory: null,  // Explicitly null to test fallback to project directory
+                machineReadable: true);
+
+            // Assert
+            Assert.NotNull(result);
+            
+            // Verify metadata indicates MTP was detected from global.json
+            Assert.Contains("\"selectedTestRunner\": \"microsoft-testing-platform\"", result);
+            Assert.Contains("\"projectArgumentStyle\": \"--project\"", result);
+            Assert.Contains("\"selectionSource\": \"global.json\"", result);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(tempRootDir, recursive: true);
+            }
+            catch (IOException)
+            {
+                // Best-effort cleanup
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Best-effort cleanup
+            }
+        }
+    }
+
+    [Fact]
+    public async Task DotnetProject_Test_WithGlobalJsonInParentDirectory_DetectsMTP()
+    {
+        // Arrange: Create temp directory structure with global.json at root and project in subdirectory
+        var tempRootDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-aspire-" + Guid.NewGuid().ToString("N"));
+        var projectDir = Path.Join(tempRootDir, "tests", "MyApp.Tests");
+        Directory.CreateDirectory(projectDir);
+        var globalJsonPath = Path.Join(tempRootDir, "global.json");
+        var projectPath = Path.Join(projectDir, "MyTests.csproj");
+
+        try
+        {
+            // Create global.json with MTP configuration at the root (like Aspire does)
+            File.WriteAllText(globalJsonPath, """
+            {
+                "test": {
+                    "runner": "Microsoft.Testing.Platform"
+                }
+            }
+            """);
+
+            // Act: Call test with project path (no workingDirectory)
+            // Detection should walk up from project directory and find global.json in parent
+            var result = await _tools.DotnetProject(
+                action: DotnetProjectAction.Test,
+                project: projectPath,
+                testRunner: TestRunner.Auto,
+                machineReadable: true);
+
+            // Assert
+            Assert.NotNull(result);
+            
+            // Verify metadata indicates MTP was detected from global.json
+            Assert.Contains("\"selectedTestRunner\": \"microsoft-testing-platform\"", result);
+            Assert.Contains("\"projectArgumentStyle\": \"--project\"", result);
+            Assert.Contains("\"selectionSource\": \"global.json\"", result);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(tempRootDir, recursive: true);
+            }
+            catch (IOException)
+            {
+                // Best-effort cleanup
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Best-effort cleanup
+            }
+        }
+    }
+
+    [Fact]
+    public async Task DotnetProject_Test_WithSolutionFile_DetectsMTPFromGlobalJson()
+    {
+        // Arrange: Create an Aspire-like structure with solution and global.json at root
+        var tempRootDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-sln-" + Guid.NewGuid().ToString("N"));
+        var projectDir = Path.Join(tempRootDir, "tests", "MyApp.Tests");
+        Directory.CreateDirectory(projectDir);
+        var globalJsonPath = Path.Join(tempRootDir, "global.json");
+        var solutionPath = Path.Join(tempRootDir, "MyApp.slnx");
+
+        try
+        {
+            // Create global.json with MTP configuration at the root
+            File.WriteAllText(globalJsonPath, """
+            {
+                "test": {
+                    "runner": "Microsoft.Testing.Platform"
+                }
+            }
+            """);
+
+            // Create a minimal solution file
+            File.WriteAllText(solutionPath, """
+            <Solution>
+              <Folder Name="/tests/">
+                <Project Path="tests/MyApp.Tests/MyApp.Tests.csproj" />
+              </Folder>
+            </Solution>
+            """);
+
+            // Act: Call test with solution file
+            // Detection should use the solution's directory and find global.json there
+            var result = await _tools.DotnetProject(
+                action: DotnetProjectAction.Test,
+                project: solutionPath,
+                testRunner: TestRunner.Auto,
+                machineReadable: true);
+
+            // Assert
+            Assert.NotNull(result);
+            
+            // Verify metadata indicates MTP was detected from global.json
+            Assert.Contains("\"selectedTestRunner\": \"microsoft-testing-platform\"", result);
+            Assert.Contains("\"projectArgumentStyle\": \"--project\"", result);
+            Assert.Contains("\"selectionSource\": \"global.json\"", result);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(tempRootDir, recursive: true);
+            }
+            catch (IOException)
+            {
+                // Best-effort cleanup
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Best-effort cleanup
+            }
+        }
+    }
+
+    [Fact]
+    public async Task DotnetProject_Test_NoProjectOrWorkingDir_UsesCurrentDirectory()
+    {
+        // Arrange: Create temp directory with global.json and change to that directory
+        var tempRootDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-current-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempRootDir);
+        var globalJsonPath = Path.Join(tempRootDir, "global.json");
+        var currentDir = Directory.GetCurrentDirectory();
+
+        try
+        {
+            // Create global.json with MTP configuration
+            File.WriteAllText(globalJsonPath, """
+            {
+                "test": {
+                    "runner": "Microsoft.Testing.Platform"
+                }
+            }
+            """);
+
+            // Change to the temp directory so it becomes the current directory
+            Directory.SetCurrentDirectory(tempRootDir);
+
+            // Act: Call test without project or workingDirectory
+            // Detection should use current directory and find global.json
+            var result = await _tools.DotnetProject(
+                action: DotnetProjectAction.Test,
+                project: null,
+                testRunner: TestRunner.Auto,
+                workingDirectory: null,
+                machineReadable: true);
+
+            // Assert
+            Assert.NotNull(result);
+            
+            // Verify metadata indicates MTP was detected from global.json
+            Assert.Contains("\"selectedTestRunner\": \"microsoft-testing-platform\"", result);
+            Assert.Contains("\"selectionSource\": \"global.json\"", result);
+        }
+        finally
+        {
+            // Restore original directory
+            Directory.SetCurrentDirectory(currentDir);
+            
+            try
+            {
+                Directory.Delete(tempRootDir, recursive: true);
+            }
+            catch (IOException)
+            {
+                // Best-effort cleanup
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Best-effort cleanup
+            }
+        }
+    }
+
+    [Fact]
     public async Task DotnetProject_Test_UseLegacyProjectArgument_OverridesTestRunner()
     {
         // Test backward compatibility: useLegacyProjectArgument should override testRunner
