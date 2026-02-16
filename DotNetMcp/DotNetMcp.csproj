@@ -46,7 +46,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Build" Version="18.0.2" />
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="18.3.3" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.3" />
     <PackageReference Include="Microsoft.TemplateEngine.Abstractions" Version="10.0.103" />
     <PackageReference Include="Microsoft.TemplateEngine.Edge" Version="10.0.103" />
     <PackageReference Include="ModelContextProtocol" Version="0.6.0-preview.1" />
