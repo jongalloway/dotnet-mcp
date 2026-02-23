@@ -1126,4 +1126,103 @@ public class ConsolidatedProjectToolTests
     }
 
     #endregion
+
+    #region ListTemplateOptions Action Tests
+
+    [Fact]
+    public async Task DotnetProject_ListTemplateOptions_WithoutTemplate_ReturnsError()
+    {
+        // Test that ListTemplateOptions action requires template parameter
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.ListTemplateOptions,
+            template: null,
+            machineReadable: false);
+
+        Assert.Contains("Error", result);
+        Assert.Contains("template", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_ListTemplateOptions_WithoutTemplate_MachineReadable_ReturnsValidationError()
+    {
+        // Test that ListTemplateOptions action returns machine-readable error when template is missing
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.ListTemplateOptions,
+            template: null,
+            machineReadable: true);
+
+        Assert.NotNull(result);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("template", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_ListTemplateOptions_WithInvalidTemplate_ReturnsNotFoundError()
+    {
+        // Test that ListTemplateOptions action returns error for unknown template
+        var originalLoader = TemplateEngineHelper.LoadTemplatesOverride;
+        var originalExecutor = TemplateEngineHelper.ExecuteDotNetForTemplatesAsync;
+
+        try
+        {
+            // Simulate template not found
+            TemplateEngineHelper.LoadTemplatesOverride = () =>
+                Task.FromResult(Enumerable.Empty<Microsoft.TemplateEngine.Abstractions.ITemplateInfo>());
+            TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = (args, _) =>
+                throw new InvalidOperationException("No templates found");
+
+            var result = await _tools.DotnetProject(
+                action: DotnetProjectAction.ListTemplateOptions,
+                template: "nonexistent-template-xyz",
+                machineReadable: false);
+
+            Assert.Contains("Error", result);
+            Assert.Contains("not found", result, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            TemplateEngineHelper.LoadTemplatesOverride = originalLoader;
+            TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = originalExecutor;
+        }
+    }
+
+    [Fact]
+    public async Task DotnetProject_ListTemplateOptions_WithValidTemplate_ExecutesDotnetNewHelp()
+    {
+        // Test that ListTemplateOptions action executes dotnet new <template> --help
+        var originalLoader = TemplateEngineHelper.LoadTemplatesOverride;
+        var originalExecutor = TemplateEngineHelper.ExecuteDotNetForTemplatesAsync;
+
+        try
+        {
+            // Simulate template engine returning empty so CLI fallback is used for validation
+            TemplateEngineHelper.LoadTemplatesOverride = () =>
+                Task.FromResult(Enumerable.Empty<Microsoft.TemplateEngine.Abstractions.ITemplateInfo>());
+            TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = (args, _) =>
+            {
+                if (args.Contains("new list") && args.Contains("console"))
+                {
+                    return Task.FromResult("These templates matched your input: 'console'\n\nConsole App  console");
+                }
+                throw new InvalidOperationException("Command failed");
+            };
+
+            var result = await _tools.DotnetProject(
+                action: DotnetProjectAction.ListTemplateOptions,
+                template: "console",
+                machineReadable: true);
+
+            Assert.NotNull(result);
+            // Should have attempted dotnet new console --help
+            Assert.Contains("console", result, StringComparison.OrdinalIgnoreCase);
+            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet new console --help");
+        }
+        finally
+        {
+            TemplateEngineHelper.LoadTemplatesOverride = originalLoader;
+            TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = originalExecutor;
+        }
+    }
+
+    #endregion
 }
