@@ -85,7 +85,10 @@ public enum DotnetProjectAction
     Format,
 
     /// <summary>Stop a running process session (run/watch)</summary>
-    Stop
+    Stop,
+
+    /// <summary>List available options/parameters for a template (runs dotnet new &lt;template&gt; --help)</summary>
+    ListTemplateOptions
 }
 
 /// <summary>
