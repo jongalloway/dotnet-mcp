@@ -23,7 +23,7 @@ public sealed partial class DotNetCliTools
     /// <param name="framework">Target framework (e.g., 'net10.0', 'net8.0')</param>
     /// <param name="configuration">Build configuration (Debug or Release)</param>
     /// <param name="runtime">Target runtime identifier for publish action (e.g., 'linux-x64', 'win-x64')</param>
-    /// <param name="additionalOptions">Template-specific options for new action (e.g., '--use-program-main', '--aot')</param>
+    /// <param name="additionalOptions">Template-specific options for new action (e.g., '--use-program-main', '--aot'). Use action 'ListTemplateOptions' with a template name to discover available options for a specific template.</param>
     /// <param name="appArgs">Arguments to pass to the application for run action</param>
     /// <param name="filter">Test filter expression for test action</param>
     /// <param name="collect">Data collector friendly name for test action (e.g., 'XPlat Code Coverage')</param>
@@ -54,7 +54,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("priority", 10.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("consolidatedTool", true)]
-    [McpMeta("actions", JsonValue = """["New","Restore","Build","Run","Test","Publish","Clean","Analyze","Dependencies","Validate","Pack","Watch","Format","Stop"]""")]
+    [McpMeta("actions", JsonValue = """["New","Restore","Build","Run","Test","Publish","Clean","Analyze","Dependencies","Validate","Pack","Watch","Format","Stop","ListTemplateOptions"]""")]
     public async partial Task<string> DotnetProject(
         DotnetProjectAction action,
         string? project = null,
@@ -125,6 +125,7 @@ public sealed partial class DotNetCliTools
                 DotnetProjectAction.Watch => await HandleWatchAction(watchAction, project, configuration, appArgs, filter, noHotReload, machineReadable),
                 DotnetProjectAction.Format => await HandleFormatAction(project, verify, includeGenerated, diagnostics, severity, machineReadable),
                 DotnetProjectAction.Stop => await HandleStopAction(sessionId, machineReadable),
+                DotnetProjectAction.ListTemplateOptions => await HandleListTemplateOptionsAction(template, machineReadable),
                 _ => machineReadable
                     ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateValidationError(
                         $"Action '{action}' is not supported.",
@@ -570,6 +571,40 @@ public sealed partial class DotNetCliTools
             }
             return Task.FromResult($"Error: {stopError}");
         }
+    }
+
+    private async Task<string> HandleListTemplateOptionsAction(string? template, bool machineReadable)
+    {
+        // Validate required parameter
+        if (!ParameterValidator.ValidateRequiredParameter(template, "template", out var errorMessage))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    errorMessage!,
+                    parameterName: "template",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return $"Error: {errorMessage}";
+        }
+
+        // Validate that the template exists
+        var templateValidation = await ParameterValidator.ValidateTemplateAsync(template, _logger);
+        if (!templateValidation.IsValid)
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    templateValidation.ErrorMessage!,
+                    parameterName: "template",
+                    reason: string.IsNullOrWhiteSpace(template) ? "required" : "not found");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return $"Error: {templateValidation.ErrorMessage}";
+        }
+
+        return await ExecuteDotNetCommand($"new {template} --help", machineReadable);
     }
 
     // ===== Watch helper methods (moved from DotNetCliTools.Watch.cs) =====

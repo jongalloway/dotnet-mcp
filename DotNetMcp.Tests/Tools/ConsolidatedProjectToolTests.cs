@@ -1126,4 +1126,65 @@ public class ConsolidatedProjectToolTests
     }
 
     #endregion
+
+    #region ListTemplateOptions Action Tests
+
+    [Fact]
+    public async Task DotnetProject_ListTemplateOptions_WithoutTemplate_ReturnsError()
+    {
+        // Test that ListTemplateOptions action requires template parameter
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.ListTemplateOptions,
+            template: null,
+            machineReadable: false);
+
+        Assert.Contains("Error", result);
+        Assert.Contains("template", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_ListTemplateOptions_WithoutTemplate_MachineReadable_ReturnsValidationError()
+    {
+        // Test that ListTemplateOptions action returns machine-readable error when template is missing
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.ListTemplateOptions,
+            template: null,
+            machineReadable: true);
+
+        Assert.NotNull(result);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("template", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_ListTemplateOptions_WithInvalidTemplate_ReturnsNotFoundError()
+    {
+        // Test that ListTemplateOptions action returns error for unknown template.
+        // Uses a genuinely non-existent template name so no static overrides are needed.
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.ListTemplateOptions,
+            template: "nonexistent-template-xyz",
+            machineReadable: false);
+
+        Assert.Contains("Error", result);
+        Assert.Contains("not found", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_ListTemplateOptions_WithValidTemplate_ExecutesDotnetNewHelp()
+    {
+        // Test that ListTemplateOptions action executes dotnet new <template> --help.
+        // Uses the real template engine and CLI to avoid polluting shared static state.
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.ListTemplateOptions,
+            template: "console",
+            machineReadable: true);
+
+        Assert.NotNull(result);
+        // Should have attempted dotnet new console --help
+        Assert.Contains("console", result, StringComparison.OrdinalIgnoreCase);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet new console --help");
+    }
+
+    #endregion
 }
