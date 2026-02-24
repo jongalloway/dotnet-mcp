@@ -147,9 +147,10 @@ public class StructuredContentTests
     [Fact]
     public async Task DotnetSolution_List_StructuredContent_HasProjectsProperty()
     {
-        // Use a real solution file from the repo
-        var slnPath = "/home/runner/work/dotnet-mcp/dotnet-mcp/DotNetMcp.slnx";
-        if (!System.IO.File.Exists(slnPath)) return; // Skip if not available
+        // Use a real solution file - find it relative to the test assembly location
+        var slnPath = Path.GetFullPath(
+            Path.Join(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "DotNetMcp.slnx"));
+        if (!File.Exists(slnPath)) return; // Skip if not available
 
         var result = await _tools.DotnetSolution(
             action: DotnetSolutionAction.List,
@@ -163,7 +164,7 @@ public class StructuredContentTests
     }
 
     [Fact]
-    public async Task StructuredContentHelper_ToCallToolResult_WithoutStructured_HasNoStructuredContent()
+    public void StructuredContentHelper_ToCallToolResult_WithoutStructured_HasNoStructuredContent()
     {
         var callResult = StructuredContentHelper.ToCallToolResult("hello", null);
         Assert.False(callResult.StructuredContent.HasValue);
@@ -171,7 +172,7 @@ public class StructuredContentTests
     }
 
     [Fact]
-    public async Task StructuredContentHelper_ToCallToolResult_WithStructured_HasStructuredContent()
+    public void StructuredContentHelper_ToCallToolResult_WithStructured_HasStructuredContent()
     {
         var callResult = StructuredContentHelper.ToCallToolResult("hello", new { key = "value" });
         Assert.True(callResult.StructuredContent.HasValue);
