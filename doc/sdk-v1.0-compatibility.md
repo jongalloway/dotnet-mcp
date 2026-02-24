@@ -1,54 +1,47 @@
-# SDK v0.6 Compatibility Audit
+# SDK v1.0 Compatibility Audit
 
 ## Summary
 
-This document summarizes the compatibility audit conducted for the ModelContextProtocol C# SDK v0.6.0-preview.1 integration with dotnet-mcp.
+This document summarizes the compatibility audit conducted for the ModelContextProtocol C# SDK v1.0.0-rc.1 integration with dotnet-mcp.
 
-**Conclusion**: dotnet-mcp is fully compatible with SDK v0.6. Minor code changes made to adopt new features, including icon support for improved AI assistant UX.
+**Conclusion**: dotnet-mcp is fully compatible with SDK v1.0. No breaking changes required code updates. The MCP protocol version string was updated from the old SDK-version-based value to the spec-based date format (`2025-11-25`).
 
-## New Features Adopted
+## Changes Adopted in This Upgrade
+
+### Protocol Version Update
+
+The `ProtocolVersion` constant in `DotNetCliTools.Core.cs` was updated from `"0.5.0-preview.1"` to `"2025-11-25"` to reflect the actual MCP protocol specification version used by the SDK.
+
+## SDK v1.0 Changes Overview (from v0.6.0-preview.1)
+
+The SDK releases from v0.7.0 through v1.0.0-rc.1 introduced several changes:
+
+### v0.7.0
+
+- **Binary data as `ReadOnlyMemory<byte>`** - **No impact** (we don't use binary content)
+- **`McpServerHandlers` restructured** - **No impact** (we use source generators, not handlers)
+- **`IMcpServer` injection changes** - **No impact** (we use DI constructor injection)
+
+### v0.8.0
+
+- **Protocol DTOs sealed** - **No impact** (we don't subclass protocol DTOs)
+- **Back-references removed from protocol DTOs** - **No impact** (conformance tests don't access parent refs)
+
+### v0.9.0
+
+- **`Tool.Name` now `required`** - **No impact** (test code doesn't construct `Tool` directly)
+- **`IList<T>` replaces `List<T>` on protocol types** - **No impact** (we don't rely on `List<T>`-specific APIs)
+- **Filter API renaming** - **No impact** (we don't use message filters)
+
+### v1.0.0-rc.1
+
+- **`StructuredContent` property changes** - **No impact** (we don't use `StructuredContent` yet)
+
+## New Features in SDK v0.6 (preserved from prior audit)
 
 ### Icon Support
 
-SDK v0.6 introduces icon support for tools, resources, prompts, and server-level metadata. This improves visual presentation in AI assistant interfaces.
-
-#### Implementation
-
-**Tool-Level Icons**: All 11 MCP tools now have icons configured via the `IconSource` property on `[McpServerTool]`:
-
-```csharp
-[McpServerTool(IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/.../file_folder_flat.svg")]
-[McpMeta("category", "project")]
-public async partial Task<string> DotnetProject(...)
-```
-
-**Server-Level Icons**: Configured in `Program.cs` via `AddMcpServer` options:
-
-```csharp
-builder.Services.AddMcpServer(options =>
-{
-    options.ServerInfo = new Implementation
-    {
-        Name = "dotnet-mcp",
-        Icons =
-        [
-            new Icon
-            {
-                Source = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/.../gear_flat.svg",
-                MimeType = "image/svg+xml",
-                Sizes = ["any"],
-                Theme = "light"
-            },
-            new Icon
-            {
-                Source = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/.../gear_3d.png",
-                MimeType = "image/png",
-                Sizes = ["256x256"]
-            }
-        ]
-    };
-});
-```
+SDK v0.6 introduced icon support for tools, resources, prompts, and server-level metadata. This improves visual presentation in AI assistant interfaces.
 
 #### Icon Mapping by Category
 
@@ -66,46 +59,11 @@ builder.Services.AddMcpServer(options =>
 
 All icons use [Microsoft Fluent UI Emoji](https://github.com/microsoft/fluentui-emoji) for consistency and visual appeal.
 
-## SDK v0.6 Changes Overview
-
-The SDK v0.6.0-preview.1 introduced several improvements and optimizations:
-
-### 1. Fully-Qualified Type Names in Generated Signatures (#1135)
-
-- **Change**: The SDK now uses fully-qualified type names in generated partial method signatures.
-- **Benefit**: Resolves ambiguity issues with action enums and other types.
-- **Impact on dotnet-mcp**: The `GlobalUsings.cs` file with `global using DotNetMcp.Actions;` is still needed for convenience, but is no longer strictly required for compilation.
-
-### 2. CS1066 Suppressor for Optional Parameters (#1110)
-
-- **Change**: The SDK now automatically suppresses CS1066 warnings for MCP server methods with optional parameters.
-- **Impact on dotnet-mcp**: **Removed manual CS1066 suppression** from `DotNetMcp.csproj`. The project now builds cleanly without manual suppressions.
-
-### 3. Incremental Scope Consent - SEP-835 (#1084)
-
-- **Change**: Support for incremental scope consent in authorization flows.
-- **Impact on dotnet-mcp**: **None** - This feature is not applicable to our server implementation as we don't implement authorization flows.
-
-### 4. Resource Subscribe Improvements (#676)
-
-- **Change**: Resource subscribe is now automatically true if a handler is provided.
-- **Impact on dotnet-mcp**: **None** - Our resource implementation already follows the recommended pattern.
-
-### 5. Optimized JSON-RPC Deserialization (#1138)
-
-- **Change**: Single-pass parsing optimization for `JsonRpcMessage` deserialization.
-- **Impact on dotnet-mcp**: **Performance improvement** with no code changes required.
-
-### 6. Breaking Changes
-
-- **`s_additionalProperties` removed from `McpClientTool`** (#1080) - **No impact** (we don't use client-side APIs)
-- **Session timeout fix** (#1106) - **No impact** on our operations
-
 ## dotnet-mcp SDK Usage
 
 ### Server-Side APIs Used
 
-dotnet-mcp only uses server-side SDK APIs, which continue to work correctly with v0.6:
+dotnet-mcp only uses server-side SDK APIs, which continue to work correctly with v1.0:
 
 1. **`AddMcpServer()`** - Configures the MCP server in the DI container
 2. **`WithStdioServerTransport()`** - Sets up stdio transport
@@ -114,7 +72,7 @@ dotnet-mcp only uses server-side SDK APIs, which continue to work correctly with
 
 ### Attributes Used
 
-All server-side attributes work correctly with v0.6:
+All server-side attributes work correctly with v1.0:
 
 1. **`[McpServerToolType]`** - Marks classes containing tool methods
 2. **`[McpServerTool]`** - Marks methods as MCP tools
@@ -126,7 +84,7 @@ All server-side attributes work correctly with v0.6:
 
 ### Regression Tests
 
-All existing tests pass with SDK v0.6:
+All existing tests pass with SDK v1.0:
 
 1. ✅ **AllToolMethods_HaveMcpServerToolAttribute** - Verifies all tools are discoverable
 2. ✅ **ToolMethods_WithMcpMetaAttributes_CanBeDiscovered** - Tests metadata reflection
@@ -139,7 +97,7 @@ All existing tests pass with SDK v0.6:
 
 ### Test Results
 
-- **Result**: ✅ All tests pass with SDK v0.6
+- **Result**: ✅ All 1100+ tests pass with SDK v1.0
 
 ## Metadata Verification
 
@@ -191,11 +149,12 @@ All metadata categories are properly implemented:
 
 - [MCP C# SDK GitHub](https://github.com/modelcontextprotocol/csharp-sdk)
 - [MCP C# SDK Documentation](https://modelcontextprotocol.github.io/csharp-sdk/)
-- [SDK v0.6 Release Notes](https://github.com/modelcontextprotocol/csharp-sdk/releases/tag/v0.6.0-preview.1)
+- [SDK v1.0.0-rc.1 Release Notes](https://github.com/modelcontextprotocol/csharp-sdk/releases/tag/v1.0.0-rc.1)
 - [Model Context Protocol Specification](https://modelcontextprotocol.io/)
 
 ## Audit Date
 
-**Date**: 2026-01-27  
-**SDK Version**: ModelContextProtocol 0.6.0-preview.1  
-**Result**: ✅ Compatible - Minor improvements adopted
+**Date**: 2026-02-24  
+**SDK Version**: ModelContextProtocol 1.0.0-rc.1  
+**Result**: ✅ Compatible - No breaking changes, protocol version string updated
+

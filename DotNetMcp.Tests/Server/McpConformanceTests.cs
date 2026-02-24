@@ -96,7 +96,7 @@ public class McpConformanceTests : IAsyncLifetime
         Assert.NotNull(_client);
         Assert.NotNull(_client.NegotiatedProtocolVersion);
         
-        // Should be using MCP protocol version from the SDK (0.5.0-preview.1 or compatible)
+        // Should be using MCP protocol version from the SDK (2025-11-25 or compatible)
         Assert.NotEmpty(_client.NegotiatedProtocolVersion);
     }
 
