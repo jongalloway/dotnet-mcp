@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace DotNetMcp;
@@ -30,7 +31,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("priority", 8.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("tags", JsonValue = """["capabilities","version","discovery","orchestration","metadata"]""")]
-    public async partial Task<string> DotnetServerCapabilities()
+    public async partial Task<CallToolResult> DotnetServerCapabilities()
     {
         // Get the assembly version
         var assembly = typeof(DotNetCliTools).Assembly;
@@ -79,7 +80,8 @@ public sealed partial class DotNetCliTools
             }
         };
 
-        return ErrorResultFactory.ToJson(capabilities);
+        var json = ErrorResultFactory.ToJson(capabilities);
+        return StructuredContentHelper.ToCallToolResult(json, capabilities);
     }
 
     /// <summary>

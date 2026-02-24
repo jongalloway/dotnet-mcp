@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace DotNetMcp;
@@ -32,7 +33,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("commonlyUsed", true)]
     [McpMeta("consolidatedTool", true)]
     [McpMeta("actions", JsonValue = """["Version","Info","ListSdks","ListRuntimes","ListTemplates","SearchTemplates","TemplateInfo","ClearTemplateCache","ListTemplatePacks","InstallTemplatePack","UninstallTemplatePack","FrameworkInfo","CacheMetrics"]""")]
-    public async partial Task<string> DotnetSdk(
+    public async partial Task<CallToolResult> DotnetSdk(
         DotnetSdkAction action,
         string? searchTerm = null,
         string? templateShortName = null,
@@ -46,7 +47,7 @@ public sealed partial class DotNetCliTools
         string? workingDirectory = null,
         bool machineReadable = false)
     {
-        return await WithWorkingDirectoryAsync(workingDirectory, async () =>
+        var textResult = await WithWorkingDirectoryAsync(workingDirectory, async () =>
         {
             // Validate action parameter
             if (!ParameterValidator.ValidateAction<DotnetSdkAction>(action, out var errorMessage))
@@ -89,6 +90,17 @@ public sealed partial class DotNetCliTools
                     : $"Error: Action '{action}' is not supported."
             };
         });
+
+        // Add structured content for key actions
+        object? structured = action switch
+        {
+            DotnetSdkAction.Version => BuildVersionStructuredContent(textResult),
+            DotnetSdkAction.ListSdks => BuildListSdksStructuredContent(textResult),
+            DotnetSdkAction.ListRuntimes => BuildListRuntimesStructuredContent(textResult),
+            _ => null
+        };
+
+        return StructuredContentHelper.ToCallToolResult(textResult, structured);
     }
 
     private async Task<string> HandleSearchTemplatesAction(string? searchTerm, bool forceReload, bool machineReadable)
@@ -452,4 +464,51 @@ public sealed partial class DotNetCliTools
     [McpMeta("priority", 6.0)]
     internal async Task<string> DotnetRuntimeList(bool machineReadable = false)
         => await ExecuteDotNetCommand("--list-runtimes", machineReadable);
+
+    private static object? BuildVersionStructuredContent(string textResult)
+    {
+        // Extract version from output like "10.0.100\nExit Code: 0"
+        var lines = textResult.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var versionLine = lines.FirstOrDefault(l => !l.StartsWith("Exit Code:", StringComparison.OrdinalIgnoreCase) && !l.StartsWith("Error", StringComparison.OrdinalIgnoreCase));
+        if (string.IsNullOrWhiteSpace(versionLine)) return null;
+        var version = versionLine.Trim();
+        return new { version };
+    }
+
+    private static object? BuildListSdksStructuredContent(string textResult)
+    {
+        var lines = textResult.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var sdks = lines
+            .Where(l => !l.StartsWith("Exit Code:", StringComparison.OrdinalIgnoreCase)
+                && !l.StartsWith("Error", StringComparison.OrdinalIgnoreCase)
+                && l.TrimStart().Length > 0 && char.IsDigit(l.TrimStart()[0]))
+            .Select(l =>
+            {
+                var parts = l.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                var ver = parts.Length > 0 ? parts[0] : l.Trim();
+                var path = parts.Length > 1 ? parts[1].Trim('[', ']', ' ') : null;
+                return new { version = ver, path };
+            })
+            .ToArray();
+        return new { sdks };
+    }
+
+    private static object? BuildListRuntimesStructuredContent(string textResult)
+    {
+        var lines = textResult.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var runtimes = lines
+            .Where(l => !l.StartsWith("Exit Code:", StringComparison.OrdinalIgnoreCase)
+                && !l.StartsWith("Error", StringComparison.OrdinalIgnoreCase)
+                && l.TrimStart().Length > 0 && char.IsAsciiLetter(l.TrimStart()[0]))
+            .Select(l =>
+            {
+                var parts = l.Trim().Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
+                var name = parts.Length > 0 ? parts[0] : string.Empty;
+                var ver = parts.Length > 1 ? parts[1] : string.Empty;
+                var path = parts.Length > 2 ? parts[2].Trim('[', ']', ' ') : null;
+                return new { name, version = ver, path };
+            })
+            .ToArray();
+        return new { runtimes };
+    }
 }

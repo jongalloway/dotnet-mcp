@@ -1,5 +1,6 @@
 using System.Text;
 using DotNetMcp.Actions;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace DotNetMcp;
@@ -38,7 +39,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("commonlyUsed", true)]
     [McpMeta("consolidatedTool", true)]
     [McpMeta("actions", JsonValue = """["Add","Remove","Search","Update","List","AddReference","RemoveReference","ListReferences","ClearCache"]""")]
-    public async partial Task<string> DotnetPackage(
+    public async partial Task<CallToolResult> DotnetPackage(
         DotnetPackageAction action,
         string? packageId = null,
         string? version = null,
@@ -57,7 +58,7 @@ public sealed partial class DotNetCliTools
         string? workingDirectory = null,
         bool machineReadable = false)
     {
-        return await WithWorkingDirectoryAsync(workingDirectory, async () =>
+        var textResult = await WithWorkingDirectoryAsync(workingDirectory, async () =>
         {
             // Validate action parameter
             if (!ParameterValidator.ValidateAction<DotnetPackageAction>(action, out var errorMessage))
@@ -94,6 +95,13 @@ public sealed partial class DotNetCliTools
                     : $"Error: Action '{action}' is not supported."
             };
         });
+
+        // Add structured content for List action
+        object? structured = action == DotnetPackageAction.List
+            ? BuildPackageListStructuredContent(textResult)
+            : null;
+
+        return StructuredContentHelper.ToCallToolResult(textResult, structured);
     }
 
     private async Task<string> HandleAddAction(string? packageId, string? project, string? version, string? source, string? framework, bool prerelease, bool machineReadable)
@@ -332,6 +340,29 @@ public sealed partial class DotNetCliTools
             list: false,
             clear: true,
             machineReadable: machineReadable);
+    }
+
+    private static object? BuildPackageListStructuredContent(string textResult)
+    {
+        // Parse package list from 'dotnet list package' output
+        var lines = textResult.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var packages = lines
+            .Where(l => l.TrimStart().StartsWith(">", StringComparison.Ordinal))
+            .Select(l =>
+            {
+                var parts = l.Trim().TrimStart('>').Trim()
+                    .Split(new char[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length >= 3)
+                    return new { name = parts[0], requestedVersion = (string?)parts[1], resolvedVersion = (string?)parts[2] };
+                if (parts.Length == 2)
+                    return new { name = parts[0], requestedVersion = (string?)parts[1], resolvedVersion = (string?)null };
+                return parts.Length == 1
+                    ? new { name = parts[0], requestedVersion = (string?)null, resolvedVersion = (string?)null }
+                    : null;
+            })
+            .Where(p => p != null)
+            .ToArray();
+        return new { packages };
     }
 
     // ===== Reference helper methods (moved from DotNetCliTools.Reference.cs) =====

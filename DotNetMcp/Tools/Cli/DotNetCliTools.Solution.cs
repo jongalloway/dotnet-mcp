@@ -1,5 +1,6 @@
 using System.Text;
 using DotNetMcp.Actions;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace DotNetMcp;
@@ -138,7 +139,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("consolidatedTool", true)]
     [McpMeta("actions", JsonValue = """["Create","Add","List","Remove"]""")]
     [McpMeta("tags", JsonValue = """["solution","consolidated","create","add","list","remove","organization","multi-project"]""")]
-    public async partial Task<string> DotnetSolution(
+    public async partial Task<CallToolResult> DotnetSolution(
         DotnetSolutionAction action,
         string? solution = null,
         string? name = null,
@@ -157,13 +158,13 @@ public sealed partial class DotNetCliTools
                     action.ToString(),
                     validActions,
                     toolName: "dotnet_solution");
-                return ErrorResultFactory.ToJson(error);
+                return StructuredContentHelper.ToCallToolResult(ErrorResultFactory.ToJson(error));
             }
-            return $"Error: {actionError}";
+            return StructuredContentHelper.ToCallToolResult($"Error: {actionError}");
         }
 
         // Route to appropriate method based on action
-        return action switch
+        var textResult = action switch
         {
             DotnetSolutionAction.Create => await HandleCreateAction(name, output, format, machineReadable),
             DotnetSolutionAction.Add => await HandleAddAction(solution, projects, machineReadable),
@@ -171,6 +172,13 @@ public sealed partial class DotNetCliTools
             DotnetSolutionAction.Remove => await HandleRemoveAction(solution, projects, machineReadable),
             _ => throw new InvalidOperationException($"Unsupported action '{action}'. This should have been caught by validation.")
         };
+
+        // Add structured content for List action
+        object? structured = action == DotnetSolutionAction.List
+            ? BuildSolutionListStructuredContent(textResult)
+            : null;
+
+        return StructuredContentHelper.ToCallToolResult(textResult, structured);
     }
 
     private async Task<string> HandleCreateAction(string? name, string? output, string? format, bool machineReadable)
@@ -261,5 +269,23 @@ public sealed partial class DotNetCliTools
         }
 
         return await DotnetSolutionRemove(solution!, projects, machineReadable);
+    }
+
+    private static object? BuildSolutionListStructuredContent(string textResult)
+    {
+        // Parse project paths from dotnet solution list output
+        // Output format: lines with .csproj/.fsproj/.vbproj paths
+        var lines = textResult.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var projects = lines
+            .Where(l => !l.StartsWith("Exit Code:", StringComparison.OrdinalIgnoreCase)
+                && !l.StartsWith("Error", StringComparison.OrdinalIgnoreCase)
+                && !l.StartsWith("Project(s)", StringComparison.OrdinalIgnoreCase)
+                && !l.StartsWith("---", StringComparison.OrdinalIgnoreCase)
+                && (l.Trim().EndsWith(".csproj", StringComparison.OrdinalIgnoreCase)
+                    || l.Trim().EndsWith(".fsproj", StringComparison.OrdinalIgnoreCase)
+                    || l.Trim().EndsWith(".vbproj", StringComparison.OrdinalIgnoreCase)))
+            .Select(l => l.Trim())
+            .ToArray();
+        return new { projects };
     }
 }

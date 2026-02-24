@@ -433,12 +433,12 @@ public class MiscellaneousToolsTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains("Modern .NET Frameworks", result);
-        Assert.Contains(".NET Core Frameworks", result);
-        Assert.Contains("Latest Recommended", result);
-        Assert.Contains("Latest LTS", result);
+        Assert.Contains("Modern .NET Frameworks", result.GetText());
+        Assert.Contains(".NET Core Frameworks", result.GetText());
+        Assert.Contains("Latest Recommended", result.GetText());
+        Assert.Contains("Latest LTS", result.GetText());
         // Should contain at least one framework version
-        Assert.Matches(@"net\d+\.\d+", result);
+        Assert.Matches(@"net\d+\.\d+", result.GetText());
     }
 
     [Fact]
@@ -449,10 +449,10 @@ public class MiscellaneousToolsTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains("Framework: net8.0", result);
-        Assert.Contains("Description:", result);
-        Assert.Contains("Is LTS:", result);
-        Assert.Contains("Is Modern .NET:", result);
+        Assert.Contains("Framework: net8.0", result.GetText());
+        Assert.Contains("Description:", result.GetText());
+        Assert.Contains("Is LTS:", result.GetText());
+        Assert.Contains("Is Modern .NET:", result.GetText());
     }
 
     [Fact]
@@ -463,8 +463,8 @@ public class MiscellaneousToolsTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains("Framework: netcoreapp3.1", result);
-        Assert.Contains("Is .NET Core:", result);
+        Assert.Contains("Framework: netcoreapp3.1", result.GetText());
+        Assert.Contains("Is .NET Core:", result.GetText());
     }
 
     // Help Tool Tests

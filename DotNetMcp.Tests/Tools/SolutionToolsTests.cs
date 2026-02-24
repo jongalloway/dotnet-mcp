@@ -44,7 +44,7 @@ public class SolutionToolsTests
 
             // Assert
             Assert.NotNull(result);
-            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet new sln -n \"MySolution\" --format sln");
+            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet new sln -n \"MySolution\" --format sln");
         }
         finally
         {
@@ -73,7 +73,7 @@ public class SolutionToolsTests
 
             // Assert
             Assert.NotNull(result);
-            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, $"dotnet new sln -n \"MySolution\" -o \"{tempDirectory}\" --format slnx");
+            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), $"dotnet new sln -n \"MySolution\" -o \"{tempDirectory}\" --format slnx");
         }
         finally
         {
@@ -91,8 +91,8 @@ public class SolutionToolsTests
             machineReadable: false);
 
         // Assert
-        Assert.Contains("Error", result);
-        Assert.Contains("name", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Error", result.GetText());
+        Assert.Contains("name", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public class SolutionToolsTests
 
         // Assert
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet solution \"MySolution.sln\" add \"MyProject.csproj\"");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet solution \"MySolution.sln\" add \"MyProject.csproj\"");
     }
 
     [Fact]
@@ -123,7 +123,7 @@ public class SolutionToolsTests
         // Assert
         Assert.NotNull(result);
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(
-            result,
+            result.GetText(),
             "dotnet solution \"MySolution.sln\" add \"Project1.csproj\" \"Project2.csproj\"");
     }
 
@@ -137,8 +137,8 @@ public class SolutionToolsTests
             machineReadable: false);
 
         // Assert
-        Assert.Contains("Error", result);
-        Assert.Contains("solution", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Error", result.GetText());
+        Assert.Contains("solution", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -151,8 +151,8 @@ public class SolutionToolsTests
             machineReadable: false);
 
         // Assert
-        Assert.Contains("Error", result);
-        Assert.Contains("project", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Error", result.GetText());
+        Assert.Contains("project", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -166,8 +166,8 @@ public class SolutionToolsTests
             machineReadable: false);
 
         // Assert
-        Assert.Contains("Error", result);
-        Assert.Contains("project", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Error", result.GetText());
+        Assert.Contains("project", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -181,7 +181,7 @@ public class SolutionToolsTests
 
         // Assert
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet solution \"MySolution.sln\" list");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet solution \"MySolution.sln\" list");
     }
 
     [Fact]
@@ -193,8 +193,8 @@ public class SolutionToolsTests
             machineReadable: false);
 
         // Assert
-        Assert.Contains("Error", result);
-        Assert.Contains("solution", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Error", result.GetText());
+        Assert.Contains("solution", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -209,7 +209,7 @@ public class SolutionToolsTests
 
         // Assert
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet solution \"MySolution.sln\" remove \"MyProject.csproj\"");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet solution \"MySolution.sln\" remove \"MyProject.csproj\"");
     }
 
     [Fact]
@@ -225,7 +225,7 @@ public class SolutionToolsTests
         // Assert
         Assert.NotNull(result);
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(
-            result,
+            result.GetText(),
             "dotnet solution \"MySolution.sln\" remove \"Project1.csproj\" \"Project2.csproj\"");
     }
 
@@ -239,8 +239,8 @@ public class SolutionToolsTests
             machineReadable: false);
 
         // Assert
-        Assert.Contains("Error", result);
-        Assert.Contains("solution", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Error", result.GetText());
+        Assert.Contains("solution", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -253,8 +253,8 @@ public class SolutionToolsTests
             machineReadable: false);
 
         // Assert
-        Assert.Contains("Error", result);
-        Assert.Contains("project", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Error", result.GetText());
+        Assert.Contains("project", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -268,8 +268,8 @@ public class SolutionToolsTests
             machineReadable: false);
 
         // Assert
-        Assert.Contains("Error", result);
-        Assert.Contains("project", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Error", result.GetText());
+        Assert.Contains("project", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -281,8 +281,8 @@ public class SolutionToolsTests
             machineReadable: true);
 
         // Assert
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("INVALID_PARAMS", result);
+        Assert.Contains("\"success\": false", result.GetText());
+        Assert.Contains("INVALID_PARAMS", result.GetText());
     }
 
     [Fact]
@@ -295,8 +295,8 @@ public class SolutionToolsTests
             machineReadable: true);
 
         // Assert
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("INVALID_PARAMS", result);
+        Assert.Contains("\"success\": false", result.GetText());
+        Assert.Contains("INVALID_PARAMS", result.GetText());
     }
 
     [Fact]
@@ -310,10 +310,10 @@ public class SolutionToolsTests
             machineReadable: false);
 
         // Assert
-        Assert.Contains("Error", result);
-        Assert.Contains("format", result, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("sln", result, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("slnx", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Error", result.GetText());
+        Assert.Contains("format", result.GetText(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("sln", result.GetText(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("slnx", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -327,8 +327,8 @@ public class SolutionToolsTests
             machineReadable: true);
 
         // Assert
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("INVALID_PARAMS", result);
-        Assert.Contains("format", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"success\": false", result.GetText());
+        Assert.Contains("INVALID_PARAMS", result.GetText());
+        Assert.Contains("format", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -29,11 +29,11 @@ public class SdkAndServerInfoToolsTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        Assert.DoesNotContain("Error:", result.GetText());
         // SDK info should contain version or runtime information
-        Assert.True(result.Contains("SDK", StringComparison.OrdinalIgnoreCase) ||
-                    result.Contains("Runtime", StringComparison.OrdinalIgnoreCase) ||
-                    result.Contains("Version", StringComparison.OrdinalIgnoreCase),
+        Assert.True(result.GetText().Contains("SDK", StringComparison.OrdinalIgnoreCase) ||
+                    result.GetText().Contains("Runtime", StringComparison.OrdinalIgnoreCase) ||
+                    result.GetText().Contains("Version", StringComparison.OrdinalIgnoreCase),
                     "Result should contain SDK information");
     }
 
@@ -45,7 +45,7 @@ public class SdkAndServerInfoToolsTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        Assert.DoesNotContain("Error:", result.GetText());
     }
 
     [Fact]
@@ -56,9 +56,9 @@ public class SdkAndServerInfoToolsTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        Assert.DoesNotContain("Error:", result.GetText());
         // Version should contain numeric version information
-        Assert.Matches(@"\d+\.\d+", result); // Should match version pattern like "8.0" or "10.0.100"
+        Assert.Matches(@"\d+\.\d+", result.GetText()); // Should match version pattern like "8.0" or "10.0.100"
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public class SdkAndServerInfoToolsTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        Assert.DoesNotContain("Error:", result.GetText());
     }
 
     [Fact]
@@ -80,11 +80,11 @@ public class SdkAndServerInfoToolsTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        Assert.DoesNotContain("Error:", result.GetText());
         // Should list SDK versions
-        Assert.True(result.Contains("SDK", StringComparison.OrdinalIgnoreCase) ||
-                    result.Contains("Version", StringComparison.OrdinalIgnoreCase) ||
-                    Regex.IsMatch(result, @"\d+\.\d+"),
+        Assert.True(result.GetText().Contains("SDK", StringComparison.OrdinalIgnoreCase) ||
+                    result.GetText().Contains("Version", StringComparison.OrdinalIgnoreCase) ||
+                    Regex.IsMatch(result.GetText(), @"\d+\.\d+"),
                     "Result should contain SDK version information");
     }
 
@@ -96,7 +96,7 @@ public class SdkAndServerInfoToolsTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        Assert.DoesNotContain("Error:", result.GetText());
     }
 
     [Fact]
@@ -107,11 +107,11 @@ public class SdkAndServerInfoToolsTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        Assert.DoesNotContain("Error:", result.GetText());
         // Should list runtime information
-        Assert.True(result.Contains("Runtime", StringComparison.OrdinalIgnoreCase) ||
-                    result.Contains("Microsoft.NETCore.App", StringComparison.OrdinalIgnoreCase) ||
-                    Regex.IsMatch(result, @"\d+\.\d+"),
+        Assert.True(result.GetText().Contains("Runtime", StringComparison.OrdinalIgnoreCase) ||
+                    result.GetText().Contains("Microsoft.NETCore.App", StringComparison.OrdinalIgnoreCase) ||
+                    Regex.IsMatch(result.GetText(), @"\d+\.\d+"),
                     "Result should contain runtime information");
     }
 
@@ -123,7 +123,7 @@ public class SdkAndServerInfoToolsTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        Assert.DoesNotContain("Error:", result.GetText());
     }
 
     [Fact]
@@ -136,8 +136,8 @@ public class SdkAndServerInfoToolsTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains("Error:", result);
-        Assert.Contains("templatePackage", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Error:", result.GetText());
+        Assert.Contains("templatePackage", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -156,7 +156,7 @@ public class SdkAndServerInfoToolsTests
 
             // Assert
             Assert.NotNull(result);
-            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, $"dotnet new install \"{tempDir}\"");
+            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), $"dotnet new install \"{tempDir}\"");
         }
         finally
         {
@@ -177,7 +177,7 @@ public class SdkAndServerInfoToolsTests
 
         // Assert
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet new uninstall \"Some.Template.Pack\"");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet new uninstall \"Some.Template.Pack\"");
     }
 
     [Fact]
@@ -190,7 +190,7 @@ public class SdkAndServerInfoToolsTests
 
         // Assert
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet new uninstall");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet new uninstall");
     }
 
     // Server Info Tools
@@ -204,9 +204,9 @@ public class SdkAndServerInfoToolsTests
         // Assert
         Assert.NotNull(result);
         // Should be JSON
-        Assert.Contains("{", result);
-        Assert.Contains("}", result);
-        Assert.Contains("serverVersion", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("{", result.GetText());
+        Assert.Contains("}", result.GetText());
+        Assert.Contains("serverVersion", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -216,9 +216,9 @@ public class SdkAndServerInfoToolsTests
         var result = await _tools.DotnetServerCapabilities();
 
         // Assert
-        Assert.Contains("template", result, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("project", result, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("package", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("template", result.GetText(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("project", result.GetText(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("package", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

@@ -121,7 +121,7 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        Assert.DoesNotContain("Error:", result.GetText());
     }
 
     [Fact]
@@ -137,7 +137,7 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        Assert.DoesNotContain("Error:", result.GetText());
     }
 
     // Solution Management Edge Cases
@@ -153,7 +153,7 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result);
+        Assert.DoesNotContain("Error:", result.GetText());
     }
 
     // Certificate/Security Edge Cases
@@ -430,8 +430,8 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains("netstandard2.1", result);
-        Assert.Contains("Is .NET Standard:", result);
+        Assert.Contains("netstandard2.1", result.GetText());
+        Assert.Contains("Is .NET Standard:", result.GetText());
     }
 
     [Fact]
@@ -444,7 +444,7 @@ public class EdgeCaseAndIntegrationTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains("net10.0", result);
-        Assert.Contains("Is Modern .NET:", result);
+        Assert.Contains("net10.0", result.GetText());
+        Assert.Contains("Is Modern .NET:", result.GetText());
     }
 }

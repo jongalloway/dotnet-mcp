@@ -36,7 +36,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add package Newtonsoft.Json");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet add package Newtonsoft.Json");
     }
 
     [Fact]
@@ -50,7 +50,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add package Newtonsoft.Json --version 13.0.3");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet add package Newtonsoft.Json --version 13.0.3");
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add \"MyProject.csproj\" package Serilog");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet add \"MyProject.csproj\" package Serilog");
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add package Microsoft.AspNetCore.App --prerelease");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet add package Microsoft.AspNetCore.App --prerelease");
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add package \"MyPackage\" --source \"https://api.nuget.org/v3/index.json\"");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet add package \"MyPackage\" --source \"https://api.nuget.org/v3/index.json\"");
     }
 
     [Fact]
@@ -106,7 +106,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add package \"MyPackage\" --framework \"net8.0\"");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet add package \"MyPackage\" --framework \"net8.0\"");
     }
 
     [Fact]
@@ -122,7 +122,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add package \"MyPackage\" --version \"1.0.0\" --source \"https://api.nuget.org/v3/index.json\" --framework \"net10.0\"");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet add package \"MyPackage\" --version \"1.0.0\" --source \"https://api.nuget.org/v3/index.json\" --framework \"net10.0\"");
     }
 
     [Fact]
@@ -133,8 +133,8 @@ public class ConsolidatedPackageToolTests
             action: DotnetPackageAction.Add,
             packageId: null);
 
-        Assert.Contains("Error", result);
-        Assert.Contains("packageId", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Error", result.GetText());
+        Assert.Contains("packageId", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -147,8 +147,8 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("packageId", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"success\": false", result.GetText());
+        Assert.Contains("packageId", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion
@@ -165,7 +165,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet remove package Newtonsoft.Json");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet remove package Newtonsoft.Json");
     }
 
     [Fact]
@@ -179,7 +179,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet remove \"MyProject.csproj\" package Serilog");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet remove \"MyProject.csproj\" package Serilog");
     }
 
     [Fact]
@@ -192,8 +192,8 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("packageId", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"success\": false", result.GetText());
+        Assert.Contains("packageId", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion
@@ -210,7 +210,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet package search Serilog");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet package search Serilog");
     }
 
     [Fact]
@@ -224,7 +224,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet package search logging --take 10");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet package search logging --take 10");
     }
 
     [Fact]
@@ -238,7 +238,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet package search AspNetCore --prerelease");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet package search AspNetCore --prerelease");
     }
 
     [Fact]
@@ -252,7 +252,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet package search Newtonsoft.Json --exact-match");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet package search Newtonsoft.Json --exact-match");
     }
 
     [Fact]
@@ -265,8 +265,8 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("searchTerm", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"success\": false", result.GetText());
+        Assert.Contains("searchTerm", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion
@@ -283,7 +283,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add package Newtonsoft.Json");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet add package Newtonsoft.Json");
     }
 
     [Fact]
@@ -297,7 +297,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add package Serilog --version 3.0.0");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet add package Serilog --version 3.0.0");
     }
 
     [Fact]
@@ -310,8 +310,8 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("packageId", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"success\": false", result.GetText());
+        Assert.Contains("packageId", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion
@@ -327,7 +327,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet list package");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet list package");
     }
 
     [Fact]
@@ -340,7 +340,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet list \"MyProject.csproj\" package");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet list \"MyProject.csproj\" package");
     }
 
     [Fact]
@@ -353,7 +353,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet list package --outdated");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet list package --outdated");
     }
 
     [Fact]
@@ -366,7 +366,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet list package --deprecated");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet list package --deprecated");
     }
 
     #endregion
@@ -384,7 +384,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add \"MyProject.csproj\" reference \"MyLibrary.csproj\"");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet add \"MyProject.csproj\" reference \"MyLibrary.csproj\"");
     }
 
     [Fact]
@@ -398,8 +398,8 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("project", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"success\": false", result.GetText());
+        Assert.Contains("project", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -413,8 +413,8 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("referencePath", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"success\": false", result.GetText());
+        Assert.Contains("referencePath", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion
@@ -432,7 +432,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet remove \"MyProject.csproj\" reference \"MyLibrary.csproj\"");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet remove \"MyProject.csproj\" reference \"MyLibrary.csproj\"");
     }
 
     [Fact]
@@ -446,8 +446,8 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("project", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"success\": false", result.GetText());
+        Assert.Contains("project", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -461,8 +461,8 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("referencePath", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"success\": false", result.GetText());
+        Assert.Contains("referencePath", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion
@@ -478,7 +478,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet list reference");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet list reference");
     }
 
     [Fact]
@@ -491,7 +491,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet list \"MyProject.csproj\" reference");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet list \"MyProject.csproj\" reference");
     }
 
     #endregion
@@ -507,7 +507,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet nuget locals all --clear");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet nuget locals all --clear");
     }
 
     [Fact]
@@ -520,7 +520,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet nuget locals http-cache --clear");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet nuget locals http-cache --clear");
     }
 
     [Fact]
@@ -533,7 +533,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet nuget locals global-packages --clear");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet nuget locals global-packages --clear");
     }
 
     [Fact]
@@ -546,7 +546,7 @@ public class ConsolidatedPackageToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet nuget locals temp --clear");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet nuget locals temp --clear");
     }
 
     #endregion

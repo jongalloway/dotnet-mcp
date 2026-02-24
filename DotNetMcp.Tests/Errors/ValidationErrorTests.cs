@@ -297,7 +297,7 @@ public class ValidationErrorTests
             machineReadable: true);
 
         // Assert
-        AssertValidationError(result, "format", "invalid value");
+        AssertValidationError(result.GetText(), "format", "invalid value");
     }
 
     [Fact]
@@ -311,7 +311,7 @@ public class ValidationErrorTests
             machineReadable: true);
 
         // Assert
-        AssertValidationError(result, "projects", "required");
+        AssertValidationError(result.GetText(), "projects", "required");
     }
 
     [Fact]
@@ -325,7 +325,7 @@ public class ValidationErrorTests
             machineReadable: true);
 
         // Assert
-        AssertValidationError(result, "projects", "required");
+        AssertValidationError(result.GetText(), "projects", "required");
     }
 
     #endregion

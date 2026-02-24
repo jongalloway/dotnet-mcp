@@ -122,10 +122,10 @@ public class PerformanceSmokeTests
             
             // Non-blocking: if the call fails in this environment, report and skip.
             Assert.NotNull(result);
-            if (result.Contains("Error:", StringComparison.OrdinalIgnoreCase))
+            if (result.GetText().Contains("Error:", StringComparison.OrdinalIgnoreCase))
             {
                 Console.WriteLine("DotnetSdkVersion returned an error; skipping performance measurements.");
-                Console.WriteLine(result);
+                Console.WriteLine(result.GetText());
                 return;
             }
             

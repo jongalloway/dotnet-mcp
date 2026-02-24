@@ -29,28 +29,28 @@ public class MachineReadableContractComplianceTests
     public async Task DotnetSdkVersion_MachineReadable_ReturnsValidSuccessEnvelope()
     {
         var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Version, machineReadable: true);
-        AssertSuccessEnvelope(result);
+        AssertSuccessEnvelope(result.GetText());
     }
 
     [Fact]
     public async Task DotnetSdkInfo_MachineReadable_ReturnsValidSuccessEnvelope()
     {
         var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Info, machineReadable: true);
-        AssertSuccessEnvelope(result);
+        AssertSuccessEnvelope(result.GetText());
     }
 
     [Fact]
     public async Task DotnetSdkList_MachineReadable_ReturnsValidSuccessEnvelope()
     {
         var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.ListSdks, machineReadable: true);
-        AssertSuccessEnvelope(result);
+        AssertSuccessEnvelope(result.GetText());
     }
 
     [Fact]
     public async Task DotnetRuntimeList_MachineReadable_ReturnsValidSuccessEnvelope()
     {
         var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.ListRuntimes, machineReadable: true);
-        AssertSuccessEnvelope(result);
+        AssertSuccessEnvelope(result.GetText());
     }
 
     #endregion
@@ -138,7 +138,7 @@ public class MachineReadableContractComplianceTests
             solution: "Test.sln",
             projects: Array.Empty<string>(),
             machineReadable: true);
-        AssertValidationErrorEnvelope(result);
+        AssertValidationErrorEnvelope(result.GetText());
     }
 
     [Fact]
@@ -148,7 +148,7 @@ public class MachineReadableContractComplianceTests
             action: DotNetMcp.Actions.DotnetPackageAction.ClearCache,
             cacheType: "invalid",
             machineReadable: true);
-        AssertValidationErrorEnvelope(result);
+        AssertValidationErrorEnvelope(result.GetText());
     }
 
     #endregion

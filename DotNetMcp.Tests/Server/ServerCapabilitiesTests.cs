@@ -27,10 +27,10 @@ public class ServerCapabilitiesTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.NotEmpty(result);
+        Assert.NotEmpty(result.Content);
 
         // Verify it's valid JSON by parsing it
-        var doc = JsonDocument.Parse(result);
+        var doc = JsonDocument.Parse(result.GetText());
         Assert.NotNull(doc);
     }
 
@@ -39,7 +39,7 @@ public class ServerCapabilitiesTests
     {
         // Act
         var result = await _tools.DotnetServerCapabilities();
-        var jsonDoc = JsonDocument.Parse(result);
+        var jsonDoc = JsonDocument.Parse(result.GetText());
         var root = jsonDoc.RootElement;
 
         // Assert - Check all required top-level fields exist
@@ -55,7 +55,7 @@ public class ServerCapabilitiesTests
     {
         // Act
         var result = await _tools.DotnetServerCapabilities();
-        var jsonDoc = JsonDocument.Parse(result);
+        var jsonDoc = JsonDocument.Parse(result.GetText());
         var serverVersion = jsonDoc.RootElement.GetProperty("serverVersion").GetString();
 
         // Assert
@@ -68,7 +68,7 @@ public class ServerCapabilitiesTests
     {
         // Act
         var result = await _tools.DotnetServerCapabilities();
-        var jsonDoc = JsonDocument.Parse(result);
+        var jsonDoc = JsonDocument.Parse(result.GetText());
         var protocolVersion = jsonDoc.RootElement.GetProperty("protocolVersion").GetString();
 
         // Assert
@@ -80,7 +80,7 @@ public class ServerCapabilitiesTests
     {
         // Act
         var result = await _tools.DotnetServerCapabilities();
-        var jsonDoc = JsonDocument.Parse(result);
+        var jsonDoc = JsonDocument.Parse(result.GetText());
         var categories = jsonDoc.RootElement
             .GetProperty("supportedCategories")
             .EnumerateArray()
@@ -102,7 +102,7 @@ public class ServerCapabilitiesTests
     {
         // Act
         var result = await _tools.DotnetServerCapabilities();
-        var jsonDoc = JsonDocument.Parse(result);
+        var jsonDoc = JsonDocument.Parse(result.GetText());
         var structuredErrors = jsonDoc.RootElement
             .GetProperty("supports")
             .GetProperty("structuredErrors")
@@ -117,7 +117,7 @@ public class ServerCapabilitiesTests
     {
         // Act
         var result = await _tools.DotnetServerCapabilities();
-        var jsonDoc = JsonDocument.Parse(result);
+        var jsonDoc = JsonDocument.Parse(result.GetText());
         var machineReadable = jsonDoc.RootElement
             .GetProperty("supports")
             .GetProperty("machineReadable")
@@ -132,7 +132,7 @@ public class ServerCapabilitiesTests
     {
         // Act
         var result = await _tools.DotnetServerCapabilities();
-        var jsonDoc = JsonDocument.Parse(result);
+        var jsonDoc = JsonDocument.Parse(result.GetText());
         var cancellation = jsonDoc.RootElement
             .GetProperty("supports")
             .GetProperty("cancellation")
@@ -147,7 +147,7 @@ public class ServerCapabilitiesTests
     {
         // Act
         var result = await _tools.DotnetServerCapabilities();
-        var jsonDoc = JsonDocument.Parse(result);
+        var jsonDoc = JsonDocument.Parse(result.GetText());
         var telemetry = jsonDoc.RootElement
             .GetProperty("supports")
             .GetProperty("telemetry")
@@ -162,7 +162,7 @@ public class ServerCapabilitiesTests
     {
         // Act
         var result = await _tools.DotnetServerCapabilities();
-        var jsonDoc = JsonDocument.Parse(result);
+        var jsonDoc = JsonDocument.Parse(result.GetText());
         var installed = jsonDoc.RootElement
             .GetProperty("sdkVersions")
             .GetProperty("installed")
@@ -184,7 +184,7 @@ public class ServerCapabilitiesTests
     {
         // Act
         var result = await _tools.DotnetServerCapabilities();
-        var jsonDoc = JsonDocument.Parse(result);
+        var jsonDoc = JsonDocument.Parse(result.GetText());
         var recommended = jsonDoc.RootElement
             .GetProperty("sdkVersions")
             .GetProperty("recommended")
@@ -199,7 +199,7 @@ public class ServerCapabilitiesTests
     {
         // Act
         var result = await _tools.DotnetServerCapabilities();
-        var jsonDoc = JsonDocument.Parse(result);
+        var jsonDoc = JsonDocument.Parse(result.GetText());
         var lts = jsonDoc.RootElement
             .GetProperty("sdkVersions")
             .GetProperty("lts")
@@ -216,7 +216,7 @@ public class ServerCapabilitiesTests
         var result = await _tools.DotnetServerCapabilities();
 
         // Deserialize to the actual ServerCapabilities object to verify schema
-        var capabilities = JsonSerializer.Deserialize<ServerCapabilities>(result, new JsonSerializerOptions
+        var capabilities = JsonSerializer.Deserialize<ServerCapabilities>(result.GetText(), new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = false
         });

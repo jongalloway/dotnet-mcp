@@ -35,9 +35,9 @@ public class ConsolidatedSdkToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("INVALID_PARAMS", result);
-        Assert.Contains("workingDirectory", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"success\": false", result.GetText());
+        Assert.Contains("INVALID_PARAMS", result.GetText());
+        Assert.Contains("workingDirectory", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
     #region Version Action Tests
@@ -50,7 +50,7 @@ public class ConsolidatedSdkToolTests
             action: DotnetSdkAction.Version);
 
         Assert.NotNull(result);
-        Assert.NotEmpty(result);
+        Assert.NotEmpty(result.Content);
     }
 
     [Fact]
@@ -76,7 +76,7 @@ public class ConsolidatedSdkToolTests
             action: DotnetSdkAction.Info);
 
         Assert.NotNull(result);
-        Assert.NotEmpty(result);
+        Assert.NotEmpty(result.Content);
     }
 
     [Fact]
@@ -102,7 +102,7 @@ public class ConsolidatedSdkToolTests
             action: DotnetSdkAction.ListSdks);
 
         Assert.NotNull(result);
-        Assert.NotEmpty(result);
+        Assert.NotEmpty(result.Content);
     }
 
     [Fact]
@@ -128,7 +128,7 @@ public class ConsolidatedSdkToolTests
             action: DotnetSdkAction.ListRuntimes);
 
         Assert.NotNull(result);
-        Assert.NotEmpty(result);
+        Assert.NotEmpty(result.Content);
     }
 
     [Fact]
@@ -154,7 +154,7 @@ public class ConsolidatedSdkToolTests
             action: DotnetSdkAction.ListTemplates);
 
         Assert.NotNull(result);
-        Assert.NotEmpty(result);
+        Assert.NotEmpty(result.Content);
     }
 
     [Fact]
@@ -166,7 +166,7 @@ public class ConsolidatedSdkToolTests
             forceReload: true);
 
         Assert.NotNull(result);
-        Assert.NotEmpty(result);
+        Assert.NotEmpty(result.Content);
     }
 
     #endregion
@@ -182,7 +182,7 @@ public class ConsolidatedSdkToolTests
             searchTerm: "console");
 
         Assert.NotNull(result);
-        Assert.NotEmpty(result);
+        Assert.NotEmpty(result.Content);
     }
 
     [Fact]
@@ -195,7 +195,7 @@ public class ConsolidatedSdkToolTests
             forceReload: true);
 
         Assert.NotNull(result);
-        Assert.NotEmpty(result);
+        Assert.NotEmpty(result.Content);
     }
 
     [Fact]
@@ -206,8 +206,8 @@ public class ConsolidatedSdkToolTests
             action: DotnetSdkAction.SearchTemplates);
 
         Assert.NotNull(result);
-        Assert.Contains("Error", result);
-        Assert.Contains("searchTerm", result);
+        Assert.Contains("Error", result.GetText());
+        Assert.Contains("searchTerm", result.GetText());
     }
 
     [Fact]
@@ -219,8 +219,8 @@ public class ConsolidatedSdkToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        Assert.Contains("searchTerm", result);
-        Assert.Contains("required", result);
+        Assert.Contains("searchTerm", result.GetText());
+        Assert.Contains("required", result.GetText());
     }
 
     #endregion
@@ -236,7 +236,7 @@ public class ConsolidatedSdkToolTests
             templateShortName: "console");
 
         Assert.NotNull(result);
-        Assert.NotEmpty(result);
+        Assert.NotEmpty(result.Content);
     }
 
     [Fact]
@@ -249,7 +249,7 @@ public class ConsolidatedSdkToolTests
             forceReload: true);
 
         Assert.NotNull(result);
-        Assert.NotEmpty(result);
+        Assert.NotEmpty(result.Content);
     }
 
     [Fact]
@@ -260,8 +260,8 @@ public class ConsolidatedSdkToolTests
             action: DotnetSdkAction.TemplateInfo);
 
         Assert.NotNull(result);
-        Assert.Contains("Error", result);
-        Assert.Contains("templateShortName", result);
+        Assert.Contains("Error", result.GetText());
+        Assert.Contains("templateShortName", result.GetText());
     }
 
     [Fact]
@@ -273,8 +273,8 @@ public class ConsolidatedSdkToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        Assert.Contains("templateShortName", result);
-        Assert.Contains("required", result);
+        Assert.Contains("templateShortName", result.GetText());
+        Assert.Contains("required", result.GetText());
     }
 
     #endregion
@@ -289,7 +289,7 @@ public class ConsolidatedSdkToolTests
             action: DotnetSdkAction.ClearTemplateCache);
 
         Assert.NotNull(result);
-        Assert.Contains("cleared", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("cleared", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion
@@ -304,7 +304,7 @@ public class ConsolidatedSdkToolTests
             action: DotnetSdkAction.FrameworkInfo);
 
         Assert.NotNull(result);
-        Assert.NotEmpty(result);
+        Assert.NotEmpty(result.Content);
     }
 
     [Fact]
@@ -316,8 +316,8 @@ public class ConsolidatedSdkToolTests
             framework: "net8.0");
 
         Assert.NotNull(result);
-        Assert.NotEmpty(result);
-        Assert.Contains("net8.0", result);
+        Assert.NotEmpty(result.Content);
+        Assert.Contains("net8.0", result.GetText());
     }
 
     #endregion
@@ -332,8 +332,8 @@ public class ConsolidatedSdkToolTests
             action: DotnetSdkAction.CacheMetrics);
 
         Assert.NotNull(result);
-        Assert.NotEmpty(result);
-        Assert.Contains("Cache Metrics", result);
+        Assert.NotEmpty(result.Content);
+        Assert.Contains("Cache Metrics", result.GetText());
     }
 
     #endregion
@@ -348,7 +348,7 @@ public class ConsolidatedSdkToolTests
         var result = await _tools.DotnetSdk(action: invalidAction);
 
         Assert.NotNull(result);
-        Assert.Contains("Error", result);
+        Assert.Contains("Error", result.GetText());
     }
 
     [Fact]
@@ -361,7 +361,7 @@ public class ConsolidatedSdkToolTests
             machineReadable: true);
 
         Assert.NotNull(result);
-        Assert.Contains("error", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("error", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion
@@ -374,19 +374,19 @@ public class ConsolidatedSdkToolTests
         // Test multiple actions in sequence to ensure no state issues
         var versionResult = await _tools.DotnetSdk(action: DotnetSdkAction.Version);
         Assert.NotNull(versionResult);
-        Assert.NotEmpty(versionResult);
+        Assert.NotEmpty(versionResult.Content);
 
         var infoResult = await _tools.DotnetSdk(action: DotnetSdkAction.Info);
         Assert.NotNull(infoResult);
-        Assert.NotEmpty(infoResult);
+        Assert.NotEmpty(infoResult.Content);
 
         var listSdksResult = await _tools.DotnetSdk(action: DotnetSdkAction.ListSdks);
         Assert.NotNull(listSdksResult);
-        Assert.NotEmpty(listSdksResult);
+        Assert.NotEmpty(listSdksResult.Content);
 
         var listRuntimesResult = await _tools.DotnetSdk(action: DotnetSdkAction.ListRuntimes);
         Assert.NotNull(listRuntimesResult);
-        Assert.NotEmpty(listRuntimesResult);
+        Assert.NotEmpty(listRuntimesResult.Content);
     }
 
     [Fact]
@@ -395,19 +395,19 @@ public class ConsolidatedSdkToolTests
         // Test complete template workflow
         var listResult = await _tools.DotnetSdk(action: DotnetSdkAction.ListTemplates);
         Assert.NotNull(listResult);
-        Assert.NotEmpty(listResult);
+        Assert.NotEmpty(listResult.Content);
 
         var searchResult = await _tools.DotnetSdk(
             action: DotnetSdkAction.SearchTemplates,
             searchTerm: "console");
         Assert.NotNull(searchResult);
-        Assert.NotEmpty(searchResult);
+        Assert.NotEmpty(searchResult.Content);
 
         var infoResult = await _tools.DotnetSdk(
             action: DotnetSdkAction.TemplateInfo,
             templateShortName: "console");
         Assert.NotNull(infoResult);
-        Assert.NotEmpty(infoResult);
+        Assert.NotEmpty(infoResult.Content);
     }
 
     [Fact]
@@ -441,8 +441,8 @@ public class ConsolidatedSdkToolTests
 
             // Assert
             Assert.NotNull(result);
-            Assert.Contains("\"success\": true", result, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("dotnet new list", result, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("\"success\": true", result.GetText(), StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("dotnet new list", result.GetText(), StringComparison.OrdinalIgnoreCase);
         }
         finally
         {
@@ -473,7 +473,7 @@ public class ConsolidatedSdkToolTests
             // Assert
             Assert.NotNull(result);
             // Verify the @ symbol is used for version specification
-            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, $"dotnet new install \"{tempDir}@1.0.0\"");
+            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), $"dotnet new install \"{tempDir}@1.0.0\"");
         }
         finally
         {
@@ -495,9 +495,9 @@ public class ConsolidatedSdkToolTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("templatePackage", result);
-        Assert.Contains("already contains", result);
+        Assert.Contains("\"success\": false", result.GetText());
+        Assert.Contains("templatePackage", result.GetText());
+        Assert.Contains("already contains", result.GetText());
     }
 
     [Fact]
@@ -512,9 +512,9 @@ public class ConsolidatedSdkToolTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("templatePackage", result);
-        Assert.Contains("already contains", result);
+        Assert.Contains("\"success\": false", result.GetText());
+        Assert.Contains("templatePackage", result.GetText());
+        Assert.Contains("already contains", result.GetText());
     }
 
     [Fact]
@@ -528,8 +528,8 @@ public class ConsolidatedSdkToolTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("package ID", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"success\": false", result.GetText());
+        Assert.Contains("package ID", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -543,8 +543,8 @@ public class ConsolidatedSdkToolTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("templatePackage", result);
+        Assert.Contains("\"success\": false", result.GetText());
+        Assert.Contains("templatePackage", result.GetText());
     }
 
     [Fact]
@@ -558,8 +558,8 @@ public class ConsolidatedSdkToolTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("templatePackage", result);
+        Assert.Contains("\"success\": false", result.GetText());
+        Assert.Contains("templatePackage", result.GetText());
     }
 
     [Fact]
@@ -573,8 +573,8 @@ public class ConsolidatedSdkToolTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("version", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"success\": false", result.GetText());
+        Assert.Contains("version", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

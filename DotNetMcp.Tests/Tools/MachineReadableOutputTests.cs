@@ -27,11 +27,11 @@ public class MachineReadableOutputTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.NotEmpty(result);
-        Assert.Contains("Exit Code:", result);
+        Assert.NotEmpty(result.Content);
+        Assert.Contains("Exit Code:", result.GetText());
         
         // Should not be valid JSON
-        var isJson = TryParseJson(result, out _);
+        var isJson = TryParseJson(result.GetText(), out _);
         Assert.False(isJson);
     }
 
@@ -43,10 +43,10 @@ public class MachineReadableOutputTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.NotEmpty(result);
+        Assert.NotEmpty(result.Content);
         
         // Should be valid JSON
-        var isJson = TryParseJson(result, out var jsonDoc);
+        var isJson = TryParseJson(result.GetText(), out var jsonDoc);
         Assert.True(isJson);
         
         // Verify JSON structure
@@ -109,9 +109,9 @@ public class MachineReadableOutputTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.NotEmpty(result);
+        Assert.NotEmpty(result.Content);
         
-        var isJson = TryParseJson(result, out _);
+        var isJson = TryParseJson(result.GetText(), out _);
         Assert.True(isJson);
     }
 
@@ -151,8 +151,8 @@ public class MachineReadableOutputTests
         foreach (var result in results)
         {
             Assert.NotNull(result);
-            Assert.NotEmpty(result);
-            var isJson = TryParseJson(result, out _);
+            Assert.NotEmpty(result.Content);
+            var isJson = TryParseJson(result.GetText(), out _);
             Assert.False(isJson);
         }
     }
