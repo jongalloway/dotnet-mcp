@@ -1,6 +1,6 @@
 # Telemetry and Observability
 
-This document describes the telemetry and observability features available in dotnet-mcp, leveraging the MCP C# SDK v0.6.0-preview.1.
+This document describes the telemetry and observability features available in dotnet-mcp, leveraging the MCP C# SDK v1.0.
 
 ## Overview
 
@@ -12,7 +12,7 @@ dotnet-mcp provides comprehensive telemetry and observability through:
 
 ## Built-in SDK Telemetry (v0.6+)
 
-The MCP C# SDK v0.6.0-preview.1 automatically provides telemetry aligned with OpenTelemetry semantic conventions.
+The MCP C# SDK v1.0 automatically provides telemetry aligned with OpenTelemetry semantic conventions.
 
 ### Request Duration Logging
 
@@ -334,7 +334,7 @@ dotnet-mcp 2>&1 | grep "Request handler completed"
 
 ## References
 
-- [MCP C# SDK v0.6 Release Notes](https://github.com/modelcontextprotocol/csharp-sdk/releases/tag/v0.6.0-preview.1)
+- [MCP C# SDK v1.0 Release Notes](https://github.com/modelcontextprotocol/csharp-sdk/releases/tag/v1.0.0-rc.1)
 - [OpenTelemetry .NET Documentation](https://opentelemetry.io/docs/languages/net/)
 - [Performance Baseline Measurements](./performance-baseline.md)
 
