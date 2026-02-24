@@ -363,4 +363,222 @@ public class ProjectAnalysisHelperTests
             try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
         }
     }
+
+    [Fact]
+    public async Task AddItemAsync_WithNonExistentFile_ReturnsErrorJson()
+    {
+        var result = await ProjectAnalysisHelper.AddItemAsync("/tmp/nonexistent.csproj", "Using", "Xunit", logger: _logger);
+
+        Assert.NotNull(result);
+        var json = JsonDocument.Parse(result);
+        Assert.False(json.RootElement.GetProperty("success").GetBoolean());
+        Assert.Contains("not found", json.RootElement.GetProperty("error").GetString()!);
+    }
+
+    [Fact]
+    public async Task AddItemAsync_AddsNewItem()
+    {
+        var projectFile = CreateTempProject("""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+              </PropertyGroup>
+            </Project>
+            """);
+
+        try
+        {
+            var result = await ProjectAnalysisHelper.AddItemAsync(projectFile, "Using", "Xunit", logger: _logger);
+
+            var json = JsonDocument.Parse(result);
+            Assert.True(json.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("Using", json.RootElement.GetProperty("itemType").GetString());
+            Assert.Equal("Xunit", json.RootElement.GetProperty("include").GetString());
+
+            // Verify the file was actually modified
+            var content = File.ReadAllText(projectFile);
+            Assert.Contains("Using", content);
+            Assert.Contains("Xunit", content);
+        }
+        finally
+        {
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+        }
+    }
+
+    [Fact]
+    public async Task AddItemAsync_WithMetadata_AddsItemWithMetadata()
+    {
+        var projectFile = CreateTempProject("""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+              </PropertyGroup>
+            </Project>
+            """);
+
+        try
+        {
+            var metadata = new[] { new KeyValuePair<string, string>("CopyToOutputDirectory", "PreserveNewest") };
+            var result = await ProjectAnalysisHelper.AddItemAsync(projectFile, "Content", "appsettings.json", metadata, _logger);
+
+            var json = JsonDocument.Parse(result);
+            Assert.True(json.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("Content", json.RootElement.GetProperty("itemType").GetString());
+            Assert.Equal("appsettings.json", json.RootElement.GetProperty("include").GetString());
+
+            var content = File.ReadAllText(projectFile);
+            Assert.Contains("Content", content);
+            Assert.Contains("appsettings.json", content);
+            Assert.Contains("CopyToOutputDirectory", content);
+        }
+        finally
+        {
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+        }
+    }
+
+    [Fact]
+    public async Task RemoveItemAsync_WithNonExistentFile_ReturnsErrorJson()
+    {
+        var result = await ProjectAnalysisHelper.RemoveItemAsync("/tmp/nonexistent.csproj", "Using", "Xunit", _logger);
+
+        Assert.NotNull(result);
+        var json = JsonDocument.Parse(result);
+        Assert.False(json.RootElement.GetProperty("success").GetBoolean());
+        Assert.Contains("not found", json.RootElement.GetProperty("error").GetString()!);
+    }
+
+    [Fact]
+    public async Task RemoveItemAsync_RemovesExistingItem()
+    {
+        var projectFile = CreateTempProject("""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+              </PropertyGroup>
+              <ItemGroup>
+                <Using Include="Xunit" />
+              </ItemGroup>
+            </Project>
+            """);
+
+        try
+        {
+            var result = await ProjectAnalysisHelper.RemoveItemAsync(projectFile, "Using", "Xunit", _logger);
+
+            var json = JsonDocument.Parse(result);
+            Assert.True(json.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("Using", json.RootElement.GetProperty("itemType").GetString());
+            Assert.Equal("Xunit", json.RootElement.GetProperty("include").GetString());
+            Assert.True(json.RootElement.GetProperty("removed").GetBoolean());
+
+            // Verify the item was actually removed
+            var content = File.ReadAllText(projectFile);
+            Assert.DoesNotContain("<Using Include=\"Xunit\"", content);
+        }
+        finally
+        {
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+        }
+    }
+
+    [Fact]
+    public async Task RemoveItemAsync_NonExistentItem_ReturnsSuccessWithRemovedFalse()
+    {
+        var projectFile = CreateTempProject("""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+              </PropertyGroup>
+            </Project>
+            """);
+
+        try
+        {
+            var result = await ProjectAnalysisHelper.RemoveItemAsync(projectFile, "Using", "Xunit", _logger);
+
+            var json = JsonDocument.Parse(result);
+            Assert.True(json.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("Using", json.RootElement.GetProperty("itemType").GetString());
+            Assert.Equal("Xunit", json.RootElement.GetProperty("include").GetString());
+            Assert.False(json.RootElement.GetProperty("removed").GetBoolean());
+        }
+        finally
+        {
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+        }
+    }
+
+    [Fact]
+    public async Task ListItemsAsync_WithNonExistentFile_ReturnsErrorJson()
+    {
+        var result = await ProjectAnalysisHelper.ListItemsAsync("/tmp/nonexistent.csproj", "Using", _logger);
+
+        Assert.NotNull(result);
+        var json = JsonDocument.Parse(result);
+        Assert.False(json.RootElement.GetProperty("success").GetBoolean());
+        Assert.Contains("not found", json.RootElement.GetProperty("error").GetString()!);
+    }
+
+    [Fact]
+    public async Task ListItemsAsync_WithItemType_ReturnsFilteredItems()
+    {
+        var projectFile = CreateTempProject("""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+              </PropertyGroup>
+              <ItemGroup>
+                <Using Include="Xunit" />
+                <Using Include="System.Linq" />
+              </ItemGroup>
+            </Project>
+            """);
+
+        try
+        {
+            var result = await ProjectAnalysisHelper.ListItemsAsync(projectFile, "Using", _logger);
+
+            var json = JsonDocument.Parse(result);
+            Assert.True(json.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("Using", json.RootElement.GetProperty("itemType").GetString());
+            Assert.Equal(2, json.RootElement.GetProperty("count").GetInt32());
+        }
+        finally
+        {
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+        }
+    }
+
+    [Fact]
+    public async Task ListItemsAsync_WithNoItemType_ReturnsAllItems()
+    {
+        var projectFile = CreateTempProject("""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+              </PropertyGroup>
+              <ItemGroup>
+                <Using Include="Xunit" />
+                <Content Include="appsettings.json" />
+              </ItemGroup>
+            </Project>
+            """);
+
+        try
+        {
+            var result = await ProjectAnalysisHelper.ListItemsAsync(projectFile, null, _logger);
+
+            var json = JsonDocument.Parse(result);
+            Assert.True(json.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("(all)", json.RootElement.GetProperty("itemType").GetString());
+            // Should have at least the 2 explicitly declared items
+            Assert.True(json.RootElement.GetProperty("count").GetInt32() >= 2);
+        }
+        finally
+        {
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+        }
+    }
 }

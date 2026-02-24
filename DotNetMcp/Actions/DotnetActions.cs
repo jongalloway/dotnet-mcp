@@ -100,7 +100,16 @@ public enum DotnetProjectAction
     GetProperty,
 
     /// <summary>Remove an MSBuild property from the project file</summary>
-    RemoveProperty
+    RemoveProperty,
+
+    /// <summary>Add an MSBuild item (e.g., Using, Content, None) to the project file</summary>
+    AddItem,
+
+    /// <summary>Remove an MSBuild item from the project file by type and Include value</summary>
+    RemoveItem,
+
+    /// <summary>List MSBuild items of a given type (or all items) in the project file</summary>
+    ListItems
 }
 
 /// <summary>
