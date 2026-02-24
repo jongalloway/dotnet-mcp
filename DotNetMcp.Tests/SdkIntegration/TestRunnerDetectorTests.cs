@@ -9,6 +9,11 @@ namespace DotNetMcp.Tests.SdkIntegration;
 /// <summary>
 /// Tests for TestRunnerDetector functionality.
 /// </summary>
+/// <remarks>
+/// Uses ProcessWideStateTests collection because two tests change Directory.SetCurrentDirectory,
+/// which is process-wide state that can cause race conditions with other parallel tests.
+/// </remarks>
+[Collection("ProcessWideStateTests")]
 public class TestRunnerDetectorTests
 {
     [Fact]
