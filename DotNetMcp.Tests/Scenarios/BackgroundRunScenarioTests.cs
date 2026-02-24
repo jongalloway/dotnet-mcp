@@ -250,7 +250,7 @@ Console.WriteLine(""Line 4: Application finished"");
 
             Assert.True(tailLogsJson.RootElement.TryGetProperty("metadata", out var tailMetadata));
             Assert.True(tailMetadata.TryGetProperty("tailLines", out var tailLinesElement));
-            Assert.Equal(2, tailLinesElement.GetInt32());
+            Assert.Equal("2", tailLinesElement.GetString());
         }
         finally
         {
