@@ -76,15 +76,17 @@ Write-Host "Reading codecov.yml from: $codecovPath" -ForegroundColor Cyan
 
 # Parse exclusion patterns from codecov.yml
 $codecovContent = Get-Content $codecovPath -Raw
-$ignoreSection = $codecovContent -match '(?ms)ignore:\s*(.*?)(?=\n\S|\z)'
-if (-not $ignoreSection) {
+$ignoreBlock = $null
+if ($codecovContent -match '(?ms)ignore:\s*(.*?)(?=\n\S|\z)') {
+    $ignoreBlock = $Matches[1]
+} else {
     Write-Error "Could not find 'ignore:' section in codecov.yml"
     exit 1
 }
 
-# Extract patterns (lines starting with - and quoted strings)
+# Extract patterns (lines starting with - and quoted strings) from the ignore block only
 $patterns = [System.Collections.ArrayList]::new()
-$codecovContent -split "`n" | ForEach-Object {
+$ignoreBlock -split "`n" | ForEach-Object {
     if ($_ -match '^\s*-\s*["''](.+?)["'']') {
         $null = $patterns.Add($Matches[1])
     }

@@ -62,6 +62,7 @@ public class CoverageExclusionTests
     [InlineData("**/generated/**")]
     [InlineData("**/*Generator*/**/*.cs")]
     [InlineData("**/*.Tests/**")]
+    [InlineData("**/Tests/**")]
     public void CodecovYml_ContainsExpectedExclusionPattern(string pattern)
     {
         var repoRoot = FindRepoRoot();

@@ -297,6 +297,7 @@ The following categories are excluded from coverage reports:
 
 4. **Test Projects**
    - `**/*.Tests/**` - Test code itself is not measured
+   - `**/Tests/**` - Directories named `Tests` that contain test-only projects and assets
    - We measure how well tests cover production code, not the tests themselves
 
 #### Where Exclusions Are Enforced
