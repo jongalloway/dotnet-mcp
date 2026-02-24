@@ -52,13 +52,15 @@ public sealed partial class DotNetCliTools
     /// <param name="since">Return logs only after this timestamp (ISO 8601 format) for logs action (optional)</param>
     /// <param name="propertyName">MSBuild property name for SetProperty/GetProperty/RemoveProperty actions (e.g., 'OutputType')</param>
     /// <param name="propertyValue">Value to set for SetProperty action (e.g., 'Exe')</param>
+    /// <param name="itemType">Item type for AddItem/RemoveItem/ListItems actions (e.g., 'Using', 'Content', 'None')</param>
+    /// <param name="include">The Include attribute value for AddItem/RemoveItem actions</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpServerTool(IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/File%20Folder/Flat/file_folder_flat.svg")]
     [McpMeta("category", "project")]
     [McpMeta("priority", 10.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("consolidatedTool", true)]
-    [McpMeta("actions", JsonValue = """["New","Restore","Build","Run","Test","Publish","Clean","Analyze","Dependencies","Validate","Pack","Watch","Format","Stop","Logs","SetProperty","GetProperty","RemoveProperty"]""")]
+    [McpMeta("actions", JsonValue = """["New","Restore","Build","Run","Test","Publish","Clean","Analyze","Dependencies","Validate","Pack","Watch","Format","Stop","Logs","SetProperty","GetProperty","RemoveProperty","AddItem","RemoveItem","ListItems"]""")]
     public async partial Task<string> DotnetProject(
         DotnetProjectAction action,
         string? project = null,
@@ -97,6 +99,8 @@ public sealed partial class DotNetCliTools
         string? since = null,
         string? propertyName = null,
         string? propertyValue = null,
+        string? itemType = null,
+        string? include = null,
         bool machineReadable = false)
     {
         return await WithWorkingDirectoryAsync(workingDirectory, async () =>
@@ -138,6 +142,9 @@ public sealed partial class DotNetCliTools
                 DotnetProjectAction.SetProperty => await HandleSetPropertyAction(project, propertyName, propertyValue, machineReadable),
                 DotnetProjectAction.GetProperty => await HandleGetPropertyAction(project, propertyName, machineReadable),
                 DotnetProjectAction.RemoveProperty => await HandleRemovePropertyAction(project, propertyName, machineReadable),
+                DotnetProjectAction.AddItem => await HandleAddItemAction(project, itemType, include, machineReadable),
+                DotnetProjectAction.RemoveItem => await HandleRemoveItemAction(project, itemType, include, machineReadable),
+                DotnetProjectAction.ListItems => await HandleListItemsAction(project, itemType, machineReadable),
                 _ => machineReadable
                     ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateValidationError(
                         $"Action '{action}' is not supported.",
@@ -900,6 +907,119 @@ public sealed partial class DotNetCliTools
         }
 
         return await ProjectAnalysisHelper.RemovePropertyAsync(project!, propertyName!, _logger);
+    }
+
+    private async Task<string> HandleAddItemAction(string? project, string? itemType, string? include, bool machineReadable)
+    {
+        // Validate required project parameter
+        if (!ParameterValidator.ValidateRequiredParameter(project, "project", out var projectError))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    projectError!,
+                    parameterName: "project",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return $"Error: {projectError}";
+        }
+
+        // Validate required itemType parameter
+        if (!ParameterValidator.ValidateRequiredParameter(itemType, "itemType", out var typeError))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    typeError!,
+                    parameterName: "itemType",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return $"Error: {typeError}";
+        }
+
+        // Validate required include parameter
+        if (!ParameterValidator.ValidateRequiredParameter(include, "include", out var includeError))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    includeError!,
+                    parameterName: "include",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return $"Error: {includeError}";
+        }
+
+        return await ProjectAnalysisHelper.AddItemAsync(project!, itemType!, include!, logger: _logger);
+    }
+
+    private async Task<string> HandleRemoveItemAction(string? project, string? itemType, string? include, bool machineReadable)
+    {
+        // Validate required project parameter
+        if (!ParameterValidator.ValidateRequiredParameter(project, "project", out var projectError))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    projectError!,
+                    parameterName: "project",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return $"Error: {projectError}";
+        }
+
+        // Validate required itemType parameter
+        if (!ParameterValidator.ValidateRequiredParameter(itemType, "itemType", out var typeError))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    typeError!,
+                    parameterName: "itemType",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return $"Error: {typeError}";
+        }
+
+        // Validate required include parameter
+        if (!ParameterValidator.ValidateRequiredParameter(include, "include", out var includeError))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    includeError!,
+                    parameterName: "include",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return $"Error: {includeError}";
+        }
+
+        return await ProjectAnalysisHelper.RemoveItemAsync(project!, itemType!, include!, _logger);
+    }
+
+    private async Task<string> HandleListItemsAction(string? project, string? itemType, bool machineReadable)
+    {
+        // Validate required project parameter
+        if (!ParameterValidator.ValidateRequiredParameter(project, "project", out var projectError))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    projectError!,
+                    parameterName: "project",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return $"Error: {projectError}";
+        }
+
+        return await ProjectAnalysisHelper.ListItemsAsync(project!, itemType, _logger);
     }
 
     // ===== Watch helper methods (moved from DotNetCliTools.Watch.cs) =====

@@ -1636,5 +1636,250 @@ public class ConsolidatedProjectToolTests
     }
 
     #endregion
+
+    #region AddItem Action Tests
+
+    [Fact]
+    public async Task DotnetProject_AddItem_WithoutProject_ReturnsError()
+    {
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.AddItem,
+            project: null,
+            itemType: "Using",
+            include: "Xunit",
+            machineReadable: false);
+
+        Assert.Contains("Error", result);
+        Assert.Contains("project", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_AddItem_WithoutItemType_ReturnsError()
+    {
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.AddItem,
+            project: "MyProject.csproj",
+            itemType: null,
+            include: "Xunit",
+            machineReadable: false);
+
+        Assert.Contains("Error", result);
+        Assert.Contains("itemType", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_AddItem_WithoutInclude_ReturnsError()
+    {
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.AddItem,
+            project: "MyProject.csproj",
+            itemType: "Using",
+            include: null,
+            machineReadable: false);
+
+        Assert.Contains("Error", result);
+        Assert.Contains("include", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_AddItem_WithoutProject_MachineReadable_ReturnsValidationError()
+    {
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.AddItem,
+            project: null,
+            itemType: "Using",
+            include: "Xunit",
+            machineReadable: true);
+
+        Assert.NotNull(result);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("project", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("required", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_AddItem_WithNonExistentProject_ReturnsError()
+    {
+        var missingProject = Path.GetFullPath(Path.Join(Path.GetTempPath(), "nonexistent-" + Guid.NewGuid().ToString("N") + ".csproj"));
+
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.AddItem,
+            project: missingProject,
+            itemType: "Using",
+            include: "Xunit",
+            machineReadable: false);
+
+        Assert.Contains("not found", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_AddItem_WithValidProject_AddsItem()
+    {
+        var tempDir = Path.GetFullPath(Path.Join(Path.GetTempPath(), "dotnet-mcp-ai-" + Guid.NewGuid().ToString("N")));
+        Directory.CreateDirectory(tempDir);
+        var projectFile = Path.Join(tempDir, "Test.csproj");
+        File.WriteAllText(projectFile, """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+              </PropertyGroup>
+            </Project>
+            """);
+
+        try
+        {
+            var result = await _tools.DotnetProject(
+                action: DotnetProjectAction.AddItem,
+                project: projectFile,
+                itemType: "Using",
+                include: "Xunit",
+                machineReadable: false);
+
+            Assert.DoesNotContain("Error", result);
+            Assert.Contains("Using", result, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Xunit", result, StringComparison.OrdinalIgnoreCase);
+
+            var content = File.ReadAllText(projectFile);
+            Assert.Contains("Xunit", content);
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, recursive: true); } catch (IOException) { /* best-effort */ } catch (UnauthorizedAccessException) { /* best-effort */ }
+        }
+    }
+
+    #endregion
+
+    #region RemoveItem Action Tests
+
+    [Fact]
+    public async Task DotnetProject_RemoveItem_WithoutProject_ReturnsError()
+    {
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.RemoveItem,
+            project: null,
+            itemType: "Using",
+            include: "Xunit",
+            machineReadable: false);
+
+        Assert.Contains("Error", result);
+        Assert.Contains("project", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_RemoveItem_WithoutItemType_ReturnsError()
+    {
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.RemoveItem,
+            project: "MyProject.csproj",
+            itemType: null,
+            include: "Xunit",
+            machineReadable: false);
+
+        Assert.Contains("Error", result);
+        Assert.Contains("itemType", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_RemoveItem_WithoutInclude_ReturnsError()
+    {
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.RemoveItem,
+            project: "MyProject.csproj",
+            itemType: "Using",
+            include: null,
+            machineReadable: false);
+
+        Assert.Contains("Error", result);
+        Assert.Contains("include", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_RemoveItem_WithValidProject_RemovesExistingItem()
+    {
+        var tempDir = Path.GetFullPath(Path.Join(Path.GetTempPath(), "dotnet-mcp-ri-" + Guid.NewGuid().ToString("N")));
+        Directory.CreateDirectory(tempDir);
+        var projectFile = Path.Join(tempDir, "Test.csproj");
+        File.WriteAllText(projectFile, """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+              </PropertyGroup>
+              <ItemGroup>
+                <Using Include="Xunit" />
+              </ItemGroup>
+            </Project>
+            """);
+
+        try
+        {
+            var result = await _tools.DotnetProject(
+                action: DotnetProjectAction.RemoveItem,
+                project: projectFile,
+                itemType: "Using",
+                include: "Xunit",
+                machineReadable: false);
+
+            Assert.DoesNotContain("Error", result);
+            Assert.Contains("Using", result, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Xunit", result, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, recursive: true); } catch (IOException) { /* best-effort */ } catch (UnauthorizedAccessException) { /* best-effort */ }
+        }
+    }
+
+    #endregion
+
+    #region ListItems Action Tests
+
+    [Fact]
+    public async Task DotnetProject_ListItems_WithoutProject_ReturnsError()
+    {
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.ListItems,
+            project: null,
+            machineReadable: false);
+
+        Assert.Contains("Error", result);
+        Assert.Contains("project", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_ListItems_WithValidProject_ReturnsItems()
+    {
+        var tempDir = Path.GetFullPath(Path.Join(Path.GetTempPath(), "dotnet-mcp-li-" + Guid.NewGuid().ToString("N")));
+        Directory.CreateDirectory(tempDir);
+        var projectFile = Path.Join(tempDir, "Test.csproj");
+        File.WriteAllText(projectFile, """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+              </PropertyGroup>
+              <ItemGroup>
+                <Using Include="Xunit" />
+              </ItemGroup>
+            </Project>
+            """);
+
+        try
+        {
+            var result = await _tools.DotnetProject(
+                action: DotnetProjectAction.ListItems,
+                project: projectFile,
+                itemType: "Using",
+                machineReadable: false);
+
+            Assert.DoesNotContain("\"success\": false", result);
+            Assert.Contains("Xunit", result, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, recursive: true); } catch (IOException) { /* best-effort */ } catch (UnauthorizedAccessException) { /* best-effort */ }
+        }
+    }
+
+    #endregion
 }
 

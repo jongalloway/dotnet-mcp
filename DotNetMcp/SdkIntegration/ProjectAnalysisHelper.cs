@@ -402,6 +402,193 @@ public static class ProjectAnalysisHelper
         });
     }
 
+    /// <summary>
+    /// Add an MSBuild item to the project file.
+    /// </summary>
+    /// <param name="projectPath">Path to the .csproj file</param>
+    /// <param name="itemType">Item type (e.g., 'Using', 'Content', 'None')</param>
+    /// <param name="include">The Include attribute value</param>
+    /// <param name="metadata">Optional metadata key/value pairs</param>
+    /// <param name="logger">Optional logger instance</param>
+    /// <returns>JSON string indicating success or failure</returns>
+    public static async Task<string> AddItemAsync(string projectPath, string itemType, string include, IEnumerable<KeyValuePair<string, string>>? metadata = null, ILogger? logger = null)
+    {
+        return await Task.Run(() =>
+        {
+            try
+            {
+                if (!File.Exists(projectPath))
+                {
+                    return JsonSerializer.Serialize(new
+                    {
+                        success = false,
+                        error = $"Project file not found: {projectPath}"
+                    }, new JsonSerializerOptions { WriteIndented = true });
+                }
+
+                logger?.LogDebug("Adding item {ItemType}={Include} to {ProjectPath}", itemType, include, projectPath);
+
+                using var projectCollection = new ProjectCollection();
+                var project = new Project(projectPath, null, null, projectCollection, ProjectLoadSettings.IgnoreMissingImports);
+
+                var metadataList = metadata?.ToList() ?? [];
+                project.AddItem(itemType, include, metadataList);
+                project.Save();
+
+                projectCollection.UnloadProject(project);
+
+                return JsonSerializer.Serialize(new
+                {
+                    success = true,
+                    projectPath,
+                    itemType,
+                    include,
+                    metadata = metadataList.Count > 0
+                        ? metadataList.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
+                        : (Dictionary<string, string>?)null
+                }, new JsonSerializerOptions { WriteIndented = true });
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "Error adding item {ItemType} to {ProjectPath}", itemType, projectPath);
+                return JsonSerializer.Serialize(new
+                {
+                    success = false,
+                    error = $"Error adding item: {ex.Message}"
+                }, new JsonSerializerOptions { WriteIndented = true });
+            }
+        });
+    }
+
+    /// <summary>
+    /// Remove an MSBuild item from the project file by matching its type and Include value.
+    /// </summary>
+    /// <param name="projectPath">Path to the .csproj file</param>
+    /// <param name="itemType">Item type (e.g., 'Using', 'Content', 'None')</param>
+    /// <param name="include">The Include attribute value to match for removal</param>
+    /// <param name="logger">Optional logger instance</param>
+    /// <returns>JSON string indicating success or failure</returns>
+    public static async Task<string> RemoveItemAsync(string projectPath, string itemType, string include, ILogger? logger = null)
+    {
+        return await Task.Run(() =>
+        {
+            try
+            {
+                if (!File.Exists(projectPath))
+                {
+                    return JsonSerializer.Serialize(new
+                    {
+                        success = false,
+                        error = $"Project file not found: {projectPath}"
+                    }, new JsonSerializerOptions { WriteIndented = true });
+                }
+
+                logger?.LogDebug("Removing item {ItemType}={Include} from {ProjectPath}", itemType, include, projectPath);
+
+                using var projectCollection = new ProjectCollection();
+                var project = new Project(projectPath, null, null, projectCollection, ProjectLoadSettings.IgnoreMissingImports);
+
+                var itemToRemove = project.GetItems(itemType)
+                    .FirstOrDefault(i => string.Equals(i.EvaluatedInclude, include, StringComparison.OrdinalIgnoreCase));
+
+                bool removed;
+                if (itemToRemove != null)
+                {
+                    project.RemoveItem(itemToRemove);
+                    project.Save();
+                    removed = true;
+                }
+                else
+                {
+                    removed = false;
+                }
+
+                projectCollection.UnloadProject(project);
+
+                return JsonSerializer.Serialize(new
+                {
+                    success = true,
+                    projectPath,
+                    itemType,
+                    include,
+                    removed
+                }, new JsonSerializerOptions { WriteIndented = true });
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "Error removing item {ItemType} from {ProjectPath}", itemType, projectPath);
+                return JsonSerializer.Serialize(new
+                {
+                    success = false,
+                    error = $"Error removing item: {ex.Message}"
+                }, new JsonSerializerOptions { WriteIndented = true });
+            }
+        });
+    }
+
+    /// <summary>
+    /// List MSBuild items of a given type (or all item types) from the project file.
+    /// </summary>
+    /// <param name="projectPath">Path to the .csproj file</param>
+    /// <param name="itemType">Optional item type to filter (e.g., 'Using'). If null or empty, returns all items.</param>
+    /// <param name="logger">Optional logger instance</param>
+    /// <returns>JSON string containing the list of items</returns>
+    public static async Task<string> ListItemsAsync(string projectPath, string? itemType = null, ILogger? logger = null)
+    {
+        return await Task.Run(() =>
+        {
+            try
+            {
+                if (!File.Exists(projectPath))
+                {
+                    return JsonSerializer.Serialize(new
+                    {
+                        success = false,
+                        error = $"Project file not found: {projectPath}"
+                    }, new JsonSerializerOptions { WriteIndented = true });
+                }
+
+                logger?.LogDebug("Listing items (type={ItemType}) from {ProjectPath}", itemType ?? "(all)", projectPath);
+
+                using var projectCollection = new ProjectCollection();
+                var project = new Project(projectPath, null, null, projectCollection, ProjectLoadSettings.IgnoreMissingImports);
+
+                var items = !string.IsNullOrWhiteSpace(itemType)
+                    ? (IEnumerable<ProjectItem>)project.GetItems(itemType)
+                    : project.Items;
+
+                var itemList = items.Select(i => new
+                {
+                    itemType = i.ItemType,
+                    include = i.EvaluatedInclude,
+                    metadata = i.DirectMetadata
+                        .Where(m => !m.Name.StartsWith("_", StringComparison.Ordinal))
+                        .ToDictionary(m => m.Name, m => m.EvaluatedValue)
+                }).ToArray();
+
+                projectCollection.UnloadProject(project);
+
+                return JsonSerializer.Serialize(new
+                {
+                    success = true,
+                    projectPath,
+                    itemType = itemType ?? "(all)",
+                    count = itemList.Length,
+                    items = itemList
+                }, new JsonSerializerOptions { WriteIndented = true });
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "Error listing items from {ProjectPath}", projectPath);
+                return JsonSerializer.Serialize(new
+                {
+                    success = false,
+                    error = $"Error listing items: {ex.Message}"
+                }, new JsonSerializerOptions { WriteIndented = true });
+            }
+        });
+    }
+
     private static string GetSdkFromProject(Project project)
     {
         // Try to get SDK from the project root element
