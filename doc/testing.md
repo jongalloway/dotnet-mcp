@@ -355,7 +355,9 @@ This script will:
 If you notice coverage anomalies (e.g., generated files appearing in reports), check:
 1. The `codecov.yml` configuration has the correct patterns
 2. The file paths match the exclusion patterns
-3. Codecov is processing the exclusions correctly (check PR comments)
+3. Codecov is processing the exclusions correctly:
+   - For uploads from `main`, review the latest report in the Codecov UI
+   - For pull requests, use the `coverage-cobertura` artifact and/or `scripts/download-coverage-artifact.ps1` to inspect coverage locally and confirm exclusions
 
 ## Test project layout
 
