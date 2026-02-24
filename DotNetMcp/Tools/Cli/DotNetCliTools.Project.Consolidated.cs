@@ -747,6 +747,40 @@ public sealed partial class DotNetCliTools
         return Task.FromResult(textResult.ToString());
     }
 
+    private async Task<string> HandleListTemplateOptionsAction(string? template, bool machineReadable)
+    {
+        // Validate required parameter
+        if (!ParameterValidator.ValidateRequiredParameter(template, "template", out var errorMessage))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    errorMessage!,
+                    parameterName: "template",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return $"Error: {errorMessage}";
+        }
+
+        // Validate that the template exists
+        var templateValidation = await ParameterValidator.ValidateTemplateAsync(template, _logger);
+        if (!templateValidation.IsValid)
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    templateValidation.ErrorMessage!,
+                    parameterName: "template",
+                    reason: string.IsNullOrWhiteSpace(template) ? "required" : "not found");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return $"Error: {templateValidation.ErrorMessage}";
+        }
+
+        return await ExecuteDotNetCommand($"new {template} --help", machineReadable);
+    }
+
     // ===== Watch helper methods (moved from DotNetCliTools.Watch.cs) =====
 
     /// <summary>

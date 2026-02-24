@@ -88,7 +88,10 @@ public enum DotnetProjectAction
     Stop,
 
     /// <summary>Retrieve logs/output from a background session</summary>
-    Logs
+    Logs,
+
+    /// <summary>List available options/parameters for a template (runs dotnet new &lt;template&gt; --help)</summary>
+    ListTemplateOptions
 }
 
 /// <summary>

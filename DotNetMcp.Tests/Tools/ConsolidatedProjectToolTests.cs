@@ -9,6 +9,15 @@ namespace DotNetMcp.Tests.Tools;
 /// <summary>
 /// Tests for the consolidated dotnet_project command.
 /// </summary>
+/// <remarks>
+/// This class is in the ProcessWideStateTests collection because some tests use relative
+/// project paths whose resolution depends on Directory.GetCurrentDirectory(). Other tests in
+/// the same collection (e.g., TestRunnerDetectorTests, DotnetProjectCurrentDirectoryTests)
+/// temporarily change the current directory via Directory.SetCurrentDirectory, which would
+/// cause Path.GetFullPath to resolve relative paths to the wrong directory, breaking test
+/// runner auto-detection and failing assertions on command format.
+/// </remarks>
+[Collection("ProcessWideStateTests")]
 public class ConsolidatedProjectToolTests
 {
     private readonly DotNetCliTools _tools;
@@ -940,6 +949,178 @@ public class ConsolidatedProjectToolTests
     }
 
     [Fact]
+    public async Task DotnetProject_Test_WithGlobalJsonInProjectDirectory_DetectsMTP()
+    {
+        // Arrange: Create temp directory with a subdirectory containing project and global.json
+        var tempRootDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-test-root-" + Guid.NewGuid().ToString("N"));
+        var projectDir = Path.Join(tempRootDir, "tests");
+        Directory.CreateDirectory(projectDir);
+        var globalJsonPath = Path.Join(projectDir, "global.json");
+        var projectPath = Path.Join(projectDir, "MyTests.csproj");
+
+        try
+        {
+            // Create global.json with MTP configuration in the project directory
+            File.WriteAllText(globalJsonPath, """
+            {
+                "test": {
+                    "runner": "Microsoft.Testing.Platform"
+                }
+            }
+            """);
+
+            // Act: Call test from root directory WITHOUT workingDirectory parameter
+            // This should use the project path's directory for detection
+            var result = await _tools.DotnetProject(
+                action: DotnetProjectAction.Test,
+                project: projectPath,
+                testRunner: TestRunner.Auto,
+                workingDirectory: null,  // Explicitly null to test fallback to project directory
+                machineReadable: true);
+
+            // Assert
+            Assert.NotNull(result);
+            
+            // Verify metadata indicates MTP was detected from global.json
+            Assert.Contains("\"selectedTestRunner\": \"microsoft-testing-platform\"", result);
+            Assert.Contains("\"projectArgumentStyle\": \"--project\"", result);
+            Assert.Contains("\"selectionSource\": \"global.json\"", result);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(tempRootDir, recursive: true);
+            }
+            catch (IOException)
+            {
+                // Best-effort cleanup
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Best-effort cleanup
+            }
+        }
+    }
+
+    [Fact]
+    public async Task DotnetProject_Test_WithGlobalJsonInParentDirectory_DetectsMTP()
+    {
+        // Arrange: Create temp directory structure with global.json at root and project in subdirectory
+        var tempRootDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-aspire-" + Guid.NewGuid().ToString("N"));
+        var projectDir = Path.Join(tempRootDir, "tests", "MyApp.Tests");
+        Directory.CreateDirectory(projectDir);
+        var globalJsonPath = Path.Join(tempRootDir, "global.json");
+        var projectPath = Path.Join(projectDir, "MyTests.csproj");
+
+        try
+        {
+            // Create global.json with MTP configuration at the root (like Aspire does)
+            File.WriteAllText(globalJsonPath, """
+            {
+                "test": {
+                    "runner": "Microsoft.Testing.Platform"
+                }
+            }
+            """);
+
+            // Act: Call test with project path (no workingDirectory)
+            // Detection should walk up from project directory and find global.json in parent
+            var result = await _tools.DotnetProject(
+                action: DotnetProjectAction.Test,
+                project: projectPath,
+                testRunner: TestRunner.Auto,
+                machineReadable: true);
+
+            // Assert
+            Assert.NotNull(result);
+            
+            // Verify metadata indicates MTP was detected from global.json
+            Assert.Contains("\"selectedTestRunner\": \"microsoft-testing-platform\"", result);
+            Assert.Contains("\"projectArgumentStyle\": \"--project\"", result);
+            Assert.Contains("\"selectionSource\": \"global.json\"", result);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(tempRootDir, recursive: true);
+            }
+            catch (IOException)
+            {
+                // Best-effort cleanup
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Best-effort cleanup
+            }
+        }
+    }
+
+    [Fact]
+    public async Task DotnetProject_Test_WithSolutionFile_DetectsMTPFromGlobalJson()
+    {
+        // Arrange: Create an Aspire-like structure with solution and global.json at root
+        var tempRootDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-sln-" + Guid.NewGuid().ToString("N"));
+        var projectDir = Path.Join(tempRootDir, "tests", "MyApp.Tests");
+        Directory.CreateDirectory(projectDir);
+        var globalJsonPath = Path.Join(tempRootDir, "global.json");
+        var solutionPath = Path.Join(tempRootDir, "MyApp.slnx");
+
+        try
+        {
+            // Create global.json with MTP configuration at the root
+            File.WriteAllText(globalJsonPath, """
+            {
+                "test": {
+                    "runner": "Microsoft.Testing.Platform"
+                }
+            }
+            """);
+
+            // Create a minimal solution file
+            File.WriteAllText(solutionPath, """
+            <Solution>
+              <Folder Name="/tests/">
+                <Project Path="tests/MyApp.Tests/MyApp.Tests.csproj" />
+              </Folder>
+            </Solution>
+            """);
+
+            // Act: Call test with solution file
+            // Detection should use the solution's directory and find global.json there
+            var result = await _tools.DotnetProject(
+                action: DotnetProjectAction.Test,
+                project: solutionPath,
+                testRunner: TestRunner.Auto,
+                machineReadable: true);
+
+            // Assert
+            Assert.NotNull(result);
+            
+            // Verify metadata indicates MTP was detected from global.json
+            Assert.Contains("\"selectedTestRunner\": \"microsoft-testing-platform\"", result);
+            Assert.Contains("\"projectArgumentStyle\": \"--project\"", result);
+            Assert.Contains("\"selectionSource\": \"global.json\"", result);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(tempRootDir, recursive: true);
+            }
+            catch (IOException)
+            {
+                // Best-effort cleanup
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Best-effort cleanup
+            }
+        }
+    }
+
+    [Fact]
     public async Task DotnetProject_Test_UseLegacyProjectArgument_OverridesTestRunner()
     {
         // Test backward compatibility: useLegacyProjectArgument should override testRunner
@@ -1123,6 +1304,67 @@ public class ConsolidatedProjectToolTests
         Assert.NotNull(result);
         var commandExecuted = MachineReadableCommandAssertions.GetExecutedCommand(result);
         Assert.DoesNotContain("--no-build", commandExecuted);
+    }
+
+    #endregion
+
+    #region ListTemplateOptions Action Tests
+
+    [Fact]
+    public async Task DotnetProject_ListTemplateOptions_WithoutTemplate_ReturnsError()
+    {
+        // Test that ListTemplateOptions action requires template parameter
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.ListTemplateOptions,
+            template: null,
+            machineReadable: false);
+
+        Assert.Contains("Error", result);
+        Assert.Contains("template", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_ListTemplateOptions_WithoutTemplate_MachineReadable_ReturnsValidationError()
+    {
+        // Test that ListTemplateOptions action returns machine-readable error when template is missing
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.ListTemplateOptions,
+            template: null,
+            machineReadable: true);
+
+        Assert.NotNull(result);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("template", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_ListTemplateOptions_WithInvalidTemplate_ReturnsNotFoundError()
+    {
+        // Test that ListTemplateOptions action returns error for unknown template.
+        // Uses a genuinely non-existent template name so no static overrides are needed.
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.ListTemplateOptions,
+            template: "nonexistent-template-xyz",
+            machineReadable: false);
+
+        Assert.Contains("Error", result);
+        Assert.Contains("not found", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_ListTemplateOptions_WithValidTemplate_ExecutesDotnetNewHelp()
+    {
+        // Test that ListTemplateOptions action executes dotnet new <template> --help.
+        // Uses the real template engine and CLI to avoid polluting shared static state.
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.ListTemplateOptions,
+            template: "console",
+            machineReadable: true);
+
+        Assert.NotNull(result);
+        // Should have attempted dotnet new console --help
+        Assert.Contains("console", result, StringComparison.OrdinalIgnoreCase);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet new console --help");
     }
 
     #endregion
