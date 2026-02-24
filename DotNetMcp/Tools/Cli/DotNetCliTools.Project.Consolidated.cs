@@ -50,13 +50,15 @@ public sealed partial class DotNetCliTools
     /// <param name="startMode">Start mode for run action (Foreground or Background). Foreground blocks until exit, Background returns immediately with sessionId. Default: Foreground</param>
     /// <param name="tailLines">Number of most recent log lines to return for logs action (optional, returns all if not specified)</param>
     /// <param name="since">Return logs only after this timestamp (ISO 8601 format) for logs action (optional)</param>
+    /// <param name="propertyName">MSBuild property name for SetProperty/GetProperty/RemoveProperty actions (e.g., 'OutputType')</param>
+    /// <param name="propertyValue">Value to set for SetProperty action (e.g., 'Exe')</param>
     /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpServerTool(IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/File%20Folder/Flat/file_folder_flat.svg")]
     [McpMeta("category", "project")]
     [McpMeta("priority", 10.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("consolidatedTool", true)]
-    [McpMeta("actions", JsonValue = """["New","Restore","Build","Run","Test","Publish","Clean","Analyze","Dependencies","Validate","Pack","Watch","Format","Stop","Logs"]""")]
+    [McpMeta("actions", JsonValue = """["New","Restore","Build","Run","Test","Publish","Clean","Analyze","Dependencies","Validate","Pack","Watch","Format","Stop","Logs","SetProperty","GetProperty","RemoveProperty"]""")]
     public async partial Task<string> DotnetProject(
         DotnetProjectAction action,
         string? project = null,
@@ -93,6 +95,8 @@ public sealed partial class DotNetCliTools
         StartMode? startMode = null,
         int? tailLines = null,
         string? since = null,
+        string? propertyName = null,
+        string? propertyValue = null,
         bool machineReadable = false)
     {
         return await WithWorkingDirectoryAsync(workingDirectory, async () =>
@@ -131,6 +135,9 @@ public sealed partial class DotNetCliTools
                 DotnetProjectAction.Stop => await HandleStopAction(sessionId, machineReadable),
                 DotnetProjectAction.Logs => await HandleLogsAction(sessionId, tailLines, since, machineReadable),
                 DotnetProjectAction.ListTemplateOptions => await HandleListTemplateOptionsAction(template, machineReadable),
+                DotnetProjectAction.SetProperty => await HandleSetPropertyAction(project, propertyName, propertyValue, machineReadable),
+                DotnetProjectAction.GetProperty => await HandleGetPropertyAction(project, propertyName, machineReadable),
+                DotnetProjectAction.RemoveProperty => await HandleRemovePropertyAction(project, propertyName, machineReadable),
                 _ => machineReadable
                     ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateValidationError(
                         $"Action '{action}' is not supported.",
@@ -780,6 +787,119 @@ public sealed partial class DotNetCliTools
         }
 
         return await ExecuteDotNetCommand($"new {template} --help", machineReadable);
+    }
+
+    private async Task<string> HandleSetPropertyAction(string? project, string? propertyName, string? propertyValue, bool machineReadable)
+    {
+        // Validate required project parameter
+        if (!ParameterValidator.ValidateRequiredParameter(project, "project", out var projectError))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    projectError!,
+                    parameterName: "project",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return $"Error: {projectError}";
+        }
+
+        // Validate required propertyName parameter
+        if (!ParameterValidator.ValidateRequiredParameter(propertyName, "propertyName", out var nameError))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    nameError!,
+                    parameterName: "propertyName",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return $"Error: {nameError}";
+        }
+
+        // Validate required propertyValue parameter
+        if (propertyValue is null)
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    "propertyValue is required for SetProperty action.",
+                    parameterName: "propertyValue",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return "Error: propertyValue is required for SetProperty action.";
+        }
+
+        return await ProjectAnalysisHelper.SetPropertyAsync(project!, propertyName!, propertyValue, _logger);
+    }
+
+    private async Task<string> HandleGetPropertyAction(string? project, string? propertyName, bool machineReadable)
+    {
+        // Validate required project parameter
+        if (!ParameterValidator.ValidateRequiredParameter(project, "project", out var projectError))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    projectError!,
+                    parameterName: "project",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return $"Error: {projectError}";
+        }
+
+        // Validate required propertyName parameter
+        if (!ParameterValidator.ValidateRequiredParameter(propertyName, "propertyName", out var nameError))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    nameError!,
+                    parameterName: "propertyName",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return $"Error: {nameError}";
+        }
+
+        return await ProjectAnalysisHelper.GetPropertyAsync(project!, propertyName!, _logger);
+    }
+
+    private async Task<string> HandleRemovePropertyAction(string? project, string? propertyName, bool machineReadable)
+    {
+        // Validate required project parameter
+        if (!ParameterValidator.ValidateRequiredParameter(project, "project", out var projectError))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    projectError!,
+                    parameterName: "project",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return $"Error: {projectError}";
+        }
+
+        // Validate required propertyName parameter
+        if (!ParameterValidator.ValidateRequiredParameter(propertyName, "propertyName", out var nameError))
+        {
+            if (machineReadable)
+            {
+                var error = ErrorResultFactory.CreateValidationError(
+                    nameError!,
+                    parameterName: "propertyName",
+                    reason: "required");
+                return ErrorResultFactory.ToJson(error);
+            }
+            return $"Error: {nameError}";
+        }
+
+        return await ProjectAnalysisHelper.RemovePropertyAsync(project!, propertyName!, _logger);
     }
 
     // ===== Watch helper methods (moved from DotNetCliTools.Watch.cs) =====
