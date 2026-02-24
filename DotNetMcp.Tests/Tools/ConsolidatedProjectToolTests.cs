@@ -9,6 +9,15 @@ namespace DotNetMcp.Tests.Tools;
 /// <summary>
 /// Tests for the consolidated dotnet_project command.
 /// </summary>
+/// <remarks>
+/// This class is in the ProcessWideStateTests collection because some tests use relative
+/// project paths whose resolution depends on Directory.GetCurrentDirectory(). Other tests in
+/// the same collection (e.g., TestRunnerDetectorTests, DotnetProjectCurrentDirectoryTests)
+/// temporarily change the current directory via Directory.SetCurrentDirectory, which would
+/// cause Path.GetFullPath to resolve relative paths to the wrong directory, breaking test
+/// runner auto-detection and failing assertions on command format.
+/// </remarks>
+[Collection("ProcessWideStateTests")]
 public class ConsolidatedProjectToolTests
 {
     private readonly DotNetCliTools _tools;
