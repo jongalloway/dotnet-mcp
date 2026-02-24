@@ -298,7 +298,6 @@ public class ProcessSessionManagerTests : IDisposable
         // Arrange
         var sessionId = Guid.NewGuid().ToString();
         var process = CreateTestProcessWithOutput();
-        var startTime = DateTime.UtcNow;
         _manager.RegisterSession(sessionId, process, "run", "/test/project.csproj");
 
         // Wait for initial output
