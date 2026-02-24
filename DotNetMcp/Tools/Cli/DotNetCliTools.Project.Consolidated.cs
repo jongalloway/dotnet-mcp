@@ -130,6 +130,7 @@ public sealed partial class DotNetCliTools
                 DotnetProjectAction.Format => await HandleFormatAction(project, verify, includeGenerated, diagnostics, severity, machineReadable),
                 DotnetProjectAction.Stop => await HandleStopAction(sessionId, machineReadable),
                 DotnetProjectAction.Logs => await HandleLogsAction(sessionId, tailLines, since, machineReadable),
+                DotnetProjectAction.ListTemplateOptions => await HandleListTemplateOptionsAction(template, machineReadable),
                 _ => machineReadable
                     ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateValidationError(
                         $"Action '{action}' is not supported.",
