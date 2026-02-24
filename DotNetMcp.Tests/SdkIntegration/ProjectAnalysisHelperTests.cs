@@ -402,7 +402,7 @@ public class ProjectAnalysisHelperTests
         }
         finally
         {
-            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch (IOException) { /* best-effort */ } catch (UnauthorizedAccessException) { /* best-effort */ }
         }
     }
 
@@ -434,7 +434,7 @@ public class ProjectAnalysisHelperTests
         }
         finally
         {
-            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch (IOException) { /* best-effort */ } catch (UnauthorizedAccessException) { /* best-effort */ }
         }
     }
 
@@ -479,7 +479,7 @@ public class ProjectAnalysisHelperTests
         }
         finally
         {
-            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch (IOException) { /* best-effort */ } catch (UnauthorizedAccessException) { /* best-effort */ }
         }
     }
 
@@ -506,7 +506,7 @@ public class ProjectAnalysisHelperTests
         }
         finally
         {
-            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch (IOException) { /* best-effort */ } catch (UnauthorizedAccessException) { /* best-effort */ }
         }
     }
 
@@ -547,7 +547,7 @@ public class ProjectAnalysisHelperTests
         }
         finally
         {
-            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch (IOException) { /* best-effort */ } catch (UnauthorizedAccessException) { /* best-effort */ }
         }
     }
 
@@ -578,7 +578,7 @@ public class ProjectAnalysisHelperTests
         }
         finally
         {
-            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch (IOException) { /* best-effort */ } catch (UnauthorizedAccessException) { /* best-effort */ }
         }
     }
 }

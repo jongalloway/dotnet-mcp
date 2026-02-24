@@ -1744,7 +1744,7 @@ public class ConsolidatedProjectToolTests
         }
         finally
         {
-            try { Directory.Delete(tempDir, recursive: true); } catch { /* best-effort */ }
+            try { Directory.Delete(tempDir, recursive: true); } catch (IOException) { /* best-effort */ } catch (UnauthorizedAccessException) { /* best-effort */ }
         }
     }
 
@@ -1826,7 +1826,7 @@ public class ConsolidatedProjectToolTests
         }
         finally
         {
-            try { Directory.Delete(tempDir, recursive: true); } catch { /* best-effort */ }
+            try { Directory.Delete(tempDir, recursive: true); } catch (IOException) { /* best-effort */ } catch (UnauthorizedAccessException) { /* best-effort */ }
         }
     }
 
@@ -1876,7 +1876,7 @@ public class ConsolidatedProjectToolTests
         }
         finally
         {
-            try { Directory.Delete(tempDir, recursive: true); } catch { /* best-effort */ }
+            try { Directory.Delete(tempDir, recursive: true); } catch (IOException) { /* best-effort */ } catch (UnauthorizedAccessException) { /* best-effort */ }
         }
     }
 

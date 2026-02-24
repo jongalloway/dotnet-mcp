@@ -553,15 +553,9 @@ public static class ProjectAnalysisHelper
                 using var projectCollection = new ProjectCollection();
                 var project = new Project(projectPath, null, null, projectCollection, ProjectLoadSettings.IgnoreMissingImports);
 
-                IEnumerable<ProjectItem> items;
-                if (!string.IsNullOrWhiteSpace(itemType))
-                {
-                    items = project.GetItems(itemType);
-                }
-                else
-                {
-                    items = project.Items;
-                }
+                var items = !string.IsNullOrWhiteSpace(itemType)
+                    ? (IEnumerable<ProjectItem>)project.GetItems(itemType)
+                    : project.Items;
 
                 var itemList = items.Select(i => new
                 {
