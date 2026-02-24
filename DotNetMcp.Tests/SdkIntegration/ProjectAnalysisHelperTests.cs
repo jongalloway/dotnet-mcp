@@ -194,7 +194,7 @@ public class ProjectAnalysisHelperTests
             Assert.Equal("Exe", json.RootElement.GetProperty("propertyValue").GetString());
 
             // Verify the file was actually modified
-            var content = await File.ReadAllTextAsync(projectFile);
+            var content = File.ReadAllText(projectFile);
             Assert.Contains("OutputType", content);
             Assert.Contains("Exe", content);
         }
@@ -329,7 +329,7 @@ public class ProjectAnalysisHelperTests
             Assert.True(json.RootElement.GetProperty("removed").GetBoolean());
 
             // Verify the property was actually removed from the file
-            var content = await File.ReadAllTextAsync(projectFile);
+            var content = File.ReadAllText(projectFile);
             Assert.DoesNotContain("<Nullable>", content);
         }
         finally

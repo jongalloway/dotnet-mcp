@@ -1483,7 +1483,7 @@ public class ConsolidatedProjectToolTests
         var tempDir = Path.GetFullPath(Path.Join(Path.GetTempPath(), "dotnet-mcp-sp-" + Guid.NewGuid().ToString("N")));
         Directory.CreateDirectory(tempDir);
         var projectFile = Path.Join(tempDir, "Test.csproj");
-        await File.WriteAllTextAsync(projectFile, """
+        File.WriteAllText(projectFile, """
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
                 <TargetFramework>net10.0</TargetFramework>
@@ -1547,7 +1547,7 @@ public class ConsolidatedProjectToolTests
         var tempDir = Path.GetFullPath(Path.Join(Path.GetTempPath(), "dotnet-mcp-gp-" + Guid.NewGuid().ToString("N")));
         Directory.CreateDirectory(tempDir);
         var projectFile = Path.Join(tempDir, "Test.csproj");
-        await File.WriteAllTextAsync(projectFile, """
+        File.WriteAllText(projectFile, """
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
                 <TargetFramework>net10.0</TargetFramework>
@@ -1609,7 +1609,7 @@ public class ConsolidatedProjectToolTests
         var tempDir = Path.GetFullPath(Path.Join(Path.GetTempPath(), "dotnet-mcp-rp-" + Guid.NewGuid().ToString("N")));
         Directory.CreateDirectory(tempDir);
         var projectFile = Path.Join(tempDir, "Test.csproj");
-        await File.WriteAllTextAsync(projectFile, """
+        File.WriteAllText(projectFile, """
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
                 <TargetFramework>net10.0</TargetFramework>
