@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Linq;
 using Xunit;
 
 namespace DotNetMcp.Tests.Infrastructure;
@@ -129,15 +130,7 @@ public class CoverageExclusionTests
         // Normalize path separators
         var normalizedPath = filePath.Replace('\\', '/');
         
-        foreach (var pattern in ExcludedPatterns)
-        {
-            if (MatchesGlobPattern(normalizedPath, pattern))
-            {
-                return true;
-            }
-        }
-        
-        return false;
+        return ExcludedPatterns.Any(pattern => MatchesGlobPattern(normalizedPath, pattern));
     }
 
     /// <summary>
