@@ -235,6 +235,173 @@ public static class ProjectAnalysisHelper
         });
     }
 
+    /// <summary>
+    /// Set (or add) an MSBuild property in the project file.
+    /// </summary>
+    /// <param name="projectPath">Path to the .csproj file</param>
+    /// <param name="propertyName">MSBuild property name (e.g., 'OutputType')</param>
+    /// <param name="propertyValue">Value to set</param>
+    /// <param name="logger">Optional logger instance</param>
+    /// <returns>JSON string indicating success or failure</returns>
+    public static async Task<string> SetPropertyAsync(string projectPath, string propertyName, string propertyValue, ILogger? logger = null)
+    {
+        return await Task.Run(() =>
+        {
+            try
+            {
+                if (!File.Exists(projectPath))
+                {
+                    return JsonSerializer.Serialize(new
+                    {
+                        success = false,
+                        error = $"Project file not found: {projectPath}"
+                    }, new JsonSerializerOptions { WriteIndented = true });
+                }
+
+                logger?.LogDebug("Setting property {PropertyName}={PropertyValue} in {ProjectPath}", propertyName, propertyValue, projectPath);
+
+                using var projectCollection = new ProjectCollection();
+                var project = new Project(projectPath, null, null, projectCollection, ProjectLoadSettings.IgnoreMissingImports);
+
+                project.SetProperty(propertyName, propertyValue);
+                project.Save();
+
+                projectCollection.UnloadProject(project);
+
+                return JsonSerializer.Serialize(new
+                {
+                    success = true,
+                    projectPath,
+                    propertyName,
+                    propertyValue
+                }, new JsonSerializerOptions { WriteIndented = true });
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "Error setting property {PropertyName} in {ProjectPath}", propertyName, projectPath);
+                return JsonSerializer.Serialize(new
+                {
+                    success = false,
+                    error = $"Error setting property: {ex.Message}"
+                }, new JsonSerializerOptions { WriteIndented = true });
+            }
+        });
+    }
+
+    /// <summary>
+    /// Get the current value of an MSBuild property from the project file.
+    /// </summary>
+    /// <param name="projectPath">Path to the .csproj file</param>
+    /// <param name="propertyName">MSBuild property name (e.g., 'OutputType')</param>
+    /// <param name="logger">Optional logger instance</param>
+    /// <returns>JSON string containing the property value or an error</returns>
+    public static async Task<string> GetPropertyAsync(string projectPath, string propertyName, ILogger? logger = null)
+    {
+        return await Task.Run(() =>
+        {
+            try
+            {
+                if (!File.Exists(projectPath))
+                {
+                    return JsonSerializer.Serialize(new
+                    {
+                        success = false,
+                        error = $"Project file not found: {projectPath}"
+                    }, new JsonSerializerOptions { WriteIndented = true });
+                }
+
+                logger?.LogDebug("Getting property {PropertyName} from {ProjectPath}", propertyName, projectPath);
+
+                using var projectCollection = new ProjectCollection();
+                var project = new Project(projectPath, null, null, projectCollection, ProjectLoadSettings.IgnoreMissingImports);
+
+                var value = project.GetPropertyValue(propertyName);
+
+                projectCollection.UnloadProject(project);
+
+                return JsonSerializer.Serialize(new
+                {
+                    success = true,
+                    projectPath,
+                    propertyName,
+                    propertyValue = value,
+                    isSet = !string.IsNullOrEmpty(value)
+                }, new JsonSerializerOptions { WriteIndented = true });
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "Error getting property {PropertyName} from {ProjectPath}", propertyName, projectPath);
+                return JsonSerializer.Serialize(new
+                {
+                    success = false,
+                    error = $"Error getting property: {ex.Message}"
+                }, new JsonSerializerOptions { WriteIndented = true });
+            }
+        });
+    }
+
+    /// <summary>
+    /// Remove an MSBuild property from the project file.
+    /// </summary>
+    /// <param name="projectPath">Path to the .csproj file</param>
+    /// <param name="propertyName">MSBuild property name to remove</param>
+    /// <param name="logger">Optional logger instance</param>
+    /// <returns>JSON string indicating success or failure</returns>
+    public static async Task<string> RemovePropertyAsync(string projectPath, string propertyName, ILogger? logger = null)
+    {
+        return await Task.Run(() =>
+        {
+            try
+            {
+                if (!File.Exists(projectPath))
+                {
+                    return JsonSerializer.Serialize(new
+                    {
+                        success = false,
+                        error = $"Project file not found: {projectPath}"
+                    }, new JsonSerializerOptions { WriteIndented = true });
+                }
+
+                logger?.LogDebug("Removing property {PropertyName} from {ProjectPath}", propertyName, projectPath);
+
+                using var projectCollection = new ProjectCollection();
+                var project = new Project(projectPath, null, null, projectCollection, ProjectLoadSettings.IgnoreMissingImports);
+
+                var prop = project.GetProperty(propertyName);
+                bool removed;
+                if (prop != null)
+                {
+                    project.RemoveProperty(prop);
+                    project.Save();
+                    removed = true;
+                }
+                else
+                {
+                    removed = false;
+                }
+
+                projectCollection.UnloadProject(project);
+
+                return JsonSerializer.Serialize(new
+                {
+                    success = true,
+                    projectPath,
+                    propertyName,
+                    removed
+                }, new JsonSerializerOptions { WriteIndented = true });
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "Error removing property {PropertyName} from {ProjectPath}", propertyName, projectPath);
+                return JsonSerializer.Serialize(new
+                {
+                    success = false,
+                    error = $"Error removing property: {ex.Message}"
+                }, new JsonSerializerOptions { WriteIndented = true });
+            }
+        });
+    }
+
     private static string GetSdkFromProject(Project project)
     {
         // Try to get SDK from the project root element

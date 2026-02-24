@@ -1368,4 +1368,273 @@ public class ConsolidatedProjectToolTests
     }
 
     #endregion
+
+    #region SetProperty Action Tests
+
+    [Fact]
+    public async Task DotnetProject_SetProperty_WithoutProject_ReturnsError()
+    {
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.SetProperty,
+            project: null,
+            propertyName: "OutputType",
+            propertyValue: "Exe",
+            machineReadable: false);
+
+        Assert.Contains("Error", result);
+        Assert.Contains("project", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_SetProperty_WithoutProject_MachineReadable_ReturnsValidationError()
+    {
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.SetProperty,
+            project: null,
+            propertyName: "OutputType",
+            propertyValue: "Exe",
+            machineReadable: true);
+
+        Assert.NotNull(result);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("project", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("required", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_SetProperty_WithoutPropertyName_ReturnsError()
+    {
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.SetProperty,
+            project: "MyProject.csproj",
+            propertyName: null,
+            propertyValue: "Exe",
+            machineReadable: false);
+
+        Assert.Contains("Error", result);
+        Assert.Contains("propertyName", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_SetProperty_WithoutPropertyName_MachineReadable_ReturnsValidationError()
+    {
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.SetProperty,
+            project: "MyProject.csproj",
+            propertyName: null,
+            propertyValue: "Exe",
+            machineReadable: true);
+
+        Assert.NotNull(result);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("propertyName", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("required", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_SetProperty_WithoutPropertyValue_ReturnsError()
+    {
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.SetProperty,
+            project: "MyProject.csproj",
+            propertyName: "OutputType",
+            propertyValue: null,
+            machineReadable: false);
+
+        Assert.Contains("Error", result);
+        Assert.Contains("propertyValue", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_SetProperty_WithoutPropertyValue_MachineReadable_ReturnsValidationError()
+    {
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.SetProperty,
+            project: "MyProject.csproj",
+            propertyName: "OutputType",
+            propertyValue: null,
+            machineReadable: true);
+
+        Assert.NotNull(result);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("propertyValue", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("required", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_SetProperty_WithNonExistentProject_ReturnsError()
+    {
+        var missingProject = Path.GetFullPath(Path.Join(Path.GetTempPath(), "nonexistent-" + Guid.NewGuid().ToString("N") + ".csproj"));
+
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.SetProperty,
+            project: missingProject,
+            propertyName: "OutputType",
+            propertyValue: "Exe",
+            machineReadable: false);
+
+        Assert.Contains("not found", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_SetProperty_WithValidProject_SetsProperty()
+    {
+        // Create a minimal csproj for testing
+        var tempDir = Path.GetFullPath(Path.Join(Path.GetTempPath(), "dotnet-mcp-sp-" + Guid.NewGuid().ToString("N")));
+        Directory.CreateDirectory(tempDir);
+        var projectFile = Path.Join(tempDir, "Test.csproj");
+        await File.WriteAllTextAsync(projectFile, """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+              </PropertyGroup>
+            </Project>
+            """);
+
+        try
+        {
+            var result = await _tools.DotnetProject(
+                action: DotnetProjectAction.SetProperty,
+                project: projectFile,
+                propertyName: "OutputType",
+                propertyValue: "Exe",
+                machineReadable: false);
+
+            // Should succeed and confirm the property was set
+            Assert.DoesNotContain("Error", result);
+            Assert.Contains("OutputType", result, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Exe", result, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, recursive: true); } catch { /* best-effort */ }
+        }
+    }
+
+    #endregion
+
+    #region GetProperty Action Tests
+
+    [Fact]
+    public async Task DotnetProject_GetProperty_WithoutProject_ReturnsError()
+    {
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.GetProperty,
+            project: null,
+            propertyName: "OutputType",
+            machineReadable: false);
+
+        Assert.Contains("Error", result);
+        Assert.Contains("project", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_GetProperty_WithoutPropertyName_ReturnsError()
+    {
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.GetProperty,
+            project: "MyProject.csproj",
+            propertyName: null,
+            machineReadable: false);
+
+        Assert.Contains("Error", result);
+        Assert.Contains("propertyName", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_GetProperty_WithValidProject_ReturnsPropertyValue()
+    {
+        var tempDir = Path.GetFullPath(Path.Join(Path.GetTempPath(), "dotnet-mcp-gp-" + Guid.NewGuid().ToString("N")));
+        Directory.CreateDirectory(tempDir);
+        var projectFile = Path.Join(tempDir, "Test.csproj");
+        await File.WriteAllTextAsync(projectFile, """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+                <Nullable>enable</Nullable>
+              </PropertyGroup>
+            </Project>
+            """);
+
+        try
+        {
+            var result = await _tools.DotnetProject(
+                action: DotnetProjectAction.GetProperty,
+                project: projectFile,
+                propertyName: "Nullable",
+                machineReadable: false);
+
+            Assert.DoesNotContain("Error", result);
+            Assert.Contains("Nullable", result, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, recursive: true); } catch { /* best-effort */ }
+        }
+    }
+
+    #endregion
+
+    #region RemoveProperty Action Tests
+
+    [Fact]
+    public async Task DotnetProject_RemoveProperty_WithoutProject_ReturnsError()
+    {
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.RemoveProperty,
+            project: null,
+            propertyName: "OutputType",
+            machineReadable: false);
+
+        Assert.Contains("Error", result);
+        Assert.Contains("project", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_RemoveProperty_WithoutPropertyName_ReturnsError()
+    {
+        var result = await _tools.DotnetProject(
+            action: DotnetProjectAction.RemoveProperty,
+            project: "MyProject.csproj",
+            propertyName: null,
+            machineReadable: false);
+
+        Assert.Contains("Error", result);
+        Assert.Contains("propertyName", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_RemoveProperty_WithValidProject_RemovesExistingProperty()
+    {
+        var tempDir = Path.GetFullPath(Path.Join(Path.GetTempPath(), "dotnet-mcp-rp-" + Guid.NewGuid().ToString("N")));
+        Directory.CreateDirectory(tempDir);
+        var projectFile = Path.Join(tempDir, "Test.csproj");
+        await File.WriteAllTextAsync(projectFile, """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+                <Nullable>enable</Nullable>
+              </PropertyGroup>
+            </Project>
+            """);
+
+        try
+        {
+            var result = await _tools.DotnetProject(
+                action: DotnetProjectAction.RemoveProperty,
+                project: projectFile,
+                propertyName: "Nullable",
+                machineReadable: false);
+
+            Assert.DoesNotContain("Error", result);
+            Assert.Contains("Nullable", result, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, recursive: true); } catch { /* best-effort */ }
+        }
+    }
+
+    #endregion
 }
+

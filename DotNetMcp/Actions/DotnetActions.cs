@@ -91,7 +91,16 @@ public enum DotnetProjectAction
     Logs,
 
     /// <summary>List available options/parameters for a template (runs dotnet new &lt;template&gt; --help)</summary>
-    ListTemplateOptions
+    ListTemplateOptions,
+
+    /// <summary>Set or update an MSBuild property in the project file</summary>
+    SetProperty,
+
+    /// <summary>Get the current value of an MSBuild property from the project file</summary>
+    GetProperty,
+
+    /// <summary>Remove an MSBuild property from the project file</summary>
+    RemoveProperty
 }
 
 /// <summary>
