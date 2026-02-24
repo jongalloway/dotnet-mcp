@@ -272,6 +272,83 @@ public class McpConformanceTests : IAsyncLifetime
         }
     }
 
+    [Fact]
+    public async Task Server_ToolList_ReadOnlyTools_HaveAnnotations()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act
+        var tools = await _client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert - Read-only tools should have ReadOnlyHint = true in protocol response
+        var readOnlyToolNames = new[] { "dotnet_help", "dotnet_server_capabilities", "dotnet_server_info" };
+        foreach (var toolName in readOnlyToolNames)
+        {
+            var tool = tools.FirstOrDefault(t => t.Name == toolName);
+            Assert.NotNull(tool);
+
+            var annotations = tool.ProtocolTool.Annotations;
+            Assert.NotNull(annotations);
+            Assert.True(annotations.ReadOnlyHint, $"{toolName} should have ReadOnlyHint = true");
+            Assert.True(annotations.IdempotentHint, $"{toolName} should have IdempotentHint = true");
+        }
+    }
+
+    [Fact]
+    public async Task Server_ToolList_DestructiveTools_HaveAnnotations()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act
+        var tools = await _client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert - Tools with destructive actions should have DestructiveHint = true
+        var destructiveToolNames = new[]
+        {
+            "dotnet_project",   // Clean action
+            "dotnet_package",   // Remove/ClearCache actions
+            "dotnet_solution",  // Remove action
+            "dotnet_tool",      // Uninstall action
+            "dotnet_workload",  // Uninstall action
+            "dotnet_dev_certs", // CertificateClean/SecretsClear actions
+            "dotnet_ef",        // DatabaseDrop action
+        };
+        foreach (var toolName in destructiveToolNames)
+        {
+            var tool = tools.FirstOrDefault(t => t.Name == toolName);
+            Assert.NotNull(tool);
+
+            var annotations = tool.ProtocolTool.Annotations;
+            Assert.NotNull(annotations);
+            Assert.True(annotations.DestructiveHint, $"{toolName} should have DestructiveHint = true");
+        }
+    }
+
+    [Fact]
+    public async Task Server_ToolList_AllTools_HaveTitles()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act
+        var tools = await _client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert - All tools should have a human-readable Title in their annotations
+        var toolsWithoutTitle = new List<string>();
+        foreach (var tool in tools)
+        {
+            var annotations = tool.ProtocolTool.Annotations;
+            if (annotations == null || string.IsNullOrWhiteSpace(annotations.Title))
+            {
+                toolsWithoutTitle.Add(tool.Name);
+            }
+        }
+
+        Assert.Empty(toolsWithoutTitle);
+    }
+
     #endregion
 
     #region Tool Invocation Tests

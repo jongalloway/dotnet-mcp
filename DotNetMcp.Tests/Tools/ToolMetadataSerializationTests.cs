@@ -383,4 +383,95 @@ public class ToolMetadataSerializationTests
             }
         }
     }
+
+    /// <summary>
+    /// Verifies that all tool methods have a Title set in the McpServerTool attribute.
+    /// Titles provide human-readable display names for AI assistant UX.
+    /// </summary>
+    [Fact]
+    public void AllToolMethods_HaveTitle()
+    {
+        // Arrange
+        var toolType = typeof(DotNetCliTools);
+        var methods = toolType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+        var toolMethods = methods.Where(m => m.GetCustomAttribute<McpServerToolAttribute>() != null).ToList();
+
+        // Assert
+        Assert.NotEmpty(toolMethods);
+
+        var toolsWithoutTitle = new List<string>();
+        foreach (var method in toolMethods)
+        {
+            var attr = method.GetCustomAttribute<McpServerToolAttribute>();
+            Assert.NotNull(attr);
+
+            if (string.IsNullOrWhiteSpace(attr.Title))
+            {
+                toolsWithoutTitle.Add(method.Name);
+            }
+        }
+
+        Assert.Empty(toolsWithoutTitle);
+    }
+
+    /// <summary>
+    /// Verifies that read-only tools (DotnetHelp, DotnetServerCapabilities, DotnetServerInfo)
+    /// are annotated with ReadOnly = true and Idempotent = true.
+    /// </summary>
+    [Fact]
+    public void ReadOnlyTools_HaveReadOnlyAndIdempotentAnnotations()
+    {
+        // Arrange
+        var toolType = typeof(DotNetCliTools);
+        var methods = toolType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+
+        var readOnlyToolNames = new[] { "DotnetHelp", "DotnetServerCapabilities", "DotnetServerInfo" };
+
+        foreach (var toolName in readOnlyToolNames)
+        {
+            var method = methods.FirstOrDefault(m => m.Name == toolName && m.GetCustomAttribute<McpServerToolAttribute>() != null);
+            Assert.NotNull(method);
+
+            var attr = method.GetCustomAttribute<McpServerToolAttribute>();
+            Assert.NotNull(attr);
+
+            Assert.True(attr.ReadOnly, $"{toolName} should have ReadOnly = true");
+            Assert.True(attr.Idempotent, $"{toolName} should have Idempotent = true");
+        }
+    }
+
+    /// <summary>
+    /// Verifies that tools with destructive actions are annotated with Destructive = true.
+    /// Destructive tools include those that can delete files, remove packages, drop databases, etc.
+    /// </summary>
+    [Fact]
+    public void DestructiveTools_HaveDestructiveAnnotation()
+    {
+        // Arrange
+        var toolType = typeof(DotNetCliTools);
+        var methods = toolType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+
+        // Tools that have at least one destructive action (Clean, Remove, Drop, etc.)
+        var destructiveToolNames = new[]
+        {
+            "DotnetProject",    // Clean action deletes build artifacts
+            "DotnetPackage",    // Remove/RemoveReference/ClearCache actions
+            "DotnetSolution",   // Remove action
+            "DotnetTool",       // Uninstall action
+            "DotnetWorkload",   // Uninstall action
+            "DotnetDevCerts",   // CertificateClean and SecretsClear actions
+            "DotnetEf",         // DatabaseDrop and MigrationsRemove actions
+        };
+
+        foreach (var toolName in destructiveToolNames)
+        {
+            var method = methods.FirstOrDefault(m => m.Name == toolName && m.GetCustomAttribute<McpServerToolAttribute>() != null);
+            Assert.NotNull(method);
+
+            var attr = method.GetCustomAttribute<McpServerToolAttribute>();
+            Assert.NotNull(attr);
+
+            Assert.True(attr.Destructive, $"{toolName} should have Destructive = true because it has at least one destructive action");
+        }
+    }
 }
