@@ -130,8 +130,8 @@ public class ConsolidatedProjectToolTests
             name: "MyApp")).GetText();
 
         Assert.NotNull(result);
-        // Should contain error about template validation since we're not actually creating a project
-        Assert.True(result.Contains("\"success\"") || result.Contains("Error"));
+        // Should either have run the command (Exit Code present) or failed template validation (Error present)
+        Assert.True(result.Contains("Exit Code:") || result.Contains("Error"));
     }
 
     [Fact]
@@ -441,8 +441,8 @@ public class ConsolidatedProjectToolTests
             framework: "net8.0")).GetText();
 
         Assert.NotNull(result);
-        // Will contain validation error or command execution
-        Assert.True(result.Contains("\"success\"") || result.Contains("Error"));
+        // Will contain command execution output (Exit Code present) or validation error (Error present)
+        Assert.True(result.Contains("Exit Code:") || result.Contains("Error"));
     }
 
     [Fact]
