@@ -9,7 +9,8 @@
     <!-- Suppress CS1591 for missing XML comments on non-tool classes -->
     <!-- The source generator creates [Description] attributes from XML documentation for MCP tool methods -->
     <!-- CS1066 is now automatically suppressed by the SDK for MCP server methods -->
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- MCPEXP001: IMcpTaskStore and related task APIs are experimental in the MCP SDK -->
+    <NoWarn>$(NoWarn);CS1591;MCPEXP001</NoWarn>
 
     <!-- NuGet Package Metadata -->
     <PackageId>Community.Mcp.DotNet</PackageId>

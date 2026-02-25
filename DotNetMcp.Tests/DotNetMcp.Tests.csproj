@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <OutputType>Exe</OutputType>
+    <!-- MCPEXP001: Task-related APIs (IMcpTaskStore, ToolTaskSupport, McpTasksCapability) are experimental in the MCP SDK -->
+    <NoWarn>$(NoWarn);MCPEXP001</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

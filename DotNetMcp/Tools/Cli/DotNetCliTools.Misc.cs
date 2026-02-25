@@ -68,7 +68,8 @@ public sealed partial class DotNetCliTools
                 StructuredErrors = true,
                 MachineReadable = true,
                 Cancellation = true,
-                Telemetry = true  // SDK v0.6+ supports request duration logging and OpenTelemetry semantic conventions
+                Telemetry = true,  // SDK v0.6+ supports request duration logging and OpenTelemetry semantic conventions
+                AsyncTasks = true  // MCP Task support enabled: long-running operations (build, test, publish) can run as async tasks
             },
             SdkVersions = new SdkVersionInfo
             {

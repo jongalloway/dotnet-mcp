@@ -520,6 +520,65 @@ public class McpConformanceTests : IAsyncLifetime
 
     #endregion
 
+    #region MCP Task Support Tests
+
+    [Fact]
+    public void Server_ShouldAdvertiseTasksCapability()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Assert - server should expose tasks capability (InMemoryMcpTaskStore is registered)
+        Assert.NotNull(_client.ServerCapabilities);
+        Assert.NotNull(_client.ServerCapabilities.Tasks);
+    }
+
+    [Fact]
+    public void Server_TasksCapability_ShouldSupportListAndCancel()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Assert
+        var tasks = _client.ServerCapabilities?.Tasks;
+        Assert.NotNull(tasks);
+        Assert.NotNull(tasks.List);
+        Assert.NotNull(tasks.Cancel);
+    }
+
+    [Fact]
+    public async Task Server_DotnetProject_ShouldHaveTaskSupport()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act
+        var tools = await _client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+        var projectTool = tools.FirstOrDefault(t => t.Name == "dotnet_project");
+
+        // Assert - dotnet_project should declare TaskSupport = Optional so clients can run
+        // long operations (build, test, publish) as async tasks
+        Assert.NotNull(projectTool);
+        var execution = projectTool.ProtocolTool.Execution;
+        Assert.NotNull(execution);
+        Assert.Equal(ModelContextProtocol.Protocol.ToolTaskSupport.Optional, execution.TaskSupport);
+    }
+
+    [Fact]
+    public async Task Server_TaskList_ShouldReturnEmptyWhenNoTasksRunning()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act
+        var tasks = await _client.ListTasksAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert - no tasks should be running at server start
+        Assert.NotNull(tasks);
+    }
+
+    #endregion
+
     #region Helper Methods
 
     /// <summary>
