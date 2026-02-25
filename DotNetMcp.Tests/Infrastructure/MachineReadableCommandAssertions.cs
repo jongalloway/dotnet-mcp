@@ -11,6 +11,12 @@ internal static class MachineReadableCommandAssertions
     {
         Assert.False(string.IsNullOrWhiteSpace(expectedCommand));
         Assert.False(string.IsNullOrWhiteSpace(resultText));
+
+        var actualCommand = ExtractExecutedDotnetCommand(resultText);
+        Assert.False(string.IsNullOrWhiteSpace(actualCommand));
+
+        // The executed command should at least contain the expected command string.
+        Assert.Contains(expectedCommand, actualCommand);
     }
 
     public static string ExtractExecutedDotnetCommand(string resultText)
