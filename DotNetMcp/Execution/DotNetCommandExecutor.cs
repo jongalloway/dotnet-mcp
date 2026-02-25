@@ -177,7 +177,8 @@ public static class DotNetCommandExecutor
         }
 
         var textResult = new StringBuilder();
-        textResult.AppendLine($"Command: dotnet {arguments}");
+        var displayedArguments = unsafeOutput ? arguments : SecretRedactor.Redact(arguments);
+        textResult.AppendLine($"Command: dotnet {displayedArguments}");
         if (outputStr.Length > 0) textResult.AppendLine(outputStr);
         if (errorStr.Length > 0)
         {
