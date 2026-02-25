@@ -139,7 +139,7 @@ public class ConsolidatedPackageToolTests
             packageId: null)).GetText();
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("packageId", result, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -181,7 +181,7 @@ public class ConsolidatedPackageToolTests
             packageId: null)).GetText();
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("packageId", result, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -249,7 +249,7 @@ public class ConsolidatedPackageToolTests
             searchTerm: null)).GetText();
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("searchTerm", result, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -291,7 +291,7 @@ public class ConsolidatedPackageToolTests
             packageId: null)).GetText();
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("packageId", result, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -373,7 +373,7 @@ public class ConsolidatedPackageToolTests
             referencePath: "MyLibrary.csproj")).GetText();
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("project", result, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -387,7 +387,7 @@ public class ConsolidatedPackageToolTests
             referencePath: null)).GetText();
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("referencePath", result, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -418,7 +418,7 @@ public class ConsolidatedPackageToolTests
             referencePath: "MyLibrary.csproj")).GetText();
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("project", result, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -432,7 +432,7 @@ public class ConsolidatedPackageToolTests
             referencePath: null)).GetText();
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("referencePath", result, StringComparison.OrdinalIgnoreCase);
     }
 

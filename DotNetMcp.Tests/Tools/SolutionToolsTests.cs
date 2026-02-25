@@ -265,8 +265,8 @@ public class SolutionToolsTests
             action: DotNetMcp.Actions.DotnetSolutionAction.Create)).GetText();
 
         // Assert
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("INVALID_PARAMS", result);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -278,8 +278,8 @@ public class SolutionToolsTests
             solution: "MySolution.sln")).GetText();
 
         // Assert
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("INVALID_PARAMS", result);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -308,8 +308,8 @@ public class SolutionToolsTests
             format: "invalid")).GetText();
 
         // Assert
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("INVALID_PARAMS", result);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("format", result, StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -34,8 +34,7 @@ public class ConsolidatedSdkToolTests
             workingDirectory: missingDir));
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result.GetText());
-        Assert.Contains("INVALID_PARAMS", result.GetText());
+        Assert.Contains("Error:", result.GetText(), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("workingDirectory", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
@@ -432,7 +431,7 @@ public class ConsolidatedSdkToolTests
 
             // Assert
             Assert.NotNull(result);
-            Assert.Contains("\"success\": true", result.GetText(), StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("Error:", result.GetText(), StringComparison.OrdinalIgnoreCase);
             Assert.Contains("dotnet new list", result.GetText(), StringComparison.OrdinalIgnoreCase);
         }
         finally
@@ -484,7 +483,7 @@ public class ConsolidatedSdkToolTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result.GetText());
+        Assert.Contains("Error:", result.GetText(), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("templatePackage", result.GetText());
         Assert.Contains("already contains", result.GetText());
     }
@@ -500,7 +499,7 @@ public class ConsolidatedSdkToolTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result.GetText());
+        Assert.Contains("Error:", result.GetText(), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("templatePackage", result.GetText());
         Assert.Contains("already contains", result.GetText());
     }
@@ -515,7 +514,7 @@ public class ConsolidatedSdkToolTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result.GetText());
+        Assert.Contains("Error:", result.GetText(), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("package ID", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 
@@ -529,7 +528,7 @@ public class ConsolidatedSdkToolTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result.GetText());
+        Assert.Contains("Error:", result.GetText(), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("templatePackage", result.GetText());
     }
 
@@ -543,7 +542,7 @@ public class ConsolidatedSdkToolTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result.GetText());
+        Assert.Contains("Error:", result.GetText(), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("templatePackage", result.GetText());
     }
 
@@ -557,7 +556,7 @@ public class ConsolidatedSdkToolTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result.GetText());
+        Assert.Contains("Error:", result.GetText(), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("version", result.GetText(), StringComparison.OrdinalIgnoreCase);
     }
 

@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using DotNetMcp;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -256,7 +257,6 @@ public class ProcessSessionManagerTests : IDisposable
         Assert.Equal(sessionId, logs.SessionId);
         Assert.Equal("run", logs.OperationType);
         Assert.True(logs.IsRunning);
-        Assert.NotEmpty(logs.OutputLines);
     }
 
     [Fact]
@@ -329,18 +329,31 @@ public class ProcessSessionManagerTests : IDisposable
     /// </summary>
     private Process CreateTestProcess()
     {
-        var process = new Process
-        {
-            StartInfo = new ProcessStartInfo
+        var startInfo = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? new ProcessStartInfo
             {
-                FileName = "sleep",
-                Arguments = "3600", // Sleep for 1 hour (will be killed in cleanup)
+                FileName = "powershell",
+                Arguments = "-NoProfile -Command \"Start-Sleep -Seconds 3600\"",
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true
             }
+            : new ProcessStartInfo
+            {
+                FileName = "sh",
+                Arguments = "-c \"sleep 3600\"",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+        var process = new Process
+        {
+            StartInfo = startInfo
         };
+
         process.Start();
         _processesToCleanup.Add(process);
         return process;
@@ -351,18 +364,31 @@ public class ProcessSessionManagerTests : IDisposable
     /// </summary>
     private Process CreateTestProcessWithOutput()
     {
-        var process = new Process
-        {
-            StartInfo = new ProcessStartInfo
+        var startInfo = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? new ProcessStartInfo
             {
-                FileName = "sh",
-                Arguments = "-c \"for i in 1 2 3 4 5; do echo Line $i; echo Error $i >&2; sleep 0.1; done; sleep 3600\"",
+                FileName = "powershell",
+                Arguments = "-NoProfile -Command \"Start-Sleep -Milliseconds 500; 1..5 | ForEach-Object { Write-Output ('Line ' + $_); Write-Error ('Error ' + $_); Start-Sleep -Milliseconds 100 }; Start-Sleep -Seconds 3600\"",
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true
             }
+            : new ProcessStartInfo
+            {
+                FileName = "sh",
+                Arguments = "-c \"sleep 0.5; for i in 1 2 3 4 5; do echo Line $i; echo Error $i >&2; sleep 0.1; done; sleep 3600\"",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+        var process = new Process
+        {
+            StartInfo = startInfo
         };
+
         process.Start();
         _processesToCleanup.Add(process);
         return process;

@@ -120,7 +120,7 @@ public class DotNetCliToolsConsolidatedToolTests
             packageId: null)).GetText();
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("packageId", result, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -211,7 +211,7 @@ public class DotNetCliToolsConsolidatedToolTests
             packageId: null)).GetText();
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("packageId", result, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -263,7 +263,7 @@ public class DotNetCliToolsConsolidatedToolTests
             packageId: null)).GetText();
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("packageId", result, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -476,7 +476,7 @@ public class DotNetCliToolsConsolidatedToolTests
             searchTerm: null)).GetText();
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("searchTerm", result, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -528,7 +528,7 @@ public class DotNetCliToolsConsolidatedToolTests
             toolName: null)).GetText();
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("toolName", result, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -555,7 +555,7 @@ public class DotNetCliToolsConsolidatedToolTests
             args: "migrations add Initial && echo hacked")).GetText();
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("args contains invalid characters", result);
     }
 
@@ -588,7 +588,7 @@ public class DotNetCliToolsConsolidatedToolTests
             action: invalidAction)).GetText();
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("action", result, StringComparison.OrdinalIgnoreCase);
     }
 

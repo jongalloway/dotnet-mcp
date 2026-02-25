@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics;
-using System.Text.Json;
 using System.Threading.Tasks;
 using DotNetMcp;
 using DotNetMcp.Actions;
@@ -95,8 +94,8 @@ public class BackgroundRunTests : IDisposable
 
             // Verify it completed (should have exit code)
             Assert.NotNull(result);
-            Assert.Contains("\"success\": true", result);
-            Assert.Contains("\"exitCode\": 0", result);
+            Assert.DoesNotContain("Error:", result, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Exit Code: 0", result, StringComparison.OrdinalIgnoreCase);
         }
         finally
         {
@@ -157,19 +156,16 @@ Console.WriteLine(""Finished"");
 
             // Verify it returned immediately with session metadata
             Assert.NotNull(result);
-            Assert.Contains("\"success\": true", result);
-            Assert.Contains("\"sessionId\":", result);
-            Assert.Contains("\"pid\":", result);
-            Assert.Contains("\"operationType\": \"run\"", result);
-            Assert.Contains("\"startMode\": \"background\"", result);
+            Assert.DoesNotContain("Error:", result, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Session ID:", result, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("PID:", result, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Process started in background mode", result, StringComparison.OrdinalIgnoreCase);
 
-            // Parse the result to get the session ID
-            var jsonDoc = JsonDocument.Parse(result);
-            var sessionId = jsonDoc.RootElement.GetProperty("metadata").GetProperty("sessionId").GetString();
-            Assert.NotNull(sessionId);
+            var sessionId = ExtractRequiredMetadataValue(result, "Session ID");
+            Assert.NotEmpty(sessionId);
 
             // Verify the session is registered
-            var sessionExists = _sessionManager.TryGetSession(sessionId!, out var sessionInfo);
+            var sessionExists = _sessionManager.TryGetSession(sessionId, out var sessionInfo);
             Assert.True(sessionExists);
             Assert.NotNull(sessionInfo);
             Assert.Equal("run", sessionInfo!.OperationType);
@@ -179,7 +175,7 @@ Console.WriteLine(""Finished"");
                 action: DotnetProjectAction.Stop,
                 sessionId: sessionId)).GetText();
 
-            Assert.Contains("\"success\": true", stopResult);
+            Assert.DoesNotContain("Error:", stopResult, StringComparison.OrdinalIgnoreCase);
         }
         finally
         {
@@ -234,12 +230,11 @@ Thread.Sleep(TimeSpan.FromSeconds(30));
                 noBuild: true,
                 startMode: StartMode.Background)).GetText();
 
-            Assert.Contains("\"success\": true", result);
-            Assert.Contains("\"sessionId\":", result);
+            Assert.DoesNotContain("Error:", result, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Session ID:", result, StringComparison.OrdinalIgnoreCase);
 
             // Parse and stop
-            var jsonDoc = JsonDocument.Parse(result);
-            var sessionId = jsonDoc.RootElement.GetProperty("metadata").GetProperty("sessionId").GetString();
+            var sessionId = ExtractRequiredMetadataValue(result, "Session ID");
 
             (await _tools.DotnetProject(
                 action: DotnetProjectAction.Stop,
@@ -301,10 +296,9 @@ Console.WriteLine(""App finished"");
                 noBuild: true,
                 startMode: StartMode.Background)).GetText();
 
-            var jsonDoc = JsonDocument.Parse(runResult);
-            var sessionId = jsonDoc.RootElement.GetProperty("metadata").GetProperty("sessionId").GetString();
-            var pidStr = jsonDoc.RootElement.GetProperty("metadata").GetProperty("pid").GetString();
-            var pid = int.Parse(pidStr!);
+            var sessionId = ExtractRequiredMetadataValue(runResult, "Session ID");
+            var pidStr = ExtractRequiredMetadataValue(runResult, "PID");
+            var pid = int.Parse(pidStr);
 
             // Verify process is running
             var process = Process.GetProcessById(pid);
@@ -315,7 +309,7 @@ Console.WriteLine(""App finished"");
                 action: DotnetProjectAction.Stop,
                 sessionId: sessionId)).GetText();
 
-            Assert.Contains("\"success\": true", stopResult);
+            Assert.DoesNotContain("Error:", stopResult, StringComparison.OrdinalIgnoreCase);
 
             // Wait a bit for the process to actually terminate
             await Task.Delay(1000, cancellationToken);
@@ -389,11 +383,10 @@ Console.WriteLine(""Done"");
                 noBuild: true,
                 startMode: StartMode.Background)).GetText();
 
-            var jsonDoc = JsonDocument.Parse(runResult);
-            var sessionId = jsonDoc.RootElement.GetProperty("metadata").GetProperty("sessionId").GetString();
+            var sessionId = ExtractRequiredMetadataValue(runResult, "Session ID");
 
             // Verify session exists
-            var sessionExists = _sessionManager.TryGetSession(sessionId!, out _);
+            var sessionExists = _sessionManager.TryGetSession(sessionId, out _);
             Assert.True(sessionExists);
 
             // Wait for the process to exit
@@ -425,5 +418,23 @@ Console.WriteLine(""Done"");
                 // Best effort cleanup
             }
         }
+    }
+
+    private static string ExtractRequiredMetadataValue(string output, string key)
+    {
+        var prefix = key + ":";
+        foreach (var line in output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (line.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                var value = line[prefix.Length..].Trim();
+                if (!string.IsNullOrEmpty(value))
+                {
+                    return value;
+                }
+            }
+        }
+
+        throw new InvalidOperationException($"Missing '{prefix}' in output: {output}");
     }
 }

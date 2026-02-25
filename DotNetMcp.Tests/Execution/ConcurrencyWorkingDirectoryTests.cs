@@ -273,9 +273,9 @@ public class ConcurrencyWorkingDirectoryTests
 
             // Assert: Should get structured concurrency conflict error
             Assert.NotNull(result);
-            Assert.Contains("\"code\": \"CONCURRENCY_CONFLICT\"", result);
-            Assert.Contains("\"success\": false", result);
-            Assert.Contains("\"category\": \"Concurrency\"", result);
+            Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Cannot execute 'test'", result, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("conflicting operation", result, StringComparison.OrdinalIgnoreCase);
         }
         finally
         {

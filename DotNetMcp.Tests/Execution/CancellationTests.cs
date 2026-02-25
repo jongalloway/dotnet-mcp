@@ -53,7 +53,7 @@ public class CancellationTests
 
         // Assert
         Assert.Contains("OPERATION_CANCELLED", result);
-        Assert.Contains("\"success\": false", result);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("\"exitCode\": -1", result);
     }
 

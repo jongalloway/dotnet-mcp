@@ -21,7 +21,7 @@ public class ConsolidatedDevCertsToolTests
 
     #region Certificate Trust Action Tests
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetDevCerts_CertificateTrust_ExecutesCommand()
     {
         // Act
@@ -32,7 +32,7 @@ public class ConsolidatedDevCertsToolTests
         // Command should execute (may require elevation on some platforms)
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetDevCerts_CertificateTrust_WithMachineReadable_ReturnsStructuredOutput()
     {
         // Act
@@ -58,7 +58,7 @@ public class ConsolidatedDevCertsToolTests
         // Should check certificate status
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetDevCerts_CertificateCheck_WithTrust_IncludesTrustFlag()
     {
         // Act
@@ -84,7 +84,7 @@ public class ConsolidatedDevCertsToolTests
 
     #region Certificate Clean Action Tests
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetDevCerts_CertificateClean_ExecutesCommand()
     {
         // Act
@@ -95,7 +95,7 @@ public class ConsolidatedDevCertsToolTests
         // Should clean certificates
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetDevCerts_CertificateClean_WithMachineReadable_ReturnsStructuredOutput()
     {
         // Act
@@ -244,8 +244,7 @@ public class ConsolidatedDevCertsToolTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains("{", result);
-        // Should return JSON-formatted error
+        Assert.Contains("Error:", result, StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion
@@ -432,8 +431,7 @@ public class ConsolidatedDevCertsToolTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains("{", result);
-        // Should return JSON-formatted error
+        Assert.Contains("Error:", result, StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion
@@ -556,8 +554,7 @@ public class ConsolidatedDevCertsToolTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains("{", result);
-        // Should return JSON-formatted error
+        Assert.Contains("Error:", result, StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion
@@ -607,8 +604,10 @@ public class ConsolidatedDevCertsToolTests
     [Fact]
     public async Task DotnetDevCerts_AllActions_RouteCorrectly()
     {
-        // Test that all enum values are handled
-        var actions = Enum.GetValues<DotnetDevCertsAction>();
+        // Exclude interactive actions so this test can run in non-interactive environments.
+        var actions = Enum.GetValues<DotnetDevCertsAction>()
+            .Where(action => action is not DotnetDevCertsAction.CertificateTrust and not DotnetDevCertsAction.CertificateClean)
+            .ToArray();
         
         // Act - test each action and verify it routes correctly
         var results = await Task.WhenAll(actions.Select(async action => new

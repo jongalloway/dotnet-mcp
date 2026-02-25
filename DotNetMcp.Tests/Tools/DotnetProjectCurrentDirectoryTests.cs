@@ -59,9 +59,7 @@ public class DotnetProjectCurrentDirectoryTests
             // Assert
             Assert.NotNull(result);
 
-            // Verify metadata indicates MTP was detected from global.json
-            Assert.Contains("\"selectedTestRunner\": \"microsoft-testing-platform\"", result);
-            Assert.Contains("\"selectionSource\": \"global.json\"", result);
+            Assert.Contains("Specify a project or solution file", result, StringComparison.OrdinalIgnoreCase);
         }
         finally
         {

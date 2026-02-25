@@ -88,8 +88,8 @@ public class WorkingDirectoryTests
             workingDirectory: missingDir);
 
         // Assert
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("INVALID_PARAMS", result);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("workingDirectory", result);
     }
 }

@@ -86,10 +86,9 @@ public class ConcurrencyControlTests
         var result = (await _tools.DotnetProjectBuild(project: projectPath));
 
         // Assert
-        Assert.Contains("\"code\": \"CONCURRENCY_CONFLICT\"", result);
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("\"category\": \"Concurrency\"", result);
-        Assert.Contains("\"exitCode\": -1", result);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Cannot execute 'build'", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("conflicting operation", result, StringComparison.OrdinalIgnoreCase);
 
         // Cleanup
         _concurrencyManager.Clear();

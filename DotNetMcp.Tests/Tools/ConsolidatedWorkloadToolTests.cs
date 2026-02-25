@@ -174,7 +174,7 @@ public class ConsolidatedWorkloadToolTests
         Assert.Contains("Invalid workload ID", result);
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetWorkload_Install_WithValidSingleWorkload_BuildsCorrectCommand()
     {
         // This test validates command building without actually installing
@@ -189,7 +189,7 @@ public class ConsolidatedWorkloadToolTests
         // This validates that the command was properly constructed
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetWorkload_Install_WithMultipleWorkloads_BuildsCorrectCommand()
     {
         // Act
@@ -202,7 +202,7 @@ public class ConsolidatedWorkloadToolTests
         // Command should be properly constructed with both workload IDs
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetWorkload_Install_WithSkipManifestUpdate_IncludesFlag()
     {
         // Act
@@ -216,7 +216,7 @@ public class ConsolidatedWorkloadToolTests
         // Command executes with skip-manifest-update flag
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetWorkload_Install_WithIncludePreviews_IncludesFlag()
     {
         // Act
@@ -230,7 +230,7 @@ public class ConsolidatedWorkloadToolTests
         // Command executes with include-previews flag
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetWorkload_Install_WithSource_IncludesSource()
     {
         // Act
@@ -244,7 +244,7 @@ public class ConsolidatedWorkloadToolTests
         // Command executes with source parameter
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetWorkload_Install_WithConfigFile_IncludesConfigFile()
     {
         // Act
@@ -268,15 +268,14 @@ public class ConsolidatedWorkloadToolTests
 
         // Assert
         Assert.NotNull(result);
-        // Should return JSON-formatted error
-        Assert.Contains("{", result);
+        Assert.Contains("Error:", result, StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion
 
     #region Update Action Tests
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetWorkload_Update_ExecutesSuccessfully()
     {
         // Act
@@ -288,7 +287,7 @@ public class ConsolidatedWorkloadToolTests
         // (may report no workloads to update, which is fine)
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetWorkload_Update_WithIncludePreviews_IncludesFlag()
     {
         // Act
@@ -299,7 +298,7 @@ public class ConsolidatedWorkloadToolTests
         // Command executes with include-previews flag
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetWorkload_Update_WithSource_IncludesSource()
     {
         // Act
@@ -312,7 +311,7 @@ public class ConsolidatedWorkloadToolTests
         // Command executes with source parameter
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetWorkload_Update_WithMachineReadable_ReturnsStructuredOutput()
     {
         // Act
@@ -363,7 +362,7 @@ public class ConsolidatedWorkloadToolTests
         Assert.Contains("Invalid workload ID", result);
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetWorkload_Uninstall_WithValidWorkloadId_BuildsCorrectCommand()
     {
         // Act
@@ -374,7 +373,7 @@ public class ConsolidatedWorkloadToolTests
         // Command should execute (even if workload doesn't exist)
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetWorkload_Uninstall_WithMultipleWorkloads_BuildsCorrectCommand()
     {
         // Act
@@ -397,35 +396,37 @@ public class ConsolidatedWorkloadToolTests
 
         // Assert
         Assert.NotNull(result);
-        // Should return JSON-formatted error
-        Assert.Contains("{", result);
+        Assert.Contains("Error:", result, StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion
 
     #region Validation Tests
 
-    [Theory]
-    [InlineData("maui-android")]
-    [InlineData("maui-ios")]
-    [InlineData("wasm-tools")]
-    [InlineData("android")]
-    [InlineData("ios")]
-    [InlineData("maccatalyst")]
-    [InlineData("maui-windows")]
-    [InlineData("maui-tizen")]
-    [InlineData("workload123")]
-    [InlineData("WORKLOAD_NAME")]
-    [InlineData("workload-name_123")]
-    public async Task DotnetWorkload_Install_WithValidWorkloadIds_AcceptsFormat(string workloadId)
+    [InteractiveFact]
+    public async Task DotnetWorkload_Install_WithValidWorkloadIds_AcceptsFormat()
     {
-        // Act
-        var result = (await _tools.DotnetWorkload(DotnetWorkloadAction.Install, workloadIds: new[] { workloadId })).GetText();
+        var workloadIds = new[]
+        {
+            "maui-android",
+            "maui-ios",
+            "wasm-tools",
+            "android",
+            "ios",
+            "maccatalyst",
+            "maui-windows",
+            "maui-tizen",
+            "workload123",
+            "WORKLOAD_NAME",
+            "workload-name_123"
+        };
 
-        // Assert
-        Assert.NotNull(result);
-        // Should not reject due to format validation
-        Assert.DoesNotContain("Invalid workload ID", result);
+        foreach (var workloadId in workloadIds)
+        {
+            var result = (await _tools.DotnetWorkload(DotnetWorkloadAction.Install, workloadIds: new[] { workloadId })).GetText();
+            Assert.NotNull(result);
+            Assert.DoesNotContain("Invalid workload ID", result);
+        }
     }
 
     [Theory]
@@ -468,8 +469,11 @@ public class ConsolidatedWorkloadToolTests
     [Fact]
     public async Task DotnetWorkload_AllActions_RouteCorrectly()
     {
-        // Test that all enum values are handled
-        var actions = Enum.GetValues<DotnetWorkloadAction>();
+        var actions = Enum.GetValues<DotnetWorkloadAction>()
+            .Where(action => action is not DotnetWorkloadAction.Install
+                and not DotnetWorkloadAction.Update
+                and not DotnetWorkloadAction.Uninstall)
+            .ToArray();
         
         // Act - test each action and verify it routes correctly
         var results = await Task.WhenAll(actions.Select(async action => new
