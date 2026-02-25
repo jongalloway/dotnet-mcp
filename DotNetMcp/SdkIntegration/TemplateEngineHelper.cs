@@ -255,8 +255,7 @@ public class TemplateEngineHelper
     /// </summary>
     /// <param name="forceReload">If true, bypasses cache and reloads from disk.</param>
     /// <param name="logger">Optional logger instance.</param>
-    /// <param name="machineReadable">When true, returns JSON output consistent with other MCP tools.</param>
-    public static async Task<string> GetInstalledTemplatesAsync(bool forceReload = false, ILogger? logger = null, bool machineReadable = false)
+    public static async Task<string> GetInstalledTemplatesAsync(bool forceReload = false, ILogger? logger = null)
     {
         try
         {
@@ -273,27 +272,11 @@ public class TemplateEngineHelper
                     if (!cliOutput.TrimStart().StartsWith("Error:", StringComparison.OrdinalIgnoreCase))
                     {
                         var text = $"Installed .NET Templates (from 'dotnet new list'):\n\n{cliOutput.TrimEnd()}";
-                        if (machineReadable)
-                        {
-                            return ErrorResultFactory.ToJson(
-                                ErrorResultFactory.CreateResult(
-                                    text,
-                                    error: string.Empty,
-                                    exitCode: 0,
-                                    command: "dotnet new list --columns author --columns language --columns type --columns tags"));
-                        }
-
                         return text;
                     }
                 }
 
                 var message = "No templates found. This might indicate an issue accessing the template engine.";
-                if (machineReadable)
-                {
-                    return ErrorResultFactory.ToJson(
-                        ErrorResultFactory.CreateResult(message, error: string.Empty, exitCode: 0, command: "template-engine"));
-                }
-
                 return message;
             }
 
@@ -321,23 +304,11 @@ public class TemplateEngineHelper
             result.AppendLine($"Total templates: {templates.Count()}");
 
             var output = result.ToString();
-            if (machineReadable)
-            {
-                return ErrorResultFactory.ToJson(
-                    ErrorResultFactory.CreateResult(output, error: string.Empty, exitCode: 0, command: "template-engine"));
-            }
-
             return output;
         }
         catch (Exception ex)
         {
             var message = $"Error accessing template engine: {ex.Message}\n\nYou may try running 'dotnet new --list' from the command line for more information.";
-            if (machineReadable)
-            {
-                return ErrorResultFactory.ToJson(
-                    ErrorResultFactory.CreateResult(output: string.Empty, error: message, exitCode: 1, command: "template-engine"));
-            }
-
             return message;
         }
     }
@@ -348,8 +319,7 @@ public class TemplateEngineHelper
     /// <param name="templateShortName">The template short name to query.</param>
     /// <param name="forceReload">If true, bypasses cache and reloads from disk.</param>
     /// <param name="logger">Optional logger instance.</param>
-    /// <param name="machineReadable">When true, returns JSON output consistent with other MCP tools.</param>
-    public static async Task<string> GetTemplateDetailsAsync(string templateShortName, bool forceReload = false, ILogger? logger = null, bool machineReadable = false)
+    public static async Task<string> GetTemplateDetailsAsync(string templateShortName, bool forceReload = false, ILogger? logger = null)
     {
         try
         {
@@ -374,12 +344,6 @@ public class TemplateEngineHelper
                             if (!help.TrimStart().StartsWith("Error:", StringComparison.OrdinalIgnoreCase))
                             {
                                 var text = $"Template help (from 'dotnet new {templateShortName} --help'):\n\n{help.TrimEnd()}";
-                                if (machineReadable)
-                                {
-                                    return ErrorResultFactory.ToJson(
-                                        ErrorResultFactory.CreateResult(text, error: string.Empty, exitCode: 0, command: $"dotnet new {templateShortName} --help"));
-                                }
-
                                 return text;
                             }
                         }
@@ -399,12 +363,6 @@ public class TemplateEngineHelper
                 }
 
                 var notFound = $"Template '{templateShortName}' not found.\n\nUse DotnetTemplateList to see all available templates.";
-                if (machineReadable)
-                {
-                    return ErrorResultFactory.ToJson(
-                        ErrorResultFactory.CreateResult(output: string.Empty, error: notFound, exitCode: 1, command: "template-engine"));
-                }
-
                 return notFound;
             }
 
@@ -434,23 +392,11 @@ public class TemplateEngineHelper
             }
 
             var output = result.ToString();
-            if (machineReadable)
-            {
-                return ErrorResultFactory.ToJson(
-                    ErrorResultFactory.CreateResult(output, error: string.Empty, exitCode: 0, command: "template-engine"));
-            }
-
             return output;
         }
         catch (Exception ex)
         {
             var message = $"Error getting template details: {ex.Message}";
-            if (machineReadable)
-            {
-                return ErrorResultFactory.ToJson(
-                    ErrorResultFactory.CreateResult(output: string.Empty, error: message, exitCode: 1, command: "template-engine"));
-            }
-
             return message;
         }
     }
@@ -461,8 +407,7 @@ public class TemplateEngineHelper
     /// <param name="searchTerm">Search term to filter templates.</param>
     /// <param name="forceReload">If true, bypasses cache and reloads from disk.</param>
     /// <param name="logger">Optional logger instance.</param>
-    /// <param name="machineReadable">When true, returns JSON output consistent with other MCP tools.</param>
-    public static async Task<string> SearchTemplatesAsync(string searchTerm, bool forceReload = false, ILogger? logger = null, bool machineReadable = false)
+    public static async Task<string> SearchTemplatesAsync(string searchTerm, bool forceReload = false, ILogger? logger = null)
     {
         try
         {
@@ -478,12 +423,6 @@ public class TemplateEngineHelper
                     if (!cliOutput.TrimStart().StartsWith("Error:", StringComparison.OrdinalIgnoreCase))
                     {
                         var text = $"Templates matching '{searchTerm}' (from 'dotnet new list'):\n\n{cliOutput.TrimEnd()}";
-                        if (machineReadable)
-                        {
-                            return ErrorResultFactory.ToJson(
-                                ErrorResultFactory.CreateResult(text, error: string.Empty, exitCode: 0, command: $"dotnet new list \"{searchTerm}\" --columns author --columns language --columns type --columns tags"));
-                        }
-
                         return text;
                     }
                 }
@@ -498,12 +437,6 @@ public class TemplateEngineHelper
             if (!matches.Any())
             {
                 var message = $"No templates found matching '{searchTerm}'.";
-                if (machineReadable)
-                {
-                    return ErrorResultFactory.ToJson(
-                        ErrorResultFactory.CreateResult(output: string.Empty, error: message, exitCode: 1, command: "template-engine"));
-                }
-
                 return message;
             }
 
@@ -529,23 +462,11 @@ public class TemplateEngineHelper
             result.AppendLine($"Found {matches.Count} matching template(s).");
 
             var output = result.ToString();
-            if (machineReadable)
-            {
-                return ErrorResultFactory.ToJson(
-                    ErrorResultFactory.CreateResult(output, error: string.Empty, exitCode: 0, command: "template-engine"));
-            }
-
             return output;
         }
         catch (Exception ex)
         {
             var message = $"Error searching templates: {ex.Message}";
-            if (machineReadable)
-            {
-                return ErrorResultFactory.ToJson(
-                    ErrorResultFactory.CreateResult(output: string.Empty, error: message, exitCode: 1, command: "template-engine"));
-            }
-
             return message;
         }
     }

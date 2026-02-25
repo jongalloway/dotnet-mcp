@@ -21,13 +21,11 @@ public static class DotNetCommandExecutor
     /// </summary>
     /// <param name="arguments">The command-line arguments to pass to dotnet.exe</param>
     /// <param name="logger">Optional logger for debug/warning messages</param>
-    /// <param name="machineReadable">When true, returns JSON format with structured errors; when false, returns plain text</param>
     /// <param name="unsafeOutput">When true, disables security redaction of sensitive information (default: false). Use with caution.</param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
     /// <param name="workingDirectory">Optional working directory for command execution</param>
-    /// <param name="metadata">Optional metadata to include in machine-readable success results</param>
-    /// <returns>Combined output, error, and exit code information (plain text or JSON based on machineReadable)</returns>
-    public static async Task<string> ExecuteCommandAsync(string arguments, ILogger? logger = null, bool machineReadable = false, bool unsafeOutput = false, CancellationToken cancellationToken = default, string? workingDirectory = null, Dictionary<string, string>? metadata = null)
+    /// <returns>Combined output, error, and exit code information</returns>
+    public static async Task<string> ExecuteCommandAsync(string arguments, ILogger? logger = null, bool unsafeOutput = false, CancellationToken cancellationToken = default, string? workingDirectory = null)
     {
         logger?.LogDebug("Executing: dotnet {Arguments}", arguments);
 
@@ -43,24 +41,12 @@ public static class DotNetCommandExecutor
             catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
             {
                 var message = $"Invalid workingDirectory path: {workingDirectory}. {ex.Message}";
-                if (machineReadable)
-                {
-                    return ErrorResultFactory.ToJson(
-                        ErrorResultFactory.CreateValidationError(message, parameterName: "workingDirectory", reason: "invalid"));
-                }
-
                 return $"Error: {message}";
             }
 
             if (!Directory.Exists(normalizedWorkingDirectory))
             {
                 var message = $"Directory not found: {normalizedWorkingDirectory}. The workingDirectory parameter must point to an existing directory.";
-                if (machineReadable)
-                {
-                    return ErrorResultFactory.ToJson(
-                        ErrorResultFactory.CreateValidationError(message, parameterName: "workingDirectory", reason: "not found"));
-                }
-
                 return $"Error: {message}";
             }
         }
@@ -129,25 +115,6 @@ public static class DotNetCommandExecutor
         catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
         {
             logger?.LogError(ex, "Failed to start dotnet process");
-
-            if (machineReadable)
-            {
-                var alternatives = new[]
-                {
-                    "Install the .NET SDK from https://dotnet.microsoft.com/download",
-                    "Verify 'dotnet' is on PATH (try: dotnet --info)",
-                    "If using global.json, ensure the requested SDK is installed"
-                };
-
-                var result = ErrorResultFactory.ReturnCapabilityNotAvailable(
-                    feature: "dotnet CLI",
-                    alternatives: alternatives,
-                    command: $"dotnet {arguments}",
-                    details: ex.Message);
-
-                return ErrorResultFactory.ToJson(result);
-            }
-
             return $"dotnet command could not be started: {ex.Message}";
         }
         process.BeginOutputReadLine();
@@ -186,37 +153,6 @@ public static class DotNetCommandExecutor
                 partialOutput = SecretRedactor.Redact(partialOutput);
             }
 
-            if (machineReadable)
-            {
-                var code = "OPERATION_CANCELLED";
-                var category = "Cancellation";
-                var mcpErrorCode = McpErrorCodes.GetMcpErrorCode(code, category, -1);
-
-                var cancelResult = new ErrorResponse
-                {
-                    Success = false,
-                    Errors = new List<ErrorResult>
-                    {
-                        new ErrorResult
-                        {
-                            Code = code,
-                            Message = "The operation was cancelled by the user",
-                            Category = category,
-                            Hint = "The command was terminated before completion",
-                            RawOutput = partialOutput,
-                            McpErrorCode = mcpErrorCode,
-                            Data = new ErrorData
-                            {
-                                Command = $"dotnet {arguments}",
-                                ExitCode = -1
-                            }
-                        }
-                    },
-                    ExitCode = -1
-                };
-                return ErrorResultFactory.ToJson(cancelResult);
-            }
-
             return $"Operation cancelled\nPartial output:\n{partialOutput}\nExit Code: -1";
         }
 
@@ -230,21 +166,8 @@ public static class DotNetCommandExecutor
             logger?.LogWarning("Error output was truncated due to size limit");
         }
 
-        // Get raw output for potential Aspire URL parsing (before redaction)
         var outputStr = output.ToString().TrimEnd();
         var errorStr = error.ToString().TrimEnd();
-
-        // Parse Aspire dashboard URLs before redaction (if machine-readable output is requested)
-        // This is done before redaction because the dashboard login token would be redacted otherwise
-        Dictionary<string, string>? aspireUrls = null;
-        if (machineReadable)
-        {
-            var combinedOutput = $"{outputStr}\n{errorStr}";
-            if (AspireOutputParser.IsAspireOutput(combinedOutput))
-            {
-                aspireUrls = AspireOutputParser.ParseAspireUrls(combinedOutput);
-            }
-        }
 
         // Apply security redaction unless unsafeOutput is explicitly enabled
         if (!unsafeOutput)
@@ -253,29 +176,6 @@ public static class DotNetCommandExecutor
             errorStr = SecretRedactor.Redact(errorStr);
         }
 
-        // If machine-readable format is requested, return structured JSON
-        if (machineReadable)
-        {
-            // Merge Aspire URLs into metadata (if any were found)
-            if (aspireUrls != null && aspireUrls.Count > 0)
-            {
-                // Merge Aspire URLs into metadata (preserving existing metadata if any)
-                if (metadata == null)
-                {
-                    metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                }
-                
-                foreach (var kvp in aspireUrls)
-                {
-                    metadata[kvp.Key] = kvp.Value;
-                }
-            }
-
-            var result = ErrorResultFactory.CreateResult(outputStr, errorStr, process.ExitCode, $"dotnet {arguments}", metadata);
-            return ErrorResultFactory.ToJson(result);
-        }
-
-        // Otherwise, return plain text format (backwards compatible)
         var textResult = new StringBuilder();
         if (outputStr.Length > 0) textResult.AppendLine(outputStr);
         if (errorStr.Length > 0)

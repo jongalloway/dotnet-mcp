@@ -26,7 +26,6 @@ public sealed partial class DotNetCliTools
     /// <param name="framework">Specific framework to query for framework info (e.g., 'net10.0', 'net8.0')</param>
     /// <param name="forceReload">If true, bypasses cache and reloads from disk (applies to template operations)</param>
     /// <param name="workingDirectory">Working directory for command execution</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpServerTool(Title = ".NET SDK & Templates", IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Gear/Flat/gear_flat.svg")]
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 9.0)]
@@ -44,23 +43,13 @@ public sealed partial class DotNetCliTools
         bool force = false,
         string? framework = null,
         bool forceReload = false,
-        string? workingDirectory = null,
-        bool machineReadable = false)
+        string? workingDirectory = null)
     {
         var textResult = await WithWorkingDirectoryAsync(workingDirectory, async () =>
         {
             // Validate action parameter
             if (!ParameterValidator.ValidateAction<DotnetSdkAction>(action, out var errorMessage))
             {
-                if (machineReadable)
-                {
-                    var validActions = Enum.GetNames(typeof(DotnetSdkAction));
-                    var error = ErrorResultFactory.CreateActionValidationError(
-                        action.ToString(),
-                        validActions,
-                        toolName: "dotnet_sdk");
-                    return ErrorResultFactory.ToJson(error);
-                }
                 return $"Error: {errorMessage}";
             }
 
@@ -68,26 +57,21 @@ public sealed partial class DotNetCliTools
             return action switch
             {
                 // Use executor directly so workingDirectory is honored without changing helper method signatures
-                DotnetSdkAction.Version => await ExecuteDotNetCommand("--version", machineReadable),
-                DotnetSdkAction.Info => await ExecuteDotNetCommand("--info", machineReadable),
-                DotnetSdkAction.ListSdks => await ExecuteDotNetCommand("--list-sdks", machineReadable),
-                DotnetSdkAction.ListRuntimes => await ExecuteDotNetCommand("--list-runtimes", machineReadable),
+                DotnetSdkAction.Version => await ExecuteDotNetCommand("--version"),
+                DotnetSdkAction.Info => await ExecuteDotNetCommand("--info"),
+                DotnetSdkAction.ListSdks => await ExecuteDotNetCommand("--list-sdks"),
+                DotnetSdkAction.ListRuntimes => await ExecuteDotNetCommand("--list-runtimes"),
 
-                DotnetSdkAction.ListTemplates => await DotnetTemplateList(forceReload, machineReadable),
-                DotnetSdkAction.SearchTemplates => await HandleSearchTemplatesAction(searchTerm, forceReload, machineReadable),
-                DotnetSdkAction.TemplateInfo => await HandleTemplateInfoAction(templateShortName, forceReload, machineReadable),
-                DotnetSdkAction.ClearTemplateCache => await DotnetTemplateClearCache(machineReadable),
-                DotnetSdkAction.ListTemplatePacks => await DotnetTemplatePackList(machineReadable),
-                DotnetSdkAction.InstallTemplatePack => await HandleTemplatePackInstallAction(templatePackage, templateVersion, nugetSource, interactive, force, machineReadable),
-                DotnetSdkAction.UninstallTemplatePack => await HandleTemplatePackUninstallAction(templatePackage, machineReadable),
-                DotnetSdkAction.FrameworkInfo => await DotnetFrameworkInfo(framework, machineReadable),
-                DotnetSdkAction.CacheMetrics => await DotnetCacheMetrics(machineReadable),
-                _ => machineReadable
-                    ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateValidationError(
-                        $"Action '{action}' is not supported.",
-                        parameterName: "action",
-                        reason: "not supported"))
-                    : $"Error: Action '{action}' is not supported."
+                DotnetSdkAction.ListTemplates => await DotnetTemplateList(forceReload),
+                DotnetSdkAction.SearchTemplates => await HandleSearchTemplatesAction(searchTerm, forceReload),
+                DotnetSdkAction.TemplateInfo => await HandleTemplateInfoAction(templateShortName, forceReload),
+                DotnetSdkAction.ClearTemplateCache => await DotnetTemplateClearCache(),
+                DotnetSdkAction.ListTemplatePacks => await DotnetTemplatePackList(),
+                DotnetSdkAction.InstallTemplatePack => await HandleTemplatePackInstallAction(templatePackage, templateVersion, nugetSource, interactive, force),
+                DotnetSdkAction.UninstallTemplatePack => await HandleTemplatePackUninstallAction(templatePackage),
+                DotnetSdkAction.FrameworkInfo => await DotnetFrameworkInfo(framework),
+                DotnetSdkAction.CacheMetrics => await DotnetCacheMetrics(),
+                _ => $"Error: Action '{action}' is not supported."
             };
         });
 
@@ -103,42 +87,26 @@ public sealed partial class DotNetCliTools
         return StructuredContentHelper.ToCallToolResult(textResult, structured);
     }
 
-    private async Task<string> HandleSearchTemplatesAction(string? searchTerm, bool forceReload, bool machineReadable)
+    private async Task<string> HandleSearchTemplatesAction(string? searchTerm, bool forceReload)
     {
         // Validate required parameters
         if (!ParameterValidator.ValidateRequiredParameter(searchTerm, "searchTerm", out var errorMessage))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    errorMessage!,
-                    parameterName: "searchTerm",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {errorMessage}";
         }
 
-        return await DotnetTemplateSearch(searchTerm!, forceReload, machineReadable);
+        return await DotnetTemplateSearch(searchTerm!, forceReload);
     }
 
-    private async Task<string> HandleTemplateInfoAction(string? templateShortName, bool forceReload, bool machineReadable)
+    private async Task<string> HandleTemplateInfoAction(string? templateShortName, bool forceReload)
     {
         // Validate required parameters
         if (!ParameterValidator.ValidateRequiredParameter(templateShortName, "templateShortName", out var errorMessage))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    errorMessage!,
-                    parameterName: "templateShortName",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {errorMessage}";
         }
 
-        return await DotnetTemplateInfo(templateShortName!, forceReload, machineReadable);
+        return await DotnetTemplateInfo(templateShortName!, forceReload);
     }
 
     private async Task<string> HandleTemplatePackInstallAction(
@@ -146,45 +114,20 @@ public sealed partial class DotNetCliTools
         string? templateVersion,
         string? nugetSource,
         bool interactive,
-        bool force,
-        bool machineReadable)
+        bool force)
     {
         if (!ParameterValidator.ValidateTemplatePackage(templatePackage, out var packageError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    packageError!,
-                    parameterName: "templatePackage",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {packageError}";
         }
 
         if (!ParameterValidator.ValidateTemplatePackageVersion(templateVersion, out var versionError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    versionError!,
-                    parameterName: "templateVersion",
-                    reason: "invalid format");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {versionError}";
         }
 
         if (!ParameterValidator.ValidateTemplateNugetSource(nugetSource, out var sourceError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    sourceError!,
-                    parameterName: "nugetSource",
-                    reason: "invalid format");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {sourceError}";
         }
 
@@ -194,35 +137,22 @@ public sealed partial class DotNetCliTools
             && (templatePackage.Contains("@", StringComparison.Ordinal) || templatePackage.Contains("::", StringComparison.Ordinal)))
         {
             var message = "templatePackage already contains '@' or '::'. Provide version either via templatePackage (e.g., 'My.Templates@1.2.3') or via templateVersion, not both.";
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(message, parameterName: "templateVersion", reason: "conflict");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {message}";
         }
 
-        return await DotnetTemplatePackInstall(templatePackage!, templateVersion, nugetSource, interactive, force, machineReadable);
+        return await DotnetTemplatePackInstall(templatePackage!, templateVersion, nugetSource, interactive, force);
     }
 
-    private async Task<string> HandleTemplatePackUninstallAction(string? templatePackage, bool machineReadable)
+    private async Task<string> HandleTemplatePackUninstallAction(string? templatePackage)
     {
         // For uninstall, templatePackage is optional: if not provided, dotnet will list installed template packages.
         if (!string.IsNullOrWhiteSpace(templatePackage)
             && !ParameterValidator.ValidateTemplatePackage(templatePackage, out var packageError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    packageError!,
-                    parameterName: "templatePackage",
-                    reason: "invalid format");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {packageError}";
         }
 
-        return await DotnetTemplatePackUninstall(templatePackage, machineReadable);
+        return await DotnetTemplatePackUninstall(templatePackage);
     }
 
     // ===== Template & SDK helper methods (moved from DotNetCliTools.Template.cs and DotNetCliTools.Sdk.cs) =====
@@ -231,42 +161,38 @@ public sealed partial class DotNetCliTools
     /// Provides structured information about available project templates.
     /// </summary>
     /// <param name="forceReload">If true, bypasses cache and reloads templates from disk</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text (currently unused, returns same format)</param>
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("priority", 10.0)]
     [McpMeta("tags", JsonValue = """["template","list","discovery","project-creation"]""")]
-    internal async Task<string> DotnetTemplateList(bool forceReload = false, bool machineReadable = false)
-            => await TemplateEngineHelper.GetInstalledTemplatesAsync(forceReload, _logger, machineReadable);
+    internal async Task<string> DotnetTemplateList(bool forceReload = false)
+            => await TemplateEngineHelper.GetInstalledTemplatesAsync(forceReload, _logger);
 
     /// <summary>
     /// Search for .NET templates by name or description. Returns matching templates with their details.
     /// </summary>
     /// <param name="searchTerm">Search term to find templates (searches in name, short name, and description)</param>
     /// <param name="forceReload">If true, bypasses cache and reloads templates from disk</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text (currently unused, returns same format)</param>
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
-    internal async Task<string> DotnetTemplateSearch(string searchTerm, bool forceReload = false, bool machineReadable = false)
-        => await TemplateEngineHelper.SearchTemplatesAsync(searchTerm, forceReload, _logger, machineReadable);
+    internal async Task<string> DotnetTemplateSearch(string searchTerm, bool forceReload = false)
+        => await TemplateEngineHelper.SearchTemplatesAsync(searchTerm, forceReload, _logger);
 
     /// <summary>
     /// Get detailed information about a specific template including available parameters and options.
     /// </summary>
     /// <param name="templateShortName">The template short name (e.g., 'console', 'webapi', 'classlib')</param>
     /// <param name="forceReload">If true, bypasses cache and reloads templates from disk</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text (currently unused, returns same format)</param>
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
-    internal async Task<string> DotnetTemplateInfo(string templateShortName, bool forceReload = false, bool machineReadable = false)
-        => await TemplateEngineHelper.GetTemplateDetailsAsync(templateShortName, forceReload, _logger, machineReadable);
+    internal async Task<string> DotnetTemplateInfo(string templateShortName, bool forceReload = false)
+        => await TemplateEngineHelper.GetTemplateDetailsAsync(templateShortName, forceReload, _logger);
 
     /// <summary>
     /// Clear all caches (templates, SDK, runtime) to force reload from disk. 
     /// Use this after installing or uninstalling templates or SDK versions. Also resets all cache metrics.
     /// </summary>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text (currently unused, returns same format)</param>
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
     internal async Task<string> DotnetTemplateClearCache(bool machineReadable = false)
@@ -283,7 +209,6 @@ public sealed partial class DotNetCliTools
     /// <param name="nugetSource">Optional NuGet source to use (feed URL or local source)</param>
     /// <param name="interactive">Allow user interaction for authentication</param>
     /// <param name="force">Allow overriding a template pack from another source</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "template")]
     [McpMeta("commonlyUsed", true)]
     internal async Task<string> DotnetTemplatePackInstall(
@@ -291,8 +216,7 @@ public sealed partial class DotNetCliTools
         string? templateVersion = null,
         string? nugetSource = null,
         bool interactive = false,
-        bool force = false,
-        bool machineReadable = false)
+        bool force = false)
     {
         var packageExpression = !string.IsNullOrWhiteSpace(templateVersion)
             ? $"{templatePackage}@{templateVersion}"
@@ -303,7 +227,7 @@ public sealed partial class DotNetCliTools
         if (interactive) args.Append(" --interactive");
         if (force) args.Append(" --force");
 
-        var result = await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        var result = await ExecuteDotNetCommand(args.ToString());
 
         // Installing templates changes the template engine state. Clear internal caches so follow-up template queries refresh.
         await DotNetResources.ClearAllCachesAsync();
@@ -316,16 +240,14 @@ public sealed partial class DotNetCliTools
     /// If no package is specified, lists all installed template packages.
     /// </summary>
     /// <param name="templatePackage">NuGet package ID (without version) or path to folder to uninstall</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "template")]
     internal async Task<string> DotnetTemplatePackUninstall(
-        string? templatePackage = null,
-        bool machineReadable = false)
+        string? templatePackage = null)
     {
         var args = new StringBuilder("new uninstall");
         if (!string.IsNullOrWhiteSpace(templatePackage)) args.Append($" \"{templatePackage}\"");
 
-        var result = await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        var result = await ExecuteDotNetCommand(args.ToString());
 
         // Uninstalling templates changes the template engine state. Clear internal caches so follow-up template queries refresh.
         await DotNetResources.ClearAllCachesAsync();
@@ -337,18 +259,16 @@ public sealed partial class DotNetCliTools
     /// List installed template packages/packs.
     /// Under the hood this runs <c>dotnet new uninstall</c> with no arguments, which lists installed packs.
     /// </summary>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "template")]
     internal async Task<string> DotnetTemplatePackList(bool machineReadable = false)
     {
         // NOTE: We intentionally do not clear caches here; this is a read-only listing.
-        return await ExecuteDotNetCommand("new uninstall", machineReadable);
+        return await ExecuteDotNetCommand("new uninstall");
     }
 
     /// <summary>
     /// Get cache metrics showing hit/miss statistics for templates, SDK, and runtime information.
     /// </summary>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text (currently unused, returns same format)</param>
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
     internal Task<string> DotnetCacheMetrics(bool machineReadable = false)
@@ -367,10 +287,9 @@ public sealed partial class DotNetCliTools
     /// Useful for understanding framework compatibility.
     /// </summary>
     /// <param name="framework">Optional: specific framework to get info about (e.g., 'net8.0', 'net6.0')</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text (currently unused, returns same format)</param>
     [McpMeta("category", "framework")]
     [McpMeta("usesFrameworkHelper", true)]
-    internal async Task<string> DotnetFrameworkInfo(string? framework = null, bool machineReadable = false)
+    internal async Task<string> DotnetFrameworkInfo(string? framework = null)
     {
         var result = new StringBuilder();
 
@@ -432,38 +351,34 @@ public sealed partial class DotNetCliTools
     /// <summary>
     /// Get information about installed .NET SDKs and runtimes.
     /// </summary>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 6.0)]
     internal async Task<string> DotnetSdkInfo(bool machineReadable = false)
-        => await ExecuteDotNetCommand("--info", machineReadable);
+        => await ExecuteDotNetCommand("--info");
 
     /// <summary>
     /// Get the version of the .NET SDK.
     /// </summary>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 6.0)]
     internal async Task<string> DotnetSdkVersion(bool machineReadable = false)
-        => await ExecuteDotNetCommand("--version", machineReadable);
+        => await ExecuteDotNetCommand("--version");
 
     /// <summary>
     /// List installed .NET SDKs.
     /// </summary>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 6.0)]
     internal async Task<string> DotnetSdkList(bool machineReadable = false)
-        => await ExecuteDotNetCommand("--list-sdks", machineReadable);
+        => await ExecuteDotNetCommand("--list-sdks");
 
     /// <summary>
     /// List installed .NET runtimes.
     /// </summary>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 6.0)]
     internal async Task<string> DotnetRuntimeList(bool machineReadable = false)
-        => await ExecuteDotNetCommand("--list-runtimes", machineReadable);
+        => await ExecuteDotNetCommand("--list-runtimes");
 
     private static object? BuildVersionStructuredContent(string textResult)
     {

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Text.Json;
 using Xunit;
+using ModelContextProtocol.Protocol;
 
 namespace DotNetMcp.Tests.Contract;
 
@@ -28,29 +29,30 @@ public class MachineReadableContractComplianceTests
     [Fact]
     public async Task DotnetSdkVersion_MachineReadable_ReturnsValidSuccessEnvelope()
     {
-        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Version, machineReadable: true);
-        AssertSuccessEnvelope(result.GetText());
+        CallToolResult resultObj = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Version);
+        var result = resultObj.GetText();
+        AssertSuccessEnvelope(result);
     }
 
     [Fact]
     public async Task DotnetSdkInfo_MachineReadable_ReturnsValidSuccessEnvelope()
     {
-        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Info, machineReadable: true);
-        AssertSuccessEnvelope(result.GetText());
+        var result = (await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Info)).GetText();
+        AssertSuccessEnvelope(result);
     }
 
     [Fact]
     public async Task DotnetSdkList_MachineReadable_ReturnsValidSuccessEnvelope()
     {
-        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.ListSdks, machineReadable: true);
-        AssertSuccessEnvelope(result.GetText());
+        var result = (await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.ListSdks)).GetText();
+        AssertSuccessEnvelope(result);
     }
 
     [Fact]
     public async Task DotnetRuntimeList_MachineReadable_ReturnsValidSuccessEnvelope()
     {
-        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.ListRuntimes, machineReadable: true);
-        AssertSuccessEnvelope(result.GetText());
+        var result = (await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.ListRuntimes)).GetText();
+        AssertSuccessEnvelope(result);
     }
 
     #endregion
@@ -60,95 +62,86 @@ public class MachineReadableContractComplianceTests
     [Fact]
     public async Task DotnetToolInstall_EmptyPackageName_ReturnsValidValidationError()
     {
-        var result = await _tools.DotnetTool(
+        var result = (await _tools.DotnetTool(
             action: DotNetMcp.Actions.DotnetToolAction.Install,
-            packageId: "",
-            machineReadable: true);
+            packageId: "")).GetText();
         AssertValidationErrorEnvelope(result);
     }
 
     [Fact]
     public async Task DotnetToolUpdate_EmptyPackageName_ReturnsValidValidationError()
     {
-        var result = await _tools.DotnetTool(
+        var result = (await _tools.DotnetTool(
             action: DotNetMcp.Actions.DotnetToolAction.Update,
-            packageId: "",
-            machineReadable: true);
+            packageId: "")).GetText();
         AssertValidationErrorEnvelope(result);
     }
 
     [Fact]
     public async Task DotnetToolUninstall_EmptyPackageName_ReturnsValidValidationError()
     {
-        var result = await _tools.DotnetTool(
+        var result = (await _tools.DotnetTool(
             action: DotNetMcp.Actions.DotnetToolAction.Uninstall,
-            packageId: "",
-            machineReadable: true);
+            packageId: "")).GetText();
         AssertValidationErrorEnvelope(result);
     }
 
     [Fact]
     public async Task DotnetSecretsSet_EmptyKey_ReturnsValidValidationError()
     {
-        var result = await _tools.DotnetDevCerts(
+        var result = (await _tools.DotnetDevCerts(
             action: DotNetMcp.Actions.DotnetDevCertsAction.SecretsSet,
             key: "",
-            value: "test",
-            machineReadable: true);
+            value: "test")).GetText();
         AssertValidationErrorEnvelope(result);
     }
 
     [Fact]
     public async Task DotnetSecretsSet_EmptyValue_ReturnsValidValidationError()
     {
-        var result = await _tools.DotnetDevCerts(
+        var result = (await _tools.DotnetDevCerts(
             action: DotNetMcp.Actions.DotnetDevCertsAction.SecretsSet,
             key: "test",
-            value: "",
-            machineReadable: true);
+            value: "")).GetText();
         AssertValidationErrorEnvelope(result);
     }
 
     [Fact]
     public async Task DotnetCertificateExport_EmptyPath_ReturnsValidValidationError()
     {
-        var result = await _tools.DotnetDevCerts(
+        var result = (await _tools.DotnetDevCerts(
             action: DotNetMcp.Actions.DotnetDevCertsAction.CertificateExport,
-            path: "",
-            machineReadable: true);
+            path: "")).GetText();
         AssertValidationErrorEnvelope(result);
     }
 
     [Fact]
     public async Task DotnetCertificateExport_InvalidFormat_ReturnsValidValidationError()
     {
-        var result = await _tools.DotnetDevCerts(
+        var result = (await _tools.DotnetDevCerts(
             action: DotNetMcp.Actions.DotnetDevCertsAction.CertificateExport,
             path: "/tmp/cert.pfx",
-            format: "invalid",
-            machineReadable: true);
+            format: "invalid")).GetText();
         AssertValidationErrorEnvelope(result);
     }
 
     [Fact]
     public async Task DotnetSolutionAdd_EmptyProjects_ReturnsValidValidationError()
     {
-        var result = await _tools.DotnetSolution(
+        var result = (await _tools.DotnetSolution(
             action: DotNetMcp.Actions.DotnetSolutionAction.Add,
             solution: "Test.sln",
-            projects: Array.Empty<string>(),
-            machineReadable: true);
-        AssertValidationErrorEnvelope(result.GetText());
+            projects: Array.Empty<string>())).GetText();
+        AssertValidationErrorEnvelope(result);
     }
 
     [Fact]
     public async Task DotnetNugetLocals_NeitherListNorClear_ReturnsValidValidationError()
     {
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotNetMcp.Actions.DotnetPackageAction.ClearCache,
-            cacheType: "invalid",
-            machineReadable: true);
-        AssertValidationErrorEnvelope(result.GetText());
+            cacheType: "invalid")).GetText();
+        AssertValidationErrorEnvelope(result);
     }
 
     #endregion
@@ -158,20 +151,18 @@ public class MachineReadableContractComplianceTests
     [Fact]
     public async Task DotnetProjectBuild_NonExistentProject_ReturnsValidErrorEnvelope()
     {
-        var result = await _tools.DotnetProject(
+        var result = (await _tools.DotnetProject(
             action: DotNetMcp.Actions.DotnetProjectAction.Build,
-            project: "/tmp/NonExistent_Project_12345.csproj",
-            machineReadable: true);
+            project: "/tmp/NonExistent_Project_12345.csproj")).GetText();
         AssertErrorEnvelope(result);
     }
 
     [Fact]
     public async Task DotnetProjectRun_NonExistentProject_ReturnsValidErrorEnvelope()
     {
-        var result = await _tools.DotnetProject(
+        var result = (await _tools.DotnetProject(
             action: DotNetMcp.Actions.DotnetProjectAction.Run,
-            project: "/tmp/NonExistent_Project_12345.csproj",
-            machineReadable: true);
+            project: "/tmp/NonExistent_Project_12345.csproj")).GetText();
         AssertErrorEnvelope(result);
     }
 
@@ -182,7 +173,7 @@ public class MachineReadableContractComplianceTests
     [Fact]
     public async Task DotnetTelemetry_AlwaysReturnsCapabilityNotAvailable()
     {
-        var result = await _tools.DotnetTelemetry(enable: true, machineReadable: true);
+        var result = (await _tools.DotnetTelemetry(enable: true)).GetText();
         AssertCapabilityNotAvailableEnvelope(result);
     }
 

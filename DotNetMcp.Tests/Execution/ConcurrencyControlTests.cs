@@ -25,10 +25,10 @@ public class ConcurrencyControlTests
         var projectPath = "TestProject.csproj";
         
         // Start first build (will likely fail due to missing project, but that's ok)
-        var firstBuildTask = _tools.DotnetProjectBuild(project: projectPath, machineReadable: false);
+        var firstBuildTask = _tools.DotnetProjectBuild(project: projectPath);
 
         // Try to start second build immediately
-        var secondBuildResult = await _tools.DotnetProjectBuild(project: projectPath, machineReadable: false);
+        var secondBuildResult = (await _tools.DotnetProjectBuild(project: projectPath));
 
         // Assert - Second build should get concurrency error
         Assert.Contains("CONCURRENCY_CONFLICT", secondBuildResult);
@@ -46,8 +46,8 @@ public class ConcurrencyControlTests
         var project2 = "Project2.csproj";
 
         // Act - Start builds on different projects
-        var task1 = _tools.DotnetProjectBuild(project: project1, machineReadable: false);
-        var task2 = _tools.DotnetProjectBuild(project: project2, machineReadable: false);
+        var task1 = _tools.DotnetProjectBuild(project: project1);
+        var task2 = _tools.DotnetProjectBuild(project: project2);
 
         // Wait for both
         var results = await Task.WhenAll(task1, task2);
@@ -64,10 +64,10 @@ public class ConcurrencyControlTests
         var projectPath = "TestProject.csproj";
         
         // First operation
-        await _tools.DotnetProjectBuild(project: projectPath, machineReadable: false);
+        await _tools.DotnetProjectBuild(project: projectPath);
         
         // Second operation on same target should work after first completes
-        var testResult = await _tools.DotnetProjectTest(project: projectPath, machineReadable: false);
+        var testResult = await _tools.DotnetProjectTest(project: projectPath);
 
         // Assert - test should proceed after build completes
         Assert.DoesNotContain("CONCURRENCY_CONFLICT", testResult);
@@ -83,7 +83,7 @@ public class ConcurrencyControlTests
         _concurrencyManager.TryAcquireOperation("build", Path.GetFullPath(projectPath), out _);
 
         // Act
-        var result = await _tools.DotnetProjectBuild(project: projectPath, machineReadable: true);
+        var result = (await _tools.DotnetProjectBuild(project: projectPath));
 
         // Assert
         Assert.Contains("\"code\": \"CONCURRENCY_CONFLICT\"", result);
@@ -105,7 +105,7 @@ public class ConcurrencyControlTests
         _concurrencyManager.TryAcquireOperation("run", Path.GetFullPath(projectPath), out _);
 
         // Act
-        var result = await _tools.DotnetProjectRun(project: projectPath, machineReadable: false);
+        var result = (await _tools.DotnetProjectRun(project: projectPath));
 
         // Assert
         Assert.Contains("Error:", result);
@@ -126,7 +126,7 @@ public class ConcurrencyControlTests
         _concurrencyManager.TryAcquireOperation("publish", Path.GetFullPath(projectPath), out _);
 
         // Act
-        var result = await _tools.DotnetProjectPublish(project: projectPath, machineReadable: false);
+        var result = (await _tools.DotnetProjectPublish(project: projectPath));
 
         // Assert
         Assert.Contains("Error:", result);
@@ -147,7 +147,7 @@ public class ConcurrencyControlTests
         _concurrencyManager.TryAcquireOperation("test", Path.GetFullPath(projectPath), out _);
 
         // Act
-        var result = await _tools.DotnetProjectTest(project: projectPath, machineReadable: false);
+        var result = (await _tools.DotnetProjectTest(project: projectPath));
 
         // Assert
         Assert.Contains("Error:", result);

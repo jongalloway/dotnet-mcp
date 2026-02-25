@@ -71,8 +71,8 @@ public class StructuredContentTests
     [Fact]
     public async Task DotnetSdk_TextContent_IsNotEmpty()
     {
-        var result = await _tools.DotnetSdk(action: DotnetSdkAction.Version);
-        Assert.NotEmpty(result.GetText());
+        var result = (await _tools.DotnetSdk(action: DotnetSdkAction.Version)).GetText();
+        Assert.NotEmpty(result);
     }
 
     [Fact]
@@ -110,8 +110,8 @@ public class StructuredContentTests
     [Fact]
     public async Task GetText_ExtensionMethod_ReturnsTextFromCallToolResult()
     {
-        var result = await _tools.DotnetSdk(action: DotnetSdkAction.Version);
-        var text = result.GetText();
+        var result = (await _tools.DotnetSdk(action: DotnetSdkAction.Version)).GetText();
+        var text = result;
         Assert.NotNull(text);
         Assert.NotEmpty(text);
     }

@@ -6,7 +6,7 @@ namespace DotNetMcp;
 /// <summary>
 /// Helper methods for creating structured CallToolResult responses.
 /// </summary>
-internal static class StructuredContentHelper
+public static class StructuredContentHelper
 {
     private static readonly JsonSerializerOptions _defaultOptions = new()
     {

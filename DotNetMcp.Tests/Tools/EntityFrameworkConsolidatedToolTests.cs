@@ -28,10 +28,9 @@ public class EntityFrameworkConsolidatedToolTests
     [Fact]
     public async Task DotnetEf_MigrationsAdd_WithName_ExecutesCommand()
     {
-        var result = await _tools.DotnetEf(
+        var result = (await _tools.DotnetEf(
             action: DotnetEfAction.MigrationsAdd,
-            name: "InitialCreate",
-            machineReadable: true);
+            name: "InitialCreate")).GetText();
 
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef migrations add \"InitialCreate\"");
     }
@@ -39,9 +38,8 @@ public class EntityFrameworkConsolidatedToolTests
     [Fact]
     public async Task DotnetEf_MigrationsAdd_WithoutName_ReturnsError()
     {
-        var result = await _tools.DotnetEf(
-            action: DotnetEfAction.MigrationsAdd,
-            machineReadable: true);
+        var result = (await _tools.DotnetEf(
+            action: DotnetEfAction.MigrationsAdd)).GetText();
 
         Assert.Contains("\"success\": false", result);
         Assert.Contains("name", result, StringComparison.OrdinalIgnoreCase);
@@ -50,15 +48,14 @@ public class EntityFrameworkConsolidatedToolTests
     [Fact]
     public async Task DotnetEf_MigrationsAdd_WithAllParameters_ExecutesCommand()
     {
-        var result = await _tools.DotnetEf(
+        var result = (await _tools.DotnetEf(
             action: DotnetEfAction.MigrationsAdd,
             name: "AddProductEntity",
             project: "MyProject.csproj",
             startupProject: "MyApi.csproj",
             context: "ApplicationDbContext",
             outputDir: "Migrations",
-            framework: "net10.0",
-            machineReadable: true);
+            framework: "net10.0")).GetText();
 
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(
             result,
@@ -72,9 +69,8 @@ public class EntityFrameworkConsolidatedToolTests
     [Fact]
     public async Task DotnetEf_MigrationsList_WithBasicParameters_ExecutesCommand()
     {
-        var result = await _tools.DotnetEf(
-            action: DotnetEfAction.MigrationsList,
-            machineReadable: true);
+        var result = (await _tools.DotnetEf(
+            action: DotnetEfAction.MigrationsList)).GetText();
 
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef migrations list");
     }
@@ -82,10 +78,9 @@ public class EntityFrameworkConsolidatedToolTests
     [Fact]
     public async Task DotnetEf_MigrationsList_WithProject_ExecutesCommand()
     {
-        var result = await _tools.DotnetEf(
+        var result = (await _tools.DotnetEf(
             action: DotnetEfAction.MigrationsList,
-            project: "MyProject.csproj",
-            machineReadable: true);
+            project: "MyProject.csproj")).GetText();
 
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef migrations list --project \"MyProject.csproj\"");
     }
@@ -93,10 +88,9 @@ public class EntityFrameworkConsolidatedToolTests
     [Fact]
     public async Task DotnetEf_MigrationsList_WithConnectionDisplay_ExecutesCommand()
     {
-        var result = await _tools.DotnetEf(
+        var result = (await _tools.DotnetEf(
             action: DotnetEfAction.MigrationsList,
-            connectionDisplay: true,
-            machineReadable: true);
+            connectionDisplay: true)).GetText();
 
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef migrations list --connection");
     }
@@ -108,9 +102,8 @@ public class EntityFrameworkConsolidatedToolTests
     [Fact]
     public async Task DotnetEf_MigrationsRemove_WithBasicParameters_ExecutesCommand()
     {
-        var result = await _tools.DotnetEf(
-            action: DotnetEfAction.MigrationsRemove,
-            machineReadable: true);
+        var result = (await _tools.DotnetEf(
+            action: DotnetEfAction.MigrationsRemove)).GetText();
 
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef migrations remove");
     }
@@ -118,10 +111,9 @@ public class EntityFrameworkConsolidatedToolTests
     [Fact]
     public async Task DotnetEf_MigrationsRemove_WithForce_ExecutesCommand()
     {
-        var result = await _tools.DotnetEf(
+        var result = (await _tools.DotnetEf(
             action: DotnetEfAction.MigrationsRemove,
-            force: true,
-            machineReadable: true);
+            force: true)).GetText();
 
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef migrations remove --force");
     }
@@ -133,9 +125,8 @@ public class EntityFrameworkConsolidatedToolTests
     [Fact]
     public async Task DotnetEf_MigrationsScript_WithBasicParameters_ExecutesCommand()
     {
-        var result = await _tools.DotnetEf(
-            action: DotnetEfAction.MigrationsScript,
-            machineReadable: true);
+        var result = (await _tools.DotnetEf(
+            action: DotnetEfAction.MigrationsScript)).GetText();
 
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef migrations script");
     }
@@ -143,11 +134,10 @@ public class EntityFrameworkConsolidatedToolTests
     [Fact]
     public async Task DotnetEf_MigrationsScript_WithFromTo_ExecutesCommand()
     {
-        var result = await _tools.DotnetEf(
+        var result = (await _tools.DotnetEf(
             action: DotnetEfAction.MigrationsScript,
             from: "InitialCreate",
-            to: "AddProductEntity",
-            machineReadable: true);
+            to: "AddProductEntity")).GetText();
 
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef migrations script \"InitialCreate\" \"AddProductEntity\"");
     }
@@ -155,11 +145,10 @@ public class EntityFrameworkConsolidatedToolTests
     [Fact]
     public async Task DotnetEf_MigrationsScript_WithIdempotent_ExecutesCommand()
     {
-        var result = await _tools.DotnetEf(
+        var result = (await _tools.DotnetEf(
             action: DotnetEfAction.MigrationsScript,
             idempotent: true,
-            output: "migration.sql",
-            machineReadable: true);
+            output: "migration.sql")).GetText();
 
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef migrations script --output \"migration.sql\" --idempotent");
     }
@@ -171,9 +160,8 @@ public class EntityFrameworkConsolidatedToolTests
     [Fact]
     public async Task DotnetEf_DatabaseUpdate_WithBasicParameters_ExecutesCommand()
     {
-        var result = await _tools.DotnetEf(
-            action: DotnetEfAction.DatabaseUpdate,
-            machineReadable: true);
+        var result = (await _tools.DotnetEf(
+            action: DotnetEfAction.DatabaseUpdate)).GetText();
 
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef database update");
     }
@@ -181,10 +169,9 @@ public class EntityFrameworkConsolidatedToolTests
     [Fact]
     public async Task DotnetEf_DatabaseUpdate_WithMigration_ExecutesCommand()
     {
-        var result = await _tools.DotnetEf(
+        var result = (await _tools.DotnetEf(
             action: DotnetEfAction.DatabaseUpdate,
-            migration: "AddProductEntity",
-            machineReadable: true);
+            migration: "AddProductEntity")).GetText();
 
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef database update \"AddProductEntity\"");
     }
@@ -192,10 +179,9 @@ public class EntityFrameworkConsolidatedToolTests
     [Fact]
     public async Task DotnetEf_DatabaseUpdate_WithConnection_ExecutesCommand()
     {
-        var result = await _tools.DotnetEf(
+        var result = (await _tools.DotnetEf(
             action: DotnetEfAction.DatabaseUpdate,
-            connection: "Server=localhost;Database=MyDb",
-            machineReadable: true);
+            connection: "Server=localhost;Database=MyDb")).GetText();
 
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef database update --connection \"Server=localhost;Database=MyDb\"");
     }
@@ -208,9 +194,8 @@ public class EntityFrameworkConsolidatedToolTests
     public async Task DotnetEf_DatabaseDrop_WithoutForce_ReturnsError()
     {
         // DatabaseDrop requires force=true for safety
-        var result = await _tools.DotnetEf(
-            action: DotnetEfAction.DatabaseDrop,
-            machineReadable: true);
+        var result = (await _tools.DotnetEf(
+            action: DotnetEfAction.DatabaseDrop)).GetText();
 
         Assert.Contains("\"success\": false", result);
         Assert.Contains("force", result, StringComparison.OrdinalIgnoreCase);
@@ -220,10 +205,9 @@ public class EntityFrameworkConsolidatedToolTests
     [Fact]
     public async Task DotnetEf_DatabaseDrop_WithForceTrue_ExecutesCommand()
     {
-        var result = await _tools.DotnetEf(
+        var result = (await _tools.DotnetEf(
             action: DotnetEfAction.DatabaseDrop,
-            force: true,
-            machineReadable: true);
+            force: true)).GetText();
 
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef database drop --force");
     }
@@ -232,10 +216,9 @@ public class EntityFrameworkConsolidatedToolTests
     public async Task DotnetEf_DatabaseDrop_WithDryRun_ExecutesCommand()
     {
         // Dry run should work without force=true
-        var result = await _tools.DotnetEf(
+        var result = (await _tools.DotnetEf(
             action: DotnetEfAction.DatabaseDrop,
-            dryRun: true,
-            machineReadable: true);
+            dryRun: true)).GetText();
 
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef database drop --dry-run");
     }
@@ -243,11 +226,10 @@ public class EntityFrameworkConsolidatedToolTests
     [Fact]
     public async Task DotnetEf_DatabaseDrop_WithForceAndDryRun_ExecutesCommand()
     {
-        var result = await _tools.DotnetEf(
+        var result = (await _tools.DotnetEf(
             action: DotnetEfAction.DatabaseDrop,
             force: true,
-            dryRun: true,
-            machineReadable: true);
+            dryRun: true)).GetText();
 
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef database drop --force --dry-run");
     }
@@ -256,8 +238,8 @@ public class EntityFrameworkConsolidatedToolTests
     public async Task DotnetEf_DatabaseDrop_WithoutForce_PlainText_ReturnsError()
     {
         // Test plain text error message
-        var result = await _tools.DotnetEf(
-            action: DotnetEfAction.DatabaseDrop);
+        var result = (await _tools.DotnetEf(
+            action: DotnetEfAction.DatabaseDrop)).GetText();
 
         Assert.Contains("Error", result);
         Assert.Contains("force=true", result);
@@ -271,9 +253,8 @@ public class EntityFrameworkConsolidatedToolTests
     [Fact]
     public async Task DotnetEf_DbContextList_WithBasicParameters_ExecutesCommand()
     {
-        var result = await _tools.DotnetEf(
-            action: DotnetEfAction.DbContextList,
-            machineReadable: true);
+        var result = (await _tools.DotnetEf(
+            action: DotnetEfAction.DbContextList)).GetText();
 
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef dbcontext list");
     }
@@ -281,10 +262,9 @@ public class EntityFrameworkConsolidatedToolTests
     [Fact]
     public async Task DotnetEf_DbContextList_WithProject_ExecutesCommand()
     {
-        var result = await _tools.DotnetEf(
+        var result = (await _tools.DotnetEf(
             action: DotnetEfAction.DbContextList,
-            project: "MyProject.csproj",
-            machineReadable: true);
+            project: "MyProject.csproj")).GetText();
 
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef dbcontext list --project \"MyProject.csproj\"");
     }
@@ -296,9 +276,8 @@ public class EntityFrameworkConsolidatedToolTests
     [Fact]
     public async Task DotnetEf_DbContextInfo_WithBasicParameters_ExecutesCommand()
     {
-        var result = await _tools.DotnetEf(
-            action: DotnetEfAction.DbContextInfo,
-            machineReadable: true);
+        var result = (await _tools.DotnetEf(
+            action: DotnetEfAction.DbContextInfo)).GetText();
 
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef dbcontext info");
     }
@@ -306,10 +285,9 @@ public class EntityFrameworkConsolidatedToolTests
     [Fact]
     public async Task DotnetEf_DbContextInfo_WithContext_ExecutesCommand()
     {
-        var result = await _tools.DotnetEf(
+        var result = (await _tools.DotnetEf(
             action: DotnetEfAction.DbContextInfo,
-            context: "ApplicationDbContext",
-            machineReadable: true);
+            context: "ApplicationDbContext")).GetText();
 
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet ef dbcontext info --context \"ApplicationDbContext\"");
     }
@@ -321,11 +299,10 @@ public class EntityFrameworkConsolidatedToolTests
     [Fact]
     public async Task DotnetEf_DbContextScaffold_WithRequiredParameters_ExecutesCommand()
     {
-        var result = await _tools.DotnetEf(
+        var result = (await _tools.DotnetEf(
             action: DotnetEfAction.DbContextScaffold,
             connection: "Server=localhost;Database=MyDb",
-            provider: "Microsoft.EntityFrameworkCore.SqlServer",
-            machineReadable: true);
+            provider: "Microsoft.EntityFrameworkCore.SqlServer")).GetText();
 
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(
             result,
@@ -335,10 +312,9 @@ public class EntityFrameworkConsolidatedToolTests
     [Fact]
     public async Task DotnetEf_DbContextScaffold_WithoutConnection_ReturnsError()
     {
-        var result = await _tools.DotnetEf(
+        var result = (await _tools.DotnetEf(
             action: DotnetEfAction.DbContextScaffold,
-            provider: "Microsoft.EntityFrameworkCore.SqlServer",
-            machineReadable: true);
+            provider: "Microsoft.EntityFrameworkCore.SqlServer")).GetText();
 
         Assert.Contains("\"success\": false", result);
         Assert.Contains("connection", result, StringComparison.OrdinalIgnoreCase);
@@ -347,10 +323,9 @@ public class EntityFrameworkConsolidatedToolTests
     [Fact]
     public async Task DotnetEf_DbContextScaffold_WithoutProvider_ReturnsError()
     {
-        var result = await _tools.DotnetEf(
+        var result = (await _tools.DotnetEf(
             action: DotnetEfAction.DbContextScaffold,
-            connection: "Server=localhost;Database=MyDb",
-            machineReadable: true);
+            connection: "Server=localhost;Database=MyDb")).GetText();
 
         Assert.Contains("\"success\": false", result);
         Assert.Contains("provider", result, StringComparison.OrdinalIgnoreCase);
@@ -359,7 +334,7 @@ public class EntityFrameworkConsolidatedToolTests
     [Fact]
     public async Task DotnetEf_DbContextScaffold_WithAllParameters_ExecutesCommand()
     {
-        var result = await _tools.DotnetEf(
+        var result = (await _tools.DotnetEf(
             action: DotnetEfAction.DbContextScaffold,
             connection: "Server=localhost;Database=MyDb",
             provider: "Microsoft.EntityFrameworkCore.SqlServer",
@@ -369,8 +344,7 @@ public class EntityFrameworkConsolidatedToolTests
             tables: "Products,Orders",
             schemas: "dbo,sales",
             useDatabaseNames: true,
-            force: true,
-            machineReadable: true);
+            force: true)).GetText();
 
         // Verify the command includes key parameters
         // Note: The command will fail because dotnet-ef tool might not be installed,
@@ -407,20 +381,19 @@ public class EntityFrameworkConsolidatedToolTests
             switch (action)
             {
                 case DotnetEfAction.MigrationsAdd:
-                    result = await _tools.DotnetEf(action, name: "TestMigration", machineReadable: true);
+                    result = (await _tools.DotnetEf(action, name: "TestMigration")).GetText();
                     break;
                 case DotnetEfAction.DatabaseDrop:
-                    result = await _tools.DotnetEf(action, force: true, machineReadable: true);
+                    result = (await _tools.DotnetEf(action, force: true)).GetText();
                     break;
                 case DotnetEfAction.DbContextScaffold:
-                    result = await _tools.DotnetEf(
+                    result = (await _tools.DotnetEf(
                         action, 
                         connection: "TestConnection", 
-                        provider: "TestProvider",
-                        machineReadable: true);
+                        provider: "TestProvider")).GetText();
                     break;
                 default:
-                    result = await _tools.DotnetEf(action, machineReadable: true);
+                    result = (await _tools.DotnetEf(action)).GetText();
                     break;
             }
             
@@ -437,14 +410,13 @@ public class EntityFrameworkConsolidatedToolTests
     public async Task DotnetEf_WithCommonParameters_ExecutesCorrectly()
     {
         // Test that common parameters work across different actions
-        var result = await _tools.DotnetEf(
+        var result = (await _tools.DotnetEf(
             action: DotnetEfAction.MigrationsList,
             project: "MyProject.csproj",
             startupProject: "MyApi.csproj",
             context: "ApplicationDbContext",
             framework: "net10.0",
-            noBuild: true,
-            machineReadable: true);
+            noBuild: true)).GetText();
 
         var commandLine = MachineReadableCommandAssertions.ExtractExecutedDotnetCommand(result);
         Assert.Contains("--project \"MyProject.csproj\"", commandLine);

@@ -38,8 +38,8 @@ public class ServerCapabilitiesTests
     public async Task DotnetServerCapabilities_ContainsRequiredFields()
     {
         // Act
-        var result = await _tools.DotnetServerCapabilities();
-        var jsonDoc = JsonDocument.Parse(result.GetText());
+        var result = (await _tools.DotnetServerCapabilities()).GetText();
+        var jsonDoc = JsonDocument.Parse(result);
         var root = jsonDoc.RootElement;
 
         // Assert - Check all required top-level fields exist
@@ -54,8 +54,8 @@ public class ServerCapabilitiesTests
     public async Task DotnetServerCapabilities_ServerVersion_IsNotEmpty()
     {
         // Act
-        var result = await _tools.DotnetServerCapabilities();
-        var jsonDoc = JsonDocument.Parse(result.GetText());
+        var result = (await _tools.DotnetServerCapabilities()).GetText();
+        var jsonDoc = JsonDocument.Parse(result);
         var serverVersion = jsonDoc.RootElement.GetProperty("serverVersion").GetString();
 
         // Assert
@@ -67,8 +67,8 @@ public class ServerCapabilitiesTests
     public async Task DotnetServerCapabilities_ProtocolVersion_IsCorrect()
     {
         // Act
-        var result = await _tools.DotnetServerCapabilities();
-        var jsonDoc = JsonDocument.Parse(result.GetText());
+        var result = (await _tools.DotnetServerCapabilities()).GetText();
+        var jsonDoc = JsonDocument.Parse(result);
         var protocolVersion = jsonDoc.RootElement.GetProperty("protocolVersion").GetString();
 
         // Assert
@@ -79,8 +79,8 @@ public class ServerCapabilitiesTests
     public async Task DotnetServerCapabilities_SupportedCategories_ContainsExpectedCategories()
     {
         // Act
-        var result = await _tools.DotnetServerCapabilities();
-        var jsonDoc = JsonDocument.Parse(result.GetText());
+        var result = (await _tools.DotnetServerCapabilities()).GetText();
+        var jsonDoc = JsonDocument.Parse(result);
         var categories = jsonDoc.RootElement
             .GetProperty("supportedCategories")
             .EnumerateArray()
@@ -101,8 +101,8 @@ public class ServerCapabilitiesTests
     public async Task DotnetServerCapabilities_Supports_StructuredErrors_IsTrue()
     {
         // Act
-        var result = await _tools.DotnetServerCapabilities();
-        var jsonDoc = JsonDocument.Parse(result.GetText());
+        var result = (await _tools.DotnetServerCapabilities()).GetText();
+        var jsonDoc = JsonDocument.Parse(result);
         var structuredErrors = jsonDoc.RootElement
             .GetProperty("supports")
             .GetProperty("structuredErrors")
@@ -116,8 +116,8 @@ public class ServerCapabilitiesTests
     public async Task DotnetServerCapabilities_Supports_MachineReadable_IsTrue()
     {
         // Act
-        var result = await _tools.DotnetServerCapabilities();
-        var jsonDoc = JsonDocument.Parse(result.GetText());
+        var result = (await _tools.DotnetServerCapabilities()).GetText();
+        var jsonDoc = JsonDocument.Parse(result);
         var machineReadable = jsonDoc.RootElement
             .GetProperty("supports")
             .GetProperty("machineReadable")
@@ -131,8 +131,8 @@ public class ServerCapabilitiesTests
     public async Task DotnetServerCapabilities_Supports_Cancellation_IsTrue()
     {
         // Act
-        var result = await _tools.DotnetServerCapabilities();
-        var jsonDoc = JsonDocument.Parse(result.GetText());
+        var result = (await _tools.DotnetServerCapabilities()).GetText();
+        var jsonDoc = JsonDocument.Parse(result);
         var cancellation = jsonDoc.RootElement
             .GetProperty("supports")
             .GetProperty("cancellation")
@@ -146,8 +146,8 @@ public class ServerCapabilitiesTests
     public async Task DotnetServerCapabilities_Supports_Telemetry_IsTrue()
     {
         // Act
-        var result = await _tools.DotnetServerCapabilities();
-        var jsonDoc = JsonDocument.Parse(result.GetText());
+        var result = (await _tools.DotnetServerCapabilities()).GetText();
+        var jsonDoc = JsonDocument.Parse(result);
         var telemetry = jsonDoc.RootElement
             .GetProperty("supports")
             .GetProperty("telemetry")
@@ -161,8 +161,8 @@ public class ServerCapabilitiesTests
     public async Task DotnetServerCapabilities_SdkVersions_ContainsInstalledSdks()
     {
         // Act
-        var result = await _tools.DotnetServerCapabilities();
-        var jsonDoc = JsonDocument.Parse(result.GetText());
+        var result = (await _tools.DotnetServerCapabilities()).GetText();
+        var jsonDoc = JsonDocument.Parse(result);
         var installed = jsonDoc.RootElement
             .GetProperty("sdkVersions")
             .GetProperty("installed")
@@ -183,8 +183,8 @@ public class ServerCapabilitiesTests
     public async Task DotnetServerCapabilities_SdkVersions_Recommended_IsNet100()
     {
         // Act
-        var result = await _tools.DotnetServerCapabilities();
-        var jsonDoc = JsonDocument.Parse(result.GetText());
+        var result = (await _tools.DotnetServerCapabilities()).GetText();
+        var jsonDoc = JsonDocument.Parse(result);
         var recommended = jsonDoc.RootElement
             .GetProperty("sdkVersions")
             .GetProperty("recommended")
@@ -198,8 +198,8 @@ public class ServerCapabilitiesTests
     public async Task DotnetServerCapabilities_SdkVersions_Lts_IsNet100()
     {
         // Act
-        var result = await _tools.DotnetServerCapabilities();
-        var jsonDoc = JsonDocument.Parse(result.GetText());
+        var result = (await _tools.DotnetServerCapabilities()).GetText();
+        var jsonDoc = JsonDocument.Parse(result);
         var lts = jsonDoc.RootElement
             .GetProperty("sdkVersions")
             .GetProperty("lts")
@@ -213,10 +213,10 @@ public class ServerCapabilitiesTests
     public async Task DotnetServerCapabilities_JsonSchema_MatchesExpectedStructure()
     {
         // Act
-        var result = await _tools.DotnetServerCapabilities();
+        var result = (await _tools.DotnetServerCapabilities()).GetText();
 
         // Deserialize to the actual ServerCapabilities object to verify schema
-        var capabilities = JsonSerializer.Deserialize<ServerCapabilities>(result.GetText(), new JsonSerializerOptions
+        var capabilities = JsonSerializer.Deserialize<ServerCapabilities>(result, new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = false
         });
@@ -242,7 +242,7 @@ public class ServerCapabilitiesTests
     public async Task DotnetServerInfo_ReturnsHumanReadableText()
     {
         // Act
-        var result = await _tools.DotnetServerInfo();
+        var result = (await _tools.DotnetServerInfo()).GetText();
 
         // Assert
         Assert.NotNull(result);

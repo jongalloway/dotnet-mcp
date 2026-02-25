@@ -29,10 +29,9 @@ public class ConsolidatedSdkToolTests
     {
         var missingDir = Path.GetFullPath(Path.Join(Path.GetTempPath(), "dotnet-mcp-missing-" + Guid.NewGuid().ToString("N")));
 
-        var result = await _tools.DotnetSdk(
+        var result = (await _tools.DotnetSdk(
             action: DotnetSdkAction.Version,
-            workingDirectory: missingDir,
-            machineReadable: true);
+            workingDirectory: missingDir));
 
         Assert.NotNull(result);
         Assert.Contains("\"success\": false", result.GetText());
@@ -46,8 +45,8 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_Version_ExecutesCommand()
     {
         // Test basic version action
-        var result = await _tools.DotnetSdk(
-            action: DotnetSdkAction.Version);
+        var result = (await _tools.DotnetSdk(
+            action: DotnetSdkAction.Version));
 
         Assert.NotNull(result);
         Assert.NotEmpty(result.Content);
@@ -57,9 +56,8 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_Version_WithMachineReadable_ExecutesCommand()
     {
         // Test version with machine-readable output
-        var result = await _tools.DotnetSdk(
-            action: DotnetSdkAction.Version,
-            machineReadable: true);
+        var result = (await _tools.DotnetSdk(
+            action: DotnetSdkAction.Version));
 
         Assert.NotNull(result);
     }
@@ -72,8 +70,8 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_Info_ExecutesCommand()
     {
         // Test basic info action
-        var result = await _tools.DotnetSdk(
-            action: DotnetSdkAction.Info);
+        var result = (await _tools.DotnetSdk(
+            action: DotnetSdkAction.Info));
 
         Assert.NotNull(result);
         Assert.NotEmpty(result.Content);
@@ -83,9 +81,8 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_Info_WithMachineReadable_ExecutesCommand()
     {
         // Test info with machine-readable output
-        var result = await _tools.DotnetSdk(
-            action: DotnetSdkAction.Info,
-            machineReadable: true);
+        var result = (await _tools.DotnetSdk(
+            action: DotnetSdkAction.Info));
 
         Assert.NotNull(result);
     }
@@ -98,8 +95,8 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_ListSdks_ExecutesCommand()
     {
         // Test list SDKs action
-        var result = await _tools.DotnetSdk(
-            action: DotnetSdkAction.ListSdks);
+        var result = (await _tools.DotnetSdk(
+            action: DotnetSdkAction.ListSdks));
 
         Assert.NotNull(result);
         Assert.NotEmpty(result.Content);
@@ -109,9 +106,8 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_ListSdks_WithMachineReadable_ExecutesCommand()
     {
         // Test list SDKs with machine-readable output
-        var result = await _tools.DotnetSdk(
-            action: DotnetSdkAction.ListSdks,
-            machineReadable: true);
+        var result = (await _tools.DotnetSdk(
+            action: DotnetSdkAction.ListSdks));
 
         Assert.NotNull(result);
     }
@@ -124,8 +120,8 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_ListRuntimes_ExecutesCommand()
     {
         // Test list runtimes action
-        var result = await _tools.DotnetSdk(
-            action: DotnetSdkAction.ListRuntimes);
+        var result = (await _tools.DotnetSdk(
+            action: DotnetSdkAction.ListRuntimes));
 
         Assert.NotNull(result);
         Assert.NotEmpty(result.Content);
@@ -135,9 +131,8 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_ListRuntimes_WithMachineReadable_ExecutesCommand()
     {
         // Test list runtimes with machine-readable output
-        var result = await _tools.DotnetSdk(
-            action: DotnetSdkAction.ListRuntimes,
-            machineReadable: true);
+        var result = (await _tools.DotnetSdk(
+            action: DotnetSdkAction.ListRuntimes));
 
         Assert.NotNull(result);
     }
@@ -150,8 +145,8 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_ListTemplates_ExecutesCommand()
     {
         // Test list templates action
-        var result = await _tools.DotnetSdk(
-            action: DotnetSdkAction.ListTemplates);
+        var result = (await _tools.DotnetSdk(
+            action: DotnetSdkAction.ListTemplates));
 
         Assert.NotNull(result);
         Assert.NotEmpty(result.Content);
@@ -161,9 +156,9 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_ListTemplates_WithForceReload_ExecutesCommand()
     {
         // Test list templates with force reload
-        var result = await _tools.DotnetSdk(
+        var result = (await _tools.DotnetSdk(
             action: DotnetSdkAction.ListTemplates,
-            forceReload: true);
+            forceReload: true));
 
         Assert.NotNull(result);
         Assert.NotEmpty(result.Content);
@@ -177,9 +172,9 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_SearchTemplates_WithSearchTerm_ExecutesCommand()
     {
         // Test search templates with search term
-        var result = await _tools.DotnetSdk(
+        var result = (await _tools.DotnetSdk(
             action: DotnetSdkAction.SearchTemplates,
-            searchTerm: "console");
+            searchTerm: "console"));
 
         Assert.NotNull(result);
         Assert.NotEmpty(result.Content);
@@ -189,10 +184,10 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_SearchTemplates_WithForceReload_ExecutesCommand()
     {
         // Test search templates with force reload
-        var result = await _tools.DotnetSdk(
+        var result = (await _tools.DotnetSdk(
             action: DotnetSdkAction.SearchTemplates,
             searchTerm: "web",
-            forceReload: true);
+            forceReload: true));
 
         Assert.NotNull(result);
         Assert.NotEmpty(result.Content);
@@ -202,8 +197,8 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_SearchTemplates_WithoutSearchTerm_ReturnsError()
     {
         // Test search templates without search term
-        var result = await _tools.DotnetSdk(
-            action: DotnetSdkAction.SearchTemplates);
+        var result = (await _tools.DotnetSdk(
+            action: DotnetSdkAction.SearchTemplates));
 
         Assert.NotNull(result);
         Assert.Contains("Error", result.GetText());
@@ -214,9 +209,8 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_SearchTemplates_WithoutSearchTerm_MachineReadable_ReturnsError()
     {
         // Test search templates without search term in machine-readable format
-        var result = await _tools.DotnetSdk(
-            action: DotnetSdkAction.SearchTemplates,
-            machineReadable: true);
+        var result = (await _tools.DotnetSdk(
+            action: DotnetSdkAction.SearchTemplates));
 
         Assert.NotNull(result);
         Assert.Contains("searchTerm", result.GetText());
@@ -231,9 +225,9 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_TemplateInfo_WithTemplateShortName_ExecutesCommand()
     {
         // Test template info with template short name
-        var result = await _tools.DotnetSdk(
+        var result = (await _tools.DotnetSdk(
             action: DotnetSdkAction.TemplateInfo,
-            templateShortName: "console");
+            templateShortName: "console"));
 
         Assert.NotNull(result);
         Assert.NotEmpty(result.Content);
@@ -243,10 +237,10 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_TemplateInfo_WithForceReload_ExecutesCommand()
     {
         // Test template info with force reload
-        var result = await _tools.DotnetSdk(
+        var result = (await _tools.DotnetSdk(
             action: DotnetSdkAction.TemplateInfo,
             templateShortName: "console",
-            forceReload: true);
+            forceReload: true));
 
         Assert.NotNull(result);
         Assert.NotEmpty(result.Content);
@@ -256,8 +250,8 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_TemplateInfo_WithoutTemplateShortName_ReturnsError()
     {
         // Test template info without template short name
-        var result = await _tools.DotnetSdk(
-            action: DotnetSdkAction.TemplateInfo);
+        var result = (await _tools.DotnetSdk(
+            action: DotnetSdkAction.TemplateInfo));
 
         Assert.NotNull(result);
         Assert.Contains("Error", result.GetText());
@@ -268,9 +262,8 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_TemplateInfo_WithoutTemplateShortName_MachineReadable_ReturnsError()
     {
         // Test template info without template short name in machine-readable format
-        var result = await _tools.DotnetSdk(
-            action: DotnetSdkAction.TemplateInfo,
-            machineReadable: true);
+        var result = (await _tools.DotnetSdk(
+            action: DotnetSdkAction.TemplateInfo));
 
         Assert.NotNull(result);
         Assert.Contains("templateShortName", result.GetText());
@@ -285,8 +278,8 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_ClearTemplateCache_ExecutesCommand()
     {
         // Test clear template cache action
-        var result = await _tools.DotnetSdk(
-            action: DotnetSdkAction.ClearTemplateCache);
+        var result = (await _tools.DotnetSdk(
+            action: DotnetSdkAction.ClearTemplateCache));
 
         Assert.NotNull(result);
         Assert.Contains("cleared", result.GetText(), StringComparison.OrdinalIgnoreCase);
@@ -300,8 +293,8 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_FrameworkInfo_WithoutFramework_ExecutesCommand()
     {
         // Test framework info without specific framework (lists all)
-        var result = await _tools.DotnetSdk(
-            action: DotnetSdkAction.FrameworkInfo);
+        var result = (await _tools.DotnetSdk(
+            action: DotnetSdkAction.FrameworkInfo));
 
         Assert.NotNull(result);
         Assert.NotEmpty(result.Content);
@@ -311,9 +304,9 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_FrameworkInfo_WithFramework_ExecutesCommand()
     {
         // Test framework info with specific framework
-        var result = await _tools.DotnetSdk(
+        var result = (await _tools.DotnetSdk(
             action: DotnetSdkAction.FrameworkInfo,
-            framework: "net8.0");
+            framework: "net8.0"));
 
         Assert.NotNull(result);
         Assert.NotEmpty(result.Content);
@@ -328,8 +321,8 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_CacheMetrics_ExecutesCommand()
     {
         // Test cache metrics action
-        var result = await _tools.DotnetSdk(
-            action: DotnetSdkAction.CacheMetrics);
+        var result = (await _tools.DotnetSdk(
+            action: DotnetSdkAction.CacheMetrics));
 
         Assert.NotNull(result);
         Assert.NotEmpty(result.Content);
@@ -345,7 +338,7 @@ public class ConsolidatedSdkToolTests
     {
         // Test with an invalid action (cast from invalid int)
         var invalidAction = (DotnetSdkAction)9999;
-        var result = await _tools.DotnetSdk(action: invalidAction);
+        var result = (await _tools.DotnetSdk(action: invalidAction));
 
         Assert.NotNull(result);
         Assert.Contains("Error", result.GetText());
@@ -356,9 +349,8 @@ public class ConsolidatedSdkToolTests
     {
         // Test with an invalid action in machine-readable format
         var invalidAction = (DotnetSdkAction)9999;
-        var result = await _tools.DotnetSdk(
-            action: invalidAction,
-            machineReadable: true);
+        var result = (await _tools.DotnetSdk(
+            action: invalidAction));
 
         Assert.NotNull(result);
         Assert.Contains("error", result.GetText(), StringComparison.OrdinalIgnoreCase);
@@ -372,19 +364,19 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_MultipleActions_ExecuteSuccessfully()
     {
         // Test multiple actions in sequence to ensure no state issues
-        var versionResult = await _tools.DotnetSdk(action: DotnetSdkAction.Version);
+        var versionResult = (await _tools.DotnetSdk(action: DotnetSdkAction.Version));
         Assert.NotNull(versionResult);
         Assert.NotEmpty(versionResult.Content);
 
-        var infoResult = await _tools.DotnetSdk(action: DotnetSdkAction.Info);
+        var infoResult = (await _tools.DotnetSdk(action: DotnetSdkAction.Info));
         Assert.NotNull(infoResult);
         Assert.NotEmpty(infoResult.Content);
 
-        var listSdksResult = await _tools.DotnetSdk(action: DotnetSdkAction.ListSdks);
+        var listSdksResult = (await _tools.DotnetSdk(action: DotnetSdkAction.ListSdks));
         Assert.NotNull(listSdksResult);
         Assert.NotEmpty(listSdksResult.Content);
 
-        var listRuntimesResult = await _tools.DotnetSdk(action: DotnetSdkAction.ListRuntimes);
+        var listRuntimesResult = (await _tools.DotnetSdk(action: DotnetSdkAction.ListRuntimes));
         Assert.NotNull(listRuntimesResult);
         Assert.NotEmpty(listRuntimesResult.Content);
     }
@@ -393,19 +385,19 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_TemplateWorkflow_ExecutesSuccessfully()
     {
         // Test complete template workflow
-        var listResult = await _tools.DotnetSdk(action: DotnetSdkAction.ListTemplates);
+        var listResult = (await _tools.DotnetSdk(action: DotnetSdkAction.ListTemplates));
         Assert.NotNull(listResult);
         Assert.NotEmpty(listResult.Content);
 
-        var searchResult = await _tools.DotnetSdk(
+        var searchResult = (await _tools.DotnetSdk(
             action: DotnetSdkAction.SearchTemplates,
-            searchTerm: "console");
+            searchTerm: "console"));
         Assert.NotNull(searchResult);
         Assert.NotEmpty(searchResult.Content);
 
-        var infoResult = await _tools.DotnetSdk(
+        var infoResult = (await _tools.DotnetSdk(
             action: DotnetSdkAction.TemplateInfo,
-            templateShortName: "console");
+            templateShortName: "console"));
         Assert.NotNull(infoResult);
         Assert.NotEmpty(infoResult.Content);
     }
@@ -435,9 +427,8 @@ public class ConsolidatedSdkToolTests
             };
 
             // Act
-            var result = await _tools.DotnetSdk(
-                action: DotnetSdkAction.ListTemplates,
-                machineReadable: true);
+            var result = (await _tools.DotnetSdk(
+                action: DotnetSdkAction.ListTemplates));
 
             // Assert
             Assert.NotNull(result);
@@ -464,11 +455,10 @@ public class ConsolidatedSdkToolTests
         try
         {
             // Act
-            var result = await _tools.DotnetSdk(
+            var result = (await _tools.DotnetSdk(
                 action: DotnetSdkAction.InstallTemplatePack,
                 templatePackage: tempDir,
-                templateVersion: "1.0.0",
-                machineReadable: true);
+                templateVersion: "1.0.0"));
 
             // Assert
             Assert.NotNull(result);
@@ -487,11 +477,10 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_InstallTemplatePack_WithVersionAndAtSymbolInPackage_ReturnsError()
     {
         // Arrange - templatePackage already contains @
-        var result = await _tools.DotnetSdk(
+        var result = (await _tools.DotnetSdk(
             action: DotnetSdkAction.InstallTemplatePack,
             templatePackage: "MyPackage@1.0.0",
-            templateVersion: "2.0.0",
-            machineReadable: true);
+            templateVersion: "2.0.0"));
 
         // Assert
         Assert.NotNull(result);
@@ -504,11 +493,10 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_InstallTemplatePack_WithVersionAndDoubleColonInPackage_ReturnsError()
     {
         // Arrange - templatePackage already contains :: (legacy syntax)
-        var result = await _tools.DotnetSdk(
+        var result = (await _tools.DotnetSdk(
             action: DotnetSdkAction.InstallTemplatePack,
             templatePackage: "MyPackage::1.0.0",
-            templateVersion: "2.0.0",
-            machineReadable: true);
+            templateVersion: "2.0.0"));
 
         // Assert
         Assert.NotNull(result);
@@ -521,10 +509,9 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_InstallTemplatePack_WithInvalidCharactersInPackageId_ReturnsError()
     {
         // Arrange - invalid character : in package ID (not as separator)
-        var result = await _tools.DotnetSdk(
+        var result = (await _tools.DotnetSdk(
             action: DotnetSdkAction.InstallTemplatePack,
-            templatePackage: "My:Package",
-            machineReadable: true);
+            templatePackage: "My:Package"));
 
         // Assert
         Assert.NotNull(result);
@@ -536,10 +523,9 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_InstallTemplatePack_WithMultipleAtSeparators_ReturnsError()
     {
         // Arrange - multiple @ separators
-        var result = await _tools.DotnetSdk(
+        var result = (await _tools.DotnetSdk(
             action: DotnetSdkAction.InstallTemplatePack,
-            templatePackage: "MyPackage@1.0.0@extra",
-            machineReadable: true);
+            templatePackage: "MyPackage@1.0.0@extra"));
 
         // Assert
         Assert.NotNull(result);
@@ -551,10 +537,9 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_InstallTemplatePack_WithBothSeparators_ReturnsError()
     {
         // Arrange - both @ and :: separators (ambiguous)
-        var result = await _tools.DotnetSdk(
+        var result = (await _tools.DotnetSdk(
             action: DotnetSdkAction.InstallTemplatePack,
-            templatePackage: "MyPackage@1.0.0::extra",
-            machineReadable: true);
+            templatePackage: "MyPackage@1.0.0::extra"));
 
         // Assert
         Assert.NotNull(result);
@@ -566,10 +551,9 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_InstallTemplatePack_WithEmptyVersionAfterSeparator_ReturnsError()
     {
         // Arrange - @ separator with empty version
-        var result = await _tools.DotnetSdk(
+        var result = (await _tools.DotnetSdk(
             action: DotnetSdkAction.InstallTemplatePack,
-            templatePackage: "MyPackage@",
-            machineReadable: true);
+            templatePackage: "MyPackage@"));
 
         // Assert
         Assert.NotNull(result);
@@ -586,10 +570,9 @@ public class ConsolidatedSdkToolTests
         try
         {
             // Create a minimal valid package structure to avoid actual NuGet call
-            var result = await _tools.DotnetSdk(
+            var result = (await _tools.DotnetSdk(
                 action: DotnetSdkAction.InstallTemplatePack,
-                templatePackage: tempDir,
-                machineReadable: true);
+                templatePackage: tempDir));
 
             // Should execute without validation error (may fail at install if not a valid template)
             Assert.NotNull(result);

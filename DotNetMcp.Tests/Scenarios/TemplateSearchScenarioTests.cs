@@ -1,3 +1,4 @@
+using DotNetMcp;
 using Xunit;
 
 namespace DotNetMcp.Tests.Scenarios;

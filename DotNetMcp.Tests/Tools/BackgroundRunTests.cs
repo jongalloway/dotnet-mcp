@@ -57,21 +57,19 @@ public class BackgroundRunTests : IDisposable
         try
         {
             // Create a console app
-            await _tools.DotnetProject(
+            (await _tools.DotnetProject(
                 action: DotnetProjectAction.New,
                 template: "console",
                 name: "TestApp",
-                output: tempDir,
-                machineReadable: false);
+                output: tempDir)).GetText();
 
             var projectPath = Path.Join(tempDir, "TestApp.csproj");
 
             // Build it with Release configuration to match CI test execution
-            await _tools.DotnetProject(
+            (await _tools.DotnetProject(
                 action: DotnetProjectAction.Build,
                 project: projectPath,
-                configuration: "Release",
-                machineReadable: false);
+                configuration: "Release")).GetText();
 
             // Ensure build artifacts exist before running
             var binPath = Path.Join(tempDir, "bin", "Release", "net10.0");
@@ -88,13 +86,12 @@ public class BackgroundRunTests : IDisposable
             }
 
             // Run in foreground mode (default) - should block until exit
-            var result = await _tools.DotnetProject(
+            var result = (await _tools.DotnetProject(
                 action: DotnetProjectAction.Run,
                 project: projectPath,
                 configuration: "Release",
                 noBuild: true,
-                startMode: StartMode.Foreground,
-                machineReadable: true);
+                startMode: StartMode.Foreground)).GetText();
 
             // Verify it completed (should have exit code)
             Assert.NotNull(result);
@@ -124,12 +121,11 @@ public class BackgroundRunTests : IDisposable
         try
         {
             // Create a console app with a delay
-            await _tools.DotnetProject(
+            (await _tools.DotnetProject(
                 action: DotnetProjectAction.New,
                 template: "console",
                 name: "TestApp",
-                output: tempDir,
-                machineReadable: false);
+                output: tempDir)).GetText();
 
             var projectPath = Path.Join(tempDir, "TestApp.csproj");
             var programFile = Path.Join(tempDir, "Program.cs");
@@ -146,20 +142,18 @@ Console.WriteLine(""Finished"");
             File.WriteAllText(programFile, programContent);
 
             // Build it with Release configuration to match CI test execution
-            await _tools.DotnetProject(
+            (await _tools.DotnetProject(
                 action: DotnetProjectAction.Build,
                 project: projectPath,
-                configuration: "Release",
-                machineReadable: false);
+                configuration: "Release")).GetText();
 
             // Run in background mode
-            var result = await _tools.DotnetProject(
+            var result = (await _tools.DotnetProject(
                 action: DotnetProjectAction.Run,
                 project: projectPath,
                 configuration: "Release",
                 noBuild: true,
-                startMode: StartMode.Background,
-                machineReadable: true);
+                startMode: StartMode.Background)).GetText();
 
             // Verify it returned immediately with session metadata
             Assert.NotNull(result);
@@ -181,10 +175,9 @@ Console.WriteLine(""Finished"");
             Assert.Equal("run", sessionInfo!.OperationType);
 
             // Clean up - stop the session
-            var stopResult = await _tools.DotnetProject(
+            var stopResult = (await _tools.DotnetProject(
                 action: DotnetProjectAction.Stop,
-                sessionId: sessionId,
-                machineReadable: true);
+                sessionId: sessionId)).GetText();
 
             Assert.Contains("\"success\": true", stopResult);
         }
@@ -211,12 +204,11 @@ Console.WriteLine(""Finished"");
         try
         {
             // Create console app
-            await _tools.DotnetProject(
+            (await _tools.DotnetProject(
                 action: DotnetProjectAction.New,
                 template: "console",
                 name: "TestApp",
-                output: tempDir,
-                machineReadable: false);
+                output: tempDir)).GetText();
 
             var projectPath = Path.Join(tempDir, "TestApp.csproj");
             var programFile = Path.Join(tempDir, "Program.cs");
@@ -229,20 +221,18 @@ Thread.Sleep(TimeSpan.FromSeconds(30));
 ");
 
             // Build it with Release configuration to match CI test execution
-            await _tools.DotnetProject(
+            (await _tools.DotnetProject(
                 action: DotnetProjectAction.Build,
                 project: projectPath,
-                configuration: "Release",
-                machineReadable: false);
+                configuration: "Release")).GetText();
 
             // Run with noBuild=true in background
-            var result = await _tools.DotnetProject(
+            var result = (await _tools.DotnetProject(
                 action: DotnetProjectAction.Run,
                 project: projectPath,
                 configuration: "Release",
                 noBuild: true,
-                startMode: StartMode.Background,
-                machineReadable: true);
+                startMode: StartMode.Background)).GetText();
 
             Assert.Contains("\"success\": true", result);
             Assert.Contains("\"sessionId\":", result);
@@ -251,10 +241,9 @@ Thread.Sleep(TimeSpan.FromSeconds(30));
             var jsonDoc = JsonDocument.Parse(result);
             var sessionId = jsonDoc.RootElement.GetProperty("metadata").GetProperty("sessionId").GetString();
 
-            await _tools.DotnetProject(
+            (await _tools.DotnetProject(
                 action: DotnetProjectAction.Stop,
-                sessionId: sessionId,
-                machineReadable: true);
+                sessionId: sessionId)).GetText();
         }
         finally
         {
@@ -281,12 +270,11 @@ Thread.Sleep(TimeSpan.FromSeconds(30));
         try
         {
             // Create console app with long sleep
-            await _tools.DotnetProject(
+            (await _tools.DotnetProject(
                 action: DotnetProjectAction.New,
                 template: "console",
                 name: "TestApp",
-                output: tempDir,
-                machineReadable: false);
+                output: tempDir)).GetText();
 
             var projectPath = Path.Join(tempDir, "TestApp.csproj");
             var programFile = Path.Join(tempDir, "Program.cs");
@@ -300,20 +288,18 @@ Console.WriteLine(""App finished"");
 ");
 
             // Build with Release configuration to match CI test execution
-            await _tools.DotnetProject(
+            (await _tools.DotnetProject(
                 action: DotnetProjectAction.Build,
                 project: projectPath,
-                configuration: "Release",
-                machineReadable: false);
+                configuration: "Release")).GetText();
 
             // Start in background
-            var runResult = await _tools.DotnetProject(
+            var runResult = (await _tools.DotnetProject(
                 action: DotnetProjectAction.Run,
                 project: projectPath,
                 configuration: "Release",
                 noBuild: true,
-                startMode: StartMode.Background,
-                machineReadable: true);
+                startMode: StartMode.Background)).GetText();
 
             var jsonDoc = JsonDocument.Parse(runResult);
             var sessionId = jsonDoc.RootElement.GetProperty("metadata").GetProperty("sessionId").GetString();
@@ -325,10 +311,9 @@ Console.WriteLine(""App finished"");
             Assert.False(process.HasExited);
 
             // Stop it
-            var stopResult = await _tools.DotnetProject(
+            var stopResult = (await _tools.DotnetProject(
                 action: DotnetProjectAction.Stop,
-                sessionId: sessionId,
-                machineReadable: true);
+                sessionId: sessionId)).GetText();
 
             Assert.Contains("\"success\": true", stopResult);
 
@@ -373,12 +358,11 @@ Console.WriteLine(""App finished"");
         try
         {
             // Create console app with short sleep
-            await _tools.DotnetProject(
+            (await _tools.DotnetProject(
                 action: DotnetProjectAction.New,
                 template: "console",
                 name: "TestApp",
-                output: tempDir,
-                machineReadable: false);
+                output: tempDir)).GetText();
 
             var projectPath = Path.Join(tempDir, "TestApp.csproj");
             var programFile = Path.Join(tempDir, "Program.cs");
@@ -392,20 +376,18 @@ Console.WriteLine(""Done"");
 ");
 
             // Build with Release configuration to match CI test execution
-            await _tools.DotnetProject(
+            (await _tools.DotnetProject(
                 action: DotnetProjectAction.Build,
                 project: projectPath,
-                configuration: "Release",
-                machineReadable: false);
+                configuration: "Release")).GetText();
 
             // Start in background
-            var runResult = await _tools.DotnetProject(
+            var runResult = (await _tools.DotnetProject(
                 action: DotnetProjectAction.Run,
                 project: projectPath,
                 configuration: "Release",
                 noBuild: true,
-                startMode: StartMode.Background,
-                machineReadable: true);
+                startMode: StartMode.Background)).GetText();
 
             var jsonDoc = JsonDocument.Parse(runResult);
             var sessionId = jsonDoc.RootElement.GetProperty("metadata").GetProperty("sessionId").GetString();

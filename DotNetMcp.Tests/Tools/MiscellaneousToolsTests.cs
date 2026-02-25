@@ -46,9 +46,9 @@ public class MiscellaneousToolsTests
     public async Task DotnetWatchRun_WithoutParameters_ReturnsWarning()
     {
         // Act
-        var result = await _tools.DotnetProject(
+        var result = (await _tools.DotnetProject(
             action: DotNetMcp.Actions.DotnetProjectAction.Watch,
-            watchAction: "run");
+            watchAction: "run")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -60,10 +60,10 @@ public class MiscellaneousToolsTests
     public async Task DotnetWatchRun_WithProject_ReturnsWarning()
     {
         // Act
-        var result = await _tools.DotnetProject(
+        var result = (await _tools.DotnetProject(
             action: DotNetMcp.Actions.DotnetProjectAction.Watch,
             watchAction: "run",
-            project: "MyProject.csproj");
+            project: "MyProject.csproj")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -75,10 +75,10 @@ public class MiscellaneousToolsTests
     public async Task DotnetWatchRun_WithAppArgs_ReturnsWarning()
     {
         // Act
-        var result = await _tools.DotnetProject(
+        var result = (await _tools.DotnetProject(
             action: DotNetMcp.Actions.DotnetProjectAction.Watch,
             watchAction: "run",
-            appArgs: "--environment Development");
+            appArgs: "--environment Development")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -90,10 +90,10 @@ public class MiscellaneousToolsTests
     public async Task DotnetWatchRun_WithNoHotReload_ReturnsWarning()
     {
         // Act
-        var result = await _tools.DotnetProject(
+        var result = (await _tools.DotnetProject(
             action: DotNetMcp.Actions.DotnetProjectAction.Watch,
             watchAction: "run",
-            noHotReload: true);
+            noHotReload: true)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -105,9 +105,9 @@ public class MiscellaneousToolsTests
     public async Task DotnetWatchTest_WithoutParameters_ReturnsWarning()
     {
         // Act
-        var result = await _tools.DotnetProject(
+        var result = (await _tools.DotnetProject(
             action: DotNetMcp.Actions.DotnetProjectAction.Watch,
-            watchAction: "test");
+            watchAction: "test")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -120,10 +120,10 @@ public class MiscellaneousToolsTests
     public async Task DotnetWatchTest_WithProject_ReturnsWarning()
     {
         // Act
-        var result = await _tools.DotnetProject(
+        var result = (await _tools.DotnetProject(
             action: DotNetMcp.Actions.DotnetProjectAction.Watch,
             watchAction: "test",
-            project: "MyTests.csproj");
+            project: "MyTests.csproj")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -135,10 +135,10 @@ public class MiscellaneousToolsTests
     public async Task DotnetWatchTest_WithFilter_ReturnsWarning()
     {
         // Act
-        var result = await _tools.DotnetProject(
+        var result = (await _tools.DotnetProject(
             action: DotNetMcp.Actions.DotnetProjectAction.Watch,
             watchAction: "test",
-            filter: "FullyQualifiedName~MyTest");
+            filter: "FullyQualifiedName~MyTest")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -150,9 +150,9 @@ public class MiscellaneousToolsTests
     public async Task DotnetWatchBuild_WithoutParameters_ReturnsWarning()
     {
         // Act
-        var result = await _tools.DotnetProject(
+        var result = (await _tools.DotnetProject(
             action: DotNetMcp.Actions.DotnetProjectAction.Watch,
-            watchAction: "build");
+            watchAction: "build")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -165,10 +165,10 @@ public class MiscellaneousToolsTests
     public async Task DotnetWatchBuild_WithProject_ReturnsWarning()
     {
         // Act
-        var result = await _tools.DotnetProject(
+        var result = (await _tools.DotnetProject(
             action: DotNetMcp.Actions.DotnetProjectAction.Watch,
             watchAction: "build",
-            project: "MyProject.csproj");
+            project: "MyProject.csproj")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -180,10 +180,10 @@ public class MiscellaneousToolsTests
     public async Task DotnetWatchBuild_WithConfiguration_ReturnsWarning()
     {
         // Act
-        var result = await _tools.DotnetProject(
+        var result = (await _tools.DotnetProject(
             action: DotNetMcp.Actions.DotnetProjectAction.Watch,
             watchAction: "build",
-            configuration: "Release");
+            configuration: "Release")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -197,9 +197,8 @@ public class MiscellaneousToolsTests
     public async Task DotnetFormat_WithoutParameters_BuildsCorrectCommand()
     {
         // Act
-        var result = await ExecuteInTempDirectoryAsync(() => _tools.DotnetProject(
-            action: DotNetMcp.Actions.DotnetProjectAction.Format,
-            machineReadable: true));
+        var result = await ExecuteInTempDirectoryAsync(async () => (await _tools.DotnetProject(
+            action: DotNetMcp.Actions.DotnetProjectAction.Format)).GetText());
 
         // Assert
         Assert.NotNull(result);
@@ -210,10 +209,9 @@ public class MiscellaneousToolsTests
     public async Task DotnetFormat_WithProject_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetProject(
+        var result = (await _tools.DotnetProject(
             action: DotNetMcp.Actions.DotnetProjectAction.Format,
-            project: "MyProject.csproj",
-            machineReadable: true);
+            project: "MyProject.csproj")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -224,10 +222,9 @@ public class MiscellaneousToolsTests
     public async Task DotnetFormat_WithVerify_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetProject(
+        var result = (await _tools.DotnetProject(
             action: DotNetMcp.Actions.DotnetProjectAction.Format,
-            verify: true,
-            machineReadable: true);
+            verify: true)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -238,10 +235,9 @@ public class MiscellaneousToolsTests
     public async Task DotnetFormat_WithIncludeGenerated_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetProject(
+        var result = (await _tools.DotnetProject(
             action: DotNetMcp.Actions.DotnetProjectAction.Format,
-            includeGenerated: true,
-            machineReadable: true);
+            includeGenerated: true)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -252,10 +248,9 @@ public class MiscellaneousToolsTests
     public async Task DotnetFormat_WithDiagnostics_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetProject(
+        var result = (await _tools.DotnetProject(
             action: DotNetMcp.Actions.DotnetProjectAction.Format,
-            diagnostics: "IDE0005,CA1304",
-            machineReadable: true);
+            diagnostics: "IDE0005,CA1304")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -266,10 +261,9 @@ public class MiscellaneousToolsTests
     public async Task DotnetFormat_WithSeverity_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetProject(
+        var result = (await _tools.DotnetProject(
             action: DotNetMcp.Actions.DotnetProjectAction.Format,
-            severity: "warn",
-            machineReadable: true);
+            severity: "warn")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -280,14 +274,13 @@ public class MiscellaneousToolsTests
     public async Task DotnetFormat_WithAllParameters_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetProject(
+        var result = (await _tools.DotnetProject(
             action: DotNetMcp.Actions.DotnetProjectAction.Format,
             project: "MyProject.csproj",
             verify: true,
             includeGenerated: true,
             diagnostics: "IDE0005",
-            severity: "error",
-            machineReadable: true);
+            severity: "error")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -302,10 +295,9 @@ public class MiscellaneousToolsTests
     public async Task DotnetNugetLocals_WithListAll_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetNugetLocals(
+        var result = (await _tools.DotnetNugetLocals(
             cacheLocation: "all",
-            list: true,
-            machineReadable: true);
+            list: true));
 
         // Assert
         Assert.NotNull(result);
@@ -316,10 +308,9 @@ public class MiscellaneousToolsTests
     public async Task DotnetNugetLocals_WithClearAll_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetNugetLocals(
+        var result = (await _tools.DotnetNugetLocals(
             cacheLocation: "all",
-            clear: true,
-            machineReadable: true);
+            clear: true));
 
         // Assert
         Assert.NotNull(result);
@@ -330,10 +321,9 @@ public class MiscellaneousToolsTests
     public async Task DotnetNugetLocals_WithListHttpCache_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetNugetLocals(
+        var result = (await _tools.DotnetNugetLocals(
             cacheLocation: "http-cache",
-            list: true,
-            machineReadable: true);
+            list: true));
 
         // Assert
         Assert.NotNull(result);
@@ -344,10 +334,9 @@ public class MiscellaneousToolsTests
     public async Task DotnetNugetLocals_WithListGlobalPackages_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetNugetLocals(
+        var result = (await _tools.DotnetNugetLocals(
             cacheLocation: "global-packages",
-            list: true,
-            machineReadable: true);
+            list: true));
 
         // Assert
         Assert.NotNull(result);
@@ -358,10 +347,9 @@ public class MiscellaneousToolsTests
     public async Task DotnetNugetLocals_WithListTemp_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetNugetLocals(
+        var result = (await _tools.DotnetNugetLocals(
             cacheLocation: "temp",
-            list: true,
-            machineReadable: true);
+            list: true));
 
         // Assert
         Assert.NotNull(result);
@@ -372,10 +360,9 @@ public class MiscellaneousToolsTests
     public async Task DotnetNugetLocals_WithListPluginsCache_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetNugetLocals(
+        var result = (await _tools.DotnetNugetLocals(
             cacheLocation: "plugins-cache",
-            list: true,
-            machineReadable: true);
+            list: true));
 
         // Assert
         Assert.NotNull(result);
@@ -386,9 +373,9 @@ public class MiscellaneousToolsTests
     public async Task DotnetNugetLocals_WithInvalidCacheLocation_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetNugetLocals(
+        var result = (await _tools.DotnetNugetLocals(
             cacheLocation: "invalid",
-            list: true);
+            list: true));
 
         // Assert
         Assert.Contains("Error", result);
@@ -399,10 +386,10 @@ public class MiscellaneousToolsTests
     public async Task DotnetNugetLocals_WithBothListAndClear_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetNugetLocals(
+        var result = (await _tools.DotnetNugetLocals(
             cacheLocation: "all",
             list: true,
-            clear: true);
+            clear: true));
 
         // Assert
         Assert.Contains("Error", result);
@@ -413,10 +400,10 @@ public class MiscellaneousToolsTests
     public async Task DotnetNugetLocals_WithNeitherListNorClear_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetNugetLocals(
+        var result = (await _tools.DotnetNugetLocals(
             cacheLocation: "all",
             list: false,
-            clear: false);
+            clear: false));
 
         // Assert
         Assert.Contains("Error", result);
@@ -429,42 +416,42 @@ public class MiscellaneousToolsTests
     public async Task DotnetFrameworkInfo_WithoutParameters_ReturnsFrameworkList()
     {
         // Act
-        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.FrameworkInfo);
+        var result = (await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.FrameworkInfo)).GetText();
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains("Modern .NET Frameworks", result.GetText());
-        Assert.Contains(".NET Core Frameworks", result.GetText());
-        Assert.Contains("Latest Recommended", result.GetText());
-        Assert.Contains("Latest LTS", result.GetText());
+        Assert.Contains("Modern .NET Frameworks", result);
+        Assert.Contains(".NET Core Frameworks", result);
+        Assert.Contains("Latest Recommended", result);
+        Assert.Contains("Latest LTS", result);
         // Should contain at least one framework version
-        Assert.Matches(@"net\d+\.\d+", result.GetText());
+        Assert.Matches(@"net\d+\.\d+", result);
     }
 
     [Fact]
     public async Task DotnetFrameworkInfo_WithSpecificFramework_ReturnsFrameworkDetails()
     {
         // Act
-        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.FrameworkInfo, framework: "net8.0");
+        var result = (await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.FrameworkInfo, framework: "net8.0")).GetText();
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains("Framework: net8.0", result.GetText());
-        Assert.Contains("Description:", result.GetText());
-        Assert.Contains("Is LTS:", result.GetText());
-        Assert.Contains("Is Modern .NET:", result.GetText());
+        Assert.Contains("Framework: net8.0", result);
+        Assert.Contains("Description:", result);
+        Assert.Contains("Is LTS:", result);
+        Assert.Contains("Is Modern .NET:", result);
     }
 
     [Fact]
     public async Task DotnetFrameworkInfo_WithLegacyFramework_ReturnsFrameworkDetails()
     {
         // Act
-        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.FrameworkInfo, framework: "netcoreapp3.1");
+        var result = (await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.FrameworkInfo, framework: "netcoreapp3.1")).GetText();
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains("Framework: netcoreapp3.1", result.GetText());
-        Assert.Contains("Is .NET Core:", result.GetText());
+        Assert.Contains("Framework: netcoreapp3.1", result);
+        Assert.Contains("Is .NET Core:", result);
     }
 
     // Help Tool Tests
@@ -473,7 +460,7 @@ public class MiscellaneousToolsTests
     public async Task DotnetHelp_WithoutCommand_ReturnsGeneralHelp()
     {
         // Act
-        var result = await _tools.DotnetHelp();
+        var result = (await _tools.DotnetHelp()).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -486,7 +473,7 @@ public class MiscellaneousToolsTests
     public async Task DotnetHelp_WithCommand_ReturnsCommandHelp()
     {
         // Act
-        var result = await _tools.DotnetHelp(command: "build");
+        var result = (await _tools.DotnetHelp(command: "build")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -499,9 +486,8 @@ public class MiscellaneousToolsTests
     public async Task DotnetHelp_WithMachineReadable_ReturnsCommandHelp()
     {
         // Act
-        var result = await _tools.DotnetHelp(
-            command: "test",
-            machineReadable: true);
+        var result = (await _tools.DotnetHelp(
+            command: "test")).GetText();
 
         // Assert
         Assert.NotNull(result);

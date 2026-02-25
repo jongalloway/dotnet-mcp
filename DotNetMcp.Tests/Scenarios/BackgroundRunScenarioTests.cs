@@ -1,3 +1,4 @@
+using DotNetMcp;
 using System.Diagnostics;
 using System.Text.Json;
 using Xunit;

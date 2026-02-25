@@ -30,125 +30,117 @@ public class ConsolidatedPackageToolTests
     public async Task DotnetPackage_Add_WithPackageId_ExecutesCommand()
     {
         // Test basic add action
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.Add,
-            packageId: "Newtonsoft.Json",
-            machineReadable: true);
+            packageId: "Newtonsoft.Json")).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet add package Newtonsoft.Json");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add package Newtonsoft.Json");
     }
 
     [Fact]
     public async Task DotnetPackage_Add_WithVersion_ExecutesCommand()
     {
         // Test add with specific version
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.Add,
             packageId: "Newtonsoft.Json",
-            version: "13.0.3",
-            machineReadable: true);
+            version: "13.0.3")).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet add package Newtonsoft.Json --version 13.0.3");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add package Newtonsoft.Json --version 13.0.3");
     }
 
     [Fact]
     public async Task DotnetPackage_Add_WithProject_ExecutesCommand()
     {
         // Test add with project path
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.Add,
             packageId: "Serilog",
-            project: "MyProject.csproj",
-            machineReadable: true);
+            project: "MyProject.csproj")).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet add \"MyProject.csproj\" package Serilog");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add \"MyProject.csproj\" package Serilog");
     }
 
     [Fact]
     public async Task DotnetPackage_Add_WithPrerelease_ExecutesCommand()
     {
         // Test add with prerelease flag
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.Add,
             packageId: "Microsoft.AspNetCore.App",
-            prerelease: true,
-            machineReadable: true);
+            prerelease: true)).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet add package Microsoft.AspNetCore.App --prerelease");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add package Microsoft.AspNetCore.App --prerelease");
     }
 
     [Fact]
     public async Task DotnetPackage_Add_WithSource_ExecutesCommand()
     {
         // Test add with source parameter
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.Add,
             packageId: "MyPackage",
-            source: "https://api.nuget.org/v3/index.json",
-            machineReadable: true);
+            source: "https://api.nuget.org/v3/index.json")).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet add package \"MyPackage\" --source \"https://api.nuget.org/v3/index.json\"");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add package \"MyPackage\" --source \"https://api.nuget.org/v3/index.json\"");
     }
 
     [Fact]
     public async Task DotnetPackage_Add_WithFramework_ExecutesCommand()
     {
         // Test add with framework parameter
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.Add,
             packageId: "MyPackage",
-            framework: "net8.0",
-            machineReadable: true);
+            framework: "net8.0")).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet add package \"MyPackage\" --framework \"net8.0\"");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add package \"MyPackage\" --framework \"net8.0\"");
     }
 
     [Fact]
     public async Task DotnetPackage_Add_WithSourceAndFramework_ExecutesCommand()
     {
         // Test add with both source and framework parameters
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.Add,
             packageId: "MyPackage",
             version: "1.0.0",
             source: "https://api.nuget.org/v3/index.json",
-            framework: "net10.0",
-            machineReadable: true);
+            framework: "net10.0")).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet add package \"MyPackage\" --version \"1.0.0\" --source \"https://api.nuget.org/v3/index.json\" --framework \"net10.0\"");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add package \"MyPackage\" --version \"1.0.0\" --source \"https://api.nuget.org/v3/index.json\" --framework \"net10.0\"");
     }
 
     [Fact]
     public async Task DotnetPackage_Add_WithoutPackageId_ReturnsError()
     {
         // Test that missing packageId returns error
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.Add,
-            packageId: null);
+            packageId: null)).GetText();
 
-        Assert.Contains("Error", result.GetText());
-        Assert.Contains("packageId", result.GetText(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Error", result);
+        Assert.Contains("packageId", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task DotnetPackage_Add_WithoutPackageId_MachineReadable_ReturnsError()
     {
         // Test that missing packageId returns error in machine-readable format
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.Add,
-            packageId: null,
-            machineReadable: true);
+            packageId: null)).GetText();
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result.GetText());
-        Assert.Contains("packageId", result.GetText(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("packageId", result, StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion
@@ -159,41 +151,38 @@ public class ConsolidatedPackageToolTests
     public async Task DotnetPackage_Remove_WithPackageId_ExecutesCommand()
     {
         // Test basic remove action
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.Remove,
-            packageId: "Newtonsoft.Json",
-            machineReadable: true);
+            packageId: "Newtonsoft.Json")).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet remove package Newtonsoft.Json");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet remove package Newtonsoft.Json");
     }
 
     [Fact]
     public async Task DotnetPackage_Remove_WithProject_ExecutesCommand()
     {
         // Test remove with project path
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.Remove,
             packageId: "Serilog",
-            project: "MyProject.csproj",
-            machineReadable: true);
+            project: "MyProject.csproj")).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet remove \"MyProject.csproj\" package Serilog");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet remove \"MyProject.csproj\" package Serilog");
     }
 
     [Fact]
     public async Task DotnetPackage_Remove_WithoutPackageId_ReturnsError()
     {
         // Test that missing packageId returns error
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.Remove,
-            packageId: null,
-            machineReadable: true);
+            packageId: null)).GetText();
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result.GetText());
-        Assert.Contains("packageId", result.GetText(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("packageId", result, StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion
@@ -204,69 +193,64 @@ public class ConsolidatedPackageToolTests
     public async Task DotnetPackage_Search_WithSearchTerm_ExecutesCommand()
     {
         // Test basic search action
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.Search,
-            searchTerm: "Serilog",
-            machineReadable: true);
+            searchTerm: "Serilog")).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet package search Serilog");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet package search Serilog");
     }
 
     [Fact]
     public async Task DotnetPackage_Search_WithTake_ExecutesCommand()
     {
         // Test search with take parameter
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.Search,
             searchTerm: "logging",
-            take: 10,
-            machineReadable: true);
+            take: 10)).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet package search logging --take 10");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet package search logging --take 10");
     }
 
     [Fact]
     public async Task DotnetPackage_Search_WithPrerelease_ExecutesCommand()
     {
         // Test search with prerelease flag
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.Search,
             searchTerm: "AspNetCore",
-            prerelease: true,
-            machineReadable: true);
+            prerelease: true)).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet package search AspNetCore --prerelease");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet package search AspNetCore --prerelease");
     }
 
     [Fact]
     public async Task DotnetPackage_Search_WithExactMatch_ExecutesCommand()
     {
         // Test search with exact match flag
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.Search,
             searchTerm: "Newtonsoft.Json",
-            exactMatch: true,
-            machineReadable: true);
+            exactMatch: true)).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet package search Newtonsoft.Json --exact-match");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet package search Newtonsoft.Json --exact-match");
     }
 
     [Fact]
     public async Task DotnetPackage_Search_WithoutSearchTerm_ReturnsError()
     {
         // Test that missing searchTerm returns error
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.Search,
-            searchTerm: null,
-            machineReadable: true);
+            searchTerm: null)).GetText();
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result.GetText());
-        Assert.Contains("searchTerm", result.GetText(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("searchTerm", result, StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion
@@ -277,41 +261,38 @@ public class ConsolidatedPackageToolTests
     public async Task DotnetPackage_Update_WithPackageId_ExecutesCommand()
     {
         // Test basic update action
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.Update,
-            packageId: "Newtonsoft.Json",
-            machineReadable: true);
+            packageId: "Newtonsoft.Json")).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet add package Newtonsoft.Json");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add package Newtonsoft.Json");
     }
 
     [Fact]
     public async Task DotnetPackage_Update_WithVersion_ExecutesCommand()
     {
         // Test update with specific version
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.Update,
             packageId: "Serilog",
-            version: "3.0.0",
-            machineReadable: true);
+            version: "3.0.0")).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet add package Serilog --version 3.0.0");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add package Serilog --version 3.0.0");
     }
 
     [Fact]
     public async Task DotnetPackage_Update_WithoutPackageId_ReturnsError()
     {
         // Test that missing packageId returns error
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.Update,
-            packageId: null,
-            machineReadable: true);
+            packageId: null)).GetText();
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result.GetText());
-        Assert.Contains("packageId", result.GetText(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("packageId", result, StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion
@@ -322,51 +303,47 @@ public class ConsolidatedPackageToolTests
     public async Task DotnetPackage_List_WithoutParameters_ExecutesCommand()
     {
         // Test basic list action
-        var result = await _tools.DotnetPackage(
-            action: DotnetPackageAction.List,
-            machineReadable: true);
+        var result = (await _tools.DotnetPackage(
+            action: DotnetPackageAction.List)).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet list package");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet list package");
     }
 
     [Fact]
     public async Task DotnetPackage_List_WithProject_ExecutesCommand()
     {
         // Test list with project path
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.List,
-            project: "MyProject.csproj",
-            machineReadable: true);
+            project: "MyProject.csproj")).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet list \"MyProject.csproj\" package");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet list \"MyProject.csproj\" package");
     }
 
     [Fact]
     public async Task DotnetPackage_List_WithOutdated_ExecutesCommand()
     {
         // Test list with outdated flag
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.List,
-            outdated: true,
-            machineReadable: true);
+            outdated: true)).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet list package --outdated");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet list package --outdated");
     }
 
     [Fact]
     public async Task DotnetPackage_List_WithDeprecated_ExecutesCommand()
     {
         // Test list with deprecated flag
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.List,
-            deprecated: true,
-            machineReadable: true);
+            deprecated: true)).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet list package --deprecated");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet list package --deprecated");
     }
 
     #endregion
@@ -377,44 +354,41 @@ public class ConsolidatedPackageToolTests
     public async Task DotnetPackage_AddReference_WithRequiredParameters_ExecutesCommand()
     {
         // Test add reference action
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.AddReference,
             project: "MyProject.csproj",
-            referencePath: "MyLibrary.csproj",
-            machineReadable: true);
+            referencePath: "MyLibrary.csproj")).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet add \"MyProject.csproj\" reference \"MyLibrary.csproj\"");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet add \"MyProject.csproj\" reference \"MyLibrary.csproj\"");
     }
 
     [Fact]
     public async Task DotnetPackage_AddReference_WithoutProject_ReturnsError()
     {
         // Test that missing project returns error
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.AddReference,
             project: null,
-            referencePath: "MyLibrary.csproj",
-            machineReadable: true);
+            referencePath: "MyLibrary.csproj")).GetText();
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result.GetText());
-        Assert.Contains("project", result.GetText(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("project", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task DotnetPackage_AddReference_WithoutReferencePath_ReturnsError()
     {
         // Test that missing referencePath returns error
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.AddReference,
             project: "MyProject.csproj",
-            referencePath: null,
-            machineReadable: true);
+            referencePath: null)).GetText();
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result.GetText());
-        Assert.Contains("referencePath", result.GetText(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("referencePath", result, StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion
@@ -425,44 +399,41 @@ public class ConsolidatedPackageToolTests
     public async Task DotnetPackage_RemoveReference_WithRequiredParameters_ExecutesCommand()
     {
         // Test remove reference action
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.RemoveReference,
             project: "MyProject.csproj",
-            referencePath: "MyLibrary.csproj",
-            machineReadable: true);
+            referencePath: "MyLibrary.csproj")).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet remove \"MyProject.csproj\" reference \"MyLibrary.csproj\"");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet remove \"MyProject.csproj\" reference \"MyLibrary.csproj\"");
     }
 
     [Fact]
     public async Task DotnetPackage_RemoveReference_WithoutProject_ReturnsError()
     {
         // Test that missing project returns error
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.RemoveReference,
             project: null,
-            referencePath: "MyLibrary.csproj",
-            machineReadable: true);
+            referencePath: "MyLibrary.csproj")).GetText();
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result.GetText());
-        Assert.Contains("project", result.GetText(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("project", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task DotnetPackage_RemoveReference_WithoutReferencePath_ReturnsError()
     {
         // Test that missing referencePath returns error
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.RemoveReference,
             project: "MyProject.csproj",
-            referencePath: null,
-            machineReadable: true);
+            referencePath: null)).GetText();
 
         Assert.NotNull(result);
-        Assert.Contains("\"success\": false", result.GetText());
-        Assert.Contains("referencePath", result.GetText(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"success\": false", result);
+        Assert.Contains("referencePath", result, StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion
@@ -473,25 +444,23 @@ public class ConsolidatedPackageToolTests
     public async Task DotnetPackage_ListReferences_WithoutProject_ExecutesCommand()
     {
         // Test list references without project
-        var result = await _tools.DotnetPackage(
-            action: DotnetPackageAction.ListReferences,
-            machineReadable: true);
+        var result = (await _tools.DotnetPackage(
+            action: DotnetPackageAction.ListReferences)).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet list reference");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet list reference");
     }
 
     [Fact]
     public async Task DotnetPackage_ListReferences_WithProject_ExecutesCommand()
     {
         // Test list references with project path
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.ListReferences,
-            project: "MyProject.csproj",
-            machineReadable: true);
+            project: "MyProject.csproj")).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet list \"MyProject.csproj\" reference");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet list \"MyProject.csproj\" reference");
     }
 
     #endregion
@@ -502,51 +471,47 @@ public class ConsolidatedPackageToolTests
     public async Task DotnetPackage_ClearCache_WithoutCacheType_ExecutesCommand()
     {
         // Test clear cache with default (all)
-        var result = await _tools.DotnetPackage(
-            action: DotnetPackageAction.ClearCache,
-            machineReadable: true);
+        var result = (await _tools.DotnetPackage(
+            action: DotnetPackageAction.ClearCache)).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet nuget locals all --clear");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet nuget locals all --clear");
     }
 
     [Fact]
     public async Task DotnetPackage_ClearCache_WithHttpCache_ExecutesCommand()
     {
         // Test clear cache with http-cache
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.ClearCache,
-            cacheType: "http-cache",
-            machineReadable: true);
+            cacheType: "http-cache")).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet nuget locals http-cache --clear");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet nuget locals http-cache --clear");
     }
 
     [Fact]
     public async Task DotnetPackage_ClearCache_WithGlobalPackages_ExecutesCommand()
     {
         // Test clear cache with global-packages
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.ClearCache,
-            cacheType: "global-packages",
-            machineReadable: true);
+            cacheType: "global-packages")).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet nuget locals global-packages --clear");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet nuget locals global-packages --clear");
     }
 
     [Fact]
     public async Task DotnetPackage_ClearCache_WithTemp_ExecutesCommand()
     {
         // Test clear cache with temp
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.ClearCache,
-            cacheType: "temp",
-            machineReadable: true);
+            cacheType: "temp")).GetText();
 
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet nuget locals temp --clear");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet nuget locals temp --clear");
     }
 
     #endregion

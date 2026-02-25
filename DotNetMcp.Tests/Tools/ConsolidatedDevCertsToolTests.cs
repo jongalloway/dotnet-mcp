@@ -25,7 +25,7 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_CertificateTrust_ExecutesCommand()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(DotnetDevCertsAction.CertificateTrust);
+        var result = (await _tools.DotnetDevCerts(DotnetDevCertsAction.CertificateTrust)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -36,7 +36,7 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_CertificateTrust_WithMachineReadable_ReturnsStructuredOutput()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(DotnetDevCertsAction.CertificateTrust, machineReadable: true);
+        var result = (await _tools.DotnetDevCerts(DotnetDevCertsAction.CertificateTrust)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -51,7 +51,7 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_CertificateCheck_ExecutesCommand()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(DotnetDevCertsAction.CertificateCheck);
+        var result = (await _tools.DotnetDevCerts(DotnetDevCertsAction.CertificateCheck)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -62,7 +62,7 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_CertificateCheck_WithTrust_IncludesTrustFlag()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(DotnetDevCertsAction.CertificateCheck, trust: true);
+        var result = (await _tools.DotnetDevCerts(DotnetDevCertsAction.CertificateCheck, trust: true)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -73,7 +73,7 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_CertificateCheck_WithMachineReadable_ReturnsStructuredOutput()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(DotnetDevCertsAction.CertificateCheck, machineReadable: true);
+        var result = (await _tools.DotnetDevCerts(DotnetDevCertsAction.CertificateCheck)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -88,7 +88,7 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_CertificateClean_ExecutesCommand()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(DotnetDevCertsAction.CertificateClean);
+        var result = (await _tools.DotnetDevCerts(DotnetDevCertsAction.CertificateClean)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -99,7 +99,7 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_CertificateClean_WithMachineReadable_ReturnsStructuredOutput()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(DotnetDevCertsAction.CertificateClean, machineReadable: true);
+        var result = (await _tools.DotnetDevCerts(DotnetDevCertsAction.CertificateClean)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -114,7 +114,7 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_CertificateExport_WithoutPath_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(DotnetDevCertsAction.CertificateExport);
+        var result = (await _tools.DotnetDevCerts(DotnetDevCertsAction.CertificateExport)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -126,7 +126,7 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_CertificateExport_WithEmptyPath_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(DotnetDevCertsAction.CertificateExport, path: "");
+        var result = (await _tools.DotnetDevCerts(DotnetDevCertsAction.CertificateExport, path: "")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -138,7 +138,7 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_CertificateExport_WithWhitespacePath_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(DotnetDevCertsAction.CertificateExport, path: "   ");
+        var result = (await _tools.DotnetDevCerts(DotnetDevCertsAction.CertificateExport, path: "   ")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -150,9 +150,9 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_CertificateExport_WithValidPath_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
+        var result = (await _tools.DotnetDevCerts(
             DotnetDevCertsAction.CertificateExport,
-            path: "/tmp/test-cert.pfx");
+            path: "/tmp/test-cert.pfx")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -163,10 +163,10 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_CertificateExport_WithPassword_IncludesPassword()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
+        var result = (await _tools.DotnetDevCerts(
             DotnetDevCertsAction.CertificateExport,
             path: "/tmp/test-cert.pfx",
-            password: "TestPassword123!");
+            password: "TestPassword123!")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -177,10 +177,10 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_CertificateExport_WithPfxFormat_IncludesFormat()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
+        var result = (await _tools.DotnetDevCerts(
             DotnetDevCertsAction.CertificateExport,
             path: "/tmp/test-cert.pfx",
-            format: "pfx");
+            format: "pfx")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -191,10 +191,10 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_CertificateExport_WithPemFormat_IncludesFormat()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
+        var result = (await _tools.DotnetDevCerts(
             DotnetDevCertsAction.CertificateExport,
             path: "/tmp/test-cert.pem",
-            format: "pem");
+            format: "pem")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -205,10 +205,10 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_CertificateExport_WithInvalidFormat_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
+        var result = (await _tools.DotnetDevCerts(
             DotnetDevCertsAction.CertificateExport,
             path: "/tmp/test-cert.txt",
-            format: "invalid");
+            format: "invalid")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -224,10 +224,10 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_CertificateExport_WithCaseInsensitiveFormat_AcceptsFormat(string format)
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
+        var result = (await _tools.DotnetDevCerts(
             DotnetDevCertsAction.CertificateExport,
             path: "/tmp/test-cert.pfx",
-            format: format);
+            format: format)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -239,9 +239,8 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_CertificateExport_WithMachineReadable_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
-            DotnetDevCertsAction.CertificateExport,
-            machineReadable: true);
+        var result = (await _tools.DotnetDevCerts(
+            DotnetDevCertsAction.CertificateExport)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -257,7 +256,7 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_SecretsInit_WithoutProject_ExecutesCommand()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(DotnetDevCertsAction.SecretsInit);
+        var result = (await _tools.DotnetDevCerts(DotnetDevCertsAction.SecretsInit)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -268,9 +267,9 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_SecretsInit_WithProject_IncludesProjectPath()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
+        var result = (await _tools.DotnetDevCerts(
             DotnetDevCertsAction.SecretsInit,
-            project: "/tmp/test/test.csproj");
+            project: "/tmp/test/test.csproj")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -281,9 +280,8 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_SecretsInit_WithMachineReadable_ReturnsStructuredOutput()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
-            DotnetDevCertsAction.SecretsInit,
-            machineReadable: true);
+        var result = (await _tools.DotnetDevCerts(
+            DotnetDevCertsAction.SecretsInit)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -298,9 +296,9 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_SecretsSet_WithoutKey_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
+        var result = (await _tools.DotnetDevCerts(
             DotnetDevCertsAction.SecretsSet,
-            value: "test-value");
+            value: "test-value")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -312,9 +310,9 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_SecretsSet_WithoutValue_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
+        var result = (await _tools.DotnetDevCerts(
             DotnetDevCertsAction.SecretsSet,
-            key: "TestKey");
+            key: "TestKey")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -326,10 +324,10 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_SecretsSet_WithEmptyKey_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
+        var result = (await _tools.DotnetDevCerts(
             DotnetDevCertsAction.SecretsSet,
             key: "",
-            value: "test-value");
+            value: "test-value")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -341,10 +339,10 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_SecretsSet_WithWhitespaceKey_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
+        var result = (await _tools.DotnetDevCerts(
             DotnetDevCertsAction.SecretsSet,
             key: "   ",
-            value: "test-value");
+            value: "test-value")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -356,10 +354,10 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_SecretsSet_WithEmptyValue_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
+        var result = (await _tools.DotnetDevCerts(
             DotnetDevCertsAction.SecretsSet,
             key: "TestKey",
-            value: "");
+            value: "")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -371,10 +369,10 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_SecretsSet_WithWhitespaceValue_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
+        var result = (await _tools.DotnetDevCerts(
             DotnetDevCertsAction.SecretsSet,
             key: "TestKey",
-            value: "   ");
+            value: "   ")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -386,10 +384,10 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_SecretsSet_WithValidKeyValue_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
+        var result = (await _tools.DotnetDevCerts(
             DotnetDevCertsAction.SecretsSet,
             key: "TestKey",
-            value: "TestValue");
+            value: "TestValue")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -400,10 +398,10 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_SecretsSet_WithHierarchicalKey_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
+        var result = (await _tools.DotnetDevCerts(
             DotnetDevCertsAction.SecretsSet,
             key: "ConnectionStrings:DefaultConnection",
-            value: "Server=localhost;Database=test");
+            value: "Server=localhost;Database=test")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -414,11 +412,11 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_SecretsSet_WithProject_IncludesProjectPath()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
+        var result = (await _tools.DotnetDevCerts(
             DotnetDevCertsAction.SecretsSet,
             key: "TestKey",
             value: "TestValue",
-            project: "/tmp/test/test.csproj");
+            project: "/tmp/test/test.csproj")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -429,9 +427,8 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_SecretsSet_WithMachineReadable_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
-            DotnetDevCertsAction.SecretsSet,
-            machineReadable: true);
+        var result = (await _tools.DotnetDevCerts(
+            DotnetDevCertsAction.SecretsSet)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -447,7 +444,7 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_SecretsList_WithoutProject_ExecutesCommand()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(DotnetDevCertsAction.SecretsList);
+        var result = (await _tools.DotnetDevCerts(DotnetDevCertsAction.SecretsList)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -458,9 +455,9 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_SecretsList_WithProject_IncludesProjectPath()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
+        var result = (await _tools.DotnetDevCerts(
             DotnetDevCertsAction.SecretsList,
-            project: "/tmp/test/test.csproj");
+            project: "/tmp/test/test.csproj")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -471,9 +468,8 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_SecretsList_WithMachineReadable_ReturnsStructuredOutput()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
-            DotnetDevCertsAction.SecretsList,
-            machineReadable: true);
+        var result = (await _tools.DotnetDevCerts(
+            DotnetDevCertsAction.SecretsList)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -488,7 +484,7 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_SecretsRemove_WithoutKey_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(DotnetDevCertsAction.SecretsRemove);
+        var result = (await _tools.DotnetDevCerts(DotnetDevCertsAction.SecretsRemove)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -500,9 +496,9 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_SecretsRemove_WithEmptyKey_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
+        var result = (await _tools.DotnetDevCerts(
             DotnetDevCertsAction.SecretsRemove,
-            key: "");
+            key: "")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -514,9 +510,9 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_SecretsRemove_WithWhitespaceKey_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
+        var result = (await _tools.DotnetDevCerts(
             DotnetDevCertsAction.SecretsRemove,
-            key: "   ");
+            key: "   ")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -528,9 +524,9 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_SecretsRemove_WithValidKey_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
+        var result = (await _tools.DotnetDevCerts(
             DotnetDevCertsAction.SecretsRemove,
-            key: "TestKey");
+            key: "TestKey")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -541,10 +537,10 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_SecretsRemove_WithProject_IncludesProjectPath()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
+        var result = (await _tools.DotnetDevCerts(
             DotnetDevCertsAction.SecretsRemove,
             key: "TestKey",
-            project: "/tmp/test/test.csproj");
+            project: "/tmp/test/test.csproj")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -555,9 +551,8 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_SecretsRemove_WithMachineReadable_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
-            DotnetDevCertsAction.SecretsRemove,
-            machineReadable: true);
+        var result = (await _tools.DotnetDevCerts(
+            DotnetDevCertsAction.SecretsRemove)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -573,7 +568,7 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_SecretsClear_WithoutProject_ExecutesCommand()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(DotnetDevCertsAction.SecretsClear);
+        var result = (await _tools.DotnetDevCerts(DotnetDevCertsAction.SecretsClear)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -584,9 +579,9 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_SecretsClear_WithProject_IncludesProjectPath()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
+        var result = (await _tools.DotnetDevCerts(
             DotnetDevCertsAction.SecretsClear,
-            project: "/tmp/test/test.csproj");
+            project: "/tmp/test/test.csproj")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -597,9 +592,8 @@ public class ConsolidatedDevCertsToolTests
     public async Task DotnetDevCerts_SecretsClear_WithMachineReadable_ReturnsStructuredOutput()
     {
         // Act
-        var result = await _tools.DotnetDevCerts(
-            DotnetDevCertsAction.SecretsClear,
-            machineReadable: true);
+        var result = (await _tools.DotnetDevCerts(
+            DotnetDevCertsAction.SecretsClear)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -622,10 +616,10 @@ public class ConsolidatedDevCertsToolTests
             Action = action,
             Result = action switch
             {
-                DotnetDevCertsAction.CertificateExport => await _tools.DotnetDevCerts(action, path: "/tmp/test.pfx"),
-                DotnetDevCertsAction.SecretsSet => await _tools.DotnetDevCerts(action, key: "TestKey", value: "TestValue"),
-                DotnetDevCertsAction.SecretsRemove => await _tools.DotnetDevCerts(action, key: "TestKey"),
-                _ => await _tools.DotnetDevCerts(action)
+                DotnetDevCertsAction.CertificateExport => (await _tools.DotnetDevCerts(action, path: "/tmp/test.pfx")).GetText(),
+                DotnetDevCertsAction.SecretsSet => (await _tools.DotnetDevCerts(action, key: "TestKey", value: "TestValue")).GetText(),
+                DotnetDevCertsAction.SecretsRemove => (await _tools.DotnetDevCerts(action, key: "TestKey")).GetText(),
+                _ => (await _tools.DotnetDevCerts(action)).GetText()
             }
         }));
 
@@ -648,21 +642,21 @@ public class ConsolidatedDevCertsToolTests
         // Test that each action validates its required parameters
 
         // CertificateExport requires path
-        var exportResult = await _tools.DotnetDevCerts(DotnetDevCertsAction.CertificateExport);
+        var exportResult = (await _tools.DotnetDevCerts(DotnetDevCertsAction.CertificateExport)).GetText();
         Assert.Contains("Error:", exportResult);
         Assert.Contains("path", exportResult, StringComparison.OrdinalIgnoreCase);
 
         // SecretsSet requires key and value
-        var setResultNoKey = await _tools.DotnetDevCerts(DotnetDevCertsAction.SecretsSet, value: "test");
+        var setResultNoKey = (await _tools.DotnetDevCerts(DotnetDevCertsAction.SecretsSet, value: "test")).GetText();
         Assert.Contains("Error:", setResultNoKey);
         Assert.Contains("key", setResultNoKey, StringComparison.OrdinalIgnoreCase);
 
-        var setResultNoValue = await _tools.DotnetDevCerts(DotnetDevCertsAction.SecretsSet, key: "test");
+        var setResultNoValue = (await _tools.DotnetDevCerts(DotnetDevCertsAction.SecretsSet, key: "test")).GetText();
         Assert.Contains("Error:", setResultNoValue);
         Assert.Contains("value", setResultNoValue, StringComparison.OrdinalIgnoreCase);
 
         // SecretsRemove requires key
-        var removeResult = await _tools.DotnetDevCerts(DotnetDevCertsAction.SecretsRemove);
+        var removeResult = (await _tools.DotnetDevCerts(DotnetDevCertsAction.SecretsRemove)).GetText();
         Assert.Contains("Error:", removeResult);
         Assert.Contains("key", removeResult, StringComparison.OrdinalIgnoreCase);
     }

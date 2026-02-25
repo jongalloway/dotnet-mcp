@@ -25,7 +25,6 @@ public class CommandExecutorRedactionTests
         var result = await DotNetCommandExecutor.ExecuteCommandAsync(
             arguments,
             _logger,
-            machineReadable: false,
             unsafeOutput: false,
             cancellationToken: TestContext.Current.CancellationToken);
 
@@ -45,7 +44,6 @@ public class CommandExecutorRedactionTests
         var result = await DotNetCommandExecutor.ExecuteCommandAsync(
             arguments,
             _logger,
-            machineReadable: false,
             unsafeOutput: true,
             cancellationToken: TestContext.Current.CancellationToken);
 
@@ -66,7 +64,6 @@ public class CommandExecutorRedactionTests
         var result = await DotNetCommandExecutor.ExecuteCommandAsync(
             arguments,
             _logger,
-            machineReadable: false,
             unsafeOutput: false,
             cancellationToken: TestContext.Current.CancellationToken);
 
@@ -86,7 +83,6 @@ public class CommandExecutorRedactionTests
         var result = await DotNetCommandExecutor.ExecuteCommandAsync(
             arguments,
             _logger,
-            machineReadable: true,
             unsafeOutput: false,
             cancellationToken: TestContext.Current.CancellationToken);
 

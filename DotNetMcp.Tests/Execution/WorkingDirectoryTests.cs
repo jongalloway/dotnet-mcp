@@ -27,7 +27,6 @@ public class WorkingDirectoryTests
             var result = await DotNetCommandExecutor.ExecuteCommandAsync(
                 "--version",
                 _logger,
-                machineReadable: false,
                 unsafeOutput: false,
                 cancellationToken: TestContext.Current.CancellationToken,
                 workingDirectory: tempDir);
@@ -64,7 +63,6 @@ public class WorkingDirectoryTests
         var result = await DotNetCommandExecutor.ExecuteCommandAsync(
             "--version",
             _logger,
-            machineReadable: false,
             unsafeOutput: false,
             cancellationToken: TestContext.Current.CancellationToken,
             workingDirectory: missingDir);
@@ -85,7 +83,6 @@ public class WorkingDirectoryTests
         var result = await DotNetCommandExecutor.ExecuteCommandAsync(
             "--version",
             _logger,
-            machineReadable: true,
             unsafeOutput: false,
             cancellationToken: TestContext.Current.CancellationToken,
             workingDirectory: missingDir);

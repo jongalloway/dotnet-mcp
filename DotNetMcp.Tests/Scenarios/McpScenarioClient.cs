@@ -1,3 +1,4 @@
+using DotNetMcp;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Client;

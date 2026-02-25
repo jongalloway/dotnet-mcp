@@ -22,7 +22,7 @@ public class CancellationTests
         var arguments = "run --project NonExistentProject.csproj"; // A command that would take time
 
         // Act
-        var task = DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable: false, unsafeOutput: false, cts.Token);
+        var task = DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, unsafeOutput: false, cts.Token);
 
         // Cancel after a short delay
         await Task.Delay(100, TestContext.Current.CancellationToken);
@@ -43,7 +43,7 @@ public class CancellationTests
         var arguments = "run --project NonExistentProject.csproj";
 
         // Act
-        var task = DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable: true, unsafeOutput: false, cts.Token);
+        var task = DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, unsafeOutput: false, cts.Token);
 
         // Cancel after a short delay
         await Task.Delay(100, TestContext.Current.CancellationToken);
@@ -82,7 +82,7 @@ public class CancellationTests
         var arguments = "--version"; // Quick command that should succeed
 
         // Act - should complete without cancellation
-        var result = await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable: false, unsafeOutput: false, cts.Token);
+        var result = await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, unsafeOutput: false, cts.Token);
 
         // Assert
         Assert.NotNull(result);
@@ -98,7 +98,7 @@ public class CancellationTests
 
         // Act - using default cancellation token
 #pragma warning disable xUnit1051
-        var result = await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable: false);
+        var result = await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger);
 #pragma warning restore xUnit1051
 
         // Assert

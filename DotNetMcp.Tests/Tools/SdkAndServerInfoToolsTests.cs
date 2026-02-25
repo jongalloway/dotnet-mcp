@@ -25,15 +25,15 @@ public class SdkAndServerInfoToolsTests
     public async Task DotnetSdkInfo_ReturnsSDKInformation()
     {
         // Act
-        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Info);
+        var result = (await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Info)).GetText();
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result.GetText());
+        Assert.DoesNotContain("Error:", result);
         // SDK info should contain version or runtime information
-        Assert.True(result.GetText().Contains("SDK", StringComparison.OrdinalIgnoreCase) ||
-                    result.GetText().Contains("Runtime", StringComparison.OrdinalIgnoreCase) ||
-                    result.GetText().Contains("Version", StringComparison.OrdinalIgnoreCase),
+        Assert.True(result.Contains("SDK", StringComparison.OrdinalIgnoreCase) ||
+                    result.Contains("Runtime", StringComparison.OrdinalIgnoreCase) ||
+                    result.Contains("Version", StringComparison.OrdinalIgnoreCase),
                     "Result should contain SDK information");
     }
 
@@ -41,50 +41,50 @@ public class SdkAndServerInfoToolsTests
     public async Task DotnetSdkInfo_WithMachineReadable_ReturnsStructuredOutput()
     {
         // Act
-        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Info, machineReadable: true);
+        var result = (await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Info)).GetText();
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result.GetText());
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
     public async Task DotnetSdkVersion_ReturnsSDKVersion()
     {
         // Act
-        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Version);
+        var result = (await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Version)).GetText();
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result.GetText());
+        Assert.DoesNotContain("Error:", result);
         // Version should contain numeric version information
-        Assert.Matches(@"\d+\.\d+", result.GetText()); // Should match version pattern like "8.0" or "10.0.100"
+        Assert.Matches(@"\d+\.\d+", result); // Should match version pattern like "8.0" or "10.0.100"
     }
 
     [Fact]
     public async Task DotnetSdkVersion_WithMachineReadable_ReturnsStructuredOutput()
     {
         // Act
-        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Version, machineReadable: true);
+        var result = (await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Version)).GetText();
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result.GetText());
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
     public async Task DotnetSdkList_ReturnsInstalledSDKs()
     {
         // Act
-        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.ListSdks);
+        var result = (await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.ListSdks)).GetText();
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result.GetText());
+        Assert.DoesNotContain("Error:", result);
         // Should list SDK versions
-        Assert.True(result.GetText().Contains("SDK", StringComparison.OrdinalIgnoreCase) ||
-                    result.GetText().Contains("Version", StringComparison.OrdinalIgnoreCase) ||
-                    Regex.IsMatch(result.GetText(), @"\d+\.\d+"),
+        Assert.True(result.Contains("SDK", StringComparison.OrdinalIgnoreCase) ||
+                    result.Contains("Version", StringComparison.OrdinalIgnoreCase) ||
+                    Regex.IsMatch(result, @"\d+\.\d+"),
                     "Result should contain SDK version information");
     }
 
@@ -92,26 +92,26 @@ public class SdkAndServerInfoToolsTests
     public async Task DotnetSdkList_WithMachineReadable_ReturnsStructuredOutput()
     {
         // Act
-        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.ListSdks, machineReadable: true);
+        var result = (await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.ListSdks)).GetText();
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result.GetText());
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
     public async Task DotnetRuntimeList_ReturnsInstalledRuntimes()
     {
         // Act
-        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.ListRuntimes);
+        var result = (await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.ListRuntimes)).GetText();
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result.GetText());
+        Assert.DoesNotContain("Error:", result);
         // Should list runtime information
-        Assert.True(result.GetText().Contains("Runtime", StringComparison.OrdinalIgnoreCase) ||
-                    result.GetText().Contains("Microsoft.NETCore.App", StringComparison.OrdinalIgnoreCase) ||
-                    Regex.IsMatch(result.GetText(), @"\d+\.\d+"),
+        Assert.True(result.Contains("Runtime", StringComparison.OrdinalIgnoreCase) ||
+                    result.Contains("Microsoft.NETCore.App", StringComparison.OrdinalIgnoreCase) ||
+                    Regex.IsMatch(result, @"\d+\.\d+"),
                     "Result should contain runtime information");
     }
 
@@ -119,25 +119,25 @@ public class SdkAndServerInfoToolsTests
     public async Task DotnetRuntimeList_WithMachineReadable_ReturnsStructuredOutput()
     {
         // Act
-        var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.ListRuntimes, machineReadable: true);
+        var result = (await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.ListRuntimes)).GetText();
 
         // Assert
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error:", result.GetText());
+        Assert.DoesNotContain("Error:", result);
     }
 
     [Fact]
     public async Task DotnetSdk_TemplatePackInstall_WithoutTemplatePackage_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetSdk(
+        var result = (await _tools.DotnetSdk(
             action: DotNetMcp.Actions.DotnetSdkAction.InstallTemplatePack,
-            templatePackage: null);
+            templatePackage: null)).GetText();
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains("Error:", result.GetText());
-        Assert.Contains("templatePackage", result.GetText(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Error:", result);
+        Assert.Contains("templatePackage", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -149,14 +149,13 @@ public class SdkAndServerInfoToolsTests
         try
         {
             // Act
-            var result = await _tools.DotnetSdk(
+            var result = (await _tools.DotnetSdk(
                 action: DotNetMcp.Actions.DotnetSdkAction.InstallTemplatePack,
-                templatePackage: tempDir,
-                machineReadable: true);
+                templatePackage: tempDir)).GetText();
 
             // Assert
             Assert.NotNull(result);
-            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), $"dotnet new install \"{tempDir}\"");
+            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, $"dotnet new install \"{tempDir}\"");
         }
         finally
         {
@@ -170,27 +169,25 @@ public class SdkAndServerInfoToolsTests
     public async Task DotnetSdk_TemplatePackUninstall_WithMachineReadable_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetSdk(
+        var result = (await _tools.DotnetSdk(
             action: DotNetMcp.Actions.DotnetSdkAction.UninstallTemplatePack,
-            templatePackage: "Some.Template.Pack",
-            machineReadable: true);
+            templatePackage: "Some.Template.Pack")).GetText();
 
         // Assert
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet new uninstall \"Some.Template.Pack\"");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet new uninstall \"Some.Template.Pack\"");
     }
 
     [Fact]
     public async Task DotnetSdk_ListTemplatePacks_WithMachineReadable_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetSdk(
-            action: DotNetMcp.Actions.DotnetSdkAction.ListTemplatePacks,
-            machineReadable: true);
+        var result = (await _tools.DotnetSdk(
+            action: DotNetMcp.Actions.DotnetSdkAction.ListTemplatePacks)).GetText();
 
         // Assert
         Assert.NotNull(result);
-        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), "dotnet new uninstall");
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet new uninstall");
     }
 
     // Server Info Tools
@@ -199,33 +196,33 @@ public class SdkAndServerInfoToolsTests
     public async Task DotnetServerCapabilities_ReturnsCapabilitiesJson()
     {
         // Act
-        var result = await _tools.DotnetServerCapabilities();
+        var result = (await _tools.DotnetServerCapabilities()).GetText();
 
         // Assert
         Assert.NotNull(result);
         // Should be JSON
-        Assert.Contains("{", result.GetText());
-        Assert.Contains("}", result.GetText());
-        Assert.Contains("serverVersion", result.GetText(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("{", result);
+        Assert.Contains("}", result);
+        Assert.Contains("serverVersion", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task DotnetServerCapabilities_ContainsSupportedCategories()
     {
         // Act
-        var result = await _tools.DotnetServerCapabilities();
+        var result = (await _tools.DotnetServerCapabilities()).GetText();
 
         // Assert
-        Assert.Contains("template", result.GetText(), StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("project", result.GetText(), StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("package", result.GetText(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("template", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("project", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("package", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task DotnetServerInfo_ReturnsServerInformation()
     {
         // Act
-        var result = await _tools.DotnetServerInfo();
+        var result = (await _tools.DotnetServerInfo()).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -238,7 +235,7 @@ public class SdkAndServerInfoToolsTests
     public async Task DotnetServerInfo_ContainsToolCategories()
     {
         // Act
-        var result = await _tools.DotnetServerInfo();
+        var result = (await _tools.DotnetServerInfo()).GetText();
 
         // Assert - Verify consolidated tools are mentioned
         Assert.Contains("dotnet_project", result);
@@ -255,7 +252,7 @@ public class SdkAndServerInfoToolsTests
     public async Task DotnetServerInfo_ContainsConcurrencyGuidance()
     {
         // Act
-        var result = await _tools.DotnetServerInfo();
+        var result = (await _tools.DotnetServerInfo()).GetText();
 
         // Assert
         Assert.Contains("Read-only operations", result);
@@ -266,7 +263,7 @@ public class SdkAndServerInfoToolsTests
     public async Task DotnetServerInfo_ContainsCachingInformation()
     {
         // Act
-        var result = await _tools.DotnetServerInfo();
+        var result = (await _tools.DotnetServerInfo()).GetText();
 
         // Assert
         Assert.Contains("CACHING:", result);
@@ -278,7 +275,7 @@ public class SdkAndServerInfoToolsTests
     public async Task DotnetServerInfo_ContainsResourceInformation()
     {
         // Act
-        var result = await _tools.DotnetServerInfo();
+        var result = (await _tools.DotnetServerInfo()).GetText();
 
         // Assert
         Assert.Contains("RESOURCES", result);
@@ -289,7 +286,7 @@ public class SdkAndServerInfoToolsTests
     public async Task DotnetServerInfo_ContainsDocumentationLinks()
     {
         // Act
-        var result = await _tools.DotnetServerInfo();
+        var result = (await _tools.DotnetServerInfo()).GetText();
 
         // Assert
         Assert.Contains("DOCUMENTATION:", result);

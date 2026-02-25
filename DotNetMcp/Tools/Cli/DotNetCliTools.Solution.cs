@@ -16,12 +16,10 @@ public sealed partial class DotNetCliTools
     /// <param name="name">The name for the solution file</param>
     /// <param name="output">The output directory for the solution file</param>
     /// <param name="format">The solution file format: 'sln' (classic) or 'slnx' (XML-based). Default is 'sln'.</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     internal async Task<string> DotnetSolutionCreate(
         string name,
         string? output = null,
-        string? format = null,
-        bool machineReadable = false)
+        string? format = null)
     {
         var args = new StringBuilder("new sln");
         args.Append($" -n \"{name}\"");
@@ -32,19 +30,11 @@ public sealed partial class DotNetCliTools
         
         if (effectiveFormat != "sln" && effectiveFormat != "slnx")
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    "format must be either 'sln' or 'slnx'.",
-                    parameterName: "format",
-                    reason: "invalid value");
-                return ErrorResultFactory.ToJson(error);
-            }
             return "Error: format must be either 'sln' or 'slnx'.";
         }
         
         args.Append($" --format {effectiveFormat}");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
     /// <summary>
@@ -52,22 +42,12 @@ public sealed partial class DotNetCliTools
     /// </summary>
     /// <param name="solution">The solution file to add projects to</param>
     /// <param name="projects">Array of project file paths to add to the solution</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     internal async Task<string> DotnetSolutionAdd(
         string solution,
-        string[] projects,
-        bool machineReadable = false)
+        string[] projects)
     {
         if (projects == null || projects.Length == 0)
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    "at least one project path is required.",
-                    parameterName: "projects",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return "Error: at least one project path is required.";
         }
 
@@ -76,40 +56,28 @@ public sealed partial class DotNetCliTools
         {
             args.Append($" \"{project}\"");
         }
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
     /// <summary>
     /// List all projects in a .NET solution file.
     /// </summary>
     /// <param name="solution">The solution file to list projects from</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     internal async Task<string> DotnetSolutionList(
-        string solution,
-        bool machineReadable = false)
-        => await ExecuteDotNetCommand($"solution \"{solution}\" list", machineReadable);
+        string solution)
+        => await ExecuteDotNetCommand($"solution \"{solution}\" list");
 
     /// <summary>
     /// Remove one or more projects from a .NET solution file.
     /// </summary>
     /// <param name="solution">The solution file to remove projects from</param>
     /// <param name="projects">Array of project file paths to remove from the solution</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     internal async Task<string> DotnetSolutionRemove(
         string solution,
-        string[] projects,
-        bool machineReadable = false)
+        string[] projects)
     {
         if (projects == null || projects.Length == 0)
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    "at least one project path is required.",
-                    parameterName: "projects",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return "Error: at least one project path is required.";
         }
 
@@ -118,7 +86,7 @@ public sealed partial class DotNetCliTools
         {
             args.Append($" \"{project}\"");
         }
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
     /// <summary>
@@ -131,7 +99,6 @@ public sealed partial class DotNetCliTools
     /// <param name="output">Output directory for solution file (optional, used with 'create' action)</param>
     /// <param name="format">Solution file format: 'sln' (classic) or 'slnx' (XML-based). Default is 'sln'. (optional, used with 'create' action)</param>
     /// <param name="projects">Array of project file paths (required for 'add' and 'remove' actions)</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpServerTool(Title = ".NET Solution Manager", Destructive = true, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Card%20File%20Box/Flat/card_file_box_flat.svg")]
     [McpMeta("category", "solution")]
     [McpMeta("priority", 10.0)]
@@ -145,31 +112,21 @@ public sealed partial class DotNetCliTools
         string? name = null,
         string? output = null,
         string? format = null,
-        string[]? projects = null,
-        bool machineReadable = false)
+        string[]? projects = null)
     {
         // Validate action parameter
         if (!ParameterValidator.ValidateAction<DotnetSolutionAction>(action, out var actionError))
         {
-            if (machineReadable)
-            {
-                var validActions = Enum.GetNames(typeof(DotnetSolutionAction));
-                var error = ErrorResultFactory.CreateActionValidationError(
-                    action.ToString(),
-                    validActions,
-                    toolName: "dotnet_solution");
-                return StructuredContentHelper.ToCallToolResult(ErrorResultFactory.ToJson(error));
-            }
             return StructuredContentHelper.ToCallToolResult($"Error: {actionError}");
         }
 
         // Route to appropriate method based on action
         var textResult = action switch
         {
-            DotnetSolutionAction.Create => await HandleCreateAction(name, output, format, machineReadable),
-            DotnetSolutionAction.Add => await HandleAddAction(solution, projects, machineReadable),
-            DotnetSolutionAction.List => await HandleListAction(solution, machineReadable),
-            DotnetSolutionAction.Remove => await HandleRemoveAction(solution, projects, machineReadable),
+            DotnetSolutionAction.Create => await HandleCreateAction(name, output, format),
+            DotnetSolutionAction.Add => await HandleAddAction(solution, projects),
+            DotnetSolutionAction.List => await HandleListAction(solution),
+            DotnetSolutionAction.Remove => await HandleRemoveAction(solution, projects),
             _ => throw new InvalidOperationException($"Unsupported action '{action}'. This should have been caught by validation.")
         };
 
@@ -181,94 +138,58 @@ public sealed partial class DotNetCliTools
         return StructuredContentHelper.ToCallToolResult(textResult, structured);
     }
 
-    private async Task<string> HandleCreateAction(string? name, string? output, string? format, bool machineReadable)
+    private async Task<string> HandleCreateAction(string? name, string? output, string? format)
     {
         // Validate required parameter for create action
         if (!ParameterValidator.ValidateRequiredParameter(name, "name", out var nameError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateRequiredParameterError("name", "dotnet_solution (action=Create)");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {nameError}";
         }
 
-        return await DotnetSolutionCreate(name!, output, format, machineReadable);
+        return await DotnetSolutionCreate(name!, output, format);
     }
 
-    private async Task<string> HandleAddAction(string? solution, string[]? projects, bool machineReadable)
+    private async Task<string> HandleAddAction(string? solution, string[]? projects)
     {
         // Validate required parameters for add action
         if (!ParameterValidator.ValidateRequiredParameter(solution, "solution", out var solutionError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateRequiredParameterError("solution", "dotnet_solution (action=Add)");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {solutionError}";
         }
 
         if (projects == null || projects.Length == 0)
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    "at least one project path is required for the 'add' action.",
-                    parameterName: "projects",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return "Error: at least one project path is required for the 'add' action.";
         }
 
-        return await DotnetSolutionAdd(solution!, projects, machineReadable);
+        return await DotnetSolutionAdd(solution!, projects);
     }
 
-    private async Task<string> HandleListAction(string? solution, bool machineReadable)
+    private async Task<string> HandleListAction(string? solution)
     {
         // Validate required parameter for list action
         if (!ParameterValidator.ValidateRequiredParameter(solution, "solution", out var solutionError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateRequiredParameterError("solution", "dotnet_solution (action=List)");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {solutionError}";
         }
 
-        return await DotnetSolutionList(solution!, machineReadable);
+        return await DotnetSolutionList(solution!);
     }
 
-    private async Task<string> HandleRemoveAction(string? solution, string[]? projects, bool machineReadable)
+    private async Task<string> HandleRemoveAction(string? solution, string[]? projects)
     {
         // Validate required parameters for remove action
         if (!ParameterValidator.ValidateRequiredParameter(solution, "solution", out var solutionError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateRequiredParameterError("solution", "dotnet_solution (action=Remove)");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {solutionError}";
         }
 
         if (projects == null || projects.Length == 0)
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    "at least one project path is required for the 'remove' action.",
-                    parameterName: "projects",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return "Error: at least one project path is required for the 'remove' action.";
         }
 
-        return await DotnetSolutionRemove(solution!, projects, machineReadable);
+        return await DotnetSolutionRemove(solution!, projects);
     }
 
     private static object? BuildSolutionListStructuredContent(string textResult)

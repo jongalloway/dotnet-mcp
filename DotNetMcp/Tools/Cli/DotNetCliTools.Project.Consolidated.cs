@@ -2,6 +2,7 @@ using System.Text;
 using DotNetMcp.Actions;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
+using ModelContextProtocol.Protocol;
 
 namespace DotNetMcp;
 
@@ -54,14 +55,13 @@ public sealed partial class DotNetCliTools
     /// <param name="propertyValue">Value to set for SetProperty action (e.g., 'Exe')</param>
     /// <param name="itemType">Item type for AddItem/RemoveItem/ListItems actions (e.g., 'Using', 'Content', 'None')</param>
     /// <param name="include">The Include attribute value for AddItem/RemoveItem actions</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpServerTool(Title = ".NET Project", Destructive = true, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/File%20Folder/Flat/file_folder_flat.svg")]
     [McpMeta("category", "project")]
     [McpMeta("priority", 10.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("consolidatedTool", true)]
     [McpMeta("actions", JsonValue = """["New","Restore","Build","Run","Test","Publish","Clean","Analyze","Dependencies","Validate","Pack","Watch","Format","Stop","Logs","SetProperty","GetProperty","RemoveProperty","AddItem","RemoveItem","ListItems"]""")]
-    public async partial Task<string> DotnetProject(
+    public async partial Task<CallToolResult> DotnetProject(
         DotnetProjectAction action,
         string? project = null,
         string? template = null,
@@ -100,62 +100,49 @@ public sealed partial class DotNetCliTools
         string? propertyName = null,
         string? propertyValue = null,
         string? itemType = null,
-        string? include = null,
-        bool machineReadable = false)
+        string? include = null)
     {
-        return await WithWorkingDirectoryAsync(workingDirectory, async () =>
+        var textResult = await WithWorkingDirectoryAsync(workingDirectory, async () =>
         {
             // Validate action parameter
             if (!ParameterValidator.ValidateAction<DotnetProjectAction>(action, out var errorMessage))
             {
-                if (machineReadable)
-                {
-                    var validActions = Enum.GetNames(typeof(DotnetProjectAction));
-                    var error = ErrorResultFactory.CreateActionValidationError(
-                        action.ToString(),
-                        validActions,
-                        toolName: "dotnet_project");
-                    return ErrorResultFactory.ToJson(error);
-                }
                 return $"Error: {errorMessage}";
             }
 
             // Route to appropriate handler based on action
             return action switch
             {
-                DotnetProjectAction.New => await HandleNewAction(template, name, output, framework, additionalOptions, machineReadable),
-                DotnetProjectAction.Restore => await HandleRestoreAction(project, machineReadable),
-                DotnetProjectAction.Build => await HandleBuildAction(project, configuration, framework, machineReadable),
-                DotnetProjectAction.Run => await HandleRunAction(project, configuration, appArgs, noBuild, startMode, machineReadable),
-                DotnetProjectAction.Test => await HandleTestAction(project, configuration, filter, collect, resultsDirectory, logger, noBuild, noRestore, verbosity, framework, blame, listTests, testRunner, useLegacyProjectArgument, machineReadable),
-                DotnetProjectAction.Publish => await HandlePublishAction(project, configuration, output, runtime, machineReadable),
-                DotnetProjectAction.Clean => await HandleCleanAction(project, configuration, machineReadable),
-                DotnetProjectAction.Analyze => await HandleAnalyzeAction(projectPath, machineReadable),
-                DotnetProjectAction.Dependencies => await HandleDependenciesAction(projectPath, machineReadable),
-                DotnetProjectAction.Validate => await HandleValidateAction(projectPath, machineReadable),
-                DotnetProjectAction.Pack => await HandlePackAction(project, configuration, output, includeSymbols, includeSource, machineReadable),
-                DotnetProjectAction.Watch => await HandleWatchAction(watchAction, project, configuration, appArgs, filter, noHotReload, machineReadable),
-                DotnetProjectAction.Format => await HandleFormatAction(project, verify, includeGenerated, diagnostics, severity, machineReadable),
-                DotnetProjectAction.Stop => await HandleStopAction(sessionId, machineReadable),
-                DotnetProjectAction.Logs => await HandleLogsAction(sessionId, tailLines, since, machineReadable),
-                DotnetProjectAction.ListTemplateOptions => await HandleListTemplateOptionsAction(template, machineReadable),
-                DotnetProjectAction.SetProperty => await HandleSetPropertyAction(project, propertyName, propertyValue, machineReadable),
-                DotnetProjectAction.GetProperty => await HandleGetPropertyAction(project, propertyName, machineReadable),
-                DotnetProjectAction.RemoveProperty => await HandleRemovePropertyAction(project, propertyName, machineReadable),
-                DotnetProjectAction.AddItem => await HandleAddItemAction(project, itemType, include, machineReadable),
-                DotnetProjectAction.RemoveItem => await HandleRemoveItemAction(project, itemType, include, machineReadable),
-                DotnetProjectAction.ListItems => await HandleListItemsAction(project, itemType, machineReadable),
-                _ => machineReadable
-                    ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateValidationError(
-                        $"Action '{action}' is not supported.",
-                        parameterName: "action",
-                        reason: "not supported"))
-                    : $"Error: Action '{action}' is not supported."
+                DotnetProjectAction.New => await HandleNewAction(template, name, output, framework, additionalOptions),
+                DotnetProjectAction.Restore => await HandleRestoreAction(project),
+                DotnetProjectAction.Build => await HandleBuildAction(project, configuration, framework),
+                DotnetProjectAction.Run => await HandleRunAction(project, configuration, appArgs, noBuild, startMode),
+                DotnetProjectAction.Test => await HandleTestAction(project, configuration, filter, collect, resultsDirectory, logger, noBuild, noRestore, verbosity, framework, blame, listTests, testRunner, useLegacyProjectArgument),
+                DotnetProjectAction.Publish => await HandlePublishAction(project, configuration, output, runtime),
+                DotnetProjectAction.Clean => await HandleCleanAction(project, configuration),
+                DotnetProjectAction.Analyze => await HandleAnalyzeAction(projectPath),
+                DotnetProjectAction.Dependencies => await HandleDependenciesAction(projectPath),
+                DotnetProjectAction.Validate => await HandleValidateAction(projectPath),
+                DotnetProjectAction.Pack => await HandlePackAction(project, configuration, output, includeSymbols, includeSource),
+                DotnetProjectAction.Watch => await HandleWatchAction(watchAction, project, configuration, appArgs, filter, noHotReload),
+                DotnetProjectAction.Format => await HandleFormatAction(project, verify, includeGenerated, diagnostics, severity),
+                DotnetProjectAction.Stop => await HandleStopAction(sessionId),
+                DotnetProjectAction.Logs => await HandleLogsAction(sessionId, tailLines, since),
+                DotnetProjectAction.ListTemplateOptions => await HandleListTemplateOptionsAction(template),
+                DotnetProjectAction.SetProperty => await HandleSetPropertyAction(project, propertyName, propertyValue),
+                DotnetProjectAction.GetProperty => await HandleGetPropertyAction(project, propertyName),
+                DotnetProjectAction.RemoveProperty => await HandleRemovePropertyAction(project, propertyName),
+                DotnetProjectAction.AddItem => await HandleAddItemAction(project, itemType, include),
+                DotnetProjectAction.RemoveItem => await HandleRemoveItemAction(project, itemType, include),
+                DotnetProjectAction.ListItems => await HandleListItemsAction(project, itemType),
+                _ => $"Error: Action '{action}' is not supported."
             };
         });
+
+        return StructuredContentHelper.ToCallToolResult(textResult);
     }
 
-    private async Task<string> HandleNewAction(string? template, string? name, string? output, string? framework, string? additionalOptions, bool machineReadable)
+    private async Task<string> HandleNewAction(string? template, string? name, string? output, string? framework, string? additionalOptions)
     {
         // Route to existing DotnetProjectNew method
         return await DotnetProjectNew(
@@ -163,29 +150,26 @@ public sealed partial class DotNetCliTools
             name: name,
             output: output,
             framework: framework,
-            additionalOptions: additionalOptions,
-            machineReadable: machineReadable);
+            additionalOptions: additionalOptions);
     }
 
-    private async Task<string> HandleRestoreAction(string? project, bool machineReadable)
+    private async Task<string> HandleRestoreAction(string? project)
     {
         // Route to existing DotnetProjectRestore method
         return await DotnetProjectRestore(
-            project: project,
-            machineReadable: machineReadable);
+            project: project);
     }
 
-    private async Task<string> HandleBuildAction(string? project, string? configuration, string? framework, bool machineReadable)
+    private async Task<string> HandleBuildAction(string? project, string? configuration, string? framework)
     {
         // Route to existing DotnetProjectBuild method
         return await DotnetProjectBuild(
             project: project,
             configuration: configuration,
-            framework: framework,
-            machineReadable: machineReadable);
+            framework: framework);
     }
 
-    private async Task<string> HandleRunAction(string? project, string? configuration, string? appArgs, bool? noBuild, StartMode? startMode, bool machineReadable)
+    private async Task<string> HandleRunAction(string? project, string? configuration, string? appArgs, bool? noBuild, StartMode? startMode)
     {
         var effectiveStartMode = startMode ?? StartMode.Foreground;
 
@@ -196,36 +180,19 @@ public sealed partial class DotNetCliTools
                 project: project,
                 configuration: configuration,
                 appArgs: appArgs,
-                noBuild: noBuild ?? false,
-                machineReadable: machineReadable);
+                noBuild: noBuild ?? false);
         }
 
         // Background mode - start process and return immediately with session metadata
         // Validate project path if provided
         if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    projectError!,
-                    parameterName: "project",
-                    reason: "invalid extension");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {projectError}";
         }
 
         // Validate configuration
         if (!ParameterValidator.ValidateConfiguration(configuration, out var configError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    configError!,
-                    parameterName: "configuration",
-                    reason: "invalid value");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {configError}";
         }
 
@@ -270,14 +237,6 @@ public sealed partial class DotNetCliTools
                         process.Dispose();
                     }
 
-                    if (machineReadable)
-                    {
-                        var error = ErrorResultFactory.CreateValidationError(
-                            "Failed to register process session. Session ID may already exist.",
-                            parameterName: "sessionId",
-                            reason: "duplicate");
-                        return ErrorResultFactory.ToJson(error);
-                    }
                     return "Error: Failed to register process session. Session ID may already exist.";
                 }
 
@@ -316,24 +275,6 @@ public sealed partial class DotNetCliTools
                 });
 
                 // Return success with session metadata
-                if (machineReadable)
-                {
-                    var result = new SuccessResult
-                    {
-                        Success = true,
-                        Output = $"Process started in background mode",
-                        ExitCode = 0,
-                        Metadata = new Dictionary<string, string>
-                        {
-                            ["sessionId"] = sessionId,
-                            ["pid"] = process.Id.ToString(),
-                            ["operationType"] = "run",
-                            ["target"] = target,
-                            ["startMode"] = "background"
-                        }
-                    };
-                    return ErrorResultFactory.ToJson(result);
-                }
 
                 return $"Process started in background mode\nSession ID: {sessionId}\nPID: {process.Id}\nTarget: {target}\n\nUse 'dotnet_project' with action 'Stop' and sessionId '{sessionId}' to terminate the process.";
             }
@@ -359,19 +300,11 @@ public sealed partial class DotNetCliTools
         {
             _logger.LogError(ex, "Failed to start background run process");
             
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    $"Failed to start process: {ex.Message}",
-                    parameterName: "startMode",
-                    reason: "process start failed");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: Failed to start process: {ex.Message}";
         }
     }
 
-    private async Task<string> HandleTestAction(string? project, string? configuration, string? filter, string? collect, string? resultsDirectory, string? logger, bool? noBuild, bool? noRestore, string? verbosity, string? framework, bool? blame, bool? listTests, TestRunner? testRunner, bool? useLegacyProjectArgument, bool machineReadable)
+    private async Task<string> HandleTestAction(string? project, string? configuration, string? filter, string? collect, string? resultsDirectory, string? logger, bool? noBuild, bool? noRestore, string? verbosity, string? framework, bool? blame, bool? listTests, TestRunner? testRunner, bool? useLegacyProjectArgument)
     {
         // Route to existing DotnetProjectTest method
         return await DotnetProjectTest(
@@ -388,43 +321,32 @@ public sealed partial class DotNetCliTools
             blame: blame ?? false,
             listTests: listTests ?? false,
             testRunner: testRunner,
-            useLegacyProjectArgument: useLegacyProjectArgument ?? false,
-            machineReadable: machineReadable);
+            useLegacyProjectArgument: useLegacyProjectArgument ?? false);
     }
 
-    private async Task<string> HandlePublishAction(string? project, string? configuration, string? output, string? runtime, bool machineReadable)
+    private async Task<string> HandlePublishAction(string? project, string? configuration, string? output, string? runtime)
     {
         // Route to existing DotnetProjectPublish method
         return await DotnetProjectPublish(
             project: project,
             configuration: configuration,
             output: output,
-            runtime: runtime,
-            machineReadable: machineReadable);
+            runtime: runtime);
     }
 
-    private async Task<string> HandleCleanAction(string? project, string? configuration, bool machineReadable)
+    private async Task<string> HandleCleanAction(string? project, string? configuration)
     {
         // Route to existing DotnetProjectClean method
         return await DotnetProjectClean(
             project: project,
-            configuration: configuration,
-            machineReadable: machineReadable);
+            configuration: configuration);
     }
 
-    private async Task<string> HandleAnalyzeAction(string? projectPath, bool machineReadable)
+    private async Task<string> HandleAnalyzeAction(string? projectPath)
     {
         // Validate required parameter
         if (!ParameterValidator.ValidateRequiredParameter(projectPath, "projectPath", out var errorMessage))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    errorMessage!,
-                    parameterName: "projectPath",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {errorMessage}";
         }
 
@@ -432,19 +354,11 @@ public sealed partial class DotNetCliTools
         return await DotnetProjectAnalyze(projectPath: projectPath!);
     }
 
-    private async Task<string> HandleDependenciesAction(string? projectPath, bool machineReadable)
+    private async Task<string> HandleDependenciesAction(string? projectPath)
     {
         // Validate required parameter
         if (!ParameterValidator.ValidateRequiredParameter(projectPath, "projectPath", out var errorMessage))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    errorMessage!,
-                    parameterName: "projectPath",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {errorMessage}";
         }
 
@@ -452,19 +366,11 @@ public sealed partial class DotNetCliTools
         return await DotnetProjectDependencies(projectPath: projectPath!);
     }
 
-    private async Task<string> HandleValidateAction(string? projectPath, bool machineReadable)
+    private async Task<string> HandleValidateAction(string? projectPath)
     {
         // Validate required parameter
         if (!ParameterValidator.ValidateRequiredParameter(projectPath, "projectPath", out var errorMessage))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    errorMessage!,
-                    parameterName: "projectPath",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {errorMessage}";
         }
 
@@ -472,7 +378,7 @@ public sealed partial class DotNetCliTools
         return await DotnetProjectValidate(projectPath: projectPath!);
     }
 
-    private async Task<string> HandlePackAction(string? project, string? configuration, string? output, bool? includeSymbols, bool? includeSource, bool machineReadable)
+    private async Task<string> HandlePackAction(string? project, string? configuration, string? output, bool? includeSymbols, bool? includeSource)
     {
         // Route to existing DotnetPackCreate method
         return await DotnetPackCreate(
@@ -480,23 +386,14 @@ public sealed partial class DotNetCliTools
             configuration: configuration,
             output: output,
             includeSymbols: includeSymbols ?? false,
-            includeSource: includeSource ?? false,
-            machineReadable: machineReadable);
+            includeSource: includeSource ?? false);
     }
 
-    private async Task<string> HandleWatchAction(string? watchAction, string? project, string? configuration, string? appArgs, string? filter, bool? noHotReload, bool machineReadable)
+    private async Task<string> HandleWatchAction(string? watchAction, string? project, string? configuration, string? appArgs, string? filter, bool? noHotReload)
     {
         // Validate required parameter
         if (!ParameterValidator.ValidateRequiredParameter(watchAction, "watchAction", out var errorMessage))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    "watchAction is required for Watch action. Valid values: run, test, build",
-                    parameterName: "watchAction",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return "Error: watchAction is required for Watch action. Valid values: run, test, build";
         }
 
@@ -504,14 +401,6 @@ public sealed partial class DotNetCliTools
         var validWatchActions = new[] { "run", "test", "build" };
         if (!validWatchActions.Contains(watchAction!.ToLowerInvariant()))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    $"Invalid watchAction '{watchAction}'. Valid values: run, test, build",
-                    parameterName: "watchAction",
-                    reason: "invalid value");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: Invalid watchAction '{watchAction}'. Valid values: run, test, build";
         }
 
@@ -521,16 +410,11 @@ public sealed partial class DotNetCliTools
             "run" => await DotnetWatchRun(project: project, appArgs: appArgs, noHotReload: noHotReload ?? false),
             "test" => await DotnetWatchTest(project: project, filter: filter),
             "build" => await DotnetWatchBuild(project: project, configuration: configuration),
-            _ => machineReadable
-                ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateValidationError(
-                    $"Invalid watchAction '{watchAction}'. Valid values: run, test, build",
-                    parameterName: "watchAction",
-                    reason: "invalid value"))
-                : $"Error: Invalid watchAction '{watchAction}'. Valid values: run, test, build"
+            _ => $"Error: Invalid watchAction '{watchAction}'. Valid values: run, test, build"
         };
     }
 
-    private async Task<string> HandleFormatAction(string? project, bool? verify, bool? includeGenerated, string? diagnostics, string? severity, bool machineReadable)
+    private async Task<string> HandleFormatAction(string? project, bool? verify, bool? includeGenerated, string? diagnostics, string? severity)
     {
         // Route to existing DotnetFormat method
         return await DotnetFormat(
@@ -538,73 +422,33 @@ public sealed partial class DotNetCliTools
             verify: verify ?? false,
             includeGenerated: includeGenerated ?? false,
             diagnostics: diagnostics,
-            severity: severity,
-            machineReadable: machineReadable);
+            severity: severity);
     }
 
-    private Task<string> HandleStopAction(string? sessionId, bool machineReadable)
+    private Task<string> HandleStopAction(string? sessionId)
     {
         // Validate required parameter
         if (!ParameterValidator.ValidateRequiredParameter(sessionId, "sessionId", out var errorMessage))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    errorMessage!,
-                    parameterName: "sessionId",
-                    reason: "required");
-                return Task.FromResult(ErrorResultFactory.ToJson(error));
-            }
             return Task.FromResult($"Error: {errorMessage}");
         }
 
         // Try to stop the session
         if (_processSessionManager.TryStopSession(sessionId!, out var stopError))
         {
-            if (machineReadable)
-            {
-                var result = new SuccessResult
-                {
-                    Success = true,
-                    Output = $"Successfully stopped session '{sessionId}'",
-                    ExitCode = 0,
-                    Metadata = new Dictionary<string, string>
-                    {
-                        ["sessionId"] = sessionId!,
-                        ["stopped"] = "true"
-                    }
-                };
-                return Task.FromResult(ErrorResultFactory.ToJson(result));
-            }
             return Task.FromResult($"Successfully stopped session '{sessionId}'");
         }
         else
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    stopError!,
-                    parameterName: "sessionId",
-                    reason: "not found or already stopped");
-                return Task.FromResult(ErrorResultFactory.ToJson(error));
-            }
             return Task.FromResult($"Error: {stopError}");
         }
     }
 
-    private Task<string> HandleLogsAction(string? sessionId, int? tailLines, string? since, bool machineReadable)
+    private Task<string> HandleLogsAction(string? sessionId, int? tailLines, string? since)
     {
         // Validate sessionId
         if (!ParameterValidator.ValidateRequiredParameter(sessionId, "sessionId", out var errorMessage))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    errorMessage!,
-                    parameterName: "sessionId",
-                    reason: "required");
-                return Task.FromResult(ErrorResultFactory.ToJson(error));
-            }
             return Task.FromResult($"Error: {errorMessage}");
         }
 
@@ -614,14 +458,6 @@ public sealed partial class DotNetCliTools
         {
             if (!DateTime.TryParse(since, out var parsedSince))
             {
-                if (machineReadable)
-                {
-                    var error = ErrorResultFactory.CreateValidationError(
-                        $"Invalid 'since' timestamp format. Expected ISO 8601 format (e.g., '2024-01-01T12:00:00Z').",
-                        parameterName: "since",
-                        reason: "invalid format");
-                    return Task.FromResult(ErrorResultFactory.ToJson(error));
-                }
                 return Task.FromResult($"Error: Invalid 'since' timestamp format. Expected ISO 8601 format (e.g., '2024-01-01T12:00:00Z').");
             }
             sinceTimestamp = parsedSince.ToUniversalTime();
@@ -630,14 +466,6 @@ public sealed partial class DotNetCliTools
         // Validate tailLines if provided
         if (tailLines.HasValue && tailLines.Value < 1)
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    "tailLines must be a positive integer.",
-                    parameterName: "tailLines",
-                    reason: "invalid value");
-                return Task.FromResult(ErrorResultFactory.ToJson(error));
-            }
             return Task.FromResult("Error: tailLines must be a positive integer.");
         }
 
@@ -646,73 +474,10 @@ public sealed partial class DotNetCliTools
 
         if (logs == null)
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    $"Session '{sessionId}' not found. It may have already completed or been stopped.",
-                    parameterName: "sessionId",
-                    reason: "not found");
-                return Task.FromResult(ErrorResultFactory.ToJson(error));
-            }
             return Task.FromResult($"Error: Session '{sessionId}' not found. It may have already completed or been stopped.");
         }
 
         // Format the response
-        if (machineReadable)
-        {
-            var metadata = new Dictionary<string, string>
-            {
-                ["sessionId"] = logs.SessionId,
-                ["operationType"] = logs.OperationType,
-                ["target"] = logs.Target,
-                ["startTime"] = logs.StartTime.ToString("O"),
-                ["isRunning"] = logs.IsRunning.ToString().ToLowerInvariant(),
-                ["totalOutputLines"] = logs.TotalOutputLines.ToString(),
-                ["totalErrorLines"] = logs.TotalErrorLines.ToString(),
-                ["returnedOutputLines"] = logs.OutputLines.Length.ToString(),
-                ["returnedErrorLines"] = logs.ErrorLines.Length.ToString()
-            };
-
-            if (tailLines.HasValue)
-            {
-                metadata["tailLines"] = tailLines.Value.ToString();
-            }
-
-            if (sinceTimestamp.HasValue)
-            {
-                metadata["since"] = sinceTimestamp.Value.ToString("O");
-            }
-
-            // Combine output and error lines in chronological order
-            var combinedLines = logs.OutputLines
-                .Select(line => new { line.Timestamp, line.Content, IsError = false })
-                .Concat(logs.ErrorLines.Select(line => new { line.Timestamp, line.Content, IsError = true }))
-                .OrderBy(x => x.Timestamp)
-                .ToList();
-
-            var outputBuilder = new StringBuilder();
-            foreach (var line in combinedLines)
-            {
-                if (line.IsError)
-                {
-                    outputBuilder.AppendLine($"[stderr] {line.Content}");
-                }
-                else
-                {
-                    outputBuilder.AppendLine(line.Content);
-                }
-            }
-
-            var result = new SuccessResult
-            {
-                Success = true,
-                Output = outputBuilder.ToString().TrimEnd(),
-                ExitCode = 0,
-                Metadata = metadata
-            };
-
-            return Task.FromResult(ErrorResultFactory.ToJson(result));
-        }
 
         // Plain text format
         var textResult = new StringBuilder();
@@ -762,19 +527,11 @@ public sealed partial class DotNetCliTools
         return Task.FromResult(textResult.ToString());
     }
 
-    private async Task<string> HandleListTemplateOptionsAction(string? template, bool machineReadable)
+    private async Task<string> HandleListTemplateOptionsAction(string? template)
     {
         // Validate required parameter
         if (!ParameterValidator.ValidateRequiredParameter(template, "template", out var errorMessage))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    errorMessage!,
-                    parameterName: "template",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {errorMessage}";
         }
 
@@ -782,240 +539,120 @@ public sealed partial class DotNetCliTools
         var templateValidation = await ParameterValidator.ValidateTemplateAsync(template, _logger);
         if (!templateValidation.IsValid)
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    templateValidation.ErrorMessage!,
-                    parameterName: "template",
-                    reason: string.IsNullOrWhiteSpace(template) ? "required" : "not found");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {templateValidation.ErrorMessage}";
         }
 
-        return await ExecuteDotNetCommand($"new {template} --help", machineReadable);
+        return await ExecuteDotNetCommand($"new {template} --help");
     }
 
-    private async Task<string> HandleSetPropertyAction(string? project, string? propertyName, string? propertyValue, bool machineReadable)
+    private async Task<string> HandleSetPropertyAction(string? project, string? propertyName, string? propertyValue)
     {
         // Validate required project parameter
         if (!ParameterValidator.ValidateRequiredParameter(project, "project", out var projectError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    projectError!,
-                    parameterName: "project",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {projectError}";
         }
 
         // Validate required propertyName parameter
         if (!ParameterValidator.ValidateRequiredParameter(propertyName, "propertyName", out var nameError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    nameError!,
-                    parameterName: "propertyName",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {nameError}";
         }
 
         // Validate required propertyValue parameter
         if (propertyValue is null)
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    "propertyValue is required for SetProperty action.",
-                    parameterName: "propertyValue",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return "Error: propertyValue is required for SetProperty action.";
         }
 
         return await ProjectAnalysisHelper.SetPropertyAsync(project!, propertyName!, propertyValue, _logger);
     }
 
-    private async Task<string> HandleGetPropertyAction(string? project, string? propertyName, bool machineReadable)
+    private async Task<string> HandleGetPropertyAction(string? project, string? propertyName)
     {
         // Validate required project parameter
         if (!ParameterValidator.ValidateRequiredParameter(project, "project", out var projectError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    projectError!,
-                    parameterName: "project",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {projectError}";
         }
 
         // Validate required propertyName parameter
         if (!ParameterValidator.ValidateRequiredParameter(propertyName, "propertyName", out var nameError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    nameError!,
-                    parameterName: "propertyName",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {nameError}";
         }
 
         return await ProjectAnalysisHelper.GetPropertyAsync(project!, propertyName!, _logger);
     }
 
-    private async Task<string> HandleRemovePropertyAction(string? project, string? propertyName, bool machineReadable)
+    private async Task<string> HandleRemovePropertyAction(string? project, string? propertyName)
     {
         // Validate required project parameter
         if (!ParameterValidator.ValidateRequiredParameter(project, "project", out var projectError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    projectError!,
-                    parameterName: "project",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {projectError}";
         }
 
         // Validate required propertyName parameter
         if (!ParameterValidator.ValidateRequiredParameter(propertyName, "propertyName", out var nameError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    nameError!,
-                    parameterName: "propertyName",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {nameError}";
         }
 
         return await ProjectAnalysisHelper.RemovePropertyAsync(project!, propertyName!, _logger);
     }
 
-    private async Task<string> HandleAddItemAction(string? project, string? itemType, string? include, bool machineReadable)
+    private async Task<string> HandleAddItemAction(string? project, string? itemType, string? include)
     {
         // Validate required project parameter
         if (!ParameterValidator.ValidateRequiredParameter(project, "project", out var projectError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    projectError!,
-                    parameterName: "project",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {projectError}";
         }
 
         // Validate required itemType parameter
         if (!ParameterValidator.ValidateRequiredParameter(itemType, "itemType", out var typeError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    typeError!,
-                    parameterName: "itemType",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {typeError}";
         }
 
         // Validate required include parameter
         if (!ParameterValidator.ValidateRequiredParameter(include, "include", out var includeError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    includeError!,
-                    parameterName: "include",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {includeError}";
         }
 
         return await ProjectAnalysisHelper.AddItemAsync(project!, itemType!, include!, logger: _logger);
     }
 
-    private async Task<string> HandleRemoveItemAction(string? project, string? itemType, string? include, bool machineReadable)
+    private async Task<string> HandleRemoveItemAction(string? project, string? itemType, string? include)
     {
         // Validate required project parameter
         if (!ParameterValidator.ValidateRequiredParameter(project, "project", out var projectError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    projectError!,
-                    parameterName: "project",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {projectError}";
         }
 
         // Validate required itemType parameter
         if (!ParameterValidator.ValidateRequiredParameter(itemType, "itemType", out var typeError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    typeError!,
-                    parameterName: "itemType",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {typeError}";
         }
 
         // Validate required include parameter
         if (!ParameterValidator.ValidateRequiredParameter(include, "include", out var includeError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    includeError!,
-                    parameterName: "include",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {includeError}";
         }
 
         return await ProjectAnalysisHelper.RemoveItemAsync(project!, itemType!, include!, _logger);
     }
 
-    private async Task<string> HandleListItemsAction(string? project, string? itemType, bool machineReadable)
+    private async Task<string> HandleListItemsAction(string? project, string? itemType)
     {
         // Validate required project parameter
         if (!ParameterValidator.ValidateRequiredParameter(project, "project", out var projectError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    projectError!,
-                    parameterName: "project",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {projectError}";
         }
 
@@ -1103,20 +740,11 @@ public sealed partial class DotNetCliTools
         string? name = null,
         string? output = null,
         string? framework = null,
-        string? additionalOptions = null,
-        bool machineReadable = false)
+        string? additionalOptions = null)
     {
         // Validate additionalOptions first (security check before any other validation)
         if (!string.IsNullOrEmpty(additionalOptions) && !IsValidAdditionalOptions(additionalOptions))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    "additionalOptions contains invalid characters. Only alphanumeric characters, hyphens, underscores, dots, spaces, and equals signs are allowed.",
-                    parameterName: "additionalOptions",
-                    reason: "invalid characters");
-                return ErrorResultFactory.ToJson(error);
-            }
             return "Error: additionalOptions contains invalid characters. Only alphanumeric characters, hyphens, underscores, dots, spaces, and equals signs are allowed.";
         }
 
@@ -1124,28 +752,12 @@ public sealed partial class DotNetCliTools
         var templateValidation = await ParameterValidator.ValidateTemplateAsync(template, _logger);
         if (!templateValidation.IsValid)
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    templateValidation.ErrorMessage!,
-                    parameterName: "template",
-                    reason: string.IsNullOrWhiteSpace(template) ? "required" : "not found");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {templateValidation.ErrorMessage}";
         }
 
         // Validate framework
         if (!ParameterValidator.ValidateFramework(framework, out var frameworkError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    frameworkError!,
-                    parameterName: "framework",
-                    reason: "invalid format");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {frameworkError}";
         }
 
@@ -1154,33 +766,24 @@ public sealed partial class DotNetCliTools
         if (!string.IsNullOrEmpty(output)) args.Append($" -o \"{output}\"");
         if (!string.IsNullOrEmpty(framework)) args.Append($" -f {framework}");
         if (!string.IsNullOrEmpty(additionalOptions)) args.Append($" {additionalOptions}");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
     /// <summary>
     /// Restore the dependencies and tools of a .NET project.
     /// </summary>
     internal async Task<string> DotnetProjectRestore(
-        string? project = null,
-        bool machineReadable = false)
+        string? project = null)
     {
         // Validate project path if provided
         if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    projectError!,
-                    parameterName: "project",
-                    reason: "invalid extension");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {projectError}";
         }
 
         var args = "restore";
         if (!string.IsNullOrEmpty(project)) args += $" \"{project}\"";
-        return await ExecuteDotNetCommand(args, machineReadable);
+        return await ExecuteDotNetCommand(args);
     }
 
     /// <summary>
@@ -1189,20 +792,11 @@ public sealed partial class DotNetCliTools
     internal async Task<string> DotnetProjectBuild(
         string? project = null,
         string? configuration = null,
-        string? framework = null,
-        bool machineReadable = false)
+        string? framework = null)
     {
         // Validate project path if provided
         if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    projectError!,
-                    parameterName: "project",
-                    reason: "invalid extension");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {projectError}";
         }
 
@@ -1221,7 +815,7 @@ public sealed partial class DotNetCliTools
 
         // Capture working directory for concurrency target selection
         var workingDir = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
-        return await ExecuteWithConcurrencyCheck("build", GetOperationTarget(project, workingDir), args.ToString(), machineReadable);
+        return await ExecuteWithConcurrencyCheck("build", GetOperationTarget(project, workingDir), args.ToString());
     }
 
     /// <summary>
@@ -1231,8 +825,7 @@ public sealed partial class DotNetCliTools
         string? project = null,
         string? configuration = null,
         string? appArgs = null,
-        bool noBuild = false,
-        bool machineReadable = false)
+        bool noBuild = false)
     {
         // Validate project path if provided
         if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
@@ -1250,7 +843,7 @@ public sealed partial class DotNetCliTools
 
         // Capture working directory for concurrency target selection
         var workingDir = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
-        return await ExecuteWithConcurrencyCheck("run", GetOperationTarget(project, workingDir), args.ToString(), machineReadable);
+        return await ExecuteWithConcurrencyCheck("run", GetOperationTarget(project, workingDir), args.ToString());
     }
 
     /// <summary>
@@ -1272,8 +865,7 @@ public sealed partial class DotNetCliTools
         bool blame = false,
         bool listTests = false,
         TestRunner? testRunner = null,
-        bool useLegacyProjectArgument = false,
-        bool machineReadable = false)
+        bool useLegacyProjectArgument = false)
     {
         // Validate project path if provided
         if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
@@ -1358,17 +950,9 @@ public sealed partial class DotNetCliTools
         if (blame) args.Append(" --blame");
         if (listTests) args.Append(" --list-tests");
 
-        // Store metadata for machine-readable output
-        var metadata = new Dictionary<string, string>
-        {
-            ["selectedTestRunner"] = effectiveRunner == TestRunner.MicrosoftTestingPlatform ? "microsoft-testing-platform" : "vstest",
-            ["projectArgumentStyle"] = projectArgumentStyle,
-            ["selectionSource"] = selectionSource
-        };
-        
         // Use working directory for concurrency target selection
         var workingDirForTarget = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
-        return await ExecuteWithConcurrencyCheck("test", GetOperationTarget(project, workingDirForTarget), args.ToString(), machineReadable, metadata);
+        return await ExecuteWithConcurrencyCheck("test", GetOperationTarget(project, workingDirForTarget), args.ToString());
     }
 
     /// <summary>
@@ -1378,8 +962,7 @@ public sealed partial class DotNetCliTools
         string? project = null,
         string? configuration = null,
         string? output = null,
-        string? runtime = null,
-        bool machineReadable = false)
+        string? runtime = null)
     {
         // Validate project path if provided
         if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
@@ -1401,7 +984,7 @@ public sealed partial class DotNetCliTools
 
         // Capture working directory for concurrency target selection
         var workingDir = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
-        return await ExecuteWithConcurrencyCheck("publish", GetOperationTarget(project, workingDir), args.ToString(), machineReadable);
+        return await ExecuteWithConcurrencyCheck("publish", GetOperationTarget(project, workingDir), args.ToString());
     }
 
     /// <summary>
@@ -1409,8 +992,7 @@ public sealed partial class DotNetCliTools
     /// </summary>
     internal async Task<string> DotnetProjectClean(
         string? project = null,
-        string? configuration = null,
-        bool machineReadable = false)
+        string? configuration = null)
     {
         // Validate project path if provided
         if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
@@ -1423,7 +1005,7 @@ public sealed partial class DotNetCliTools
         var args = new StringBuilder("clean");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
     /// <summary>
