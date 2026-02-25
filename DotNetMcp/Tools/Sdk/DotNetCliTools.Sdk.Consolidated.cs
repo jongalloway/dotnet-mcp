@@ -384,7 +384,9 @@ public sealed partial class DotNetCliTools
     {
         // Extract version from output like "10.0.100\nExit Code: 0"
         var lines = textResult.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        var versionLine = lines.FirstOrDefault(l => !l.StartsWith("Exit Code:", StringComparison.OrdinalIgnoreCase) && !l.StartsWith("Error", StringComparison.OrdinalIgnoreCase));
+        var versionLine = lines.FirstOrDefault(l => !l.StartsWith("Exit Code:", StringComparison.OrdinalIgnoreCase)
+            && !l.StartsWith("Error", StringComparison.OrdinalIgnoreCase)
+            && !l.StartsWith("Command:", StringComparison.OrdinalIgnoreCase));
         if (string.IsNullOrWhiteSpace(versionLine)) return null;
         var version = versionLine.Trim();
         return new { version };
@@ -414,6 +416,7 @@ public sealed partial class DotNetCliTools
         var runtimes = lines
             .Where(l => !l.StartsWith("Exit Code:", StringComparison.OrdinalIgnoreCase)
                 && !l.StartsWith("Error", StringComparison.OrdinalIgnoreCase)
+                && !l.StartsWith("Command:", StringComparison.OrdinalIgnoreCase)
                 && l.TrimStart().Length > 0 && char.IsAsciiLetter(l.TrimStart()[0]))
             .Select(l =>
             {

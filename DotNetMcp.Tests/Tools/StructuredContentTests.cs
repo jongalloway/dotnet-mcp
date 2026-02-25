@@ -149,7 +149,7 @@ public class StructuredContentTests
     {
         // Use a real solution file - find it relative to the test assembly location
         var slnPath = Path.GetFullPath(
-            Path.Join(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "DotNetMcp.slnx"));
+            Path.Join(AppContext.BaseDirectory, "..", "..", "..", "..", "DotNetMcp.slnx"));
         Assert.True(File.Exists(slnPath), $"Expected solution file to exist at: {slnPath}");
 
         var result = await _tools.DotnetSolution(

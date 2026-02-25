@@ -177,6 +177,7 @@ public static class DotNetCommandExecutor
         }
 
         var textResult = new StringBuilder();
+        textResult.AppendLine($"Command: dotnet {arguments}");
         if (outputStr.Length > 0) textResult.AppendLine(outputStr);
         if (errorStr.Length > 0)
         {
