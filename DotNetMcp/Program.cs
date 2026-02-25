@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 
 var builder = Host.CreateApplicationBuilder(args);
@@ -16,6 +17,10 @@ builder.Services.AddSingleton<ConcurrencyManager>();
 
 // Register ProcessSessionManager as a singleton
 builder.Services.AddSingleton<ProcessSessionManager>();
+
+// Register InMemoryMcpTaskStore to enable MCP Task support for long-running operations.
+// This allows AI clients to run build/test/publish as async tasks with polling and cancellation.
+builder.Services.AddSingleton<IMcpTaskStore, InMemoryMcpTaskStore>();
 
 builder.Services.AddMcpServer(options =>
 {

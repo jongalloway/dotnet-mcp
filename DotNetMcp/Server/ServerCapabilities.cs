@@ -69,6 +69,14 @@ public sealed class ServerFeatureSupport
     /// </summary>
     [JsonPropertyName("telemetry")]
     public bool Telemetry { get; init; }
+
+    /// <summary>
+    /// Whether the server supports MCP Task augmentation for long-running operations such as
+    /// build, test, and publish. When true, AI clients can call supported tools as async tasks
+    /// and poll for completion instead of blocking on the result.
+    /// </summary>
+    [JsonPropertyName("asyncTasks")]
+    public bool AsyncTasks { get; init; }
 }
 
 /// <summary>

@@ -210,6 +210,21 @@ public class ServerCapabilitiesTests
     }
 
     [Fact]
+    public async Task DotnetServerCapabilities_Supports_AsyncTasks_IsTrue()
+    {
+        // Act
+        var result = (await _tools.DotnetServerCapabilities()).GetText();
+        var jsonDoc = JsonDocument.Parse(result);
+        var asyncTasks = jsonDoc.RootElement
+            .GetProperty("supports")
+            .GetProperty("asyncTasks")
+            .GetBoolean();
+
+        // Assert - MCP Task support is enabled via InMemoryMcpTaskStore
+        Assert.True(asyncTasks);
+    }
+
+    [Fact]
     public async Task DotnetServerCapabilities_JsonSchema_MatchesExpectedStructure()
     {
         // Act
@@ -232,6 +247,7 @@ public class ServerCapabilitiesTests
         Assert.True(capabilities.Supports.MachineReadable);
         Assert.True(capabilities.Supports.Cancellation);
         Assert.True(capabilities.Supports.Telemetry);
+        Assert.True(capabilities.Supports.AsyncTasks);
         Assert.NotNull(capabilities.SdkVersions);
         Assert.NotEmpty(capabilities.SdkVersions.Installed);
         Assert.Equal("net10.0", capabilities.SdkVersions.Recommended);
