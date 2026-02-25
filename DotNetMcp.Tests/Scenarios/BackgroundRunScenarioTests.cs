@@ -194,7 +194,7 @@ Console.WriteLine(""Line 4: Application finished"");
                 },
                 cancellationToken);
 
-            Assert.DoesNotContain("Error:", logsText);
+            Assert.StartsWith("Logs for session", logsText);
             Assert.Contains(sessionId!, logsText);
 
             // Verify logs output contains expected messages
@@ -214,7 +214,7 @@ Console.WriteLine(""Line 4: Application finished"");
                 },
                 cancellationToken);
 
-            Assert.DoesNotContain("Error:", tailLogsText);
+            Assert.StartsWith("Logs for session", tailLogsText);
             Assert.Contains("Returned", tailLogsText, StringComparison.OrdinalIgnoreCase);
         }
         finally

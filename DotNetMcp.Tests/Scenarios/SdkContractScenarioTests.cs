@@ -61,6 +61,6 @@ public class SdkContractScenarioTests
 
         Assert.NotEmpty(text);
         Assert.DoesNotContain("Error:", text);
-        Assert.Contains("dotnet new uninstall", text);
+        Assert.Contains("Currently installed", text, StringComparison.OrdinalIgnoreCase);
     }
 }
