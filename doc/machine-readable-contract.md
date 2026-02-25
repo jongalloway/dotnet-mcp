@@ -90,7 +90,7 @@ All other actions for these tools return only text content (no `structuredConten
 
 ## Legacy: Machine-Readable JSON via `machineReadable` Parameter
 
-When the `machineReadable: true` parameter is passed, tools return structured JSON in the text content using the envelopes below. This applies to all tools and is still fully supported.
+When the `machineReadable: true` parameter is passed, tools return structured JSON in the text content using the envelopes below. **Note: The `machineReadable` parameter has been removed from all public MCP tools in favour of `StructuredContent` (v2). The documentation below is preserved for reference only.**
 
 All machine-readable responses use one of two envelope types:
 

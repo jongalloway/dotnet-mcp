@@ -38,7 +38,7 @@ public class SdkAndServerInfoToolsTests
     }
 
     [Fact]
-    public async Task DotnetSdkInfo_WithMachineReadable_ReturnsStructuredOutput()
+    public async Task DotnetSdkInfo_ReturnsCallToolResult()
     {
         // Act
         var result = (await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Info)).GetText();
@@ -62,7 +62,7 @@ public class SdkAndServerInfoToolsTests
     }
 
     [Fact]
-    public async Task DotnetSdkVersion_WithMachineReadable_ReturnsStructuredOutput()
+    public async Task DotnetSdkVersion_ReturnsCallToolResult()
     {
         // Act
         var result = (await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Version)).GetText();
@@ -89,7 +89,7 @@ public class SdkAndServerInfoToolsTests
     }
 
     [Fact]
-    public async Task DotnetSdkList_WithMachineReadable_ReturnsStructuredOutput()
+    public async Task DotnetSdkList_ReturnsCallToolResult()
     {
         // Act
         var result = (await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.ListSdks)).GetText();
@@ -116,7 +116,7 @@ public class SdkAndServerInfoToolsTests
     }
 
     [Fact]
-    public async Task DotnetRuntimeList_WithMachineReadable_ReturnsStructuredOutput()
+    public async Task DotnetRuntimeList_ReturnsCallToolResult()
     {
         // Act
         var result = (await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.ListRuntimes)).GetText();
@@ -141,7 +141,7 @@ public class SdkAndServerInfoToolsTests
     }
 
     [Fact]
-    public async Task DotnetSdk_TemplatePackInstall_WithMachineReadable_BuildsCorrectCommand()
+    public async Task DotnetSdk_TemplatePackInstall_BuildsCorrectCommand()
     {
         // Use a local empty directory to avoid NuGet network calls in unit tests.
         var tempDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-template-pack-test", Guid.NewGuid().ToString("n"));
@@ -166,7 +166,7 @@ public class SdkAndServerInfoToolsTests
     }
 
     [Fact]
-    public async Task DotnetSdk_TemplatePackUninstall_WithMachineReadable_BuildsCorrectCommand()
+    public async Task DotnetSdk_TemplatePackUninstall_BuildsCorrectCommand()
     {
         // Act
         var result = (await _tools.DotnetSdk(
@@ -179,7 +179,7 @@ public class SdkAndServerInfoToolsTests
     }
 
     [Fact]
-    public async Task DotnetSdk_ListTemplatePacks_WithMachineReadable_BuildsCorrectCommand()
+    public async Task DotnetSdk_ListTemplatePacks_BuildsCorrectCommand()
     {
         // Act
         var result = (await _tools.DotnetSdk(

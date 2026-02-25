@@ -54,7 +54,7 @@ public class CancellationTests
         // Assert
         Assert.Contains("OPERATION_CANCELLED", result);
         Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("\"exitCode\": -1", result);
+        Assert.Contains("Exit Code: -1", result);
     }
 
     [Fact(Skip = "Integration test - requires actual dotnet CLI")]
