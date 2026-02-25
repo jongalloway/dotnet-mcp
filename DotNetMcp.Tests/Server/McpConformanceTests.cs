@@ -520,6 +520,116 @@ public class McpConformanceTests : IAsyncLifetime
 
     #endregion
 
+    #region Prompt Listing Tests
+
+    [Fact]
+    public async Task Server_ShouldListPrompts()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act
+        var prompts = await _client.ListPromptsAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert - server should expose the predefined prompt catalog
+        Assert.NotNull(prompts);
+        Assert.NotEmpty(prompts);
+    }
+
+    [Fact]
+    public async Task Server_PromptList_ShouldIncludeExpectedPrompts()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act
+        var prompts = await _client.ListPromptsAsync(cancellationToken: TestContext.Current.CancellationToken);
+        var promptNames = prompts.Select(p => p.Name).ToHashSet();
+
+        // Assert - check that all predefined prompts are registered
+        Assert.Contains("create_new_webapi", promptNames);
+        Assert.Contains("add_package_and_restore", promptNames);
+        Assert.Contains("run_tests_with_coverage", promptNames);
+    }
+
+    [Fact]
+    public async Task Server_PromptList_ShouldHaveDescriptions()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act
+        var prompts = await _client.ListPromptsAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert - all prompts should have descriptions
+        foreach (var prompt in prompts)
+        {
+            Assert.NotNull(prompt.Name);
+            Assert.NotEmpty(prompt.Name);
+            Assert.NotNull(prompt.Description);
+            Assert.NotEmpty(prompt.Description);
+        }
+    }
+
+    [Fact]
+    public async Task Server_GetPrompt_CreateNewWebApi_ReturnsValidMessages()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act
+        var promptResult = await _client.GetPromptAsync(
+            "create_new_webapi",
+            new Dictionary<string, object?> { ["projectName"] = "TestApi" },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(promptResult);
+        Assert.NotNull(promptResult.Messages);
+        Assert.NotEmpty(promptResult.Messages);
+
+        // Should have at least one user message
+        var userMessages = promptResult.Messages
+            .Where(m => m.Role == ModelContextProtocol.Protocol.Role.User)
+            .ToList();
+        Assert.NotEmpty(userMessages);
+
+        // The message should reference the project name
+        var content = userMessages[0].Content;
+        Assert.NotNull(content);
+    }
+
+    [Fact]
+    public async Task Server_GetPrompt_AddPackageAndRestore_ReturnsValidMessages()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act
+        var promptResult = await _client.GetPromptAsync(
+            "add_package_and_restore",
+            new Dictionary<string, object?> { ["packageId"] = "Newtonsoft.Json" },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(promptResult);
+        Assert.NotNull(promptResult.Messages);
+        Assert.NotEmpty(promptResult.Messages);
+    }
+
+    [Fact]
+    public async Task Server_ShouldAdvertisePromptsCapability()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Assert - server should expose prompts capability
+        Assert.NotNull(_client.ServerCapabilities);
+        Assert.NotNull(_client.ServerCapabilities.Prompts);
+    }
+
+    #endregion
+
     #region MCP Task Support Tests
 
     [Fact]

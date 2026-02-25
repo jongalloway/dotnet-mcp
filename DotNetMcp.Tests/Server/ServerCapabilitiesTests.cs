@@ -248,6 +248,8 @@ public class ServerCapabilitiesTests
         Assert.True(capabilities.Supports.Cancellation);
         Assert.True(capabilities.Supports.Telemetry);
         Assert.True(capabilities.Supports.AsyncTasks);
+        Assert.True(capabilities.Supports.Prompts);
+        Assert.True(capabilities.Supports.Elicitation);
         Assert.NotNull(capabilities.SdkVersions);
         Assert.NotEmpty(capabilities.SdkVersions.Installed);
         Assert.Equal("net10.0", capabilities.SdkVersions.Recommended);

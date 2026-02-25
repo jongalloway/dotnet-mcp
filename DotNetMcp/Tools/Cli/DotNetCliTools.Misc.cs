@@ -69,7 +69,9 @@ public sealed partial class DotNetCliTools
                 MachineReadable = true,
                 Cancellation = true,
                 Telemetry = true,  // SDK v0.6+ supports request duration logging and OpenTelemetry semantic conventions
-                AsyncTasks = true  // MCP Task support enabled: long-running operations (build, test, publish) can run as async tasks
+                AsyncTasks = true,  // MCP Task support enabled: long-running operations (build, test, publish) can run as async tasks
+                Prompts = true,     // Predefined prompt catalog: create_new_webapi, add_package_and_restore, run_tests_with_coverage
+                Elicitation = true  // Elicitation for confirmation before destructive ops (Clean, solution Remove)
             },
             SdkVersions = new SdkVersionInfo
             {
@@ -103,6 +105,8 @@ public sealed partial class DotNetCliTools
         result.AppendLine("FEATURES:");
         result.AppendLine("  • 11 Consolidated MCP Tools (8 functional + 3 utility)");
         result.AppendLine("  • 4 MCP Resources (SDK, Runtime, Templates, Frameworks)");
+        result.AppendLine("  • 3 Predefined Prompts (create_new_webapi, add_package_and_restore, run_tests_with_coverage)");
+        result.AppendLine("  • Elicitation support: confirmation dialogs for destructive operations (Clean, solution Remove)");
         result.AppendLine("  • Direct .NET SDK integration via NuGet packages");
         result.AppendLine("  • Template Engine integration with caching (5-min TTL)");
         result.AppendLine("  • Framework validation and LTS identification");
@@ -152,6 +156,19 @@ public sealed partial class DotNetCliTools
         result.AppendLine("  • dotnet://runtime-info - Installed runtimes with metadata");
         result.AppendLine("  • dotnet://templates - Complete template catalog");
         result.AppendLine("  • dotnet://frameworks - Framework information with LTS status");
+        result.AppendLine();
+
+        result.AppendLine("PROMPTS (Predefined Workflow Guides):");
+        result.AppendLine("  • create_new_webapi: Guide for creating a new ASP.NET Core Web API project");
+        result.AppendLine("  • add_package_and_restore: Guide for adding a NuGet package and restoring dependencies");
+        result.AppendLine("  • run_tests_with_coverage: Guide for running tests and generating a coverage report");
+        result.AppendLine();
+
+        result.AppendLine("ELICITATION (Confirmation Dialogs):");
+        result.AppendLine("  When the MCP client supports elicitation, the server requests user confirmation before:");
+        result.AppendLine("  • dotnet_project (action: Clean) - confirms before deleting build artifacts");
+        result.AppendLine("  • dotnet_solution (action: Remove) - confirms before removing projects from solution");
+        result.AppendLine("  Clients that do not support elicitation proceed without a confirmation prompt.");
         result.AppendLine();
 
         result.AppendLine("DOCUMENTATION:");

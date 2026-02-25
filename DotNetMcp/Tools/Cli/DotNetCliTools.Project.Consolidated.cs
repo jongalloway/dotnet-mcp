@@ -1,8 +1,8 @@
 using System.Text;
 using DotNetMcp.Actions;
 using Microsoft.Extensions.Logging;
-using ModelContextProtocol.Server;
 using ModelContextProtocol.Protocol;
+using ModelContextProtocol.Server;
 
 namespace DotNetMcp;
 
@@ -100,7 +100,8 @@ public sealed partial class DotNetCliTools
         string? propertyName = null,
         string? propertyValue = null,
         string? itemType = null,
-        string? include = null)
+        string? include = null,
+        McpServer? server = null)
     {
         var textResult = await WithWorkingDirectoryAsync(workingDirectory, async () =>
         {
@@ -119,7 +120,7 @@ public sealed partial class DotNetCliTools
                 DotnetProjectAction.Run => await HandleRunAction(project, configuration, appArgs, noBuild, startMode),
                 DotnetProjectAction.Test => await HandleTestAction(project, configuration, filter, collect, resultsDirectory, logger, noBuild, noRestore, verbosity, framework, blame, listTests, testRunner, useLegacyProjectArgument),
                 DotnetProjectAction.Publish => await HandlePublishAction(project, configuration, output, runtime),
-                DotnetProjectAction.Clean => await HandleCleanAction(project, configuration),
+                DotnetProjectAction.Clean => await HandleCleanAction(project, configuration, server),
                 DotnetProjectAction.Analyze => await HandleAnalyzeAction(projectPath),
                 DotnetProjectAction.Dependencies => await HandleDependenciesAction(projectPath),
                 DotnetProjectAction.Validate => await HandleValidateAction(projectPath),
@@ -334,8 +335,34 @@ public sealed partial class DotNetCliTools
             runtime: runtime);
     }
 
-    private async Task<string> HandleCleanAction(string? project, string? configuration)
+    private async Task<string> HandleCleanAction(string? project, string? configuration, McpServer? server = null)
     {
+        // Request confirmation via elicitation when client supports it
+        if (server != null && server.ClientCapabilities?.Elicitation != null)
+        {
+            var target = project ?? "the current project/solution";
+            var elicitResult = await server.ElicitAsync(new ElicitRequestParams
+            {
+                Message = $"This will delete all build output artifacts for {target}. Do you want to proceed?",
+                RequestedSchema = new ElicitRequestParams.RequestSchema
+                {
+                    Properties = new Dictionary<string, ElicitRequestParams.PrimitiveSchemaDefinition>
+                    {
+                        ["confirmed"] = new ElicitRequestParams.BooleanSchema
+                        {
+                            Title = "Confirm clean",
+                            Description = "I understand this will delete build artifacts"
+                        }
+                    }
+                }
+            }, default);
+
+            if (!elicitResult.IsAccepted)
+            {
+                return "Clean operation cancelled.";
+            }
+        }
+
         // Route to existing DotnetProjectClean method
         return await DotnetProjectClean(
             project: project,

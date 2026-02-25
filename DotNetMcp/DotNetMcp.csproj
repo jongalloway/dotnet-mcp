@@ -10,7 +10,8 @@
     <!-- The source generator creates [Description] attributes from XML documentation for MCP tool methods -->
     <!-- CS1066 is now automatically suppressed by the SDK for MCP server methods -->
     <!-- MCPEXP001: IMcpTaskStore and related task APIs are experimental in the MCP SDK -->
-    <NoWarn>$(NoWarn);CS1591;MCPEXP001</NoWarn>
+    <!-- CS1573: Parameter has no matching param tag - intentionally undocumented for framework-injected params (McpServer) -->
+    <NoWarn>$(NoWarn);CS1591;MCPEXP001;CS1573</NoWarn>
 
     <!-- NuGet Package Metadata -->
     <PackageId>Community.Mcp.DotNet</PackageId>

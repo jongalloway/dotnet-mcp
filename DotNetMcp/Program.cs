@@ -52,6 +52,7 @@ builder.Services.AddMcpServer(options =>
 })
     .WithStdioServerTransport()
     .WithTools<DotNetCliTools>()
-    .WithResources<DotNetResources>();
+    .WithResources<DotNetResources>()
+    .WithPrompts<DotNetPrompts>();
 
 await builder.Build().RunAsync();

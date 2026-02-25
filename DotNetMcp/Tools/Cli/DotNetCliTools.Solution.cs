@@ -112,7 +112,8 @@ public sealed partial class DotNetCliTools
         string? name = null,
         string? output = null,
         string? format = null,
-        string[]? projects = null)
+        string[]? projects = null,
+        McpServer? server = null)
     {
         // Validate action parameter
         if (!ParameterValidator.ValidateAction<DotnetSolutionAction>(action, out var actionError))
@@ -126,7 +127,7 @@ public sealed partial class DotNetCliTools
             DotnetSolutionAction.Create => await HandleCreateAction(name, output, format),
             DotnetSolutionAction.Add => await HandleAddAction(solution, projects),
             DotnetSolutionAction.List => await HandleListAction(solution),
-            DotnetSolutionAction.Remove => await HandleRemoveAction(solution, projects),
+            DotnetSolutionAction.Remove => await HandleRemoveAction(solution, projects, server),
             _ => throw new InvalidOperationException($"Unsupported action '{action}'. This should have been caught by validation.")
         };
 
@@ -176,7 +177,7 @@ public sealed partial class DotNetCliTools
         return await DotnetSolutionList(solution!);
     }
 
-    private async Task<string> HandleRemoveAction(string? solution, string[]? projects)
+    private async Task<string> HandleRemoveAction(string? solution, string[]? projects, McpServer? server = null)
     {
         // Validate required parameters for remove action
         if (!ParameterValidator.ValidateRequiredParameter(solution, "solution", out var solutionError))
@@ -187,6 +188,34 @@ public sealed partial class DotNetCliTools
         if (projects == null || projects.Length == 0)
         {
             return "Error: at least one project path is required for the 'remove' action.";
+        }
+
+        // Request confirmation via elicitation when client supports it
+        if (server != null && server.ClientCapabilities?.Elicitation != null)
+        {
+            var projectList = projects.Length == 1
+                ? $"'{projects[0]}'"
+                : $"{projects.Length} projects";
+            var elicitResult = await server.ElicitAsync(new ElicitRequestParams
+            {
+                Message = $"This will remove {projectList} from solution '{solution}'. Do you want to proceed?",
+                RequestedSchema = new ElicitRequestParams.RequestSchema
+                {
+                    Properties = new Dictionary<string, ElicitRequestParams.PrimitiveSchemaDefinition>
+                    {
+                        ["confirmed"] = new ElicitRequestParams.BooleanSchema
+                        {
+                            Title = "Confirm remove",
+                            Description = "I understand this will remove the project(s) from the solution"
+                        }
+                    }
+                }
+            }, default);
+
+            if (!elicitResult.IsAccepted)
+            {
+                return "Remove operation cancelled.";
+            }
         }
 
         return await DotnetSolutionRemove(solution!, projects);
