@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using DotNetMcp;
 using DotNetMcp.Actions;
@@ -423,15 +424,14 @@ Console.WriteLine(""Done"");
     private static string ExtractRequiredMetadataValue(string output, string key)
     {
         var prefix = key + ":";
-        foreach (var line in output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+        foreach (var line in output
+            .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+            .Where(line => line.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
         {
-            if (line.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            var value = line[prefix.Length..].Trim();
+            if (!string.IsNullOrEmpty(value))
             {
-                var value = line[prefix.Length..].Trim();
-                if (!string.IsNullOrEmpty(value))
-                {
-                    return value;
-                }
+                return value;
             }
         }
 
