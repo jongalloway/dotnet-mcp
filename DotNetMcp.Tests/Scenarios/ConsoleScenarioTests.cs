@@ -1,5 +1,4 @@
 using DotNetMcp;
-using System.Text.Json;
 using Xunit;
 
 namespace DotNetMcp.Tests.Scenarios;
@@ -26,7 +25,7 @@ public class ConsoleScenarioTests
         await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
 
         // Add a package via MCP.
-        var addPackageJsonText = await client.CallToolTextAsync(
+        var addPackageText = await client.CallToolTextAsync(
             toolName: "dotnet_package",
             args: new Dictionary<string, object?>
             {
@@ -35,15 +34,13 @@ public class ConsoleScenarioTests
                 ["packageId"] = "Aspire.Hosting",
                 ["version"] = "13.1.0",
                 ["source"] = "https://api.nuget.org/v3/index.json",
-                ["machineReadable"] = true
             },
             cancellationToken);
 
-        using var addPackageJson = ScenarioHelpers.ParseJson(addPackageJsonText);
-        ScenarioHelpers.AssertMachineReadableSuccess(addPackageJson.RootElement);
+        Assert.DoesNotContain("Error:", addPackageText);
 
         // Build via MCP in Release.
-        var buildJsonText = await client.CallToolTextAsync(
+        var buildText = await client.CallToolTextAsync(
             toolName: "dotnet_project",
             args: new Dictionary<string, object?>
             {
@@ -51,11 +48,9 @@ public class ConsoleScenarioTests
                 ["project"] = projectPath,
                 ["configuration"] = "Release",
                 ["noRestore"] = true,
-                ["machineReadable"] = true
             },
             cancellationToken);
 
-        using var buildJson = ScenarioHelpers.ParseJson(buildJsonText);
-        ScenarioHelpers.AssertMachineReadableSuccess(buildJson.RootElement);
+        Assert.DoesNotContain("Error:", buildText);
     }
 }

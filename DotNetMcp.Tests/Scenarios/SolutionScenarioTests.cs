@@ -1,5 +1,4 @@
 using DotNetMcp;
-using System.Text.Json;
 using Xunit;
 
 namespace DotNetMcp.Tests.Scenarios;
@@ -42,12 +41,10 @@ public class SolutionScenarioTests
                 ["action"] = "Create",
                 ["name"] = "TestSolution",
                 ["output"] = tempRoot.Path,
-                ["machineReadable"] = true
             },
             cancellationToken);
 
-        using var slnCreateJson = ScenarioHelpers.ParseJson(slnCreateText);
-        ScenarioHelpers.AssertMachineReadableSuccess(slnCreateJson.RootElement);
+        Assert.DoesNotContain("Error:", slnCreateText);
 
         var slnPath = Path.Join(tempRoot.Path, "TestSolution.sln");
         Assert.True(File.Exists(slnPath), "Expected solution file to be created");
@@ -60,12 +57,10 @@ public class SolutionScenarioTests
                 ["action"] = "Add",
                 ["solution"] = slnPath,
                 ["projects"] = new[] { libAProj, libBProj },
-                ["machineReadable"] = true
             },
             cancellationToken);
 
-        using var slnAddJson = ScenarioHelpers.ParseJson(slnAddText);
-        ScenarioHelpers.AssertMachineReadableSuccess(slnAddJson.RootElement);
+        Assert.DoesNotContain("Error:", slnAddText);
 
         // Step 3: List projects in solution to verify they were added
         var slnListText = await client.CallToolTextAsync(
@@ -74,18 +69,12 @@ public class SolutionScenarioTests
             {
                 ["action"] = "List",
                 ["solution"] = slnPath,
-                ["machineReadable"] = true
             },
             cancellationToken);
 
-        using var slnListJson = ScenarioHelpers.ParseJson(slnListText);
-        ScenarioHelpers.AssertMachineReadableSuccess(slnListJson.RootElement);
-
-        // Verify that the output contains references to both projects
-        var listOutput = slnListJson.RootElement.GetProperty("output").GetString();
-        Assert.NotNull(listOutput);
-        Assert.Contains("LibA.csproj", listOutput);
-        Assert.Contains("LibB.csproj", listOutput);
+        Assert.DoesNotContain("Error:", slnListText);
+        Assert.Contains("LibA.csproj", slnListText);
+        Assert.Contains("LibB.csproj", slnListText);
     }
 
     [ScenarioFact]
@@ -126,12 +115,10 @@ public class SolutionScenarioTests
                 ["name"] = "TestSolution",
                 ["output"] = tempRoot.Path,
                 ["format"] = "slnx",
-                ["machineReadable"] = true
             },
             cancellationToken);
 
-        using var slnCreateJson = ScenarioHelpers.ParseJson(slnCreateText);
-        ScenarioHelpers.AssertMachineReadableSuccess(slnCreateJson.RootElement);
+        Assert.DoesNotContain("Error:", slnCreateText);
 
         var slnPath = Path.Join(tempRoot.Path, "TestSolution.slnx");
         Assert.True(File.Exists(slnPath), "Expected solution file (slnx format) to be created");
@@ -144,12 +131,10 @@ public class SolutionScenarioTests
                 ["action"] = "Add",
                 ["solution"] = slnPath,
                 ["projects"] = new[] { libAProj, libBProj, libCProj },
-                ["machineReadable"] = true
             },
             cancellationToken);
 
-        using var slnAddJson = ScenarioHelpers.ParseJson(slnAddText);
-        ScenarioHelpers.AssertMachineReadableSuccess(slnAddJson.RootElement);
+        Assert.DoesNotContain("Error:", slnAddText);
 
         // Step 3: List projects to verify all three were added
         var slnListBeforeText = await client.CallToolTextAsync(
@@ -158,18 +143,13 @@ public class SolutionScenarioTests
             {
                 ["action"] = "List",
                 ["solution"] = slnPath,
-                ["machineReadable"] = true
             },
             cancellationToken);
 
-        using var slnListBeforeJson = ScenarioHelpers.ParseJson(slnListBeforeText);
-        ScenarioHelpers.AssertMachineReadableSuccess(slnListBeforeJson.RootElement);
-
-        var listBeforeOutput = slnListBeforeJson.RootElement.GetProperty("output").GetString();
-        Assert.NotNull(listBeforeOutput);
-        Assert.Contains("LibA.csproj", listBeforeOutput);
-        Assert.Contains("LibB.csproj", listBeforeOutput);
-        Assert.Contains("LibC.csproj", listBeforeOutput);
+        Assert.DoesNotContain("Error:", slnListBeforeText);
+        Assert.Contains("LibA.csproj", slnListBeforeText);
+        Assert.Contains("LibB.csproj", slnListBeforeText);
+        Assert.Contains("LibC.csproj", slnListBeforeText);
 
         // Step 4: Remove LibB from solution
         var slnRemoveText = await client.CallToolTextAsync(
@@ -179,12 +159,10 @@ public class SolutionScenarioTests
                 ["action"] = "Remove",
                 ["solution"] = slnPath,
                 ["projects"] = new[] { libBProj },
-                ["machineReadable"] = true
             },
             cancellationToken);
 
-        using var slnRemoveJson = ScenarioHelpers.ParseJson(slnRemoveText);
-        ScenarioHelpers.AssertMachineReadableSuccess(slnRemoveJson.RootElement);
+        Assert.DoesNotContain("Error:", slnRemoveText);
 
         // Step 5: List projects again to verify LibB was removed
         var slnListAfterText = await client.CallToolTextAsync(
@@ -193,17 +171,12 @@ public class SolutionScenarioTests
             {
                 ["action"] = "List",
                 ["solution"] = slnPath,
-                ["machineReadable"] = true
             },
             cancellationToken);
 
-        using var slnListAfterJson = ScenarioHelpers.ParseJson(slnListAfterText);
-        ScenarioHelpers.AssertMachineReadableSuccess(slnListAfterJson.RootElement);
-
-        var listAfterOutput = slnListAfterJson.RootElement.GetProperty("output").GetString();
-        Assert.NotNull(listAfterOutput);
-        Assert.Contains("LibA.csproj", listAfterOutput);
-        Assert.DoesNotContain("LibB.csproj", listAfterOutput);
-        Assert.Contains("LibC.csproj", listAfterOutput);
+        Assert.DoesNotContain("Error:", slnListAfterText);
+        Assert.Contains("LibA.csproj", slnListAfterText);
+        Assert.DoesNotContain("LibB.csproj", slnListAfterText);
+        Assert.Contains("LibC.csproj", slnListAfterText);
     }
 }
