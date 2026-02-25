@@ -302,6 +302,19 @@ public enum DotnetSdkAction
 }
 
 /// <summary>
+/// Actions for the dotnet_server_metrics tool.
+/// Exposes in-memory MCP tool invocation metrics collected by the telemetry filter.
+/// </summary>
+public enum DotnetServerMetricsAction
+{
+    /// <summary>Return a JSON snapshot of per-tool invocation counts, average durations, and success/failure counts</summary>
+    Get,
+
+    /// <summary>Reset all accumulated metrics to zero</summary>
+    Reset
+}
+
+/// <summary>
 /// Actions for the consolidated dotnet_dev_certs tool.
 /// Manages developer certificates and user secrets.
 /// </summary>

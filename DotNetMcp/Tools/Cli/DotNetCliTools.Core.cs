@@ -17,17 +17,19 @@ public sealed partial class DotNetCliTools
     private readonly ILogger<DotNetCliTools> _logger;
     private readonly ConcurrencyManager _concurrencyManager;
     private readonly ProcessSessionManager _processSessionManager;
+    private readonly ToolMetricsAccumulator? _metricsAccumulator;
 
     // Constants for server capability discovery
     private const string DefaultServerVersion = "1.0.0";
     private const string ProtocolVersion = "2025-11-25";
 
-    public DotNetCliTools(ILogger<DotNetCliTools> logger, ConcurrencyManager concurrencyManager, ProcessSessionManager processSessionManager)
+    public DotNetCliTools(ILogger<DotNetCliTools> logger, ConcurrencyManager concurrencyManager, ProcessSessionManager processSessionManager, ToolMetricsAccumulator? metricsAccumulator = null)
     {
         // DI guarantees logger is never null
         _logger = logger!;
         _concurrencyManager = concurrencyManager!;
         _processSessionManager = processSessionManager!;
+        _metricsAccumulator = metricsAccumulator;
     }
 
     private async Task<string> ExecuteDotNetCommand(string arguments, CancellationToken cancellationToken = default, string? workingDirectory = null)
