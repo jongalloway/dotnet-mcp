@@ -77,6 +77,21 @@ public sealed class ServerFeatureSupport
     /// </summary>
     [JsonPropertyName("asyncTasks")]
     public bool AsyncTasks { get; init; }
+
+    /// <summary>
+    /// Whether the server provides a predefined prompt catalog for common .NET development workflows.
+    /// When true, clients can discover and use prompts via the MCP prompts protocol.
+    /// </summary>
+    [JsonPropertyName("prompts")]
+    public bool Prompts { get; init; }
+
+    /// <summary>
+    /// Whether the server uses MCP Elicitation to request user confirmation before destructive operations.
+    /// When true, clients that support elicitation will receive confirmation requests before actions
+    /// such as Clean and solution Remove.
+    /// </summary>
+    [JsonPropertyName("elicitation")]
+    public bool Elicitation { get; init; }
 }
 
 /// <summary>

@@ -116,6 +116,12 @@ public class XmlDocumentationCoverageTests
 
             foreach (var parameter in method.GetParameters())
             {
+                // Skip framework-injected parameters that should not be documented in tool schemas.
+                // McpServer and CancellationToken are automatically injected by the MCP SDK
+                // at invocation time, not provided by the user, so they are intentionally excluded.
+                if (IsFrameworkInjectedParameter(parameter))
+                    continue;
+
                 var paramElement = memberElement
                     .Elements("param")
                     .FirstOrDefault(e => string.Equals((string?)e.Attribute("name"), parameter.Name, StringComparison.Ordinal));
@@ -146,6 +152,23 @@ public class XmlDocumentationCoverageTests
 
             Assert.Fail(message.ToString());
         }
+    }
+
+    /// <summary>
+    /// Returns true for parameters that are automatically injected by the MCP SDK framework
+    /// at tool invocation time and should not appear in the tool schema or XML documentation.
+    /// </summary>
+    private static bool IsFrameworkInjectedParameter(ParameterInfo parameter)
+    {
+        var type = parameter.ParameterType;
+
+        // Unwrap Nullable<T>
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
+            type = type.GetGenericArguments()[0];
+
+        return type == typeof(ModelContextProtocol.Server.McpServer)
+            || type == typeof(CancellationToken)
+            || type == typeof(IServiceProvider);
     }
 
     private static string GetXmlDocumentationMemberId(MethodInfo method)
