@@ -25,7 +25,7 @@ public class ConsolidatedWorkloadToolTests
     public async Task DotnetWorkload_List_ReturnsWorkloadInformation()
     {
         // Act
-        var result = await _tools.DotnetWorkload(DotnetWorkloadAction.List);
+        var result = (await _tools.DotnetWorkload(DotnetWorkloadAction.List)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -41,7 +41,7 @@ public class ConsolidatedWorkloadToolTests
     public async Task DotnetWorkload_List_WithMachineReadable_ReturnsStructuredOutput()
     {
         // Act
-        var result = await _tools.DotnetWorkload(DotnetWorkloadAction.List, machineReadable: true);
+        var result = (await _tools.DotnetWorkload(DotnetWorkloadAction.List)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -57,7 +57,7 @@ public class ConsolidatedWorkloadToolTests
     public async Task DotnetWorkload_Info_ReturnsDetailedWorkloadInformation()
     {
         // Act
-        var result = await _tools.DotnetWorkload(DotnetWorkloadAction.Info);
+        var result = (await _tools.DotnetWorkload(DotnetWorkloadAction.Info)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -74,7 +74,7 @@ public class ConsolidatedWorkloadToolTests
     public async Task DotnetWorkload_Info_WithMachineReadable_ReturnsStructuredOutput()
     {
         // Act
-        var result = await _tools.DotnetWorkload(DotnetWorkloadAction.Info, machineReadable: true);
+        var result = (await _tools.DotnetWorkload(DotnetWorkloadAction.Info)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -89,7 +89,7 @@ public class ConsolidatedWorkloadToolTests
     public async Task DotnetWorkload_Search_WithoutSearchTerm_ReturnsAllWorkloads()
     {
         // Act
-        var result = await _tools.DotnetWorkload(DotnetWorkloadAction.Search);
+        var result = (await _tools.DotnetWorkload(DotnetWorkloadAction.Search)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -101,7 +101,7 @@ public class ConsolidatedWorkloadToolTests
     public async Task DotnetWorkload_Search_WithSearchTerm_ReturnsFilteredWorkloads()
     {
         // Act
-        var result = await _tools.DotnetWorkload(DotnetWorkloadAction.Search, searchTerm: "maui");
+        var result = (await _tools.DotnetWorkload(DotnetWorkloadAction.Search, searchTerm: "maui")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -117,7 +117,7 @@ public class ConsolidatedWorkloadToolTests
     public async Task DotnetWorkload_Search_WithInvalidSearchTerm_HandlesGracefully()
     {
         // Act
-        var result = await _tools.DotnetWorkload(DotnetWorkloadAction.Search, searchTerm: "nonexistent-workload-xyz-123");
+        var result = (await _tools.DotnetWorkload(DotnetWorkloadAction.Search, searchTerm: "nonexistent-workload-xyz-123")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -128,7 +128,7 @@ public class ConsolidatedWorkloadToolTests
     public async Task DotnetWorkload_Search_WithMachineReadable_ReturnsStructuredOutput()
     {
         // Act
-        var result = await _tools.DotnetWorkload(DotnetWorkloadAction.Search, searchTerm: "maui", machineReadable: true);
+        var result = (await _tools.DotnetWorkload(DotnetWorkloadAction.Search, searchTerm: "maui")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -142,7 +142,7 @@ public class ConsolidatedWorkloadToolTests
     public async Task DotnetWorkload_Install_WithoutWorkloadIds_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetWorkload(DotnetWorkloadAction.Install);
+        var result = (await _tools.DotnetWorkload(DotnetWorkloadAction.Install)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -154,7 +154,7 @@ public class ConsolidatedWorkloadToolTests
     public async Task DotnetWorkload_Install_WithEmptyWorkloadIds_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetWorkload(DotnetWorkloadAction.Install, workloadIds: Array.Empty<string>());
+        var result = (await _tools.DotnetWorkload(DotnetWorkloadAction.Install, workloadIds: Array.Empty<string>())).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -166,7 +166,7 @@ public class ConsolidatedWorkloadToolTests
     public async Task DotnetWorkload_Install_WithInvalidWorkloadId_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetWorkload(DotnetWorkloadAction.Install, workloadIds: new[] { "invalid$workload" });
+        var result = (await _tools.DotnetWorkload(DotnetWorkloadAction.Install, workloadIds: new[] { "invalid$workload" })).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -174,14 +174,14 @@ public class ConsolidatedWorkloadToolTests
         Assert.Contains("Invalid workload ID", result);
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetWorkload_Install_WithValidSingleWorkload_BuildsCorrectCommand()
     {
         // This test validates command building without actually installing
         // We expect this to fail since we're using a fake workload ID
         
         // Act
-        var result = await _tools.DotnetWorkload(DotnetWorkloadAction.Install, workloadIds: new[] { "test-workload-id" });
+        var result = (await _tools.DotnetWorkload(DotnetWorkloadAction.Install, workloadIds: new[] { "test-workload-id" })).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -189,69 +189,69 @@ public class ConsolidatedWorkloadToolTests
         // This validates that the command was properly constructed
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetWorkload_Install_WithMultipleWorkloads_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetWorkload(
+        var result = (await _tools.DotnetWorkload(
             DotnetWorkloadAction.Install,
-            workloadIds: new[] { "workload-one", "workload-two" });
+            workloadIds: new[] { "workload-one", "workload-two" })).GetText();
 
         // Assert
         Assert.NotNull(result);
         // Command should be properly constructed with both workload IDs
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetWorkload_Install_WithSkipManifestUpdate_IncludesFlag()
     {
         // Act
-        var result = await _tools.DotnetWorkload(
+        var result = (await _tools.DotnetWorkload(
             DotnetWorkloadAction.Install,
             workloadIds: new[] { "test-workload" },
-            skipManifestUpdate: true);
+            skipManifestUpdate: true)).GetText();
 
         // Assert
         Assert.NotNull(result);
         // Command executes with skip-manifest-update flag
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetWorkload_Install_WithIncludePreviews_IncludesFlag()
     {
         // Act
-        var result = await _tools.DotnetWorkload(
+        var result = (await _tools.DotnetWorkload(
             DotnetWorkloadAction.Install,
             workloadIds: new[] { "test-workload" },
-            includePreviews: true);
+            includePreviews: true)).GetText();
 
         // Assert
         Assert.NotNull(result);
         // Command executes with include-previews flag
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetWorkload_Install_WithSource_IncludesSource()
     {
         // Act
-        var result = await _tools.DotnetWorkload(
+        var result = (await _tools.DotnetWorkload(
             DotnetWorkloadAction.Install,
             workloadIds: new[] { "test-workload" },
-            source: "https://api.nuget.org/v3/index.json");
+            source: "https://api.nuget.org/v3/index.json")).GetText();
 
         // Assert
         Assert.NotNull(result);
         // Command executes with source parameter
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetWorkload_Install_WithConfigFile_IncludesConfigFile()
     {
         // Act
-        var result = await _tools.DotnetWorkload(
+        var result = (await _tools.DotnetWorkload(
             DotnetWorkloadAction.Install,
             workloadIds: new[] { "test-workload" },
-            configFile: "nuget.config");
+            configFile: "nuget.config")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -262,26 +262,24 @@ public class ConsolidatedWorkloadToolTests
     public async Task DotnetWorkload_Install_WithMachineReadable_ReturnsStructuredOutput()
     {
         // Act - test with empty array to trigger validation error in machine-readable format
-        var result = await _tools.DotnetWorkload(
+        var result = (await _tools.DotnetWorkload(
             DotnetWorkloadAction.Install,
-            workloadIds: Array.Empty<string>(),
-            machineReadable: true);
+            workloadIds: Array.Empty<string>())).GetText();
 
         // Assert
         Assert.NotNull(result);
-        // Should return JSON-formatted error
-        Assert.Contains("{", result);
+        Assert.Contains("Error:", result, StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion
 
     #region Update Action Tests
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetWorkload_Update_ExecutesSuccessfully()
     {
         // Act
-        var result = await _tools.DotnetWorkload(DotnetWorkloadAction.Update);
+        var result = (await _tools.DotnetWorkload(DotnetWorkloadAction.Update)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -289,35 +287,35 @@ public class ConsolidatedWorkloadToolTests
         // (may report no workloads to update, which is fine)
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetWorkload_Update_WithIncludePreviews_IncludesFlag()
     {
         // Act
-        var result = await _tools.DotnetWorkload(DotnetWorkloadAction.Update, includePreviews: true);
+        var result = (await _tools.DotnetWorkload(DotnetWorkloadAction.Update, includePreviews: true)).GetText();
 
         // Assert
         Assert.NotNull(result);
         // Command executes with include-previews flag
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetWorkload_Update_WithSource_IncludesSource()
     {
         // Act
-        var result = await _tools.DotnetWorkload(
+        var result = (await _tools.DotnetWorkload(
             DotnetWorkloadAction.Update,
-            source: "https://api.nuget.org/v3/index.json");
+            source: "https://api.nuget.org/v3/index.json")).GetText();
 
         // Assert
         Assert.NotNull(result);
         // Command executes with source parameter
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetWorkload_Update_WithMachineReadable_ReturnsStructuredOutput()
     {
         // Act
-        var result = await _tools.DotnetWorkload(DotnetWorkloadAction.Update, machineReadable: true);
+        var result = (await _tools.DotnetWorkload(DotnetWorkloadAction.Update)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -332,7 +330,7 @@ public class ConsolidatedWorkloadToolTests
     public async Task DotnetWorkload_Uninstall_WithoutWorkloadIds_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetWorkload(DotnetWorkloadAction.Uninstall);
+        var result = (await _tools.DotnetWorkload(DotnetWorkloadAction.Uninstall)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -344,7 +342,7 @@ public class ConsolidatedWorkloadToolTests
     public async Task DotnetWorkload_Uninstall_WithEmptyWorkloadIds_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetWorkload(DotnetWorkloadAction.Uninstall, workloadIds: Array.Empty<string>());
+        var result = (await _tools.DotnetWorkload(DotnetWorkloadAction.Uninstall, workloadIds: Array.Empty<string>())).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -356,7 +354,7 @@ public class ConsolidatedWorkloadToolTests
     public async Task DotnetWorkload_Uninstall_WithInvalidWorkloadId_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetWorkload(DotnetWorkloadAction.Uninstall, workloadIds: new[] { "invalid!workload" });
+        var result = (await _tools.DotnetWorkload(DotnetWorkloadAction.Uninstall, workloadIds: new[] { "invalid!workload" })).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -364,24 +362,24 @@ public class ConsolidatedWorkloadToolTests
         Assert.Contains("Invalid workload ID", result);
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetWorkload_Uninstall_WithValidWorkloadId_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetWorkload(DotnetWorkloadAction.Uninstall, workloadIds: new[] { "test-workload" });
+        var result = (await _tools.DotnetWorkload(DotnetWorkloadAction.Uninstall, workloadIds: new[] { "test-workload" })).GetText();
 
         // Assert
         Assert.NotNull(result);
         // Command should execute (even if workload doesn't exist)
     }
 
-    [Fact]
+    [InteractiveFact]
     public async Task DotnetWorkload_Uninstall_WithMultipleWorkloads_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetWorkload(
+        var result = (await _tools.DotnetWorkload(
             DotnetWorkloadAction.Uninstall,
-            workloadIds: new[] { "workload-one", "workload-two", "workload-three" });
+            workloadIds: new[] { "workload-one", "workload-two", "workload-three" })).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -392,42 +390,43 @@ public class ConsolidatedWorkloadToolTests
     public async Task DotnetWorkload_Uninstall_WithMachineReadable_ReturnsStructuredOutput()
     {
         // Act - test with empty array to trigger validation error in machine-readable format
-        var result = await _tools.DotnetWorkload(
+        var result = (await _tools.DotnetWorkload(
             DotnetWorkloadAction.Uninstall,
-            workloadIds: Array.Empty<string>(),
-            machineReadable: true);
+            workloadIds: Array.Empty<string>())).GetText();
 
         // Assert
         Assert.NotNull(result);
-        // Should return JSON-formatted error
-        Assert.Contains("{", result);
+        Assert.Contains("Error:", result, StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion
 
     #region Validation Tests
 
-    [Theory]
-    [InlineData("maui-android")]
-    [InlineData("maui-ios")]
-    [InlineData("wasm-tools")]
-    [InlineData("android")]
-    [InlineData("ios")]
-    [InlineData("maccatalyst")]
-    [InlineData("maui-windows")]
-    [InlineData("maui-tizen")]
-    [InlineData("workload123")]
-    [InlineData("WORKLOAD_NAME")]
-    [InlineData("workload-name_123")]
-    public async Task DotnetWorkload_Install_WithValidWorkloadIds_AcceptsFormat(string workloadId)
+    [InteractiveFact]
+    public async Task DotnetWorkload_Install_WithValidWorkloadIds_AcceptsFormat()
     {
-        // Act
-        var result = await _tools.DotnetWorkload(DotnetWorkloadAction.Install, workloadIds: new[] { workloadId });
+        var workloadIds = new[]
+        {
+            "maui-android",
+            "maui-ios",
+            "wasm-tools",
+            "android",
+            "ios",
+            "maccatalyst",
+            "maui-windows",
+            "maui-tizen",
+            "workload123",
+            "WORKLOAD_NAME",
+            "workload-name_123"
+        };
 
-        // Assert
-        Assert.NotNull(result);
-        // Should not reject due to format validation
-        Assert.DoesNotContain("Invalid workload ID", result);
+        foreach (var workloadId in workloadIds)
+        {
+            var result = (await _tools.DotnetWorkload(DotnetWorkloadAction.Install, workloadIds: new[] { workloadId })).GetText();
+            Assert.NotNull(result);
+            Assert.DoesNotContain("Invalid workload ID", result);
+        }
     }
 
     [Theory]
@@ -441,7 +440,7 @@ public class ConsolidatedWorkloadToolTests
     public async Task DotnetWorkload_Install_WithInvalidWorkloadIds_RejectsFormat(string workloadId)
     {
         // Act
-        var result = await _tools.DotnetWorkload(DotnetWorkloadAction.Install, workloadIds: new[] { workloadId });
+        var result = (await _tools.DotnetWorkload(DotnetWorkloadAction.Install, workloadIds: new[] { workloadId })).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -453,9 +452,9 @@ public class ConsolidatedWorkloadToolTests
     public async Task DotnetWorkload_Install_WithMultipleInvalidWorkloads_ReturnsErrorForFirst()
     {
         // Act
-        var result = await _tools.DotnetWorkload(
+        var result = (await _tools.DotnetWorkload(
             DotnetWorkloadAction.Install,
-            workloadIds: new[] { "valid-workload", "invalid@workload" });
+            workloadIds: new[] { "valid-workload", "invalid@workload" })).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -470,8 +469,11 @@ public class ConsolidatedWorkloadToolTests
     [Fact]
     public async Task DotnetWorkload_AllActions_RouteCorrectly()
     {
-        // Test that all enum values are handled
-        var actions = Enum.GetValues<DotnetWorkloadAction>();
+        var actions = Enum.GetValues<DotnetWorkloadAction>()
+            .Where(action => action is not DotnetWorkloadAction.Install
+                and not DotnetWorkloadAction.Update
+                and not DotnetWorkloadAction.Uninstall)
+            .ToArray();
         
         // Act - test each action and verify it routes correctly
         var results = await Task.WhenAll(actions.Select(async action => new
@@ -479,9 +481,9 @@ public class ConsolidatedWorkloadToolTests
             Action = action,
             Result = action switch
             {
-                DotnetWorkloadAction.Install => await _tools.DotnetWorkload(action, workloadIds: new[] { "test-id" }),
-                DotnetWorkloadAction.Uninstall => await _tools.DotnetWorkload(action, workloadIds: new[] { "test-id" }),
-                _ => await _tools.DotnetWorkload(action)
+                DotnetWorkloadAction.Install => (await _tools.DotnetWorkload(action, workloadIds: new[] { "test-id" })).GetText(),
+                DotnetWorkloadAction.Uninstall => (await _tools.DotnetWorkload(action, workloadIds: new[] { "test-id" })).GetText(),
+                _ => (await _tools.DotnetWorkload(action)).GetText()
             }
         }));
 

@@ -25,7 +25,6 @@ public class CommandExecutorRedactionTests
         var result = await DotNetCommandExecutor.ExecuteCommandAsync(
             arguments,
             _logger,
-            machineReadable: false,
             unsafeOutput: false,
             cancellationToken: TestContext.Current.CancellationToken);
 
@@ -45,7 +44,6 @@ public class CommandExecutorRedactionTests
         var result = await DotNetCommandExecutor.ExecuteCommandAsync(
             arguments,
             _logger,
-            machineReadable: false,
             unsafeOutput: true,
             cancellationToken: TestContext.Current.CancellationToken);
 
@@ -66,7 +64,6 @@ public class CommandExecutorRedactionTests
         var result = await DotNetCommandExecutor.ExecuteCommandAsync(
             arguments,
             _logger,
-            machineReadable: false,
             unsafeOutput: false,
             cancellationToken: TestContext.Current.CancellationToken);
 
@@ -77,7 +74,7 @@ public class CommandExecutorRedactionTests
     }
 
     [Fact]
-    public async Task ExecuteCommandAsync_MachineReadableWithRedaction_ReturnsJson()
+    public async Task ExecuteCommandAsync_WithRedaction_ReturnsPlainText()
     {
         // Arrange
         var arguments = "--version";
@@ -86,13 +83,10 @@ public class CommandExecutorRedactionTests
         var result = await DotNetCommandExecutor.ExecuteCommandAsync(
             arguments,
             _logger,
-            machineReadable: true,
             unsafeOutput: false,
             cancellationToken: TestContext.Current.CancellationToken);
 
-        // Assert - should return JSON format
-        Assert.Contains("\"success\"", result);
-        Assert.Contains("\"exitCode\"", result);
+        Assert.Contains("Exit Code: 0", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

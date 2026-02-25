@@ -1,5 +1,6 @@
 using System.Text;
 using DotNetMcp.Actions;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace DotNetMcp;
@@ -31,14 +32,13 @@ public sealed partial class DotNetCliTools
     /// <param name="referencePath">Path to referenced project for add/remove reference operations</param>
     /// <param name="cacheType">Cache location to clear: all, http-cache, global-packages, temp, plugins-cache</param>
     /// <param name="workingDirectory">Working directory for command execution</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpServerTool(Title = "NuGet Package Manager", Destructive = true, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Package/Flat/package_flat.svg")]
     [McpMeta("category", "package")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("consolidatedTool", true)]
     [McpMeta("actions", JsonValue = """["Add","Remove","Search","Update","List","AddReference","RemoveReference","ListReferences","ClearCache"]""")]
-    public async partial Task<string> DotnetPackage(
+    public async partial Task<CallToolResult> DotnetPackage(
         DotnetPackageAction action,
         string? packageId = null,
         string? version = null,
@@ -54,61 +54,45 @@ public sealed partial class DotNetCliTools
         bool? deprecated = null,
         string? referencePath = null,
         string? cacheType = null,
-        string? workingDirectory = null,
-        bool machineReadable = false)
+        string? workingDirectory = null)
     {
-        return await WithWorkingDirectoryAsync(workingDirectory, async () =>
+        var textResult = await WithWorkingDirectoryAsync(workingDirectory, async () =>
         {
             // Validate action parameter
             if (!ParameterValidator.ValidateAction<DotnetPackageAction>(action, out var errorMessage))
             {
-                if (machineReadable)
-                {
-                    var validActions = Enum.GetNames(typeof(DotnetPackageAction));
-                    var error = ErrorResultFactory.CreateActionValidationError(
-                        action.ToString(),
-                        validActions,
-                        toolName: "dotnet_package");
-                    return ErrorResultFactory.ToJson(error);
-                }
                 return $"Error: {errorMessage}";
             }
 
             // Route to appropriate handler based on action
             return action switch
             {
-                DotnetPackageAction.Add => await HandleAddAction(packageId, project, version, source, framework, prerelease ?? false, machineReadable),
-                DotnetPackageAction.Remove => await HandleRemoveAction(packageId, project, machineReadable),
-                DotnetPackageAction.Search => await HandleSearchAction(searchTerm, take, skip, prerelease ?? false, exactMatch ?? false, machineReadable),
-                DotnetPackageAction.Update => await HandleUpdateAction(packageId, project, version, prerelease ?? false, machineReadable),
-                DotnetPackageAction.List => await HandleListAction(project, outdated ?? false, deprecated ?? false, machineReadable),
-                DotnetPackageAction.AddReference => await HandleAddReferenceAction(project, referencePath, machineReadable),
-                DotnetPackageAction.RemoveReference => await HandleRemoveReferenceAction(project, referencePath, machineReadable),
-                DotnetPackageAction.ListReferences => await HandleListReferencesAction(project, machineReadable),
-                DotnetPackageAction.ClearCache => await HandleClearCacheAction(cacheType, machineReadable),
-                _ => machineReadable
-                    ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateValidationError(
-                        $"Action '{action}' is not supported.",
-                        parameterName: "action",
-                        reason: "not supported"))
-                    : $"Error: Action '{action}' is not supported."
+                DotnetPackageAction.Add => await HandleAddAction(packageId, project, version, source, framework, prerelease ?? false),
+                DotnetPackageAction.Remove => await HandleRemoveAction(packageId, project),
+                DotnetPackageAction.Search => await HandleSearchAction(searchTerm, take, skip, prerelease ?? false, exactMatch ?? false),
+                DotnetPackageAction.Update => await HandleUpdateAction(packageId, project, version, prerelease ?? false),
+                DotnetPackageAction.List => await HandleListAction(project, outdated ?? false, deprecated ?? false),
+                DotnetPackageAction.AddReference => await HandleAddReferenceAction(project, referencePath),
+                DotnetPackageAction.RemoveReference => await HandleRemoveReferenceAction(project, referencePath),
+                DotnetPackageAction.ListReferences => await HandleListReferencesAction(project),
+                DotnetPackageAction.ClearCache => await HandleClearCacheAction(cacheType),
+                _ => $"Error: Action '{action}' is not supported."
             };
         });
+
+        // Add structured content for List action
+        object? structured = action == DotnetPackageAction.List
+            ? BuildPackageListStructuredContent(textResult)
+            : null;
+
+        return StructuredContentHelper.ToCallToolResult(textResult, structured);
     }
 
-    private async Task<string> HandleAddAction(string? packageId, string? project, string? version, string? source, string? framework, bool prerelease, bool machineReadable)
+    private async Task<string> HandleAddAction(string? packageId, string? project, string? version, string? source, string? framework, bool prerelease)
     {
         // Validate required parameters
         if (!ParameterValidator.ValidateRequiredParameter(packageId, "packageId", out var errorMessage))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    errorMessage!,
-                    parameterName: "packageId",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {errorMessage}";
         }
 
@@ -119,8 +103,7 @@ public sealed partial class DotNetCliTools
                 packageName: packageId!,
                 project: project,
                 version: version,
-                prerelease: prerelease,
-                machineReadable: machineReadable);
+                prerelease: prerelease);
         }
 
         // When source or framework are specified, execute 'dotnet add package' directly so those options are honored
@@ -154,45 +137,28 @@ public sealed partial class DotNetCliTools
             args.Append($" --framework \"{framework}\"");
         }
 
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
-    private async Task<string> HandleRemoveAction(string? packageId, string? project, bool machineReadable)
+    private async Task<string> HandleRemoveAction(string? packageId, string? project)
     {
         // Validate required parameters
         if (!ParameterValidator.ValidateRequiredParameter(packageId, "packageId", out var errorMessage))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    errorMessage!,
-                    parameterName: "packageId",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {errorMessage}";
         }
 
         // Route to existing DotnetPackageRemove method
         return await DotnetPackageRemove(
             packageName: packageId!,
-            project: project,
-            machineReadable: machineReadable);
+            project: project);
     }
 
-    private async Task<string> HandleSearchAction(string? searchTerm, int? take, int? skip, bool prerelease, bool exactMatch, bool machineReadable)
+    private async Task<string> HandleSearchAction(string? searchTerm, int? take, int? skip, bool prerelease, bool exactMatch)
     {
         // Validate required parameters
         if (!ParameterValidator.ValidateRequiredParameter(searchTerm, "searchTerm", out var errorMessage))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    errorMessage!,
-                    parameterName: "searchTerm",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {errorMessage}";
         }
 
@@ -202,23 +168,14 @@ public sealed partial class DotNetCliTools
             take: take,
             skip: skip,
             prerelease: prerelease,
-            exactMatch: exactMatch,
-            machineReadable: machineReadable);
+            exactMatch: exactMatch);
     }
 
-    private async Task<string> HandleUpdateAction(string? packageId, string? project, string? version, bool prerelease, bool machineReadable)
+    private async Task<string> HandleUpdateAction(string? packageId, string? project, string? version, bool prerelease)
     {
         // Validate required parameters
         if (!ParameterValidator.ValidateRequiredParameter(packageId, "packageId", out var errorMessage))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    errorMessage!,
-                    parameterName: "packageId",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {errorMessage}";
         }
 
@@ -227,101 +184,64 @@ public sealed partial class DotNetCliTools
             packageName: packageId!,
             project: project,
             version: version,
-            prerelease: prerelease,
-            machineReadable: machineReadable);
+            prerelease: prerelease);
     }
 
-    private async Task<string> HandleListAction(string? project, bool outdated, bool deprecated, bool machineReadable)
+    private async Task<string> HandleListAction(string? project, bool outdated, bool deprecated)
     {
         // Route to existing DotnetPackageList method
         return await DotnetPackageList(
             project: project,
             outdated: outdated,
-            deprecated: deprecated,
-            machineReadable: machineReadable);
+            deprecated: deprecated);
     }
 
-    private async Task<string> HandleAddReferenceAction(string? project, string? referencePath, bool machineReadable)
+    private async Task<string> HandleAddReferenceAction(string? project, string? referencePath)
     {
         // Validate required parameters
         if (!ParameterValidator.ValidateRequiredParameter(project, "project", out var projectError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    projectError!,
-                    parameterName: "project",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {projectError}";
         }
 
         if (!ParameterValidator.ValidateRequiredParameter(referencePath, "referencePath", out var referenceError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    referenceError!,
-                    parameterName: "referencePath",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {referenceError}";
         }
 
         // Route to existing DotnetReferenceAdd method
         return await DotnetReferenceAdd(
             project: project!,
-            reference: referencePath!,
-            machineReadable: machineReadable);
+            reference: referencePath!);
     }
 
-    private async Task<string> HandleRemoveReferenceAction(string? project, string? referencePath, bool machineReadable)
+    private async Task<string> HandleRemoveReferenceAction(string? project, string? referencePath)
     {
         // Validate required parameters
         if (!ParameterValidator.ValidateRequiredParameter(project, "project", out var projectError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    projectError!,
-                    parameterName: "project",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {projectError}";
         }
 
         if (!ParameterValidator.ValidateRequiredParameter(referencePath, "referencePath", out var referenceError))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    referenceError!,
-                    parameterName: "referencePath",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {referenceError}";
         }
 
         // Route to existing DotnetReferenceRemove method
         return await DotnetReferenceRemove(
             project: project!,
-            reference: referencePath!,
-            machineReadable: machineReadable);
+            reference: referencePath!);
     }
 
-    private async Task<string> HandleListReferencesAction(string? project, bool machineReadable)
+    private async Task<string> HandleListReferencesAction(string? project)
     {
         // Route to existing DotnetReferenceList method
         return await DotnetReferenceList(
-            project: project,
-            machineReadable: machineReadable);
+            project: project);
     }
 
-    private async Task<string> HandleClearCacheAction(string? cacheType, bool machineReadable)
+    private async Task<string> HandleClearCacheAction(string? cacheType)
     {
         // Default to "all" if not specified
         var cacheLocation = cacheType ?? "all";
@@ -330,8 +250,30 @@ public sealed partial class DotNetCliTools
         return await DotnetNugetLocals(
             cacheLocation: cacheLocation,
             list: false,
-            clear: true,
-            machineReadable: machineReadable);
+            clear: true);
+    }
+
+    private static object? BuildPackageListStructuredContent(string textResult)
+    {
+        // Parse package list from 'dotnet list package' output
+        var lines = textResult.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var packages = lines
+            .Where(l => l.TrimStart().StartsWith(">", StringComparison.Ordinal))
+            .Select(l =>
+            {
+                var parts = l.Trim().TrimStart('>').Trim()
+                    .Split(new char[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length >= 3)
+                    return new { name = parts[0], requestedVersion = (string?)parts[1], resolvedVersion = (string?)parts[2] };
+                if (parts.Length == 2)
+                    return new { name = parts[0], requestedVersion = (string?)parts[1], resolvedVersion = (string?)null };
+                return parts.Length == 1
+                    ? new { name = parts[0], requestedVersion = (string?)null, resolvedVersion = (string?)null }
+                    : null;
+            })
+            .Where(p => p != null)
+            .ToArray();
+        return new { packages };
     }
 
     // ===== Reference helper methods (moved from DotNetCliTools.Reference.cs) =====
@@ -341,21 +283,19 @@ public sealed partial class DotNetCliTools
     /// </summary>
     internal async Task<string> DotnetReferenceAdd(
         string project,
-        string reference,
-        bool machineReadable = false)
-        => await ExecuteDotNetCommand($"add \"{project}\" reference \"{reference}\"", machineReadable);
+        string reference)
+        => await ExecuteDotNetCommand($"add \"{project}\" reference \"{reference}\"");
 
     /// <summary>
     /// List project references.
     /// </summary>
     internal async Task<string> DotnetReferenceList(
-        string? project = null,
-        bool machineReadable = false)
+        string? project = null)
     {
         var args = "list";
         if (!string.IsNullOrEmpty(project)) args += $" \"{project}\"";
         args += " reference";
-        return await ExecuteDotNetCommand(args, machineReadable);
+        return await ExecuteDotNetCommand(args);
     }
 
     /// <summary>
@@ -363,9 +303,8 @@ public sealed partial class DotNetCliTools
     /// </summary>
     internal async Task<string> DotnetReferenceRemove(
         string project,
-        string reference,
-        bool machineReadable = false)
-        => await ExecuteDotNetCommand($"remove \"{project}\" reference \"{reference}\"", machineReadable);
+        string reference)
+        => await ExecuteDotNetCommand($"remove \"{project}\" reference \"{reference}\"");
 
     // ===== Package helper methods (moved from DotNetCliTools.Package.cs) =====
 
@@ -377,8 +316,7 @@ public sealed partial class DotNetCliTools
         string? configuration = null,
         string? output = null,
         bool includeSymbols = false,
-        bool includeSource = false,
-        bool machineReadable = false)
+        bool includeSource = false)
     {
         // Validate project path if provided
         if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
@@ -394,7 +332,7 @@ public sealed partial class DotNetCliTools
         if (!string.IsNullOrEmpty(output)) args.Append($" -o \"{output}\"");
         if (includeSymbols) args.Append(" --include-symbols");
         if (includeSource) args.Append(" --include-source");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
     /// <summary>
@@ -404,8 +342,7 @@ public sealed partial class DotNetCliTools
         string packageName,
         string? project = null,
         string? version = null,
-        bool prerelease = false,
-        bool machineReadable = false)
+        bool prerelease = false)
     {
         // Validate project path if provided
         if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
@@ -416,7 +353,7 @@ public sealed partial class DotNetCliTools
         args.Append($" package {packageName}");
         if (!string.IsNullOrEmpty(version)) args.Append($" --version {version}");
         else if (prerelease) args.Append(" --prerelease");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
     /// <summary>
@@ -425,8 +362,7 @@ public sealed partial class DotNetCliTools
     internal async Task<string> DotnetPackageList(
         string? project = null,
         bool outdated = false,
-        bool deprecated = false,
-        bool machineReadable = false)
+        bool deprecated = false)
     {
         // Validate project path if provided
         if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
@@ -437,7 +373,7 @@ public sealed partial class DotNetCliTools
         args.Append(" package");
         if (outdated) args.Append(" --outdated");
         if (deprecated) args.Append(" --deprecated");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
     /// <summary>
@@ -445,8 +381,7 @@ public sealed partial class DotNetCliTools
     /// </summary>
     internal async Task<string> DotnetPackageRemove(
         string packageName,
-        string? project = null,
-        bool machineReadable = false)
+        string? project = null)
     {
         // Validate project path if provided
         if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
@@ -455,7 +390,7 @@ public sealed partial class DotNetCliTools
         var args = new StringBuilder("remove");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         args.Append($" package {packageName}");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
     /// <summary>
@@ -466,15 +401,14 @@ public sealed partial class DotNetCliTools
         int? take = null,
         int? skip = null,
         bool prerelease = false,
-        bool exactMatch = false,
-        bool machineReadable = false)
+        bool exactMatch = false)
     {
         var args = new StringBuilder($"package search {searchTerm}");
         if (take.HasValue) args.Append($" --take {take.Value}");
         if (skip.HasValue) args.Append($" --skip {skip.Value}");
         if (prerelease) args.Append(" --prerelease");
         if (exactMatch) args.Append(" --exact-match");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
     /// <summary>
@@ -485,8 +419,7 @@ public sealed partial class DotNetCliTools
         string packageName,
         string? project = null,
         string? version = null,
-        bool prerelease = false,
-        bool machineReadable = false)
+        bool prerelease = false)
     {
         // Validate project path if provided
         if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
@@ -497,7 +430,7 @@ public sealed partial class DotNetCliTools
         args.Append($" package {packageName}");
         if (!string.IsNullOrEmpty(version)) args.Append($" --version {version}");
         else if (prerelease) args.Append(" --prerelease");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
     /// <summary>
@@ -506,32 +439,15 @@ public sealed partial class DotNetCliTools
     internal async Task<string> DotnetNugetLocals(
         string cacheLocation,
         bool list = false,
-        bool clear = false,
-        bool machineReadable = false)
+        bool clear = false)
     {
         if (!list && !clear)
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    "Either 'list' or 'clear' must be true.",
-                    parameterName: "list/clear",
-                    reason: "at least one required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return "Error: Either 'list' or 'clear' must be true.";
         }
 
         if (list && clear)
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    "Cannot specify both 'list' and 'clear'.",
-                    parameterName: "list/clear",
-                    reason: "mutually exclusive");
-                return ErrorResultFactory.ToJson(error);
-            }
             return "Error: Cannot specify both 'list' and 'clear'.";
         }
 
@@ -539,20 +455,12 @@ public sealed partial class DotNetCliTools
         var normalizedCacheLocation = cacheLocation.ToLowerInvariant();
         if (!validLocations.Contains(normalizedCacheLocation))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    $"Invalid cache location. Must be one of: {string.Join(", ", validLocations)}",
-                    parameterName: "cacheLocation",
-                    reason: "invalid value");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: Invalid cache location. Must be one of: {string.Join(", ", validLocations)}";
         }
 
         var args = $"nuget locals {normalizedCacheLocation}";
         if (list) args += " --list";
         if (clear) args += " --clear";
-        return await ExecuteDotNetCommand(args, machineReadable);
+        return await ExecuteDotNetCommand(args);
     }
 }

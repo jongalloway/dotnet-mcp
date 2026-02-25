@@ -1,6 +1,7 @@
 using System.Text;
 using DotNetMcp.Actions;
 using ModelContextProtocol.Server;
+using ModelContextProtocol.Protocol;
 
 namespace DotNetMcp;
 
@@ -37,7 +38,6 @@ public sealed partial class DotNetCliTools
     /// <param name="dryRun">Perform a dry run without actually executing (DatabaseDrop)</param>
     /// <param name="connectionDisplay">Show connection string used (MigrationsList)</param>
     /// <param name="workingDirectory">Working directory for command execution</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpServerTool(Title = "Entity Framework Core", Destructive = true, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Floppy%20Disk/Flat/floppy_disk_flat.svg")]
     [McpMeta("category", "ef")]
     [McpMeta("priority", 9.0)]
@@ -45,7 +45,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("consolidatedTool", true)]
     [McpMeta("actions", JsonValue = """["MigrationsAdd","MigrationsList","MigrationsRemove","MigrationsScript","DatabaseUpdate","DatabaseDrop","DbContextList","DbContextInfo","DbContextScaffold"]""")]
     [McpMeta("tags", JsonValue = """["ef","entity-framework","consolidated","migration","database","dbcontext"]""")]
-    public async partial Task<string> DotnetEf(
+    public async partial Task<CallToolResult> DotnetEf(
         DotnetEfAction action,
         string? name = null,
         string? outputDir = null,
@@ -68,23 +68,13 @@ public sealed partial class DotNetCliTools
         bool noBuild = false,
         bool dryRun = false,
         bool connectionDisplay = false,
-        string? workingDirectory = null,
-        bool machineReadable = false)
+        string? workingDirectory = null)
     {
-        return await WithWorkingDirectoryAsync(workingDirectory, async () =>
+        var textResult = await WithWorkingDirectoryAsync(workingDirectory, async () =>
         {
             // Validate action enum
             if (!ParameterValidator.ValidateAction<DotnetEfAction>(action, out var actionError))
             {
-                if (machineReadable)
-                {
-                    var validActions = Enum.GetNames(typeof(DotnetEfAction));
-                    var error = ErrorResultFactory.CreateActionValidationError(
-                        action.ToString(),
-                        validActions,
-                        toolName: "dotnet_ef");
-                    return ErrorResultFactory.ToJson(error);
-                }
                 return $"Error: {actionError}";
             }
 
@@ -97,8 +87,7 @@ public sealed partial class DotNetCliTools
                     startupProject: startupProject,
                     context: context,
                     outputDir: outputDir,
-                    framework: framework,
-                    machineReadable: machineReadable),
+                    framework: framework),
 
                 DotnetEfAction.MigrationsList => await DotnetEfMigrationsList(
                     project: project,
@@ -106,8 +95,7 @@ public sealed partial class DotNetCliTools
                     context: context,
                     framework: framework,
                     connection: connectionDisplay,
-                    noBuild: noBuild,
-                    machineReadable: machineReadable),
+                    noBuild: noBuild),
 
                 DotnetEfAction.MigrationsRemove => await DotnetEfMigrationsRemove(
                     project: project,
@@ -115,8 +103,7 @@ public sealed partial class DotNetCliTools
                     context: context,
                     framework: framework,
                     force: force,
-                    noBuild: noBuild,
-                    machineReadable: machineReadable),
+                    noBuild: noBuild),
 
                 DotnetEfAction.MigrationsScript => await DotnetEfMigrationsScript(
                     from: from,
@@ -127,8 +114,7 @@ public sealed partial class DotNetCliTools
                     context: context,
                     framework: framework,
                     idempotent: idempotent,
-                    noBuild: noBuild,
-                    machineReadable: machineReadable),
+                    noBuild: noBuild),
 
                 DotnetEfAction.DatabaseUpdate => await DotnetEfDatabaseUpdate(
                     migration: migration,
@@ -137,8 +123,7 @@ public sealed partial class DotNetCliTools
                     context: context,
                     framework: framework,
                     connection: connection,
-                    noBuild: noBuild,
-                    machineReadable: machineReadable),
+                    noBuild: noBuild),
 
                 DotnetEfAction.DatabaseDrop => await HandleDatabaseDropAction(
                     project: project,
@@ -146,23 +131,20 @@ public sealed partial class DotNetCliTools
                     context: context,
                     framework: framework,
                     force: force,
-                    dryRun: dryRun,
-                    machineReadable: machineReadable),
+                    dryRun: dryRun),
 
                 DotnetEfAction.DbContextList => await DotnetEfDbContextList(
                     project: project,
                     startupProject: startupProject,
                     framework: framework,
-                    noBuild: noBuild,
-                    machineReadable: machineReadable),
+                    noBuild: noBuild),
 
                 DotnetEfAction.DbContextInfo => await DotnetEfDbContextInfo(
                     project: project,
                     startupProject: startupProject,
                     context: context,
                     framework: framework,
-                    noBuild: noBuild,
-                    machineReadable: machineReadable),
+                    noBuild: noBuild),
 
                 DotnetEfAction.DbContextScaffold => await DotnetEfDbContextScaffold(
                     connection: connection!,
@@ -176,17 +158,13 @@ public sealed partial class DotNetCliTools
                     schemas: schemas,
                     useDatabaseNames: useDatabaseNames,
                     force: force,
-                    noBuild: noBuild,
-                    machineReadable: machineReadable),
+                    noBuild: noBuild),
 
-                _ => machineReadable
-                    ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateActionValidationError(
-                        action.ToString(),
-                        Enum.GetNames(typeof(DotnetEfAction)),
-                        toolName: "dotnet_ef"))
-                    : $"Error: Unsupported action '{action}'"
+                _ => $"Error: Unsupported action '{action}'"
             };
         });
+
+        return StructuredContentHelper.ToCallToolResult(textResult);
     }
 
     /// <summary>
@@ -198,20 +176,11 @@ public sealed partial class DotNetCliTools
         string? context,
         string? framework,
         bool force,
-        bool dryRun,
-        bool machineReadable)
+        bool dryRun)
     {
         // Safety check: DatabaseDrop requires force=true to prevent accidental deletions
         if (!force && !dryRun)
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    "DatabaseDrop requires force=true to confirm database deletion. This is a destructive operation that permanently deletes the database.",
-                    parameterName: "force",
-                    reason: "required for safety");
-                return ErrorResultFactory.ToJson(error);
-            }
             return "Error: DatabaseDrop requires force=true to confirm database deletion. This is a destructive operation that permanently deletes the database.";
         }
 
@@ -221,8 +190,7 @@ public sealed partial class DotNetCliTools
             context: context,
             framework: framework,
             force: force,
-            dryRun: dryRun,
-            machineReadable: machineReadable);
+            dryRun: dryRun);
     }
 
     // ===== EF helper methods (moved from DotNetCliTools.EntityFramework.cs) =====
@@ -236,7 +204,6 @@ public sealed partial class DotNetCliTools
     /// <param name="context">The DbContext class to use (if multiple contexts exist)</param>
     /// <param name="outputDir">Output directory for migration files</param>
     /// <param name="framework">Target framework for the project</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "ef")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]
@@ -247,19 +214,10 @@ public sealed partial class DotNetCliTools
         string? startupProject = null,
         string? context = null,
         string? outputDir = null,
-        string? framework = null,
-        bool machineReadable = false)
+        string? framework = null)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    "name parameter is required.",
-                    parameterName: "name",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return "Error: name parameter is required.";
         }
 
@@ -269,7 +227,7 @@ public sealed partial class DotNetCliTools
         if (!string.IsNullOrEmpty(context)) args.Append($" --context \"{context}\"");
         if (!string.IsNullOrEmpty(outputDir)) args.Append($" --output-dir \"{outputDir}\"");
         if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
     /// <summary>
@@ -282,7 +240,6 @@ public sealed partial class DotNetCliTools
     /// <param name="framework">Target framework for the project</param>
     /// <param name="connection">Show connection string used</param>
     /// <param name="noBuild">Do not build the project before listing</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "ef")]
     [McpMeta("priority", 8.0)]
     [McpMeta("commonlyUsed", true)]
@@ -293,8 +250,7 @@ public sealed partial class DotNetCliTools
         string? context = null,
         string? framework = null,
         bool connection = false,
-        bool noBuild = false,
-        bool machineReadable = false)
+        bool noBuild = false)
     {
         var args = new StringBuilder("ef migrations list");
         if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
@@ -303,7 +259,7 @@ public sealed partial class DotNetCliTools
         if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
         if (connection) args.Append(" --connection");
         if (noBuild) args.Append(" --no-build");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
     /// <summary>
@@ -316,7 +272,6 @@ public sealed partial class DotNetCliTools
     /// <param name="framework">Target framework for the project</param>
     /// <param name="force">Force removal (reverts migration if already applied)</param>
     /// <param name="noBuild">Do not build the project before removing</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "ef")]
     [McpMeta("priority", 7.0)]
     [McpMeta("tags", JsonValue = """["ef","entity-framework","migration","database","remove"]""")]
@@ -326,8 +281,7 @@ public sealed partial class DotNetCliTools
         string? context = null,
         string? framework = null,
         bool force = false,
-        bool noBuild = false,
-        bool machineReadable = false)
+        bool noBuild = false)
     {
         var args = new StringBuilder("ef migrations remove");
         if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
@@ -336,7 +290,7 @@ public sealed partial class DotNetCliTools
         if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
         if (force) args.Append(" --force");
         if (noBuild) args.Append(" --no-build");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
     /// <summary>
@@ -352,7 +306,6 @@ public sealed partial class DotNetCliTools
     /// <param name="framework">Target framework for the project</param>
     /// <param name="idempotent">Generate idempotent script (can be run multiple times)</param>
     /// <param name="noBuild">Do not build the project before scripting</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "ef")]
     [McpMeta("priority", 7.0)]
     [McpMeta("tags", JsonValue = """["ef","entity-framework","migration","database","sql","script"]""")]
@@ -365,8 +318,7 @@ public sealed partial class DotNetCliTools
         string? context = null,
         string? framework = null,
         bool idempotent = false,
-        bool noBuild = false,
-        bool machineReadable = false)
+        bool noBuild = false)
     {
         // Validate parameter order: if 'to' is specified without 'from', use empty string for from
         var args = new StringBuilder("ef migrations script");
@@ -389,7 +341,7 @@ public sealed partial class DotNetCliTools
         if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
         if (idempotent) args.Append(" --idempotent");
         if (noBuild) args.Append(" --no-build");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
     /// <summary>
@@ -403,7 +355,6 @@ public sealed partial class DotNetCliTools
     /// <param name="framework">Target framework for the project</param>
     /// <param name="connection">Connection string (overrides configured connection)</param>
     /// <param name="noBuild">Do not build the project before updating</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "ef")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]
@@ -415,8 +366,7 @@ public sealed partial class DotNetCliTools
         string? context = null,
         string? framework = null,
         string? connection = null,
-        bool noBuild = false,
-        bool machineReadable = false)
+        bool noBuild = false)
     {
         var args = new StringBuilder("ef database update");
         if (!string.IsNullOrEmpty(migration)) args.Append($" \"{migration}\"");
@@ -426,7 +376,7 @@ public sealed partial class DotNetCliTools
         if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
         if (!string.IsNullOrEmpty(connection)) args.Append($" --connection \"{connection}\"");
         if (noBuild) args.Append(" --no-build");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
     /// <summary>
@@ -440,7 +390,6 @@ public sealed partial class DotNetCliTools
     /// <param name="framework">Target framework for the project</param>
     /// <param name="force">Force drop without confirmation prompt (set to true to execute)</param>
     /// <param name="dryRun">Perform a dry run without actually dropping</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "ef")]
     [McpMeta("priority", 5.0)]
     [McpMeta("tags", JsonValue = """["ef","entity-framework","database","drop","delete"]""")]
@@ -450,8 +399,7 @@ public sealed partial class DotNetCliTools
         string? context = null,
         string? framework = null,
         bool force = false,
-        bool dryRun = false,
-        bool machineReadable = false)
+        bool dryRun = false)
     {
         var args = new StringBuilder("ef database drop");
         if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
@@ -460,7 +408,7 @@ public sealed partial class DotNetCliTools
         if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
         if (force) args.Append(" --force");
         if (dryRun) args.Append(" --dry-run");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
     /// <summary>
@@ -471,7 +419,6 @@ public sealed partial class DotNetCliTools
     /// <param name="startupProject">Startup project file (if different from DbContext project)</param>
     /// <param name="framework">Target framework for the project</param>
     /// <param name="noBuild">Do not build the project before listing</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "ef")]
     [McpMeta("priority", 7.0)]
     [McpMeta("tags", JsonValue = """["ef","entity-framework","dbcontext","list"]""")]
@@ -479,15 +426,14 @@ public sealed partial class DotNetCliTools
         string? project = null,
         string? startupProject = null,
         string? framework = null,
-        bool noBuild = false,
-        bool machineReadable = false)
+        bool noBuild = false)
     {
         var args = new StringBuilder("ef dbcontext list");
         if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
         if (!string.IsNullOrEmpty(startupProject)) args.Append($" --startup-project \"{startupProject}\"");
         if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
         if (noBuild) args.Append(" --no-build");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
     /// <summary>
@@ -499,7 +445,6 @@ public sealed partial class DotNetCliTools
     /// <param name="context">The DbContext class to use (if multiple contexts exist)</param>
     /// <param name="framework">Target framework for the project</param>
     /// <param name="noBuild">Do not build the project before getting info</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "ef")]
     [McpMeta("priority", 7.0)]
     [McpMeta("tags", JsonValue = """["ef","entity-framework","dbcontext","info","connection-string"]""")]
@@ -508,8 +453,7 @@ public sealed partial class DotNetCliTools
         string? startupProject = null,
         string? context = null,
         string? framework = null,
-        bool noBuild = false,
-        bool machineReadable = false)
+        bool noBuild = false)
     {
         var args = new StringBuilder("ef dbcontext info");
         if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
@@ -517,7 +461,7 @@ public sealed partial class DotNetCliTools
         if (!string.IsNullOrEmpty(context)) args.Append($" --context \"{context}\"");
         if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
         if (noBuild) args.Append(" --no-build");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
     /// <summary>
@@ -536,7 +480,6 @@ public sealed partial class DotNetCliTools
     /// <param name="useDatabaseNames">Use database names directly instead of pluralization</param>
     /// <param name="force">Force overwrite of existing files</param>
     /// <param name="noBuild">Do not build the project before scaffolding</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "ef")]
     [McpMeta("priority", 8.0)]
     [McpMeta("commonlyUsed", true)]
@@ -553,32 +496,15 @@ public sealed partial class DotNetCliTools
         string? schemas = null,
         bool useDatabaseNames = false,
         bool force = false,
-        bool noBuild = false,
-        bool machineReadable = false)
+        bool noBuild = false)
     {
         if (string.IsNullOrWhiteSpace(connection))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    "connection parameter is required.",
-                    parameterName: "connection",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return "Error: connection parameter is required.";
         }
 
         if (string.IsNullOrWhiteSpace(provider))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    "provider parameter is required.",
-                    parameterName: "provider",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return "Error: provider parameter is required.";
         }
 
@@ -610,6 +536,6 @@ public sealed partial class DotNetCliTools
         if (useDatabaseNames) args.Append(" --use-database-names");
         if (force) args.Append(" --force");
         if (noBuild) args.Append(" --no-build");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 }

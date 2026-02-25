@@ -37,11 +37,10 @@ public class ConcurrencyWorkingDirectoryTests
             _concurrencyManager.TryAcquireOperation("test", normalizedDir1, out _);
 
             // Act: Try to run test in workingDir2 (different directory)
-            var result = await _tools.DotnetProject(
+            var result = (await _tools.DotnetProject(
                 action: DotnetProjectAction.Test,
                 project: null,
-                workingDirectory: workingDir2,
-                machineReadable: false);
+                workingDirectory: workingDir2)).GetText();
 
             // Assert: Should not get concurrency conflict since directories are different
             Assert.NotNull(result);
@@ -85,11 +84,10 @@ public class ConcurrencyWorkingDirectoryTests
             _concurrencyManager.TryAcquireOperation("test", normalizedDir, out _);
 
             // Act: Try to run test in the same directory
-            var result = await _tools.DotnetProject(
+            var result = (await _tools.DotnetProject(
                 action: DotnetProjectAction.Test,
                 project: null,
-                workingDirectory: workingDir,
-                machineReadable: false);
+                workingDirectory: workingDir)).GetText();
 
             // Assert: Should get concurrency conflict
             Assert.NotNull(result);
@@ -132,11 +130,10 @@ public class ConcurrencyWorkingDirectoryTests
             _concurrencyManager.TryAcquireOperation("build", normalizedDir1, out _);
 
             // Act: Try to build in workingDir2 (different directory)
-            var result = await _tools.DotnetProject(
+            var result = (await _tools.DotnetProject(
                 action: DotnetProjectAction.Build,
                 project: null,
-                workingDirectory: workingDir2,
-                machineReadable: false);
+                workingDirectory: workingDir2)).GetText();
 
             // Assert: Should not get concurrency conflict
             Assert.NotNull(result);
@@ -179,11 +176,10 @@ public class ConcurrencyWorkingDirectoryTests
             _concurrencyManager.TryAcquireOperation("run", normalizedDir1, out _);
 
             // Act: Try to run in workingDir2 (different directory)
-            var result = await _tools.DotnetProject(
+            var result = (await _tools.DotnetProject(
                 action: DotnetProjectAction.Run,
                 project: null,
-                workingDirectory: workingDir2,
-                machineReadable: false);
+                workingDirectory: workingDir2)).GetText();
 
             // Assert: Should not get concurrency conflict
             Assert.NotNull(result);
@@ -226,11 +222,10 @@ public class ConcurrencyWorkingDirectoryTests
             _concurrencyManager.TryAcquireOperation("publish", normalizedDir1, out _);
 
             // Act: Try to publish in workingDir2 (different directory)
-            var result = await _tools.DotnetProject(
+            var result = (await _tools.DotnetProject(
                 action: DotnetProjectAction.Publish,
                 project: null,
-                workingDirectory: workingDir2,
-                machineReadable: false);
+                workingDirectory: workingDir2)).GetText();
 
             // Assert: Should not get concurrency conflict
             Assert.NotNull(result);
@@ -271,17 +266,16 @@ public class ConcurrencyWorkingDirectoryTests
             _concurrencyManager.TryAcquireOperation("test", normalizedDir, out _);
 
             // Act: Try to run test in the same directory with machine-readable output
-            var result = await _tools.DotnetProject(
+            var result = (await _tools.DotnetProject(
                 action: DotnetProjectAction.Test,
                 project: null,
-                workingDirectory: workingDir,
-                machineReadable: true);
+                workingDirectory: workingDir)).GetText();
 
             // Assert: Should get structured concurrency conflict error
             Assert.NotNull(result);
-            Assert.Contains("\"code\": \"CONCURRENCY_CONFLICT\"", result);
-            Assert.Contains("\"success\": false", result);
-            Assert.Contains("\"category\": \"Concurrency\"", result);
+            Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Cannot execute 'test'", result, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("conflicting operation", result, StringComparison.OrdinalIgnoreCase);
         }
         finally
         {
@@ -317,11 +311,10 @@ public class ConcurrencyWorkingDirectoryTests
             _concurrencyManager.TryAcquireOperation("test", normalizedDir, out _);
 
             // Act: Run test with explicit project path (should lock on project, not working directory)
-            var result = await _tools.DotnetProject(
+            var result = (await _tools.DotnetProject(
                 action: DotnetProjectAction.Test,
                 project: projectPath,
-                workingDirectory: workingDir,
-                machineReadable: false);
+                workingDirectory: workingDir)).GetText();
 
             // Assert: Should not get concurrency conflict because it locks on project path, not working directory
             Assert.NotNull(result);
@@ -356,11 +349,10 @@ public class ConcurrencyWorkingDirectoryTests
         try
         {
             // Act: Run test without project or workingDirectory
-            var result = await _tools.DotnetProject(
+            var result = (await _tools.DotnetProject(
                 action: DotnetProjectAction.Test,
                 project: null,
-                workingDirectory: null,
-                machineReadable: false);
+                workingDirectory: null)).GetText();
 
             // Assert: Should get concurrency conflict on current directory
             Assert.NotNull(result);
@@ -390,11 +382,11 @@ public class ConcurrencyWorkingDirectoryTests
 
             // Act: Try to run test with same path (GetFullPath should normalize it to same target)
             // The GetOperationTarget method normalizes with Path.GetFullPath
-            var result = await _tools.DotnetProject(
+            var result = (await _tools.DotnetProject(
                 action: DotnetProjectAction.Test,
                 project: null,
-                workingDirectory: workingDir,  // Same path, should normalize to same target
-                machineReadable: false);
+                workingDirectory: workingDir  // Same path, should normalize to same target
+                )).GetText();
 
             // Assert: Should detect conflict due to path normalization
             Assert.NotNull(result);

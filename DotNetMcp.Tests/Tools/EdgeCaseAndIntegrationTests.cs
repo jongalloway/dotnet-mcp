@@ -24,11 +24,10 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetProjectBuild_WithAllParameters_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetProjectBuild(
+        var result = (await _tools.DotnetProjectBuild(
             project: "MyProject.csproj",
             configuration: "Release",
-            framework: "net10.0",
-            machineReadable: true);
+            framework: "net10.0"));
 
         // Assert
         Assert.NotNull(result);
@@ -39,11 +38,10 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetProjectRun_WithAllParameters_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetProjectRun(
+        var result = (await _tools.DotnetProjectRun(
             project: "MyApp.csproj",
             configuration: "Debug",
-            appArgs: "--verbose --log-level=info",
-            machineReadable: true);
+            appArgs: "--verbose --log-level=info"));
 
         // Assert
         Assert.NotNull(result);
@@ -54,12 +52,11 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetProjectPublish_WithAllParameters_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetProjectPublish(
+        var result = (await _tools.DotnetProjectPublish(
             project: "MyApp.csproj",
             configuration: "Release",
             output: "./publish",
-            runtime: "linux-x64",
-            machineReadable: true);
+            runtime: "linux-x64"));
 
         // Assert
         Assert.NotNull(result);
@@ -70,9 +67,9 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetProjectPublish_WithoutRuntime_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetProjectPublish(
+        var result = (await _tools.DotnetProjectPublish(
             project: "MyApp.csproj",
-            configuration: "Release");
+            configuration: "Release"));
 
         // Assert
         Assert.NotNull(result);
@@ -85,8 +82,8 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetTemplateList_CalledMultipleTimes_UsesCache()
     {
         // Act
-        var result1 = await _tools.DotnetTemplateList(forceReload: false);
-        var result2 = await _tools.DotnetTemplateList(forceReload: false);
+        var result1 = (await _tools.DotnetTemplateList(forceReload: false));
+        var result2 = (await _tools.DotnetTemplateList(forceReload: false));
 
         // Assert
         Assert.NotNull(result1);
@@ -98,7 +95,7 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetTemplateSearch_WithEmptyResult_HandlesGracefully()
     {
         // Act
-        var result = await _tools.DotnetTemplateSearch(searchTerm: "nonexistenttemplate12345xyz");
+        var result = (await _tools.DotnetTemplateSearch(searchTerm: "nonexistenttemplate12345xyz"));
 
         // Assert
         Assert.NotNull(result);
@@ -111,13 +108,12 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetPackageAdd_WithAllParameters_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotNetMcp.Actions.DotnetPackageAction.Add,
             packageId: "Microsoft.Extensions.Logging",
             project: "MyProject.csproj",
             version: "8.0.0",
-            prerelease: false,
-            machineReadable: true);
+            prerelease: false)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -128,12 +124,11 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetPackageList_WithAllParameters_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetPackage(
+        var result = (await _tools.DotnetPackage(
             action: DotNetMcp.Actions.DotnetPackageAction.List,
             project: "MyProject.csproj",
             outdated: true,
-            deprecated: true,
-            machineReadable: true);
+            deprecated: true)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -146,10 +141,9 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetSolutionCreate_WithMachineReadable_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetSolution(
+        var result = (await _tools.DotnetSolution(
             action: DotNetMcp.Actions.DotnetSolutionAction.Create,
-            name: "TestSolution",
-            machineReadable: true);
+            name: "TestSolution")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -162,17 +156,17 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetCertificateExport_WithCaseInsensitiveFormat_HandlesCorrectly()
     {
         // Test case-insensitive format handling
-        var result1 = await _tools.DotnetCertificateExport(
+        var result1 = (await _tools.DotnetCertificateExport(
             path: "/tmp/cert1.pfx",
-            format: "PFX");
+            format: "PFX"));
 
-        var result2 = await _tools.DotnetCertificateExport(
+        var result2 = (await _tools.DotnetCertificateExport(
             path: "/tmp/cert2.pem",
-            format: "pem");
+            format: "pem"));
 
-        var result3 = await _tools.DotnetCertificateExport(
+        var result3 = (await _tools.DotnetCertificateExport(
             path: "/tmp/cert3.pfx",
-            format: "Pfx");
+            format: "Pfx"));
 
         // Assert - all should succeed (or fail gracefully with proper error)
         Assert.NotNull(result1);
@@ -186,13 +180,13 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetNugetLocals_WithCaseInsensitiveCacheLocation_HandlesCorrectly()
     {
         // Test case normalization
-        var result1 = await _tools.DotnetNugetLocals(
+        var result1 = (await _tools.DotnetNugetLocals(
             cacheLocation: "ALL",
-            list: true);
+            list: true));
 
-        var result2 = await _tools.DotnetNugetLocals(
+        var result2 = (await _tools.DotnetNugetLocals(
             cacheLocation: "Http-Cache",
-            list: true);
+            list: true));
 
         // Assert
         Assert.NotNull(result1);
@@ -203,10 +197,9 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetNugetLocals_WithMachineReadable_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetNugetLocals(
+        var result = (await _tools.DotnetNugetLocals(
             cacheLocation: "global-packages",
-            list: true,
-            machineReadable: true);
+            list: true));
 
         // Assert
         Assert.NotNull(result);
@@ -219,7 +212,7 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetSecretsInit_WithMachineReadable_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetSecretsInit(machineReadable: true);
+        var result = (await _tools.DotnetSecretsInit());
 
         // Assert
         Assert.NotNull(result);
@@ -230,11 +223,10 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetSecretsSet_WithComplexKey_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetSecretsSet(
+        var result = (await _tools.DotnetSecretsSet(
             key: "Azure:Storage:ConnectionString",
             value: "DefaultEndpointsProtocol=https;AccountName=test",
-            project: "MyProject.csproj",
-            machineReadable: true);
+            project: "MyProject.csproj"));
 
         // Assert
         Assert.NotNull(result);
@@ -245,9 +237,8 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetSecretsList_WithMachineReadable_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetSecretsList(
-            project: "MyProject.csproj",
-            machineReadable: true);
+        var result = (await _tools.DotnetSecretsList(
+            project: "MyProject.csproj"));
 
         // Assert
         Assert.NotNull(result);
@@ -258,10 +249,9 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetSecretsRemove_WithMachineReadable_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetSecretsRemove(
+        var result = (await _tools.DotnetSecretsRemove(
             key: "TestKey",
-            project: "MyProject.csproj",
-            machineReadable: true);
+            project: "MyProject.csproj"));
 
         // Assert
         Assert.NotNull(result);
@@ -272,9 +262,8 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetSecretsClear_WithMachineReadable_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetSecretsClear(
-            project: "MyProject.csproj",
-            machineReadable: true);
+        var result = (await _tools.DotnetSecretsClear(
+            project: "MyProject.csproj"));
 
         // Assert
         Assert.NotNull(result);
@@ -287,11 +276,10 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetToolInstall_WithMachineReadable_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetTool(
+        var result = (await _tools.DotnetTool(
             action: DotNetMcp.Actions.DotnetToolAction.Install,
             packageId: "dotnet-format",
-            global: true,
-            machineReadable: true);
+            global: true)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -302,10 +290,9 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetToolList_WithMachineReadable_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetTool(
+        var result = (await _tools.DotnetTool(
             action: DotNetMcp.Actions.DotnetToolAction.List,
-            global: true,
-            machineReadable: true);
+            global: true)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -316,12 +303,11 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetToolUpdate_WithMachineReadable_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetTool(
+        var result = (await _tools.DotnetTool(
             action: DotNetMcp.Actions.DotnetToolAction.Update,
             packageId: "dotnet-ef",
             global: true,
-            version: "8.0.0",
-            machineReadable: true);
+            version: "8.0.0")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -332,11 +318,10 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetToolUninstall_WithMachineReadable_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetTool(
+        var result = (await _tools.DotnetTool(
             action: DotNetMcp.Actions.DotnetToolAction.Uninstall,
             packageId: "dotnet-format",
-            global: false,
-            machineReadable: true);
+            global: false)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -347,9 +332,8 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetToolRestore_WithMachineReadable_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetTool(
-            action: DotNetMcp.Actions.DotnetToolAction.Restore,
-            machineReadable: true);
+        var result = (await _tools.DotnetTool(
+            action: DotNetMcp.Actions.DotnetToolAction.Restore)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -368,11 +352,10 @@ public class EdgeCaseAndIntegrationTests
         string result;
         try
         {
-            result = await _tools.DotnetTool(
+            result = (await _tools.DotnetTool(
                 action: DotNetMcp.Actions.DotnetToolAction.CreateManifest,
                 output: tempDirectory.FullName,
-                force: true,
-                machineReadable: true);
+                force: true)).GetText();
         }
         finally
         {
@@ -389,14 +372,13 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetToolSearch_WithMachineReadable_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetTool(
+        var result = (await _tools.DotnetTool(
             action: DotNetMcp.Actions.DotnetToolAction.Search,
             searchTerm: "format",
             detail: true,
             take: 5,
             skip: 0,
-            prerelease: false,
-            machineReadable: true);
+            prerelease: false)).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -407,11 +389,10 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetToolRun_WithMachineReadable_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetTool(
+        var result = (await _tools.DotnetTool(
             action: DotNetMcp.Actions.DotnetToolAction.Run,
             toolName: "dotnet-ef",
-            args: "database update",
-            machineReadable: true);
+            args: "database update")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -424,9 +405,9 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetFrameworkInfo_WithNetStandard_ReturnsCorrectInformation()
     {
         // Act
-        var result = await _tools.DotnetSdk(
+        var result = (await _tools.DotnetSdk(
             action: DotNetMcp.Actions.DotnetSdkAction.FrameworkInfo,
-            framework: "netstandard2.1");
+            framework: "netstandard2.1")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -438,9 +419,9 @@ public class EdgeCaseAndIntegrationTests
     public async Task DotnetFrameworkInfo_WithModernNet_ReturnsCorrectInformation()
     {
         // Act
-        var result = await _tools.DotnetSdk(
+        var result = (await _tools.DotnetSdk(
             action: DotNetMcp.Actions.DotnetSdkAction.FrameworkInfo,
-            framework: "net10.0");
+            framework: "net10.0")).GetText();
 
         // Assert
         Assert.NotNull(result);

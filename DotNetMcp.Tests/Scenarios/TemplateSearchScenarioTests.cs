@@ -1,3 +1,4 @@
+using DotNetMcp;
 using Xunit;
 
 namespace DotNetMcp.Tests.Scenarios;
@@ -11,17 +12,17 @@ public class TemplateSearchScenarioTests
 
         await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
 
-        var jsonText = await client.CallToolTextAsync(
+        var text = await client.CallToolTextAsync(
             toolName: "dotnet_sdk",
             args: new Dictionary<string, object?>
             {
                 ["action"] = "SearchTemplates",
                 ["searchTerm"] = "console",
-                ["machineReadable"] = true
             },
             cancellationToken);
 
-        using var json = ScenarioHelpers.ParseJson(jsonText);
-        ScenarioHelpers.AssertMachineReadableSuccess(json.RootElement);
+        Assert.NotEmpty(text);
+        Assert.DoesNotContain("Error:", text);
+        Assert.Contains("console", text, StringComparison.OrdinalIgnoreCase);
     }
 }

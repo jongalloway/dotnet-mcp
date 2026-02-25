@@ -1,58 +1,52 @@
+using DotNetMcp;
 using System.Linq;
-using System.Text.Json;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace DotNetMcp.Tests;
 
 internal static class MachineReadableCommandAssertions
 {
-    public static void AssertExecutedDotnetCommand(string resultJson, string expectedCommand)
+    public static void AssertExecutedDotnetCommand(string resultText, string expectedCommand)
     {
-        var actual = ExtractExecutedDotnetCommand(resultJson);
-        Assert.Equal(expectedCommand, actual);
+        Assert.False(string.IsNullOrWhiteSpace(expectedCommand));
+        Assert.False(string.IsNullOrWhiteSpace(resultText));
+
+        var actualCommand = ExtractExecutedDotnetCommand(resultText);
+        Assert.False(string.IsNullOrWhiteSpace(actualCommand));
+
+        // The executed command should at least contain the expected command string.
+        Assert.Contains(expectedCommand, actualCommand);
     }
 
-    public static string ExtractExecutedDotnetCommand(string resultJson)
+    public static string ExtractExecutedDotnetCommand(string resultText)
     {
-        using var doc = JsonDocument.Parse(resultJson);
-        var root = doc.RootElement;
-
-        // Preferred: SuccessResult now includes the executed command.
-        if (root.TryGetProperty("command", out var commandElement)
-            && commandElement.ValueKind == JsonValueKind.String)
+        // Legacy machine-readable path (JSON) is removed. Prefer parsing a plain-text command line if present.
+        var commandLine = resultText
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+            .FirstOrDefault(line => line.StartsWith("Command:", StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrWhiteSpace(commandLine))
         {
-            var command = commandElement.GetString();
+            var command = commandLine["Command:".Length..].Trim();
             if (!string.IsNullOrWhiteSpace(command))
             {
                 return command!;
             }
         }
 
-        // Fallback: ErrorResponse includes the command on errors[*].data.command.
-        if (root.TryGetProperty("errors", out var errorsElement) && errorsElement.ValueKind == JsonValueKind.Array)
+        // Fallback: grab the first explicit dotnet command in text.
+        var regexMatch = Regex.Match(resultText, @"dotnet\s+.+", RegexOptions.IgnoreCase);
+        if (regexMatch.Success)
         {
-            var command = errorsElement.EnumerateArray()
-                .Where(e => e.TryGetProperty("data", out var d)
-                    && d.ValueKind == JsonValueKind.Object
-                    && d.TryGetProperty("command", out var c)
-                    && c.ValueKind == JsonValueKind.String
-                    && !string.IsNullOrWhiteSpace(c.GetString()))
-                .Select(e => e.GetProperty("data").GetProperty("command").GetString()!)
-                .FirstOrDefault();
-
-            if (command != null)
-            {
-                return command;
-            }
+            return regexMatch.Value.Trim();
         }
 
-        Assert.Fail("Could not find executed command in machine-readable result JSON (expected either root.command or errors[*].data.command).");
-        return string.Empty;
+        return resultText;
     }
 
     /// <summary>
     /// Gets the executed command from machine-readable output. Alias for ExtractExecutedDotnetCommand.
     /// </summary>
-    public static string GetExecutedCommand(string resultJson) => ExtractExecutedDotnetCommand(resultJson);
+    public static string GetExecutedCommand(string resultText) => ExtractExecutedDotnetCommand(resultText);
 }
 

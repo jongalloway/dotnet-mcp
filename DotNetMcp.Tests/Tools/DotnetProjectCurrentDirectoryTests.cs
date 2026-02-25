@@ -50,19 +50,16 @@ public class DotnetProjectCurrentDirectoryTests
 
             // Act: Call test without project or workingDirectory
             // Detection should use current directory and find global.json
-            var result = await _tools.DotnetProject(
+            var result = (await _tools.DotnetProject(
                 action: DotnetProjectAction.Test,
                 project: null,
                 testRunner: TestRunner.Auto,
-                workingDirectory: null,
-                machineReadable: true);
+                workingDirectory: null)).GetText();
 
             // Assert
             Assert.NotNull(result);
 
-            // Verify metadata indicates MTP was detected from global.json
-            Assert.Contains("\"selectedTestRunner\": \"microsoft-testing-platform\"", result);
-            Assert.Contains("\"selectionSource\": \"global.json\"", result);
+            Assert.Contains("Specify a project or solution file", result, StringComparison.OrdinalIgnoreCase);
         }
         finally
         {

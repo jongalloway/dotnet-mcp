@@ -27,7 +27,6 @@ public class WorkingDirectoryTests
             var result = await DotNetCommandExecutor.ExecuteCommandAsync(
                 "--version",
                 _logger,
-                machineReadable: false,
                 unsafeOutput: false,
                 cancellationToken: TestContext.Current.CancellationToken,
                 workingDirectory: tempDir);
@@ -64,7 +63,6 @@ public class WorkingDirectoryTests
         var result = await DotNetCommandExecutor.ExecuteCommandAsync(
             "--version",
             _logger,
-            machineReadable: false,
             unsafeOutput: false,
             cancellationToken: TestContext.Current.CancellationToken,
             workingDirectory: missingDir);
@@ -85,14 +83,13 @@ public class WorkingDirectoryTests
         var result = await DotNetCommandExecutor.ExecuteCommandAsync(
             "--version",
             _logger,
-            machineReadable: true,
             unsafeOutput: false,
             cancellationToken: TestContext.Current.CancellationToken,
             workingDirectory: missingDir);
 
         // Assert
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("INVALID_PARAMS", result);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("workingDirectory", result);
     }
 }

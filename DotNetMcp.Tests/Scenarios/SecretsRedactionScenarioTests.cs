@@ -1,4 +1,4 @@
-using System.Text.Json;
+using DotNetMcp;
 using Xunit;
 
 namespace DotNetMcp.Tests.Scenarios;
@@ -27,21 +27,19 @@ public class SecretsRedactionScenarioTests
         await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
 
         // Initialize + set a secret for the main project.
-        var initJsonText = await client.CallToolTextAsync(
+        var initText = await client.CallToolTextAsync(
             toolName: "dotnet_dev_certs",
             args: new Dictionary<string, object?>
             {
                 ["action"] = "SecretsInit",
                 ["project"] = projectPath,
-                ["machineReadable"] = true
             },
             cancellationToken);
 
-        using var initJson = ScenarioHelpers.ParseJson(initJsonText);
-        ScenarioHelpers.AssertMachineReadableSuccess(initJson.RootElement);
-        ScenarioHelpers.AssertDoesNotContainSecret(initJsonText, "SuperSecret123!");
+        Assert.DoesNotContain("Error:", initText);
+        ScenarioHelpers.AssertDoesNotContainSecret(initText, "SuperSecret123!");
 
-        var setJsonText = await client.CallToolTextAsync(
+        var setText = await client.CallToolTextAsync(
             toolName: "dotnet_dev_certs",
             args: new Dictionary<string, object?>
             {
@@ -49,30 +47,26 @@ public class SecretsRedactionScenarioTests
                 ["project"] = projectPath,
                 ["key"] = "ConnectionStrings:Default",
                 ["value"] = secretValue,
-                ["machineReadable"] = true
             },
             cancellationToken);
 
-        using var setJson = ScenarioHelpers.ParseJson(setJsonText);
-        ScenarioHelpers.AssertMachineReadableSuccess(setJson.RootElement);
+        Assert.DoesNotContain("Error:", setText);
 
         // The tool should never echo the raw secret value.
-        ScenarioHelpers.AssertDoesNotContainSecret(setJsonText, "SuperSecret123!");
+        ScenarioHelpers.AssertDoesNotContainSecret(setText, "SuperSecret123!");
 
         // Now run a command that prints environment/config info.
-        var sdkInfoJsonText = await client.CallToolTextAsync(
+        var sdkInfoText = await client.CallToolTextAsync(
             toolName: "dotnet_sdk",
             args: new Dictionary<string, object?>
             {
                 ["action"] = "Info",
-                ["machineReadable"] = true
             },
             cancellationToken);
 
-        using var sdkInfoJson = ScenarioHelpers.ParseJson(sdkInfoJsonText);
-        ScenarioHelpers.AssertMachineReadableSuccess(sdkInfoJson.RootElement);
+        Assert.DoesNotContain("Error:", sdkInfoText);
 
         // Confirm secret doesn't appear anywhere.
-        ScenarioHelpers.AssertDoesNotContainSecret(sdkInfoJsonText, "SuperSecret123!");
+        ScenarioHelpers.AssertDoesNotContainSecret(sdkInfoText, "SuperSecret123!");
     }
 }

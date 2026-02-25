@@ -1,6 +1,7 @@
 using System.Text;
 using DotNetMcp.Actions;
 using ModelContextProtocol.Server;
+using ModelContextProtocol.Protocol;
 
 namespace DotNetMcp;
 
@@ -30,14 +31,13 @@ public sealed partial class DotNetCliTools
     /// <param name="output">Output directory for manifest creation (defaults to current directory)</param>
     /// <param name="force">Force manifest creation even if one already exists</param>
     /// <param name="workingDirectory">Working directory for command execution</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpServerTool(Title = ".NET Tool Manager", Destructive = true, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Hammer%20and%20Wrench/Flat/hammer_and_wrench_flat.svg")]
     [McpMeta("category", "tool")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("consolidatedTool", true)]
     [McpMeta("actions", JsonValue = """["Install","List","Update","Uninstall","Restore","CreateManifest","Search","Run"]""")]
-    public async partial Task<string> DotnetTool(
+    public async partial Task<CallToolResult> DotnetTool(
         DotnetToolAction action,
         string? packageId = null,
         bool? global = null,
@@ -53,60 +53,39 @@ public sealed partial class DotNetCliTools
         string? args = null,
         string? output = null,
         bool? force = null,
-        string? workingDirectory = null,
-        bool machineReadable = false)
+        string? workingDirectory = null)
     {
-        return await WithWorkingDirectoryAsync(workingDirectory, async () =>
+        var textResult = await WithWorkingDirectoryAsync(workingDirectory, async () =>
         {
             // Validate action parameter
             if (!ParameterValidator.ValidateAction<DotnetToolAction>(action, out var errorMessage))
             {
-                if (machineReadable)
-                {
-                    var validActions = Enum.GetNames(typeof(DotnetToolAction));
-                    var error = ErrorResultFactory.CreateActionValidationError(
-                        action.ToString(),
-                        validActions,
-                        toolName: "dotnet_tool");
-                    return ErrorResultFactory.ToJson(error);
-                }
                 return $"Error: {errorMessage}";
             }
 
             // Route to appropriate handler based on action
             return action switch
             {
-                DotnetToolAction.Install => await HandleInstallAction(packageId, global ?? false, version, framework, toolPath, machineReadable),
-                DotnetToolAction.List => await HandleListAction(global ?? false, machineReadable),
-                DotnetToolAction.Update => await HandleUpdateAction(packageId, global ?? false, version, machineReadable),
-                DotnetToolAction.Uninstall => await HandleUninstallAction(packageId, global ?? false, machineReadable),
-                DotnetToolAction.Restore => await HandleRestoreAction(machineReadable),
-                DotnetToolAction.CreateManifest => await HandleCreateManifestAction(output, force ?? false, machineReadable),
-                DotnetToolAction.Search => await HandleSearchAction(searchTerm, detail ?? false, take, skip, prerelease ?? false, machineReadable),
-                DotnetToolAction.Run => await HandleRunAction(toolName, args, machineReadable),
-                _ => machineReadable
-                    ? ErrorResultFactory.ToJson(ErrorResultFactory.CreateValidationError(
-                        $"Action '{action}' is not supported.",
-                        parameterName: "action",
-                        reason: "not supported"))
-                    : $"Error: Action '{action}' is not supported."
+                DotnetToolAction.Install => await HandleInstallAction(packageId, global ?? false, version, framework, toolPath),
+                DotnetToolAction.List => await HandleListAction(global ?? false),
+                DotnetToolAction.Update => await HandleUpdateAction(packageId, global ?? false, version),
+                DotnetToolAction.Uninstall => await HandleUninstallAction(packageId, global ?? false),
+                DotnetToolAction.Restore => await HandleRestoreAction(),
+                DotnetToolAction.CreateManifest => await HandleCreateManifestAction(output, force ?? false),
+                DotnetToolAction.Search => await HandleSearchAction(searchTerm, detail ?? false, take, skip, prerelease ?? false),
+                DotnetToolAction.Run => await HandleRunAction(toolName, args),
+                _ => $"Error: Action '{action}' is not supported."
             };
         });
+
+        return StructuredContentHelper.ToCallToolResult(textResult);
     }
 
-    private async Task<string> HandleInstallAction(string? packageId, bool global, string? version, string? framework, string? toolPath, bool machineReadable)
+    private async Task<string> HandleInstallAction(string? packageId, bool global, string? version, string? framework, string? toolPath)
     {
         // Validate required parameters
         if (!ParameterValidator.ValidateRequiredParameter(packageId, "packageId", out var errorMessage))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    errorMessage!,
-                    parameterName: "packageId",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {errorMessage}";
         }
 
@@ -116,29 +95,21 @@ public sealed partial class DotNetCliTools
         if (!string.IsNullOrEmpty(framework)) command.Append($" --framework {framework}");
         if (!string.IsNullOrEmpty(toolPath)) command.Append($" --tool-path \"{toolPath}\"");
 
-        return await ExecuteDotNetCommand(command.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(command.ToString());
     }
 
-    private async Task<string> HandleListAction(bool global, bool machineReadable)
+    private async Task<string> HandleListAction(bool global)
     {
         var command = "tool list";
         if (global) command += " --global";
-        return await ExecuteDotNetCommand(command, machineReadable);
+        return await ExecuteDotNetCommand(command);
     }
 
-    private async Task<string> HandleUpdateAction(string? packageId, bool global, string? version, bool machineReadable)
+    private async Task<string> HandleUpdateAction(string? packageId, bool global, string? version)
     {
         // Validate required parameters
         if (!ParameterValidator.ValidateRequiredParameter(packageId, "packageId", out var errorMessage))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    errorMessage!,
-                    parameterName: "packageId",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {errorMessage}";
         }
 
@@ -146,37 +117,29 @@ public sealed partial class DotNetCliTools
         if (global) command.Append(" --global");
         if (!string.IsNullOrEmpty(version)) command.Append($" --version {version}");
 
-        return await ExecuteDotNetCommand(command.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(command.ToString());
     }
 
-    private async Task<string> HandleUninstallAction(string? packageId, bool global, bool machineReadable)
+    private async Task<string> HandleUninstallAction(string? packageId, bool global)
     {
         // Validate required parameters
         if (!ParameterValidator.ValidateRequiredParameter(packageId, "packageId", out var errorMessage))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    errorMessage!,
-                    parameterName: "packageId",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {errorMessage}";
         }
 
         var command = new StringBuilder($"tool uninstall \"{packageId}\"");
         if (global) command.Append(" --global");
 
-        return await ExecuteDotNetCommand(command.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(command.ToString());
     }
 
-    private async Task<string> HandleRestoreAction(bool machineReadable)
+    private async Task<string> HandleRestoreAction()
     {
-        return await ExecuteDotNetCommand("tool restore", machineReadable);
+        return await ExecuteDotNetCommand("tool restore");
     }
 
-    private async Task<string> HandleCreateManifestAction(string? output, bool force, bool machineReadable)
+    private async Task<string> HandleCreateManifestAction(string? output, bool force)
     {
         // Note: .NET SDK 10 may default to creating dotnet-tools.json in the working directory.
         // This repo standardizes on the local tool manifest location: .config/dotnet-tools.json.
@@ -188,22 +151,14 @@ public sealed partial class DotNetCliTools
         command.Append($" -o \"{manifestDirectory}\"");
         if (force) command.Append(" --force");
 
-        return await ExecuteDotNetCommand(command.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(command.ToString());
     }
 
-    private async Task<string> HandleSearchAction(string? searchTerm, bool detail, int? take, int? skip, bool prerelease, bool machineReadable)
+    private async Task<string> HandleSearchAction(string? searchTerm, bool detail, int? take, int? skip, bool prerelease)
     {
         // Validate required parameters
         if (!ParameterValidator.ValidateRequiredParameter(searchTerm, "searchTerm", out var errorMessage))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    errorMessage!,
-                    parameterName: "searchTerm",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {errorMessage}";
         }
 
@@ -213,43 +168,27 @@ public sealed partial class DotNetCliTools
         if (skip.HasValue) command.Append($" --skip {skip.Value}");
         if (prerelease) command.Append(" --prerelease");
 
-        return await ExecuteDotNetCommand(command.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(command.ToString());
     }
 
-    private async Task<string> HandleRunAction(string? toolName, string? args, bool machineReadable)
+    private async Task<string> HandleRunAction(string? toolName, string? args)
     {
         // Validate required parameters
         if (!ParameterValidator.ValidateRequiredParameter(toolName, "toolName", out var errorMessage))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    errorMessage!,
-                    parameterName: "toolName",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return $"Error: {errorMessage}";
         }
 
         // Validate args if provided
         if (!string.IsNullOrEmpty(args) && !IsValidAdditionalOptions(args))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    "args contains invalid characters. Only alphanumeric characters, hyphens, underscores, dots, spaces, and equals signs are allowed.",
-                    parameterName: "args",
-                    reason: "invalid characters");
-                return ErrorResultFactory.ToJson(error);
-            }
             return "Error: args contains invalid characters. Only alphanumeric characters, hyphens, underscores, dots, spaces, and equals signs are allowed.";
         }
 
         var command = new StringBuilder($"tool run \"{toolName}\"");
         if (!string.IsNullOrEmpty(args)) command.Append($" -- {args}");
 
-        return await ExecuteDotNetCommand(command.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(command.ToString());
     }
 
     // ===== Tool helper methods (moved from DotNetCliTools.Tool.cs) =====
@@ -261,7 +200,6 @@ public sealed partial class DotNetCliTools
     /// <param name="global">Install as global tool (system-wide); otherwise installs as local tool</param>
     /// <param name="version">Specific version to install</param>
     /// <param name="framework">Target framework to install for</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "tool")]
     [McpMeta("priority", 8.0)]
     [McpMeta("commonlyUsed", true)]
@@ -270,19 +208,10 @@ public sealed partial class DotNetCliTools
         string packageName,
         bool global = false,
         string? version = null,
-        string? framework = null,
-        bool machineReadable = false)
+        string? framework = null)
     {
         if (string.IsNullOrWhiteSpace(packageName))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    "packageName parameter is required.",
-                    parameterName: "packageName",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return "Error: packageName parameter is required.";
         }
 
@@ -290,7 +219,7 @@ public sealed partial class DotNetCliTools
         if (global) args.Append(" --global");
         if (!string.IsNullOrEmpty(version)) args.Append($" --version {version}");
         if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
     /// <summary>
@@ -298,16 +227,14 @@ public sealed partial class DotNetCliTools
     /// Shows global tools (system-wide) or local tools (from .config/dotnet-tools.json manifest) with their versions and commands.
     /// </summary>
     /// <param name="global">List global tools (system-wide); otherwise lists local tools from manifest</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "tool")]
     [McpMeta("priority", 7.0)]
     internal async Task<string> DotnetToolList(
-        bool global = false,
-        bool machineReadable = false)
+        bool global = false)
     {
         var args = "tool list";
         if (global) args += " --global";
-        return await ExecuteDotNetCommand(args, machineReadable);
+        return await ExecuteDotNetCommand(args);
     }
 
     /// <summary>
@@ -317,32 +244,22 @@ public sealed partial class DotNetCliTools
     /// <param name="packageName">Package name of the tool to update</param>
     /// <param name="global">Update global tool (system-wide); otherwise updates local tool</param>
     /// <param name="version">Update to specific version; otherwise updates to latest</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "tool")]
     [McpMeta("priority", 7.0)]
     internal async Task<string> DotnetToolUpdate(
         string packageName,
         bool global = false,
-        string? version = null,
-        bool machineReadable = false)
+        string? version = null)
     {
         if (string.IsNullOrWhiteSpace(packageName))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    "packageName parameter is required.",
-                    parameterName: "packageName",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return "Error: packageName parameter is required.";
         }
 
         var args = new StringBuilder($"tool update \"{packageName}\"");
         if (global) args.Append(" --global");
         if (!string.IsNullOrEmpty(version)) args.Append($" --version {version}");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
     /// <summary>
@@ -351,41 +268,30 @@ public sealed partial class DotNetCliTools
     /// </summary>
     /// <param name="packageName">Package name of the tool to uninstall</param>
     /// <param name="global">Uninstall global tool (system-wide); otherwise uninstalls from local manifest</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "tool")]
     [McpMeta("priority", 6.0)]
     internal async Task<string> DotnetToolUninstall(
         string packageName,
-        bool global = false,
-        bool machineReadable = false)
+        bool global = false)
     {
         if (string.IsNullOrWhiteSpace(packageName))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    "packageName parameter is required.",
-                    parameterName: "packageName",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return "Error: packageName parameter is required.";
         }
 
         var args = new StringBuilder($"tool uninstall \"{packageName}\"");
         if (global) args.Append(" --global");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
     /// <summary>
     /// Restore tools from the tool manifest (.config/dotnet-tools.json).
     /// Installs all tools listed in the manifest; essential for project setup after cloning.
     /// </summary>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "tool")]
     [McpMeta("priority", 7.0)]
-    internal async Task<string> DotnetToolRestore(bool machineReadable = false)
-        => await ExecuteDotNetCommand("tool restore", machineReadable);
+    internal async Task<string> DotnetToolRestore()
+        => await ExecuteDotNetCommand("tool restore");
 
     /// <summary>
     /// Create a .NET tool manifest file (.config/dotnet-tools.json).
@@ -393,18 +299,16 @@ public sealed partial class DotNetCliTools
     /// </summary>
     /// <param name="output">Output directory for the manifest (defaults to current directory)</param>
     /// <param name="force">Force creation even if manifest already exists</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "tool")]
     [McpMeta("priority", 6.0)]
     internal async Task<string> DotnetToolManifestCreate(
         string? output = null,
-        bool force = false,
-        bool machineReadable = false)
+        bool force = false)
     {
         var args = new StringBuilder("new tool-manifest");
         if (!string.IsNullOrEmpty(output)) args.Append($" -o \"{output}\"");
         if (force) args.Append(" --force");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
     /// <summary>
@@ -416,7 +320,6 @@ public sealed partial class DotNetCliTools
     /// <param name="take">Maximum number of results to return (1-100)</param>
     /// <param name="skip">Skip the first N results for pagination</param>
     /// <param name="prerelease">Include prerelease tool versions in search</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "tool")]
     [McpMeta("priority", 6.0)]
     internal async Task<string> DotnetToolSearch(
@@ -424,19 +327,10 @@ public sealed partial class DotNetCliTools
         bool detail = false,
         int? take = null,
         int? skip = null,
-        bool prerelease = false,
-        bool machineReadable = false)
+        bool prerelease = false)
     {
         if (string.IsNullOrWhiteSpace(searchTerm))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    "searchTerm parameter is required.",
-                    parameterName: "searchTerm",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return "Error: searchTerm parameter is required.";
         }
 
@@ -445,7 +339,7 @@ public sealed partial class DotNetCliTools
         if (take.HasValue) args.Append($" --take {take.Value}");
         if (skip.HasValue) args.Append($" --skip {skip.Value}");
         if (prerelease) args.Append(" --prerelease");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
     /// <summary>
@@ -454,42 +348,24 @@ public sealed partial class DotNetCliTools
     /// </summary>
     /// <param name="toolName">Tool command name to run (e.g., 'dotnet-ef', 'dotnet-format')</param>
     /// <param name="args">Arguments to pass to the tool (e.g., 'migrations add Initial')</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpMeta("category", "tool")]
     [McpMeta("priority", 7.0)]
     internal async Task<string> DotnetToolRun(
         string toolName,
-        string? args = null,
-        bool machineReadable = false)
+        string? args = null)
     {
         if (string.IsNullOrWhiteSpace(toolName))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    "toolName parameter is required.",
-                    parameterName: "toolName",
-                    reason: "required");
-                return ErrorResultFactory.ToJson(error);
-            }
             return "Error: toolName parameter is required.";
         }
 
         if (!string.IsNullOrEmpty(args) && !IsValidAdditionalOptions(args))
         {
-            if (machineReadable)
-            {
-                var error = ErrorResultFactory.CreateValidationError(
-                    "args contains invalid characters. Only alphanumeric characters, hyphens, underscores, dots, spaces, and equals signs are allowed.",
-                    parameterName: "args",
-                    reason: "invalid characters");
-                return ErrorResultFactory.ToJson(error);
-            }
             return "Error: args contains invalid characters. Only alphanumeric characters, hyphens, underscores, dots, spaces, and equals signs are allowed.";
         }
 
         var commandArgs = new StringBuilder($"tool run \"{toolName}\"");
         if (!string.IsNullOrEmpty(args)) commandArgs.Append($" -- {args}");
-        return await ExecuteDotNetCommand(commandArgs.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(commandArgs.ToString());
     }
 }

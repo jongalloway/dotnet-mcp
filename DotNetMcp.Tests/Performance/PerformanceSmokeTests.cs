@@ -68,7 +68,7 @@ public class PerformanceSmokeTests
         for (int i = 0; i < MeasurementIterations; i++)
         {
             sw.Restart();
-            var result = await _tools.DotnetTemplateList(forceReload: false);
+            var result = (await _tools.DotnetTemplateList(forceReload: false));
             sw.Stop();
             
             // Non-blocking: if the call fails in this environment, report and skip.
@@ -107,7 +107,7 @@ public class PerformanceSmokeTests
         // Warmup
         for (int i = 0; i < WarmupIterations; i++)
         {
-            await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Version);
+            (await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Version)).GetText();
         }
         
         // Measurement iterations
@@ -117,7 +117,7 @@ public class PerformanceSmokeTests
         for (int i = 0; i < MeasurementIterations; i++)
         {
             sw.Restart();
-            var result = await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Version);
+            var result = (await _tools.DotnetSdk(action: DotNetMcp.Actions.DotnetSdkAction.Version)).GetText();
             sw.Stop();
             
             // Non-blocking: if the call fails in this environment, report and skip.

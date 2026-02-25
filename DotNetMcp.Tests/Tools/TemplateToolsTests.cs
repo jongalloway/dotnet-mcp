@@ -22,7 +22,7 @@ public class TemplateToolsTests
     public async Task DotnetTemplateList_WithoutForceReload_ReturnsTemplates()
     {
         // Act
-        var result = await _tools.DotnetTemplateList(forceReload: false);
+        var result = (await _tools.DotnetTemplateList(forceReload: false));
 
         // Assert
         Assert.NotNull(result);
@@ -44,7 +44,7 @@ public class TemplateToolsTests
     public async Task DotnetTemplateList_WithForceReload_ReturnsTemplates()
     {
         // Act
-        var result = await _tools.DotnetTemplateList(forceReload: true);
+        var result = (await _tools.DotnetTemplateList(forceReload: true));
 
         // Assert
         Assert.NotNull(result);
@@ -61,7 +61,7 @@ public class TemplateToolsTests
     public async Task DotnetTemplateSearch_WithSearchTerm_ReturnsMatchingTemplates()
     {
         // Act
-        var result = await _tools.DotnetTemplateSearch(searchTerm: "console");
+        var result = (await _tools.DotnetTemplateSearch(searchTerm: "console"));
 
         // Assert
         Assert.NotNull(result);
@@ -78,7 +78,7 @@ public class TemplateToolsTests
     public async Task DotnetTemplateSearch_WithForceReload_ReturnsMatchingTemplates()
     {
         // Act
-        var result = await _tools.DotnetTemplateSearch(searchTerm: "web", forceReload: true);
+        var result = (await _tools.DotnetTemplateSearch(searchTerm: "web", forceReload: true));
 
         // Assert
         Assert.NotNull(result);
@@ -90,7 +90,7 @@ public class TemplateToolsTests
     public async Task DotnetTemplateInfo_WithValidTemplate_ReturnsTemplateDetails()
     {
         // Act
-        var result = await _tools.DotnetTemplateInfo(templateShortName: "console");
+        var result = (await _tools.DotnetTemplateInfo(templateShortName: "console"));
 
         // Assert
         Assert.NotNull(result);
@@ -102,7 +102,7 @@ public class TemplateToolsTests
     public async Task DotnetTemplateInfo_WithForceReload_ReturnsTemplateDetails()
     {
         // Act
-        var result = await _tools.DotnetTemplateInfo(templateShortName: "classlib", forceReload: true);
+        var result = (await _tools.DotnetTemplateInfo(templateShortName: "classlib", forceReload: true));
 
         // Assert
         Assert.NotNull(result);
@@ -114,7 +114,7 @@ public class TemplateToolsTests
     public async Task DotnetTemplateClearCache_ClearsCachesSuccessfully()
     {
         // Act
-        var result = await _tools.DotnetTemplateClearCache();
+        var result = (await _tools.DotnetTemplateClearCache());
 
         // Assert
         Assert.NotNull(result);

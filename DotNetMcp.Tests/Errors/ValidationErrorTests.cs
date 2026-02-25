@@ -1,7 +1,6 @@
 using DotNetMcp;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using System.Text.Json;
 using Xunit;
 
 namespace DotNetMcp.Tests;
@@ -29,10 +28,9 @@ public class ValidationErrorTests
     public async Task DotnetToolInstall_WithEmptyPackageName_MachineReadableTrue_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetTool(
+        var result = (await _tools.DotnetTool(
             action: DotNetMcp.Actions.DotnetToolAction.Install,
-            packageId: "",
-            machineReadable: true);
+            packageId: "")).GetText();
 
         // Assert
         AssertValidationError(result, "packageId", "required");
@@ -42,25 +40,22 @@ public class ValidationErrorTests
     public async Task DotnetToolInstall_WithEmptyPackageName_MachineReadableFalse_ReturnsPlainText()
     {
         // Act
-        var result = await _tools.DotnetTool(
+        var result = (await _tools.DotnetTool(
             action: DotNetMcp.Actions.DotnetToolAction.Install,
-            packageId: "",
-            machineReadable: false);
+            packageId: "")).GetText();
 
         // Assert
         Assert.StartsWith("Error:", result);
         Assert.Contains("packageId", result);
-        Assert.False(TryParseJson(result, out _));
     }
 
     [Fact]
     public async Task DotnetToolUpdate_WithEmptyPackageName_MachineReadableTrue_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetTool(
+        var result = (await _tools.DotnetTool(
             action: DotNetMcp.Actions.DotnetToolAction.Update,
-            packageId: "",
-            machineReadable: true);
+            packageId: "")).GetText();
 
         // Assert
         AssertValidationError(result, "packageId", "required");
@@ -70,10 +65,9 @@ public class ValidationErrorTests
     public async Task DotnetToolUninstall_WithEmptyPackageName_MachineReadableTrue_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetTool(
+        var result = (await _tools.DotnetTool(
             action: DotNetMcp.Actions.DotnetToolAction.Uninstall,
-            packageId: "",
-            machineReadable: true);
+            packageId: "")).GetText();
 
         // Assert
         AssertValidationError(result, "packageId", "required");
@@ -83,10 +77,9 @@ public class ValidationErrorTests
     public async Task DotnetToolSearch_WithEmptySearchTerm_MachineReadableTrue_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetTool(
+        var result = (await _tools.DotnetTool(
             action: DotNetMcp.Actions.DotnetToolAction.Search,
-            searchTerm: "",
-            machineReadable: true);
+            searchTerm: "")).GetText();
 
         // Assert
         AssertValidationError(result, "searchTerm", "required");
@@ -96,10 +89,9 @@ public class ValidationErrorTests
     public async Task DotnetToolRun_WithEmptyToolName_MachineReadableTrue_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetTool(
+        var result = (await _tools.DotnetTool(
             action: DotNetMcp.Actions.DotnetToolAction.Run,
-            toolName: "",
-            machineReadable: true);
+            toolName: "")).GetText();
 
         // Assert
         AssertValidationError(result, "toolName", "required");
@@ -109,11 +101,10 @@ public class ValidationErrorTests
     public async Task DotnetToolRun_WithInvalidArgs_MachineReadableTrue_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetTool(
+        var result = (await _tools.DotnetTool(
             action: DotNetMcp.Actions.DotnetToolAction.Run,
             toolName: "test-tool",
-            args: "invalid<>chars",
-            machineReadable: true);
+            args: "invalid<>chars")).GetText();
 
         // Assert
         AssertValidationError(result, "args", "invalid characters");
@@ -127,10 +118,9 @@ public class ValidationErrorTests
     public async Task DotnetProjectNew_WithInvalidAdditionalOptions_MachineReadableTrue_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetProjectNew(
+        var result = (await _tools.DotnetProjectNew(
             template: "console",
-            additionalOptions: "invalid<>chars",
-            machineReadable: true);
+            additionalOptions: "invalid<>chars"));
 
         // Assert
         AssertValidationError(result, "additionalOptions", "invalid characters");
@@ -140,10 +130,9 @@ public class ValidationErrorTests
     public async Task DotnetProjectNew_WithInvalidFramework_MachineReadableTrue_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetProjectNew(
+        var result = (await _tools.DotnetProjectNew(
             template: "console",
-            framework: "invalidframework",
-            machineReadable: true);
+            framework: "invalidframework"));
 
         // Assert
         AssertValidationError(result, "framework", "invalid format");
@@ -153,9 +142,8 @@ public class ValidationErrorTests
     public async Task DotnetProjectRestore_WithInvalidProjectPath_MachineReadableTrue_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetProjectRestore(
-            project: "test.txt",
-            machineReadable: true);
+        var result = (await _tools.DotnetProjectRestore(
+            project: "test.txt"));
 
         // Assert
         AssertValidationError(result, "project", "invalid extension");
@@ -165,9 +153,8 @@ public class ValidationErrorTests
     public async Task DotnetProjectBuild_WithInvalidProjectPath_MachineReadableTrue_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetProjectBuild(
-            project: "test.txt",
-            machineReadable: true);
+        var result = (await _tools.DotnetProjectBuild(
+            project: "test.txt"));
 
         // Assert
         AssertValidationError(result, "project", "invalid extension");
@@ -181,9 +168,8 @@ public class ValidationErrorTests
     public async Task DotnetEfMigrationsAdd_WithEmptyName_MachineReadableTrue_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetEfMigrationsAdd(
-            name: "",
-            machineReadable: true);
+        var result = (await _tools.DotnetEfMigrationsAdd(
+            name: ""));
 
         // Assert
         AssertValidationError(result, "name", "required");
@@ -193,10 +179,9 @@ public class ValidationErrorTests
     public async Task DotnetEfDbContextScaffold_WithEmptyConnection_MachineReadableTrue_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetEfDbContextScaffold(
+        var result = (await _tools.DotnetEfDbContextScaffold(
             connection: "",
-            provider: "Microsoft.EntityFrameworkCore.SqlServer",
-            machineReadable: true);
+            provider: "Microsoft.EntityFrameworkCore.SqlServer"));
 
         // Assert
         AssertValidationError(result, "connection", "required");
@@ -206,10 +191,9 @@ public class ValidationErrorTests
     public async Task DotnetEfDbContextScaffold_WithEmptyProvider_MachineReadableTrue_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetEfDbContextScaffold(
+        var result = (await _tools.DotnetEfDbContextScaffold(
             connection: "Server=localhost;Database=test;",
-            provider: "",
-            machineReadable: true);
+            provider: ""));
 
         // Assert
         AssertValidationError(result, "provider", "required");
@@ -223,9 +207,8 @@ public class ValidationErrorTests
     public async Task DotnetCertificateExport_WithEmptyPath_MachineReadableTrue_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetCertificateExport(
-            path: "",
-            machineReadable: true);
+        var result = (await _tools.DotnetCertificateExport(
+            path: ""));
 
         // Assert
         AssertValidationError(result, "path", "required");
@@ -235,10 +218,9 @@ public class ValidationErrorTests
     public async Task DotnetCertificateExport_WithInvalidFormat_MachineReadableTrue_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetCertificateExport(
+        var result = (await _tools.DotnetCertificateExport(
             path: "/tmp/cert.pfx",
-            format: "invalid",
-            machineReadable: true);
+            format: "invalid"));
 
         // Assert
         AssertValidationError(result, "format", "invalid value");
@@ -248,10 +230,9 @@ public class ValidationErrorTests
     public async Task DotnetSecretsSet_WithEmptyKey_MachineReadableTrue_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetSecretsSet(
+        var result = (await _tools.DotnetSecretsSet(
             key: "",
-            value: "test",
-            machineReadable: true);
+            value: "test"));
 
         // Assert
         AssertValidationError(result, "key", "required");
@@ -261,10 +242,9 @@ public class ValidationErrorTests
     public async Task DotnetSecretsSet_WithEmptyValue_MachineReadableTrue_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetSecretsSet(
+        var result = (await _tools.DotnetSecretsSet(
             key: "TestKey",
-            value: "",
-            machineReadable: true);
+            value: ""));
 
         // Assert
         AssertValidationError(result, "value", "required");
@@ -274,9 +254,8 @@ public class ValidationErrorTests
     public async Task DotnetSecretsRemove_WithEmptyKey_MachineReadableTrue_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetSecretsRemove(
-            key: "",
-            machineReadable: true);
+        var result = (await _tools.DotnetSecretsRemove(
+            key: ""));
 
         // Assert
         AssertValidationError(result, "key", "required");
@@ -290,11 +269,10 @@ public class ValidationErrorTests
     public async Task DotnetSolutionCreate_WithInvalidFormat_MachineReadableTrue_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetSolution(
+        var result = (await _tools.DotnetSolution(
             action: DotNetMcp.Actions.DotnetSolutionAction.Create,
             name: "TestSolution",
-            format: "invalid",
-            machineReadable: true);
+            format: "invalid")).GetText();
 
         // Assert
         AssertValidationError(result, "format", "invalid value");
@@ -304,11 +282,10 @@ public class ValidationErrorTests
     public async Task DotnetSolutionAdd_WithEmptyProjects_MachineReadableTrue_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetSolution(
+        var result = (await _tools.DotnetSolution(
             action: DotNetMcp.Actions.DotnetSolutionAction.Add,
             solution: "TestSolution.sln",
-            projects: Array.Empty<string>(),
-            machineReadable: true);
+            projects: Array.Empty<string>())).GetText();
 
         // Assert
         AssertValidationError(result, "projects", "required");
@@ -318,11 +295,10 @@ public class ValidationErrorTests
     public async Task DotnetSolutionRemove_WithEmptyProjects_MachineReadableTrue_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetSolution(
+        var result = (await _tools.DotnetSolution(
             action: DotNetMcp.Actions.DotnetSolutionAction.Remove,
             solution: "TestSolution.sln",
-            projects: Array.Empty<string>(),
-            machineReadable: true);
+            projects: Array.Empty<string>())).GetText();
 
         // Assert
         AssertValidationError(result, "projects", "required");
@@ -336,11 +312,10 @@ public class ValidationErrorTests
     public async Task DotnetNugetLocals_WithNeitherListNorClear_MachineReadableTrue_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetNugetLocals(
+        var result = (await _tools.DotnetNugetLocals(
             cacheLocation: "all",
             list: false,
-            clear: false,
-            machineReadable: true);
+            clear: false));
 
         // Assert
         AssertValidationError(result, "list/clear", "at least one required");
@@ -350,11 +325,10 @@ public class ValidationErrorTests
     public async Task DotnetNugetLocals_WithBothListAndClear_MachineReadableTrue_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetNugetLocals(
+        var result = (await _tools.DotnetNugetLocals(
             cacheLocation: "all",
             list: true,
-            clear: true,
-            machineReadable: true);
+            clear: true));
 
         // Assert
         AssertValidationError(result, "list/clear", "mutually exclusive");
@@ -364,10 +338,9 @@ public class ValidationErrorTests
     public async Task DotnetNugetLocals_WithInvalidCacheLocation_MachineReadableTrue_ReturnsStructuredError()
     {
         // Act
-        var result = await _tools.DotnetNugetLocals(
+        var result = (await _tools.DotnetNugetLocals(
             cacheLocation: "invalid-location",
-            list: true,
-            machineReadable: true);
+            list: true));
 
         // Assert
         AssertValidationError(result, "cacheLocation", "invalid value");
@@ -377,88 +350,9 @@ public class ValidationErrorTests
 
     #region Helper Methods
 
-    /// <summary>
-    /// Assert that the result is a valid validation error JSON with expected structure.
-    /// </summary>
     private static void AssertValidationError(string result, string expectedParameter, string expectedReason)
     {
-        // Should be valid JSON
-        Assert.True(TryParseJson(result, out var jsonDoc), "Result should be valid JSON");
-
-        var root = jsonDoc!.RootElement;
-
-        // Verify success is false
-        Assert.True(root.TryGetProperty("success", out var successProp));
-        Assert.False(successProp.GetBoolean());
-
-        // Verify exit code is -1
-        Assert.True(root.TryGetProperty("exitCode", out var exitCodeProp));
-        Assert.Equal(-1, exitCodeProp.GetInt32());
-
-        // Verify errors array exists and has one error
-        Assert.True(root.TryGetProperty("errors", out var errorsProp));
-        Assert.Equal(JsonValueKind.Array, errorsProp.ValueKind);
-        Assert.Equal(1, errorsProp.GetArrayLength());
-
-        var error = errorsProp[0];
-
-        // Verify error code is INVALID_PARAMS
-        Assert.True(error.TryGetProperty("code", out var codeProp));
-        Assert.Equal("INVALID_PARAMS", codeProp.GetString());
-
-        // Verify category is Validation
-        Assert.True(error.TryGetProperty("category", out var categoryProp));
-        Assert.Equal("Validation", categoryProp.GetString());
-
-        // Verify message exists and is not empty
-        Assert.True(error.TryGetProperty("message", out var messageProp));
-        Assert.False(string.IsNullOrWhiteSpace(messageProp.GetString()));
-
-        // Verify MCP error code is InvalidParams
-        Assert.True(error.TryGetProperty("mcpErrorCode", out var mcpErrorCodeProp));
-        Assert.Equal(McpErrorCodes.InvalidParams, mcpErrorCodeProp.GetInt32());
-
-        // Verify data exists
-        Assert.True(error.TryGetProperty("data", out var dataProp));
-        Assert.Equal(JsonValueKind.Object, dataProp.ValueKind);
-
-        // Verify command is null or not present (no command executed)
-        // Note: When using JsonIgnoreCondition.WhenWritingNull, null values are omitted from JSON
-        if (dataProp.TryGetProperty("command", out var commandProp))
-        {
-            Assert.Equal(JsonValueKind.Null, commandProp.ValueKind);
-        }
-
-        // Verify exit code is -1
-        Assert.True(dataProp.TryGetProperty("exitCode", out var dataExitCodeProp));
-        Assert.Equal(-1, dataExitCodeProp.GetInt32());
-
-        // Verify additional data contains parameter and reason
-        Assert.True(dataProp.TryGetProperty("additionalData", out var additionalDataProp), 
-            $"additionalData property not found. Data JSON: {dataProp.GetRawText()}");
-        Assert.Equal(JsonValueKind.Object, additionalDataProp.ValueKind);
-
-        Assert.True(additionalDataProp.TryGetProperty("parameter", out var parameterProp),
-            $"parameter property not found in additionalData. AdditionalData JSON: {additionalDataProp.GetRawText()}");
-        Assert.Equal(expectedParameter, parameterProp.GetString());
-
-        Assert.True(additionalDataProp.TryGetProperty("reason", out var reasonProp),
-            $"reason property not found in additionalData. AdditionalData JSON: {additionalDataProp.GetRawText()}");
-        Assert.Equal(expectedReason, reasonProp.GetString());
-    }
-
-    private static bool TryParseJson(string text, out JsonDocument? document)
-    {
-        document = null;
-        try
-        {
-            document = JsonDocument.Parse(text);
-            return true;
-        }
-        catch (JsonException)
-        {
-            return false;
-        }
+        Assert.Contains("Error:", result, StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion

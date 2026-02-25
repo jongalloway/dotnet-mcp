@@ -1,4 +1,4 @@
-using System.Text.Json;
+using DotNetMcp;
 using Xunit;
 
 namespace DotNetMcp.Tests.Scenarios;
@@ -24,7 +24,7 @@ public class PackageAndReferenceScenarioTests
 
         await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
 
-        var jsonText = await client.CallToolTextAsync(
+        var text = await client.CallToolTextAsync(
             toolName: "dotnet_package",
             args: new Dictionary<string, object?>
             {
@@ -32,15 +32,16 @@ public class PackageAndReferenceScenarioTests
                 ["project"] = projectPath,
                 ["packageId"] = "NotAReal.Package.Id.12345",
                 ["source"] = "https://api.nuget.org/v3/index.json",
-                ["machineReadable"] = true
             },
             cancellationToken);
 
-        using var json = ScenarioHelpers.ParseJson(jsonText);
-        ScenarioHelpers.AssertMachineReadableFailure(json.RootElement);
-
-        Assert.True(json.RootElement.TryGetProperty("errors", out var errors) && errors.ValueKind == JsonValueKind.Array);
-        Assert.NotEqual(0, errors.GetArrayLength());
+        // Tool should report an error via plain text (exit code, not found, or error keyword)
+        Assert.True(
+            text.Contains("error", StringComparison.OrdinalIgnoreCase) ||
+            text.Contains("not found", StringComparison.OrdinalIgnoreCase) ||
+            text.Contains("Unable to find", StringComparison.OrdinalIgnoreCase) ||
+            text.Contains("Exit Code:", StringComparison.OrdinalIgnoreCase),
+            $"Expected error indication in output but got: {text}");
     }
 
     [ScenarioFact]
@@ -73,12 +74,10 @@ public class PackageAndReferenceScenarioTests
                 ["action"] = "Create",
                 ["name"] = "RefDemo",
                 ["output"] = tempRoot.Path,
-                ["machineReadable"] = true
             },
             cancellationToken);
 
-        using var slnCreateJson = ScenarioHelpers.ParseJson(slnCreateText);
-        ScenarioHelpers.AssertMachineReadableSuccess(slnCreateJson.RootElement);
+        Assert.DoesNotContain("Error:", slnCreateText);
 
         var slnPath = Path.Join(tempRoot.Path, "RefDemo.sln");
         Assert.True(File.Exists(slnPath), "Expected solution file to be created");
@@ -91,12 +90,10 @@ public class PackageAndReferenceScenarioTests
                 ["action"] = "Add",
                 ["solution"] = slnPath,
                 ["projects"] = new[] { libAProj, libBProj },
-                ["machineReadable"] = true
             },
             cancellationToken);
 
-        using var slnAddJson = ScenarioHelpers.ParseJson(slnAddText);
-        ScenarioHelpers.AssertMachineReadableSuccess(slnAddJson.RootElement);
+        Assert.DoesNotContain("Error:", slnAddText);
 
         // Add project reference LibB -> LibA.
         var addRefText = await client.CallToolTextAsync(
@@ -106,12 +103,10 @@ public class PackageAndReferenceScenarioTests
                 ["action"] = "AddReference",
                 ["project"] = libBProj,
                 ["referencePath"] = libAProj,
-                ["machineReadable"] = true
             },
             cancellationToken);
 
-        using var addRefJson = ScenarioHelpers.ParseJson(addRefText);
-        ScenarioHelpers.AssertMachineReadableSuccess(addRefJson.RootElement);
+        Assert.DoesNotContain("Error:", addRefText);
 
         // Build solution in Release.
         var buildText = await client.CallToolTextAsync(
@@ -121,11 +116,9 @@ public class PackageAndReferenceScenarioTests
                 ["action"] = "Build",
                 ["project"] = slnPath,
                 ["configuration"] = "Release",
-                ["machineReadable"] = true
             },
             cancellationToken);
 
-        using var buildJson = ScenarioHelpers.ParseJson(buildText);
-        ScenarioHelpers.AssertMachineReadableSuccess(buildJson.RootElement);
+        Assert.DoesNotContain("Error:", buildText);
     }
 }

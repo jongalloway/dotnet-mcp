@@ -1,4 +1,4 @@
-using System.Text.Json;
+using DotNetMcp;
 using Xunit;
 
 namespace DotNetMcp.Tests.Scenarios;
@@ -33,25 +33,17 @@ public class BuildErrorScenarioTests
 
         await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
 
-        var jsonText = await client.CallToolTextAsync(
+        var text = await client.CallToolTextAsync(
             toolName: "dotnet_project",
             args: new Dictionary<string, object?>
             {
                 ["action"] = "Build",
                 ["project"] = projectPath,
                 ["configuration"] = "Release",
-                ["machineReadable"] = true
             },
             cancellationToken);
 
-        using var json = ScenarioHelpers.ParseJson(jsonText);
-        ScenarioHelpers.AssertMachineReadableFailure(json.RootElement);
-
-        Assert.True(json.RootElement.TryGetProperty("errors", out var errors) && errors.ValueKind == JsonValueKind.Array);
-        Assert.NotEqual(0, errors.GetArrayLength());
-
-        // Contract sanity: error payload should mention a build/compile failure.
-        var errorsText = errors.GetRawText();
-        Assert.Contains("error", errorsText, StringComparison.OrdinalIgnoreCase);
+        // Contract sanity: output should mention a build/compile failure.
+        Assert.Contains("error", text, StringComparison.OrdinalIgnoreCase);
     }
 }

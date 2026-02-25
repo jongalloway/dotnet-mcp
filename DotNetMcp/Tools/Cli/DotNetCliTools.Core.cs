@@ -30,8 +30,8 @@ public sealed partial class DotNetCliTools
         _processSessionManager = processSessionManager!;
     }
 
-    private async Task<string> ExecuteDotNetCommand(string arguments, bool machineReadable = false, CancellationToken cancellationToken = default, string? workingDirectory = null)
-        => await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable, unsafeOutput: false, cancellationToken: cancellationToken, workingDirectory: workingDirectory);
+    private async Task<string> ExecuteDotNetCommand(string arguments, CancellationToken cancellationToken = default, string? workingDirectory = null)
+        => await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, unsafeOutput: false, cancellationToken: cancellationToken, workingDirectory: workingDirectory);
 
     /// <summary>
     /// Execute a command with concurrency control. Returns error if there's a conflict.
@@ -40,8 +40,6 @@ public sealed partial class DotNetCliTools
         string operationType,
         string target,
         string arguments,
-        bool machineReadable = false,
-        Dictionary<string, string>? metadata = null,
         CancellationToken cancellationToken = default,
         string? workingDirectory = null)
     {
@@ -50,15 +48,13 @@ public sealed partial class DotNetCliTools
         {
             // Conflict detected - return error
             var errorResponse = ErrorResultFactory.CreateConcurrencyConflict(operationType, target, conflictingOperation!);
-            return machineReadable
-                ? ErrorResultFactory.ToJson(errorResponse)
-                : $"Error: {errorResponse.Errors[0].Message}\nHint: {errorResponse.Errors[0].Hint}";
+            return $"Error: {errorResponse.Errors[0].Message}\nHint: {errorResponse.Errors[0].Hint}";
         }
 
         try
         {
             // Execute the command
-            return await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, machineReadable, unsafeOutput: false, cancellationToken: cancellationToken, workingDirectory: workingDirectory, metadata: metadata);
+            return await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, unsafeOutput: false, cancellationToken: cancellationToken, workingDirectory: workingDirectory);
         }
         finally
         {

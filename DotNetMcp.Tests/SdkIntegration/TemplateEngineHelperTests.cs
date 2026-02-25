@@ -23,9 +23,9 @@ public class TemplateEngineHelperTests
             TemplateEngineHelper.LoadTemplatesOverride = () => Task.FromResult<IEnumerable<ITemplateInfo>>(Array.Empty<ITemplateInfo>());
             TemplateEngineHelper.ExecuteDotNetForTemplatesAsync = (_, _) => Task.FromResult("FAKE TEMPLATE LIST OUTPUT");
 
-            var json = await TemplateEngineHelper.GetInstalledTemplatesAsync(forceReload: true, machineReadable: true);
+            var json = await TemplateEngineHelper.GetInstalledTemplatesAsync(forceReload: true);
 
-            Assert.Contains("\"success\": true", json, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("Error:", json, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("dotnet new list", json, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("FAKE TEMPLATE LIST OUTPUT", json);
         }

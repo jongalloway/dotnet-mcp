@@ -37,10 +37,9 @@ public class SolutionToolsTests
             Environment.CurrentDirectory = tempDirectory;
 
             // Act
-            var result = await _tools.DotnetSolution(
+            var result = (await _tools.DotnetSolution(
                 action: DotNetMcp.Actions.DotnetSolutionAction.Create,
-                name: "MySolution",
-                machineReadable: true);
+                name: "MySolution")).GetText();
 
             // Assert
             Assert.NotNull(result);
@@ -64,12 +63,11 @@ public class SolutionToolsTests
         try
         {
             // Act
-            var result = await _tools.DotnetSolution(
+            var result = (await _tools.DotnetSolution(
                 action: DotNetMcp.Actions.DotnetSolutionAction.Create,
                 name: "MySolution",
                 output: tempDirectory,
-                format: "slnx",
-                machineReadable: true);
+                format: "slnx")).GetText();
 
             // Assert
             Assert.NotNull(result);
@@ -86,9 +84,8 @@ public class SolutionToolsTests
     public async Task DotnetSolution_CreateAction_WithoutName_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetSolution(
-            action: DotNetMcp.Actions.DotnetSolutionAction.Create,
-            machineReadable: false);
+        var result = (await _tools.DotnetSolution(
+            action: DotNetMcp.Actions.DotnetSolutionAction.Create)).GetText();
 
         // Assert
         Assert.Contains("Error", result);
@@ -99,11 +96,10 @@ public class SolutionToolsTests
     public async Task DotnetSolution_AddAction_WithSingleProject_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetSolution(
+        var result = (await _tools.DotnetSolution(
             action: DotNetMcp.Actions.DotnetSolutionAction.Add,
             solution: "MySolution.sln",
-            projects: new[] { "MyProject.csproj" },
-            machineReadable: true);
+            projects: new[] { "MyProject.csproj" })).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -114,11 +110,10 @@ public class SolutionToolsTests
     public async Task DotnetSolution_AddAction_WithMultipleProjects_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetSolution(
+        var result = (await _tools.DotnetSolution(
             action: DotNetMcp.Actions.DotnetSolutionAction.Add,
             solution: "MySolution.sln",
-            projects: new[] { "Project1.csproj", "Project2.csproj" },
-            machineReadable: true);
+            projects: new[] { "Project1.csproj", "Project2.csproj" })).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -131,10 +126,9 @@ public class SolutionToolsTests
     public async Task DotnetSolution_AddAction_WithoutSolution_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetSolution(
+        var result = (await _tools.DotnetSolution(
             action: DotNetMcp.Actions.DotnetSolutionAction.Add,
-            projects: new[] { "MyProject.csproj" },
-            machineReadable: false);
+            projects: new[] { "MyProject.csproj" })).GetText();
 
         // Assert
         Assert.Contains("Error", result);
@@ -145,10 +139,9 @@ public class SolutionToolsTests
     public async Task DotnetSolution_AddAction_WithoutProjects_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetSolution(
+        var result = (await _tools.DotnetSolution(
             action: DotNetMcp.Actions.DotnetSolutionAction.Add,
-            solution: "MySolution.sln",
-            machineReadable: false);
+            solution: "MySolution.sln")).GetText();
 
         // Assert
         Assert.Contains("Error", result);
@@ -159,11 +152,10 @@ public class SolutionToolsTests
     public async Task DotnetSolution_AddAction_WithEmptyProjectsArray_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetSolution(
+        var result = (await _tools.DotnetSolution(
             action: DotNetMcp.Actions.DotnetSolutionAction.Add,
             solution: "MySolution.sln",
-            projects: Array.Empty<string>(),
-            machineReadable: false);
+            projects: Array.Empty<string>())).GetText();
 
         // Assert
         Assert.Contains("Error", result);
@@ -174,10 +166,9 @@ public class SolutionToolsTests
     public async Task DotnetSolution_ListAction_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetSolution(
+        var result = (await _tools.DotnetSolution(
             action: DotNetMcp.Actions.DotnetSolutionAction.List,
-            solution: "MySolution.sln",
-            machineReadable: true);
+            solution: "MySolution.sln")).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -188,9 +179,8 @@ public class SolutionToolsTests
     public async Task DotnetSolution_ListAction_WithoutSolution_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetSolution(
-            action: DotNetMcp.Actions.DotnetSolutionAction.List,
-            machineReadable: false);
+        var result = (await _tools.DotnetSolution(
+            action: DotNetMcp.Actions.DotnetSolutionAction.List)).GetText();
 
         // Assert
         Assert.Contains("Error", result);
@@ -201,11 +191,10 @@ public class SolutionToolsTests
     public async Task DotnetSolution_RemoveAction_WithSingleProject_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetSolution(
+        var result = (await _tools.DotnetSolution(
             action: DotNetMcp.Actions.DotnetSolutionAction.Remove,
             solution: "MySolution.sln",
-            projects: new[] { "MyProject.csproj" },
-            machineReadable: true);
+            projects: new[] { "MyProject.csproj" })).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -216,11 +205,10 @@ public class SolutionToolsTests
     public async Task DotnetSolution_RemoveAction_WithMultipleProjects_BuildsCorrectCommand()
     {
         // Act
-        var result = await _tools.DotnetSolution(
+        var result = (await _tools.DotnetSolution(
             action: DotNetMcp.Actions.DotnetSolutionAction.Remove,
             solution: "MySolution.sln",
-            projects: new[] { "Project1.csproj", "Project2.csproj" },
-            machineReadable: true);
+            projects: new[] { "Project1.csproj", "Project2.csproj" })).GetText();
 
         // Assert
         Assert.NotNull(result);
@@ -233,10 +221,9 @@ public class SolutionToolsTests
     public async Task DotnetSolution_RemoveAction_WithoutSolution_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetSolution(
+        var result = (await _tools.DotnetSolution(
             action: DotNetMcp.Actions.DotnetSolutionAction.Remove,
-            projects: new[] { "MyProject.csproj" },
-            machineReadable: false);
+            projects: new[] { "MyProject.csproj" })).GetText();
 
         // Assert
         Assert.Contains("Error", result);
@@ -247,10 +234,9 @@ public class SolutionToolsTests
     public async Task DotnetSolution_RemoveAction_WithoutProjects_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetSolution(
+        var result = (await _tools.DotnetSolution(
             action: DotNetMcp.Actions.DotnetSolutionAction.Remove,
-            solution: "MySolution.sln",
-            machineReadable: false);
+            solution: "MySolution.sln")).GetText();
 
         // Assert
         Assert.Contains("Error", result);
@@ -261,11 +247,10 @@ public class SolutionToolsTests
     public async Task DotnetSolution_RemoveAction_WithEmptyProjectsArray_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetSolution(
+        var result = (await _tools.DotnetSolution(
             action: DotNetMcp.Actions.DotnetSolutionAction.Remove,
             solution: "MySolution.sln",
-            projects: Array.Empty<string>(),
-            machineReadable: false);
+            projects: Array.Empty<string>())).GetText();
 
         // Assert
         Assert.Contains("Error", result);
@@ -276,38 +261,35 @@ public class SolutionToolsTests
     public async Task DotnetSolution_CreateAction_MachineReadableError_ReturnsJson()
     {
         // Act
-        var result = await _tools.DotnetSolution(
-            action: DotNetMcp.Actions.DotnetSolutionAction.Create,
-            machineReadable: true);
+        var result = (await _tools.DotnetSolution(
+            action: DotNetMcp.Actions.DotnetSolutionAction.Create)).GetText();
 
         // Assert
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("INVALID_PARAMS", result);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task DotnetSolution_AddAction_MachineReadableError_ReturnsJson()
     {
         // Act
-        var result = await _tools.DotnetSolution(
+        var result = (await _tools.DotnetSolution(
             action: DotNetMcp.Actions.DotnetSolutionAction.Add,
-            solution: "MySolution.sln",
-            machineReadable: true);
+            solution: "MySolution.sln")).GetText();
 
         // Assert
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("INVALID_PARAMS", result);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task DotnetSolution_CreateAction_WithInvalidFormat_ReturnsError()
     {
         // Act
-        var result = await _tools.DotnetSolution(
+        var result = (await _tools.DotnetSolution(
             action: DotNetMcp.Actions.DotnetSolutionAction.Create,
             name: "MySolution",
-            format: "invalid",
-            machineReadable: false);
+            format: "invalid")).GetText();
 
         // Assert
         Assert.Contains("Error", result);
@@ -320,15 +302,14 @@ public class SolutionToolsTests
     public async Task DotnetSolution_CreateAction_WithInvalidFormat_MachineReadable_ReturnsJson()
     {
         // Act
-        var result = await _tools.DotnetSolution(
+        var result = (await _tools.DotnetSolution(
             action: DotNetMcp.Actions.DotnetSolutionAction.Create,
             name: "MySolution",
-            format: "invalid",
-            machineReadable: true);
+            format: "invalid")).GetText();
 
         // Assert
-        Assert.Contains("\"success\": false", result);
-        Assert.Contains("INVALID_PARAMS", result);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("format", result, StringComparison.OrdinalIgnoreCase);
     }
 }

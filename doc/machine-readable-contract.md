@@ -2,19 +2,95 @@
 
 ## Overview
 
-The .NET MCP Server provides a stable machine-readable JSON contract for programmatic consumption of tool results. When the `machineReadable: true` parameter is set, all tools return structured JSON instead of plain text, enabling automated processing, error handling, and integration with AI orchestrators.
+The .NET MCP Server provides two complementary mechanisms for machine-readable tool output:
 
-This document defines the v1.0 contract that all tools must comply with when returning machine-readable output.
+1. **Structured Content (v2, preferred)** — Tools that return `CallToolResult` include a `structuredContent` field alongside the human-readable `content` array. No extra parameter needed; AI clients receive both text and structured data simultaneously.
+2. **`machineReadable` parameter (v1, legacy)** — When `machineReadable: true` is passed, the tool returns a JSON string in the text content using the envelopes defined below.
 
-## Design Principles
+## Structured Content (CallToolResult)
 
-1. **Consistency**: All tools follow the same response structure
-2. **Completeness**: Responses include all necessary information for automation
-3. **Actionability**: Error responses include actionable guidance and alternatives
-4. **Security**: Sensitive information is automatically redacted
-5. **Backwards Compatibility**: Plain text mode remains the default
+Four tools now return `CallToolResult` with a `structuredContent` field:
 
-## Response Envelopes
+| Tool | Action(s) | Structured Fields |
+|------|-----------|-------------------|
+| `dotnet_sdk` | `Version` | `{ "version": "10.0.100" }` |
+| `dotnet_sdk` | `ListSdks` | `{ "sdks": [{ "version": "...", "path": "..." }] }` |
+| `dotnet_sdk` | `ListRuntimes` | `{ "runtimes": [{ "name": "...", "version": "...", "path": "..." }] }` |
+| `dotnet_solution` | `List` | `{ "projects": ["path/to/project.csproj", ...] }` |
+| `dotnet_package` | `List` | `{ "packages": [{ "name": "...", "requestedVersion": "...", "resolvedVersion": "..." }] }` |
+| `dotnet_server_capabilities` | _(all)_ | Full `ServerCapabilities` object (see below) |
+
+All other actions for these tools return only text content (no `structuredContent`).
+
+### Example: `dotnet_sdk` Version
+
+```json
+{
+  "content": [{ "type": "text", "text": "10.0.100\nExit Code: 0" }],
+  "structuredContent": { "version": "10.0.100" }
+}
+```
+
+### Example: `dotnet_sdk` ListSdks
+
+```json
+{
+  "content": [{ "type": "text", "text": "10.0.100 [/usr/share/dotnet/sdk]\nExit Code: 0" }],
+  "structuredContent": {
+    "sdks": [
+      { "version": "10.0.100", "path": "/usr/share/dotnet/sdk" }
+    ]
+  }
+}
+```
+
+### Example: `dotnet_sdk` ListRuntimes
+
+```json
+{
+  "content": [{ "type": "text", "text": "Microsoft.AspNetCore.App 10.0.0 [/usr/share/dotnet/shared/...]\n..." }],
+  "structuredContent": {
+    "runtimes": [
+      { "name": "Microsoft.AspNetCore.App", "version": "10.0.0", "path": "/usr/share/dotnet/shared/..." }
+    ]
+  }
+}
+```
+
+### Example: `dotnet_solution` List
+
+```json
+{
+  "content": [{ "type": "text", "text": "Project(s)\n...\nDotNetMcp/DotNetMcp.csproj\nDotNetMcp.Tests/DotNetMcp.Tests.csproj\nExit Code: 0" }],
+  "structuredContent": {
+    "projects": [
+      "DotNetMcp/DotNetMcp.csproj",
+      "DotNetMcp.Tests/DotNetMcp.Tests.csproj"
+    ]
+  }
+}
+```
+
+### Example: `dotnet_server_capabilities`
+
+```json
+{
+  "content": [{ "type": "text", "text": "{ \"serverVersion\": \"1.0.0\", ... }" }],
+  "structuredContent": {
+    "serverVersion": "1.0.0",
+    "protocolVersion": "2025-11-25",
+    "supportedCategories": ["template", "project", ...],
+    "supports": { "structuredErrors": true, "machineReadable": true, ... },
+    "sdkVersions": { "installed": ["10.0.100"], "recommended": "net10.0", "lts": "net8.0" }
+  }
+}
+```
+
+---
+
+## Legacy: Machine-Readable JSON via `machineReadable` Parameter
+
+When the `machineReadable: true` parameter is passed, tools return structured JSON in the text content using the envelopes below. **Note: The `machineReadable` parameter has been removed from all public MCP tools in favour of `StructuredContent` (v2). The documentation below is preserved for reference only.**
 
 All machine-readable responses use one of two envelope types:
 
@@ -930,7 +1006,12 @@ public async Task MyTool_WithMachineReadableTrue_ReturnsValidJson()
 
 ## Version History
 
-### v1.0 (Current)
+### v2.0 (Current)
+
+- `dotnet_sdk` (Version, ListSdks, ListRuntimes), `dotnet_solution` (List), `dotnet_package` (List), and `dotnet_server_capabilities` return `CallToolResult` with `structuredContent` alongside text content
+- `StructuredContentHelper` provides `ToCallToolResult()` factory and `GetText()` extension for working with `CallToolResult`
+
+### v1.0
 
 - Initial stable contract
 - Success envelope: `SuccessResult`

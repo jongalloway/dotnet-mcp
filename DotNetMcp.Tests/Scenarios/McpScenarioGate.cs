@@ -1,3 +1,4 @@
+using DotNetMcp;
 namespace DotNetMcp.Tests.Scenarios;
 
 /// <summary>

@@ -1,3 +1,4 @@
+using DotNetMcp;
 using DotNetMcp.Tests.Scenarios;
 using System.Text.Json;
 using Xunit;

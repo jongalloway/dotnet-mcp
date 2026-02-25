@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace DotNetMcp;
@@ -13,14 +14,12 @@ public sealed partial class DotNetCliTools
     /// Get help for a specific dotnet command. Use this to discover available options for any dotnet command.
     /// </summary>
     /// <param name="command">The dotnet command to get help for (e.g., 'build', 'new', 'run'). If not specified, shows general dotnet help.</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     [McpServerTool(Title = ".NET CLI Help", ReadOnly = true, Idempotent = true, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Light%20Bulb/Flat/light_bulb_flat.svg")]
     [McpMeta("category", "help")]
     [McpMeta("priority", 5.0)]
-    public async partial Task<string> DotnetHelp(
-        string? command = null,
-        bool machineReadable = false)
-        => await ExecuteDotNetCommand(command != null ? $"{command} --help" : "--help", machineReadable);
+    public async partial Task<CallToolResult> DotnetHelp(
+        string? command = null)
+        => StructuredContentHelper.ToCallToolResult(await ExecuteDotNetCommand(command != null ? $"{command} --help" : "--help"));
 
     /// <summary>
     /// Get a machine-readable JSON snapshot of server capabilities, versions, and supported features for agent orchestration and discovery.
@@ -30,7 +29,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("priority", 8.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("tags", JsonValue = """["capabilities","version","discovery","orchestration","metadata"]""")]
-    public async partial Task<string> DotnetServerCapabilities()
+    public async partial Task<CallToolResult> DotnetServerCapabilities()
     {
         // Get the assembly version
         var assembly = typeof(DotNetCliTools).Assembly;
@@ -39,7 +38,7 @@ public sealed partial class DotNetCliTools
             ?? DefaultServerVersion;
 
         // Parse installed SDKs from dotnet --list-sdks
-        var sdksOutput = await ExecuteDotNetCommand("--list-sdks", machineReadable: false);
+        var sdksOutput = await ExecuteDotNetCommand("--list-sdks");
         var installedSdks = ParseInstalledSdks(sdksOutput);
 
         // Create the capabilities snapshot
@@ -79,7 +78,8 @@ public sealed partial class DotNetCliTools
             }
         };
 
-        return ErrorResultFactory.ToJson(capabilities);
+        var json = ErrorResultFactory.ToJson(capabilities);
+        return StructuredContentHelper.ToCallToolResult(json, capabilities);
     }
 
     /// <summary>
@@ -89,7 +89,7 @@ public sealed partial class DotNetCliTools
     [McpServerTool(Title = "Server Information", ReadOnly = true, Idempotent = true, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Information/Flat/information_flat.svg")]
     [McpMeta("category", "help")]
     [McpMeta("priority", 5.0)]
-    public partial Task<string> DotnetServerInfo()
+    public partial Task<CallToolResult> DotnetServerInfo()
     {
         var result = new StringBuilder();
         result.AppendLine("=== .NET MCP Server Capabilities ===");
@@ -163,7 +163,7 @@ public sealed partial class DotNetCliTools
         result.AppendLine("For detailed concurrency guidance and parallel execution patterns,");
         result.AppendLine("see the Concurrency Safety Matrix at: doc/concurrency.md");
 
-        return Task.FromResult(result.ToString());
+        return Task.FromResult(StructuredContentHelper.ToCallToolResult(result.ToString()));
     }
 
     /// <summary>
@@ -175,14 +175,12 @@ public sealed partial class DotNetCliTools
     /// <param name="includeGenerated">Include generated code files</param>
     /// <param name="diagnostics">Comma-separated list of diagnostic IDs to fix</param>
     /// <param name="severity">Severity level to fix (info, warn, error)</param>
-    /// <param name="machineReadable">Return structured JSON output for both success and error responses instead of plain text</param>
     internal async Task<string> DotnetFormat(
         string? project = null,
         bool verify = false,
         bool includeGenerated = false,
         string? diagnostics = null,
-        string? severity = null,
-        bool machineReadable = false)
+        string? severity = null)
     {
         var args = new StringBuilder("format");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
@@ -190,21 +188,19 @@ public sealed partial class DotNetCliTools
         if (includeGenerated) args.Append(" --include-generated");
         if (!string.IsNullOrEmpty(diagnostics)) args.Append($" --diagnostics {diagnostics}");
         if (!string.IsNullOrEmpty(severity)) args.Append($" --severity {severity}");
-        return await ExecuteDotNetCommand(args.ToString(), machineReadable);
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
     /// <summary>
     /// Enable telemetry reporting for .NET SDK usage analytics. This feature is planned but not yet implemented.
     /// </summary>
     /// <param name="enable">Whether to enable or disable telemetry (preserved for future implementation)</param>
-    /// <param name="machineReadable">Ignored - method always returns JSON (preserved for consistency with other tools)</param>
     /// <returns>JSON error response indicating the feature is not yet available</returns>
     [McpMeta("category", "telemetry")]
     [McpMeta("priority", 2.0)]
     [McpMeta("planned", true)]
-    public Task<string> DotnetTelemetry(
-        bool enable = true,
-        bool machineReadable = false)
+    public Task<CallToolResult> DotnetTelemetry(
+        bool enable = true)
     {
         // This feature is not yet implemented
         // Parameters are preserved for future implementation and API consistency
@@ -220,6 +216,6 @@ public sealed partial class DotNetCliTools
             "Not yet implemented - planned for future release",
             alternatives);
 
-        return Task.FromResult(ErrorResultFactory.ToJson(error));
+        return Task.FromResult(StructuredContentHelper.ToCallToolResult(ErrorResultFactory.ToJson(error)));
     }
 }
