@@ -2,8 +2,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
+using ModelContextProtocol.Server;
+using System.Diagnostics;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -21,6 +24,11 @@ builder.Services.AddSingleton<ProcessSessionManager>();
 // Register InMemoryMcpTaskStore to enable MCP Task support for long-running operations.
 // This allows AI clients to run build/test/publish as async tasks with polling and cancellation.
 builder.Services.AddSingleton<IMcpTaskStore, InMemoryMcpTaskStore>();
+
+// Register ToolMetricsAccumulator for in-memory telemetry collection.
+// The accumulator is also captured by the telemetry filter added below.
+var metricsAccumulator = new ToolMetricsAccumulator();
+builder.Services.AddSingleton(metricsAccumulator);
 
 builder.Services.AddMcpServer(options =>
 {
@@ -54,5 +62,29 @@ builder.Services.AddMcpServer(options =>
     .WithTools<DotNetCliTools>()
     .WithResources<DotNetResources>()
     .WithPrompts<DotNetPrompts>();
+
+// Register the telemetry filter that intercepts every CallTool request to record
+// invocation counts, durations, and success/failure rates — without modifying individual tools.
+// The filter captures the shared metricsAccumulator instance via closure.
+builder.Services.Configure<McpServerOptions>(options =>
+{
+    options.Filters.Request.CallToolFilters.Add(next => async (context, ct) =>
+    {
+        var toolName = context.Params?.Name ?? "unknown";
+        var sw = Stopwatch.StartNew();
+        bool success = false;
+        try
+        {
+            var result = await next(context, ct);
+            success = true;
+            return result;
+        }
+        finally
+        {
+            sw.Stop();
+            metricsAccumulator.RecordInvocation(toolName, sw.ElapsedMilliseconds, success);
+        }
+    });
+});
 
 await builder.Build().RunAsync();

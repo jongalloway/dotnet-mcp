@@ -25,6 +25,7 @@ public sealed partial class DotNetCliTools
     //   - DotNetCliTools.DevCerts.Consolidated.cs
     //   - DotNetCliTools.EntityFramework.Consolidated.cs
     //   - DotNetCliTools.Misc.cs
+    //   - DotNetCliTools.Metrics.cs
     //
     // Tools/Sdk:
     //   - DotNetCliTools.Sdk.Consolidated.cs

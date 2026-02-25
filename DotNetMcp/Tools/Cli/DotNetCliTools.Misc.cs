@@ -61,7 +61,8 @@ public sealed partial class DotNetCliTools
                 "format",
                 "nuget",
                 "help",
-                "efcore"
+                "efcore",
+                "telemetry"
             },
             Supports = new ServerFeatureSupport
             {
@@ -69,6 +70,7 @@ public sealed partial class DotNetCliTools
                 MachineReadable = true,
                 Cancellation = true,
                 Telemetry = true,  // SDK v0.6+ supports request duration logging and OpenTelemetry semantic conventions
+                Metrics = true,    // In-memory per-tool metrics via MCP message filter (dotnet_server_metrics tool)
                 AsyncTasks = true,  // MCP Task support enabled: long-running operations (build, test, publish) can run as async tasks
                 Prompts = true,     // Predefined prompt catalog: create_new_webapi, add_package_and_restore, run_tests_with_coverage
                 Elicitation = true  // Elicitation for confirmation before destructive ops (Clean, solution Remove)
@@ -103,10 +105,11 @@ public sealed partial class DotNetCliTools
         result.AppendLine();
 
         result.AppendLine("FEATURES:");
-        result.AppendLine("  • 11 Consolidated MCP Tools (8 functional + 3 utility)");
+        result.AppendLine("  • 12 Consolidated MCP Tools (8 functional + 4 utility)");
         result.AppendLine("  • 4 MCP Resources (SDK, Runtime, Templates, Frameworks)");
         result.AppendLine("  • 3 Predefined Prompts (create_new_webapi, add_package_and_restore, run_tests_with_coverage)");
         result.AppendLine("  • Elicitation support: confirmation dialogs for destructive operations (Clean, solution Remove)");
+        result.AppendLine("  • Telemetry: in-memory metrics collected via MCP message filter (dotnet_server_metrics)");
         result.AppendLine("  • Direct .NET SDK integration via NuGet packages");
         result.AppendLine("  • Template Engine integration with caching (5-min TTL)");
         result.AppendLine("  • Framework validation and LTS identification");
@@ -129,6 +132,7 @@ public sealed partial class DotNetCliTools
         result.AppendLine("  • dotnet_help: Get help for any dotnet command");
         result.AppendLine("  • dotnet_server_capabilities: Machine-readable server capabilities JSON");
         result.AppendLine("  • dotnet_server_info: This detailed information output");
+        result.AppendLine("  • dotnet_server_metrics: In-memory telemetry metrics (Get/Reset) collected via message filter");
         result.AppendLine();
 
         result.AppendLine("CONCURRENCY SAFETY:");

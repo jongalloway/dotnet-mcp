@@ -65,10 +65,19 @@ public sealed class ServerFeatureSupport
     /// <summary>
     /// Whether the server supports telemetry reporting.
     /// When enabled, the server emits request duration logs and follows OpenTelemetry semantic conventions (SDK v0.6+).
+    /// In-memory per-tool metrics are accessible via the dotnet_server_metrics tool.
     /// See doc/telemetry.md for configuration details.
     /// </summary>
     [JsonPropertyName("telemetry")]
     public bool Telemetry { get; init; }
+
+    /// <summary>
+    /// Whether the server collects and exposes in-memory tool invocation metrics.
+    /// When true, use dotnet_server_metrics to retrieve per-tool counts, average durations,
+    /// and success/failure rates collected by the MCP message filter.
+    /// </summary>
+    [JsonPropertyName("metrics")]
+    public bool Metrics { get; init; }
 
     /// <summary>
     /// Whether the server supports MCP Task augmentation for long-running operations such as
