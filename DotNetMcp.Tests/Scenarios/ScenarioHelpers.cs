@@ -1,7 +1,6 @@
 using DotNetMcp;
 using System.Diagnostics;
 using System.Text;
-using System.Text.Json;
 using System.ComponentModel;
 using Xunit;
 
@@ -133,14 +132,6 @@ internal static class ScenarioHelpers
     }
 
     /// <summary>
-    /// Parses a JSON string into a JsonDocument.
-    /// </summary>
-    /// <param name="json">The JSON string to parse.</param>
-    /// <returns>A JsonDocument representing the parsed JSON.</returns>
-    public static JsonDocument ParseJson(string json)
-        => JsonDocument.Parse(json, new JsonDocumentOptions { AllowTrailingCommas = true });
-
-    /// <summary>
     /// Asserts that the given text does not contain the specified secret.
     /// </summary>
     /// <param name="text">The text to check.</param>
@@ -151,22 +142,15 @@ internal static class ScenarioHelpers
     }
 
     /// <summary>
-    /// Asserts that a machine-readable JSON result indicates success.
+    /// Asserts that a tool response text indicates success (Exit Code: 0).
     /// </summary>
-    /// <param name="root">The root JSON element to check.</param>
-    public static void AssertMachineReadableSuccess(JsonElement root)
+    /// <param name="text">The response text to check.</param>
+    /// <param name="stepDescription">Optional step description shown in failure messages.</param>
+    public static void AssertSuccess(string text, string? stepDescription = null)
     {
-        Assert.True(root.TryGetProperty("success", out var success) && success.ValueKind == JsonValueKind.True,
-            "Expected machineReadable result with success=true");
-    }
-
-    /// <summary>
-    /// Asserts that a machine-readable JSON result indicates failure.
-    /// </summary>
-    /// <param name="root">The root JSON element to check.</param>
-    public static void AssertMachineReadableFailure(JsonElement root)
-    {
-        Assert.True(root.TryGetProperty("success", out var success) && success.ValueKind == JsonValueKind.False,
-            "Expected machineReadable result with success=false");
+        var message = stepDescription != null
+            ? $"Expected success (Exit Code: 0) for step '{stepDescription}'.\nResponse:\n{text}"
+            : $"Expected success (Exit Code: 0).\nResponse:\n{text}";
+        Assert.True(text.Contains("Exit Code: 0", StringComparison.Ordinal), message);
     }
 }

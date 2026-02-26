@@ -12,15 +12,6 @@ namespace DotNetMcp.Actions;
 /// // In a consolidated tool method
 /// if (!ParameterValidator.ValidateAction(action, out var errorMessage))
 /// {
-///     if (machineReadable)
-///     {
-///         var validActions = Enum.GetNames(typeof(DotnetProjectAction));
-///         var error = ErrorResultFactory.CreateActionValidationError(
-///             action?.ToString() ?? "",
-///             validActions,
-///             toolName: "dotnet_project");
-///         return ErrorResultFactory.ToJson(error);
-///     }
 ///     return $"Error: {errorMessage}";
 /// }
 /// </code>

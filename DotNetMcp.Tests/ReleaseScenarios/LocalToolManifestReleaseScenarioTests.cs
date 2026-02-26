@@ -20,15 +20,11 @@ public class LocalToolManifestReleaseScenarioTests
             {
                 ["action"] = "CreateManifest",
                 ["output"] = tempRoot.Path,
-                ["workingDirectory"] = tempRoot.Path,
-                ["machineReadable"] = true
+                ["workingDirectory"] = tempRoot.Path
             },
             cancellationToken);
 
-        using (var createManifestJson = ScenarioHelpers.ParseJson(createManifestText))
-        {
-            ScenarioHelpers.AssertMachineReadableSuccess(createManifestJson.RootElement);
-        }
+        ScenarioHelpers.AssertSuccess(createManifestText, "dotnet_tool CreateManifest");
 
         Assert.True(File.Exists(Path.Join(tempRoot.Path, ".config", "dotnet-tools.json")), "Expected local tool manifest to exist.");
 
@@ -39,30 +35,22 @@ public class LocalToolManifestReleaseScenarioTests
                 ["action"] = "Install",
                 ["packageId"] = "dotnet-ef",
                 ["global"] = false,
-                ["workingDirectory"] = tempRoot.Path,
-                ["machineReadable"] = true
+                ["workingDirectory"] = tempRoot.Path
             },
             cancellationToken);
 
-        using (var installJson = ScenarioHelpers.ParseJson(installText))
-        {
-            ScenarioHelpers.AssertMachineReadableSuccess(installJson.RootElement);
-        }
+        ScenarioHelpers.AssertSuccess(installText, "dotnet_tool Install dotnet-ef");
 
         var restoreText = await client.CallToolTextAsync(
             toolName: "dotnet_tool",
             args: new Dictionary<string, object?>
             {
                 ["action"] = "Restore",
-                ["workingDirectory"] = tempRoot.Path,
-                ["machineReadable"] = true
+                ["workingDirectory"] = tempRoot.Path
             },
             cancellationToken);
 
-        using (var restoreJson = ScenarioHelpers.ParseJson(restoreText))
-        {
-            ScenarioHelpers.AssertMachineReadableSuccess(restoreJson.RootElement);
-        }
+        ScenarioHelpers.AssertSuccess(restoreText, "dotnet_tool Restore");
 
         var listText = await client.CallToolTextAsync(
             toolName: "dotnet_tool",
@@ -70,16 +58,11 @@ public class LocalToolManifestReleaseScenarioTests
             {
                 ["action"] = "List",
                 ["global"] = false,
-                ["workingDirectory"] = tempRoot.Path,
-                ["machineReadable"] = true
+                ["workingDirectory"] = tempRoot.Path
             },
             cancellationToken);
 
-        using (var listJson = ScenarioHelpers.ParseJson(listText))
-        {
-            ScenarioHelpers.AssertMachineReadableSuccess(listJson.RootElement);
-            Assert.True(listJson.RootElement.TryGetProperty("output", out var output));
-            Assert.Contains("dotnet-ef", output.GetString(), StringComparison.OrdinalIgnoreCase);
-        }
+        ScenarioHelpers.AssertSuccess(listText, "dotnet_tool List");
+        Assert.Contains("dotnet-ef", listText, StringComparison.OrdinalIgnoreCase);
     }
 }

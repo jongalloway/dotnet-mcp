@@ -195,7 +195,7 @@ public sealed partial class DotNetCliTools
     /// </summary>
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
-    internal async Task<string> DotnetTemplateClearCache(bool machineReadable = false)
+    internal async Task<string> DotnetTemplateClearCache()
     {
         await DotNetResources.ClearAllCachesAsync();
         return "All caches (templates, SDK, runtime) and metrics cleared successfully. Next query will reload from disk.";
@@ -260,7 +260,7 @@ public sealed partial class DotNetCliTools
     /// Under the hood this runs <c>dotnet new uninstall</c> with no arguments, which lists installed packs.
     /// </summary>
     [McpMeta("category", "template")]
-    internal async Task<string> DotnetTemplatePackList(bool machineReadable = false)
+    internal async Task<string> DotnetTemplatePackList()
     {
         // NOTE: We intentionally do not clear caches here; this is a read-only listing.
         return await ExecuteDotNetCommand("new uninstall");
@@ -271,7 +271,7 @@ public sealed partial class DotNetCliTools
     /// </summary>
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
-    internal Task<string> DotnetCacheMetrics(bool machineReadable = false)
+    internal Task<string> DotnetCacheMetrics()
     {
         var result = new StringBuilder();
         result.AppendLine("Cache Metrics:");
@@ -353,7 +353,7 @@ public sealed partial class DotNetCliTools
     /// </summary>
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 6.0)]
-    internal async Task<string> DotnetSdkInfo(bool machineReadable = false)
+    internal async Task<string> DotnetSdkInfo()
         => await ExecuteDotNetCommand("--info");
 
     /// <summary>
@@ -361,7 +361,7 @@ public sealed partial class DotNetCliTools
     /// </summary>
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 6.0)]
-    internal async Task<string> DotnetSdkVersion(bool machineReadable = false)
+    internal async Task<string> DotnetSdkVersion()
         => await ExecuteDotNetCommand("--version");
 
     /// <summary>
@@ -369,7 +369,7 @@ public sealed partial class DotNetCliTools
     /// </summary>
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 6.0)]
-    internal async Task<string> DotnetSdkList(bool machineReadable = false)
+    internal async Task<string> DotnetSdkList()
         => await ExecuteDotNetCommand("--list-sdks");
 
     /// <summary>
@@ -377,7 +377,7 @@ public sealed partial class DotNetCliTools
     /// </summary>
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 6.0)]
-    internal async Task<string> DotnetRuntimeList(bool machineReadable = false)
+    internal async Task<string> DotnetRuntimeList()
         => await ExecuteDotNetCommand("--list-runtimes");
 
     private static object? BuildVersionStructuredContent(string textResult)
