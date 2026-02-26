@@ -22,6 +22,7 @@ All MCP request handlers automatically log request duration:
 - **`LogRequestHandlerException`** - Failed request with duration and exception details
 
 These logs are emitted automatically by the SDK and include:
+
 - Request method (tool invocation, resource access, etc.)
 - Request parameters
 - Execution duration (in milliseconds)
@@ -251,6 +252,7 @@ info: ModelContextProtocol.Server.McpServer[LogRequestHandlerCompleted]
 ### Error Rates
 
 Failed requests are automatically logged with:
+
 - Error type and message
 - Request duration
 - Tool/resource name
@@ -261,11 +263,13 @@ Failed requests are automatically logged with:
 ### 1. Enable Appropriate Log Levels
 
 For **development**:
+
 ```bash
 export Logging__LogLevel__Default=Debug
 ```
 
 For **production**:
+
 ```bash
 export Logging__LogLevel__Default=Information
 export Logging__LogLevel__ModelContextProtocol=Warning
@@ -283,6 +287,7 @@ Track these key performance indicators:
 ### 3. Set Up Alerts
 
 Configure alerts for:
+
 - Error rate > 5%
 - P95 latency > 2x baseline
 - Any request > 10 seconds
@@ -290,6 +295,7 @@ Configure alerts for:
 ### 4. Use Distributed Tracing
 
 For multi-service deployments, use OpenTelemetry OTLP exporters to send traces to:
+
 - **Jaeger** - Open-source distributed tracing
 - **Zipkin** - Distributed tracing system
 - **Azure Monitor** - Cloud-native observability
@@ -334,7 +340,7 @@ dotnet-mcp 2>&1 | grep "Request handler completed"
 
 ## References
 
-- [MCP C# SDK v1.0 Release Notes](https://github.com/modelcontextprotocol/csharp-sdk/releases/tag/v1.0.0-rc.1)
+- [MCP C# SDK v1.0 Release Notes](https://github.com/modelcontextprotocol/csharp-sdk/releases/tag/v1.0.0)
 - [OpenTelemetry .NET Documentation](https://opentelemetry.io/docs/languages/net/)
 - [Performance Baseline Measurements](./performance-baseline.md)
 

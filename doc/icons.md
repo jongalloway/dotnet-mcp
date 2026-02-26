@@ -34,11 +34,13 @@ All 11 MCP tools have icons configured via the `IconSource` property:
 ## Icon Design Principles
 
 ### 1. Consistency
+
 - All icons use **Fluent UI Emoji** from Microsoft's official repository
 - All icons use the **"Flat" style** for consistency
 - All icons are in **SVG format** for scalability and quality
 
 ### 2. Semantic Clarity
+
 - Icons are chosen to match their category's purpose
 - Project operations → folder/file metaphors
 - Package operations → package/box metaphors
@@ -122,11 +124,13 @@ Icons are validated with comprehensive tests:
 ## Benefits
 
 ### For AI Assistants
+
 - **Improved discoverability**: Visual icons help assistants present tools more effectively
 - **Better categorization**: Icons reinforce the semantic grouping of tools
 - **Enhanced UX**: Visual representation improves tool selection in UI
 
 ### For Users
+
 - **Faster recognition**: Visual cues help users identify tools quickly
 - **Clearer organization**: Icon categories make the tool structure more intuitive
 - **Professional appearance**: Consistent Fluent UI design matches Microsoft ecosystem
@@ -134,5 +138,5 @@ Icons are validated with comprehensive tests:
 ## References
 
 - [Microsoft Fluent UI Emoji](https://github.com/microsoft/fluentui-emoji)
-- [MCP SDK v1.0.0-rc.1](https://github.com/modelcontextprotocol/csharp-sdk/releases)
+- [MCP SDK v1.0.0](https://github.com/modelcontextprotocol/csharp-sdk/releases/tag/v1.0.0)
 - [Icon Support PR #1096](https://github.com/modelcontextprotocol/csharp-sdk/pull/1096)
