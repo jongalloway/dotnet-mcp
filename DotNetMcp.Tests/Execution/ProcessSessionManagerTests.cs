@@ -247,7 +247,7 @@ public class ProcessSessionManagerTests : IDisposable
         _manager.RegisterSession(sessionId, process, "run", "/test/project.csproj");
 
         // Wait for output to be captured
-        await Task.Delay(1000);
+        await Task.Delay(1000, TestContext.Current.CancellationToken);
 
         // Act
         var logs = _manager.GetSessionLogs(sessionId);
@@ -281,7 +281,7 @@ public class ProcessSessionManagerTests : IDisposable
         _manager.RegisterSession(sessionId, process, "run", "/test/project.csproj");
 
         // Wait for output to be captured
-        await Task.Delay(1000);
+        await Task.Delay(1000, TestContext.Current.CancellationToken);
 
         // Act - request only 2 lines
         var logs = _manager.GetSessionLogs(sessionId, tailLines: 2);
@@ -301,12 +301,12 @@ public class ProcessSessionManagerTests : IDisposable
         _manager.RegisterSession(sessionId, process, "run", "/test/project.csproj");
 
         // Wait for initial output
-        await Task.Delay(500);
+        await Task.Delay(500, TestContext.Current.CancellationToken);
         
         var filterTime = DateTime.UtcNow;
         
         // Wait for more output
-        await Task.Delay(500);
+        await Task.Delay(500, TestContext.Current.CancellationToken);
 
         // Act - get logs since the filter time
         var logs = _manager.GetSessionLogs(sessionId, since: filterTime);
