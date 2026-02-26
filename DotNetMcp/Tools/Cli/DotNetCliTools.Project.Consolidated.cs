@@ -943,7 +943,6 @@ public sealed partial class DotNetCliTools
         
         // Determine project argument style based on effective runner
         bool usePositionalArg = effectiveRunner == TestRunner.VSTest;
-        string projectArgumentStyle;
         
         if (!string.IsNullOrEmpty(project))
         {
@@ -951,18 +950,12 @@ public sealed partial class DotNetCliTools
             {
                 // VSTest: positional argument
                 args.Append($" \"{project}\"");
-                projectArgumentStyle = "positional";
             }
             else
             {
                 // MTP: --project flag
                 args.Append($" --project \"{project}\"");
-                projectArgumentStyle = "--project";
             }
-        }
-        else
-        {
-            projectArgumentStyle = "none";
         }
         
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
