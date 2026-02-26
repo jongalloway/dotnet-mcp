@@ -138,5 +138,5 @@ Icons are validated with comprehensive tests:
 ## References
 
 - [Microsoft Fluent UI Emoji](https://github.com/microsoft/fluentui-emoji)
-- [MCP SDK v1.0.0](https://github.com/modelcontextprotocol/csharp-sdk/releases)
+- [MCP SDK v1.0.0](https://github.com/modelcontextprotocol/csharp-sdk/releases/tag/v1.0.0)
 - [Icon Support PR #1096](https://github.com/modelcontextprotocol/csharp-sdk/pull/1096)
