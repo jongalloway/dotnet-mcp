@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Updated `ModelContextProtocol` SDK dependency from v0.6.0-preview.1 to v1.0.0.
+- Updated `ModelContextProtocol` SDK dependency from v1.0.0-rc.1 to v1.0.0.
 - Updated MCP protocol version string from `"0.5.0-preview.1"` to `"2025-11-25"` (spec date format).
 - Renamed and updated `doc/sdk-v0.6-compatibility.md` → `doc/sdk-v1.0-compatibility.md` to cover v0.7–v1.0 changes.
 - Updated SDK version references in `README.md`, `doc/telemetry.md`, `doc/icons.md`, and `.github/copilot-instructions.md`.
