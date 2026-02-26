@@ -35,7 +35,7 @@ The SDK releases from v0.7.0 through v1.0.0 introduced several changes:
 
 ### v1.0.0
 
-- **`StructuredContent` property changes** - **No impact** (we don't use `StructuredContent` yet)
+- **`StructuredContent` property changes** - **Low impact** (dotnet-mcp uses `StructuredContent` and `CallToolResult` via `StructuredContentHelper`, and existing usage is compatible with the v1.0.0 property model)
 
 ## New Features in SDK v0.6 (preserved from prior audit)
 
