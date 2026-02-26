@@ -2,7 +2,7 @@
 
 ## Summary
 
-This document summarizes the compatibility audit conducted for the ModelContextProtocol C# SDK v1.0.0-rc.1 integration with dotnet-mcp.
+This document summarizes the compatibility audit conducted for the ModelContextProtocol C# SDK v1.0.0 integration with dotnet-mcp.
 
 **Conclusion**: dotnet-mcp is fully compatible with SDK v1.0. No breaking changes required code updates. The MCP protocol version string was updated from the old SDK-version-based value to the spec-based date format (`2025-11-25`).
 
@@ -14,7 +14,7 @@ The `ProtocolVersion` constant in `DotNetCliTools.Core.cs` was updated from `"0.
 
 ## SDK v1.0 Changes Overview (from v0.6.0-preview.1)
 
-The SDK releases from v0.7.0 through v1.0.0-rc.1 introduced several changes:
+The SDK releases from v0.7.0 through v1.0.0 introduced several changes:
 
 ### v0.7.0
 
@@ -33,7 +33,7 @@ The SDK releases from v0.7.0 through v1.0.0-rc.1 introduced several changes:
 - **`IList<T>` replaces `List<T>` on protocol types** - **No impact** (we don't rely on `List<T>`-specific APIs)
 - **Filter API renaming** - **No impact** (we don't use message filters)
 
-### v1.0.0-rc.1
+### v1.0.0
 
 - **`StructuredContent` property changes** - **No impact** (we don't use `StructuredContent` yet)
 
@@ -104,11 +104,13 @@ All existing tests pass with SDK v1.0:
 ### McpMeta Attribute Structure
 
 The `McpMetaAttribute` class has three overloaded constructors:
+
 - `McpMeta(string name, string value)` - For string metadata
 - `McpMeta(string name, double value)` - For numeric metadata (e.g., priority)
 - `McpMeta(string name, bool value)` - For boolean metadata (e.g., commonlyUsed)
 
 Additionally, the `JsonValue` property allows complex JSON metadata:
+
 ```csharp
 [McpMeta("tags", JsonValue = """["template","list","discovery"]""")]
 ```
@@ -116,6 +118,7 @@ Additionally, the `JsonValue` property allows complex JSON metadata:
 ### Metadata Categories Used
 
 All metadata categories are properly implemented:
+
 - `template` - Template-related tools
 - `project` - Project management tools
 - `package` - Package management tools
@@ -149,12 +152,11 @@ All metadata categories are properly implemented:
 
 - [MCP C# SDK GitHub](https://github.com/modelcontextprotocol/csharp-sdk)
 - [MCP C# SDK Documentation](https://modelcontextprotocol.github.io/csharp-sdk/)
-- [SDK v1.0.0-rc.1 Release Notes](https://github.com/modelcontextprotocol/csharp-sdk/releases/tag/v1.0.0-rc.1)
+- [SDK v1.0.0 Release Notes](https://github.com/modelcontextprotocol/csharp-sdk/releases/tag/v1.0.0)
 - [Model Context Protocol Specification](https://modelcontextprotocol.io/)
 
 ## Audit Date
 
 **Date**: 2026-02-24  
-**SDK Version**: ModelContextProtocol 1.0.0-rc.1  
+**SDK Version**: ModelContextProtocol 1.0.0  
 **Result**: ✅ Compatible - No breaking changes, protocol version string updated
-
