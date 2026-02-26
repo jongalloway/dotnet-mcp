@@ -1,24 +1,12 @@
 using DotNetMcp;
 using DotNetMcp.Tests.Scenarios;
-using System.Text.Json;
 using Xunit;
-using Xunit.Sdk;
 
 namespace DotNetMcp.Tests.ReleaseScenarios;
 
 [Collection("ProcessWideStateTests")]
 public class EfCoreSqliteMigrationsReleaseScenarioTests
 {
-    private static void AssertMachineReadableSuccessOrThrow(string jsonText, string stepName)
-    {
-        using var json = ScenarioHelpers.ParseJson(jsonText);
-
-        if (!json.RootElement.TryGetProperty("success", out var success) || success.ValueKind != JsonValueKind.True)
-        {
-            throw new XunitException($"Release scenario step failed: {stepName}\nResponse JSON:\n{jsonText}");
-        }
-    }
-
     [ReleaseScenarioFact]
     public async Task ReleaseScenario_EfCoreSqlite_MigrationsAdd_And_DatabaseUpdate()
     {
@@ -59,12 +47,11 @@ public class EfCoreSqliteMigrationsReleaseScenarioTests
                     ["action"] = "Add",
                     ["project"] = projectPath,
                     ["packageId"] = "Microsoft.EntityFrameworkCore.Sqlite",
-                    ["source"] = "https://api.nuget.org/v3/index.json",
-                    ["machineReadable"] = true
+                    ["source"] = "https://api.nuget.org/v3/index.json"
                 },
                 cancellationToken);
 
-            AssertMachineReadableSuccessOrThrow(addSqliteText, "dotnet_package Add Microsoft.EntityFrameworkCore.Sqlite");
+            ScenarioHelpers.AssertSuccess(addSqliteText, "dotnet_package Add Microsoft.EntityFrameworkCore.Sqlite");
 
             var addDesignText = await client.CallToolTextAsync(
                 toolName: "dotnet_package",
@@ -73,12 +60,11 @@ public class EfCoreSqliteMigrationsReleaseScenarioTests
                     ["action"] = "Add",
                     ["project"] = projectPath,
                     ["packageId"] = "Microsoft.EntityFrameworkCore.Design",
-                    ["source"] = "https://api.nuget.org/v3/index.json",
-                    ["machineReadable"] = true
+                    ["source"] = "https://api.nuget.org/v3/index.json"
                 },
                 cancellationToken);
 
-            AssertMachineReadableSuccessOrThrow(addDesignText, "dotnet_package Add Microsoft.EntityFrameworkCore.Design");
+            ScenarioHelpers.AssertSuccess(addDesignText, "dotnet_package Add Microsoft.EntityFrameworkCore.Design");
 
             // Add a minimal DbContext and a design-time factory.
             var dbContextSource = string.Join(Environment.NewLine, new[]
@@ -140,12 +126,11 @@ public class EfCoreSqliteMigrationsReleaseScenarioTests
                 {
                     ["action"] = "CreateManifest",
                     ["output"] = tempRoot.Path,
-                    ["workingDirectory"] = tempRoot.Path,
-                    ["machineReadable"] = true
+                    ["workingDirectory"] = tempRoot.Path
                 },
                 cancellationToken);
 
-            AssertMachineReadableSuccessOrThrow(createManifestText, "dotnet_tool CreateManifest");
+            ScenarioHelpers.AssertSuccess(createManifestText, "dotnet_tool CreateManifest");
 
             var installEfToolText = await client.CallToolTextAsync(
                 toolName: "dotnet_tool",
@@ -154,24 +139,22 @@ public class EfCoreSqliteMigrationsReleaseScenarioTests
                     ["action"] = "Install",
                     ["packageId"] = "dotnet-ef",
                     ["global"] = false,
-                    ["workingDirectory"] = tempRoot.Path,
-                    ["machineReadable"] = true
+                    ["workingDirectory"] = tempRoot.Path
                 },
                 cancellationToken);
 
-            AssertMachineReadableSuccessOrThrow(installEfToolText, "dotnet_tool Install dotnet-ef (local)");
+            ScenarioHelpers.AssertSuccess(installEfToolText, "dotnet_tool Install dotnet-ef (local)");
 
             var restoreToolsText = await client.CallToolTextAsync(
                 toolName: "dotnet_tool",
                 args: new Dictionary<string, object?>
                 {
                     ["action"] = "Restore",
-                    ["workingDirectory"] = tempRoot.Path,
-                    ["machineReadable"] = true
+                    ["workingDirectory"] = tempRoot.Path
                 },
                 cancellationToken);
 
-            AssertMachineReadableSuccessOrThrow(restoreToolsText, "dotnet_tool Restore");
+            ScenarioHelpers.AssertSuccess(restoreToolsText, "dotnet_tool Restore");
 
             // Restore project (now that EF packages are present).
             var restoreProjectText = await client.CallToolTextAsync(
@@ -179,12 +162,11 @@ public class EfCoreSqliteMigrationsReleaseScenarioTests
                 args: new Dictionary<string, object?>
                 {
                     ["action"] = "Restore",
-                    ["project"] = projectPath,
-                    ["machineReadable"] = true
+                    ["project"] = projectPath
                 },
                 cancellationToken);
 
-            AssertMachineReadableSuccessOrThrow(restoreProjectText, "dotnet_project Restore");
+            ScenarioHelpers.AssertSuccess(restoreProjectText, "dotnet_project Restore");
 
             // Build once up-front so failures include full compiler diagnostics.
             var buildProjectText = await client.CallToolTextAsync(
@@ -194,12 +176,11 @@ public class EfCoreSqliteMigrationsReleaseScenarioTests
                     ["action"] = "Build",
                     ["project"] = projectPath,
                     ["configuration"] = "Release",
-                    ["noRestore"] = true,
-                    ["machineReadable"] = true
+                    ["noRestore"] = true
                 },
                 cancellationToken);
 
-            AssertMachineReadableSuccessOrThrow(buildProjectText, "dotnet_project Build");
+            ScenarioHelpers.AssertSuccess(buildProjectText, "dotnet_project Build");
 
             // Add a migration and apply it.
             var migrationsAddText = await client.CallToolTextAsync(
@@ -211,12 +192,11 @@ public class EfCoreSqliteMigrationsReleaseScenarioTests
                     ["project"] = projectPath,
                     ["startupProject"] = projectPath,
                     ["noBuild"] = true,
-                    ["workingDirectory"] = tempRoot.Path,
-                    ["machineReadable"] = true
+                    ["workingDirectory"] = tempRoot.Path
                 },
                 cancellationToken);
 
-            AssertMachineReadableSuccessOrThrow(migrationsAddText, "dotnet_ef MigrationsAdd");
+            ScenarioHelpers.AssertSuccess(migrationsAddText, "dotnet_ef MigrationsAdd");
 
             var databaseUpdateText = await client.CallToolTextAsync(
                 toolName: "dotnet_ef",
@@ -226,12 +206,11 @@ public class EfCoreSqliteMigrationsReleaseScenarioTests
                     ["project"] = projectPath,
                     ["startupProject"] = projectPath,
                     ["noBuild"] = true,
-                    ["workingDirectory"] = tempRoot.Path,
-                    ["machineReadable"] = true
+                    ["workingDirectory"] = tempRoot.Path
                 },
                 cancellationToken);
 
-            AssertMachineReadableSuccessOrThrow(databaseUpdateText, "dotnet_ef DatabaseUpdate");
+            ScenarioHelpers.AssertSuccess(databaseUpdateText, "dotnet_ef DatabaseUpdate");
 
             Assert.True(Directory.Exists(Path.Join(tempRoot.Path, "Migrations")), "Expected Migrations folder to be created.");
             Assert.True(File.Exists(Path.Join(tempRoot.Path, "app.db")), "Expected SQLite database file 'app.db' to exist.");

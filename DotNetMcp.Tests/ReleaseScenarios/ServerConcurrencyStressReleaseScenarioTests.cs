@@ -20,8 +20,7 @@ public class ServerConcurrencyStressReleaseScenarioTests
                 toolName: "dotnet_sdk",
                 args: new Dictionary<string, object?>
                 {
-                    ["action"] = "Info",
-                    ["machineReadable"] = true
+                    ["action"] = "Info"
                 },
                 cancellationToken))
             .ToArray();
@@ -29,12 +28,9 @@ public class ServerConcurrencyStressReleaseScenarioTests
         var results = await Task.WhenAll(tasks);
         Assert.Equal(callCount, results.Length);
 
-        foreach (var json in results.Select(ScenarioHelpers.ParseJson))
+        foreach (var result in results)
         {
-            using (json)
-            {
-                ScenarioHelpers.AssertMachineReadableSuccess(json.RootElement);
-            }
+            ScenarioHelpers.AssertSuccess(result, "dotnet_sdk Info");
         }
     }
 }

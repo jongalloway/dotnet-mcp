@@ -41,7 +41,7 @@ public class ColdCacheProjectLifecycleReleaseScenarioTests
             await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
 
             // Add a small public package to force a real restore against NuGet.
-            var addPackageJsonText = await client.CallToolTextAsync(
+            var addPackageText = await client.CallToolTextAsync(
                 toolName: "dotnet_package",
                 args: new Dictionary<string, object?>
                 {
@@ -49,55 +49,43 @@ public class ColdCacheProjectLifecycleReleaseScenarioTests
                     ["project"] = projectPath,
                     ["packageId"] = "Humanizer",
                     ["version"] = "2.14.1",
-                    ["source"] = "https://api.nuget.org/v3/index.json",
-                    ["machineReadable"] = true
+                    ["source"] = "https://api.nuget.org/v3/index.json"
                 },
                 cancellationToken);
 
-            using (var addPackageJson = ScenarioHelpers.ParseJson(addPackageJsonText))
-            {
-                ScenarioHelpers.AssertMachineReadableSuccess(addPackageJson.RootElement);
-            }
+            ScenarioHelpers.AssertSuccess(addPackageText, "dotnet_package Add Humanizer");
 
             // Restore via MCP.
-            var restoreJsonText = await client.CallToolTextAsync(
+            var restoreText = await client.CallToolTextAsync(
                 toolName: "dotnet_project",
                 args: new Dictionary<string, object?>
                 {
                     ["action"] = "Restore",
-                    ["project"] = projectPath,
-                    ["machineReadable"] = true
+                    ["project"] = projectPath
                 },
                 cancellationToken);
 
-            using (var restoreJson = ScenarioHelpers.ParseJson(restoreJsonText))
-            {
-                ScenarioHelpers.AssertMachineReadableSuccess(restoreJson.RootElement);
-            }
+            ScenarioHelpers.AssertSuccess(restoreText, "dotnet_project Restore");
 
             // Build via MCP.
-            var buildJsonText = await client.CallToolTextAsync(
+            var buildText = await client.CallToolTextAsync(
                 toolName: "dotnet_project",
                 args: new Dictionary<string, object?>
                 {
                     ["action"] = "Build",
                     ["project"] = projectPath,
                     ["configuration"] = "Release",
-                    ["noRestore"] = true,
-                    ["machineReadable"] = true
+                    ["noRestore"] = true
                 },
                 cancellationToken);
 
-            using (var buildJson = ScenarioHelpers.ParseJson(buildJsonText))
-            {
-                ScenarioHelpers.AssertMachineReadableSuccess(buildJson.RootElement);
-            }
+            ScenarioHelpers.AssertSuccess(buildText, "dotnet_project Build");
 
             // Publish via MCP and validate output exists.
             var publishDir = Path.Join(tempRoot.Path, "publish");
             Directory.CreateDirectory(publishDir);
 
-            var publishJsonText = await client.CallToolTextAsync(
+            var publishText = await client.CallToolTextAsync(
                 toolName: "dotnet_project",
                 args: new Dictionary<string, object?>
                 {
@@ -105,15 +93,11 @@ public class ColdCacheProjectLifecycleReleaseScenarioTests
                     ["project"] = projectPath,
                     ["configuration"] = "Release",
                     ["output"] = publishDir,
-                    ["noBuild"] = true,
-                    ["machineReadable"] = true
+                    ["noBuild"] = true
                 },
                 cancellationToken);
 
-            using (var publishJson = ScenarioHelpers.ParseJson(publishJsonText))
-            {
-                ScenarioHelpers.AssertMachineReadableSuccess(publishJson.RootElement);
-            }
+            ScenarioHelpers.AssertSuccess(publishText, "dotnet_project Publish");
 
             Assert.True(File.Exists(Path.Join(publishDir, "App.dll")), "Expected published App.dll to exist.");
         }
