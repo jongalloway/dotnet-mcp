@@ -54,8 +54,20 @@ public sealed partial class DotNetCliTools
         bool? deprecated = null,
         string? referencePath = null,
         string? cacheType = null,
-        string? workingDirectory = null)
+        string? workingDirectory = null,
+        McpServer? server = null)
     {
+        // Auto-detect project from workspace roots when not explicitly specified.
+        // Not applicable for Search and ClearCache which do not operate on a project.
+        var effectiveProject = project;
+        if (string.IsNullOrEmpty(effectiveProject) && action is
+            DotnetPackageAction.Add or DotnetPackageAction.Remove or DotnetPackageAction.Update or
+            DotnetPackageAction.List or DotnetPackageAction.AddReference or
+            DotnetPackageAction.RemoveReference or DotnetPackageAction.ListReferences)
+        {
+            effectiveProject = await WorkspaceDiscovery.TryFindProjectInRootsAsync(server);
+        }
+
         var textResult = await WithWorkingDirectoryAsync(workingDirectory, async () =>
         {
             // Validate action parameter
@@ -67,14 +79,14 @@ public sealed partial class DotNetCliTools
             // Route to appropriate handler based on action
             return action switch
             {
-                DotnetPackageAction.Add => await HandleAddAction(packageId, project, version, source, framework, prerelease ?? false),
-                DotnetPackageAction.Remove => await HandleRemoveAction(packageId, project),
+                DotnetPackageAction.Add => await HandleAddAction(packageId, effectiveProject, version, source, framework, prerelease ?? false),
+                DotnetPackageAction.Remove => await HandleRemoveAction(packageId, effectiveProject),
                 DotnetPackageAction.Search => await HandleSearchAction(searchTerm, take, skip, prerelease ?? false, exactMatch ?? false),
-                DotnetPackageAction.Update => await HandleUpdateAction(packageId, project, version, prerelease ?? false),
-                DotnetPackageAction.List => await HandleListAction(project, outdated ?? false, deprecated ?? false),
-                DotnetPackageAction.AddReference => await HandleAddReferenceAction(project, referencePath),
-                DotnetPackageAction.RemoveReference => await HandleRemoveReferenceAction(project, referencePath),
-                DotnetPackageAction.ListReferences => await HandleListReferencesAction(project),
+                DotnetPackageAction.Update => await HandleUpdateAction(packageId, effectiveProject, version, prerelease ?? false),
+                DotnetPackageAction.List => await HandleListAction(effectiveProject, outdated ?? false, deprecated ?? false),
+                DotnetPackageAction.AddReference => await HandleAddReferenceAction(effectiveProject, referencePath),
+                DotnetPackageAction.RemoveReference => await HandleRemoveReferenceAction(effectiveProject, referencePath),
+                DotnetPackageAction.ListReferences => await HandleListReferencesAction(effectiveProject),
                 DotnetPackageAction.ClearCache => await HandleClearCacheAction(cacheType),
                 _ => $"Error: Action '{action}' is not supported."
             };
