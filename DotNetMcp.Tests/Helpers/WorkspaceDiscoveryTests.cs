@@ -17,12 +17,12 @@ public class WorkspaceDiscoveryTests
     // ===== TryGetLocalPath =====
 
     [Fact]
-    public void TryGetLocalPath_WithFileUri_ReturnsLocalPath()
+    public void GetLocalPath_WithFileUri_ReturnsLocalPath()
     {
         var dir = Path.GetTempPath();
         var uri = new Uri(dir).AbsoluteUri; // produces file:///...
 
-        var result = WorkspaceDiscovery.TryGetLocalPath(uri);
+        var result = WorkspaceDiscovery.GetLocalPath(uri);
 
         Assert.NotNull(result);
         // Normalize separators for cross-platform comparison
@@ -35,21 +35,21 @@ public class WorkspaceDiscoveryTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public void TryGetLocalPath_WithNullOrEmpty_ReturnsNull(string? uri)
+    public void GetLocalPath_WithNullOrEmpty_ReturnsNull(string? uri)
     {
-        Assert.Null(WorkspaceDiscovery.TryGetLocalPath(uri));
+        Assert.Null(WorkspaceDiscovery.GetLocalPath(uri));
     }
 
     [Fact]
-    public void TryGetLocalPath_WithNonFileUri_ReturnsNull()
+    public void GetLocalPath_WithNonFileUri_ReturnsNull()
     {
-        Assert.Null(WorkspaceDiscovery.TryGetLocalPath("https://example.com/workspace"));
+        Assert.Null(WorkspaceDiscovery.GetLocalPath("https://example.com/workspace"));
     }
 
     [Fact]
-    public void TryGetLocalPath_WithInvalidUri_ReturnsNull()
+    public void GetLocalPath_WithInvalidUri_ReturnsNull()
     {
-        Assert.Null(WorkspaceDiscovery.TryGetLocalPath("not a valid uri :::"));
+        Assert.Null(WorkspaceDiscovery.GetLocalPath("not a valid uri :::"));
     }
 
     // ===== TryFindProjectInRootsAsync — null server fallback =====

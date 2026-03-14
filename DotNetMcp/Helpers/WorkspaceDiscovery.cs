@@ -30,7 +30,7 @@ internal static class WorkspaceDiscovery
         var candidates = new List<string>();
         foreach (var root in roots)
         {
-            var localPath = TryGetLocalPath(root.Uri);
+            var localPath = GetLocalPath(root.Uri);
             if (localPath == null || !Directory.Exists(localPath))
                 continue;
 
@@ -60,7 +60,7 @@ internal static class WorkspaceDiscovery
         var candidates = new List<string>();
         foreach (var root in roots)
         {
-            var localPath = TryGetLocalPath(root.Uri);
+            var localPath = GetLocalPath(root.Uri);
             if (localPath == null || !Directory.Exists(localPath))
                 continue;
 
@@ -84,7 +84,7 @@ internal static class WorkspaceDiscovery
         }
     }
 
-    internal static string? TryGetLocalPath(string? uri)
+    internal static string? GetLocalPath(string? uri)
     {
         if (string.IsNullOrEmpty(uri))
             return null;
