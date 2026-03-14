@@ -105,7 +105,8 @@ public sealed class ServerFeatureSupport
     /// <summary>
     /// Whether the server sends MCP logging notifications to the client during tool execution.
     /// When true, clients receive informational log messages (e.g. "Building project...", "Running tests...")
-    /// via the MCP <c>notifications/message</c> protocol method.
+    /// via the MCP logging notification (<c>notifications/message</c>,
+    /// i.e. <c>NotificationMethods.LoggingMessageNotification</c>).
     /// </summary>
     [JsonPropertyName("mcpLogging")]
     public bool McpLogging { get; init; }

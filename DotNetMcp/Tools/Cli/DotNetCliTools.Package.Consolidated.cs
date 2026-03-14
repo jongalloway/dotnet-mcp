@@ -99,6 +99,12 @@ public sealed partial class DotNetCliTools
             return $"Error: {errorMessage}";
         }
 
+        // Validate project path before sending the notification so clients don't see misleading messages
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+        {
+            return $"Error: {projectError}";
+        }
+
         var target = string.IsNullOrEmpty(project) ? "" : $" to \"{Path.GetFileName(project)}\"";
         var versionInfo = string.IsNullOrEmpty(version) ? "" : $" {version}";
         await SendMcpLogAsync(server, $"Adding NuGet package '{packageId}'{versionInfo}{target}...");
@@ -184,6 +190,12 @@ public sealed partial class DotNetCliTools
         if (!ParameterValidator.ValidateRequiredParameter(packageId, "packageId", out var errorMessage))
         {
             return $"Error: {errorMessage}";
+        }
+
+        // Validate project path before sending the notification so clients don't see misleading messages
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+        {
+            return $"Error: {projectError}";
         }
 
         var target = string.IsNullOrEmpty(project) ? "" : $" in \"{Path.GetFileName(project)}\"";

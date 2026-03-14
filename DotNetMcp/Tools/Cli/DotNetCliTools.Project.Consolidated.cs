@@ -158,7 +158,10 @@ public sealed partial class DotNetCliTools
 
     private async Task<string> HandleRestoreAction(string? project, McpServer? server = null)
     {
-        // Route to existing DotnetProjectRestore method
+        // Validate before sending the notification so clients don't see misleading messages
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+
         var target = string.IsNullOrEmpty(project) ? "project" : $"\"{Path.GetFileName(project)}\"";
         await SendMcpLogAsync(server, $"Restoring NuGet packages for {target}...");
         return await DotnetProjectRestore(
@@ -167,7 +170,14 @@ public sealed partial class DotNetCliTools
 
     private async Task<string> HandleBuildAction(string? project, string? configuration, string? framework, McpServer? server = null)
     {
-        // Route to existing DotnetProjectBuild method
+        // Validate before sending the notification so clients don't see misleading messages
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+        if (!ParameterValidator.ValidateConfiguration(configuration, out var configError))
+            return $"Error: {configError}";
+        if (!ParameterValidator.ValidateFramework(framework, out var frameworkError))
+            return $"Error: {frameworkError}";
+
         var target = string.IsNullOrEmpty(project) ? "project" : $"\"{Path.GetFileName(project)}\"";
         var config = string.IsNullOrEmpty(configuration) ? "" : $" ({configuration})";
         await SendMcpLogAsync(server, $"Building {target}{config}...");
@@ -314,6 +324,16 @@ public sealed partial class DotNetCliTools
 
     private async Task<string> HandleTestAction(string? project, string? configuration, string? filter, string? collect, string? resultsDirectory, string? logger, bool? noBuild, bool? noRestore, string? verbosity, string? framework, bool? blame, bool? listTests, TestRunner? testRunner, bool? useLegacyProjectArgument, McpServer? server = null)
     {
+        // Validate before sending the notification so clients don't see misleading messages
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+        if (!ParameterValidator.ValidateConfiguration(configuration, out var configError))
+            return $"Error: {configError}";
+        if (!ParameterValidator.ValidateVerbosity(verbosity, out var verbosityError))
+            return $"Error: {verbosityError}";
+        if (!ParameterValidator.ValidateFramework(framework, out var frameworkError))
+            return $"Error: {frameworkError}";
+
         // Route to existing DotnetProjectTest method
         var target = string.IsNullOrEmpty(project) ? "project" : $"\"{Path.GetFileName(project)}\"";
         var filterInfo = string.IsNullOrEmpty(filter) ? "" : $" (filter: {filter})";
@@ -337,6 +357,14 @@ public sealed partial class DotNetCliTools
 
     private async Task<string> HandlePublishAction(string? project, string? configuration, string? output, string? runtime, McpServer? server = null)
     {
+        // Validate before sending the notification so clients don't see misleading messages
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+        if (!ParameterValidator.ValidateConfiguration(configuration, out var configError))
+            return $"Error: {configError}";
+        if (!ParameterValidator.ValidateRuntimeIdentifier(runtime, out var runtimeError))
+            return $"Error: {runtimeError}";
+
         // Route to existing DotnetProjectPublish method
         var target = string.IsNullOrEmpty(project) ? "project" : $"\"{Path.GetFileName(project)}\"";
         var runtimeInfo = string.IsNullOrEmpty(runtime) ? "" : $" for {runtime}";
