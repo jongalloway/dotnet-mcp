@@ -73,7 +73,8 @@ public sealed partial class DotNetCliTools
                 Metrics = true,    // In-memory per-tool metrics via MCP message filter (dotnet_server_metrics tool)
                 AsyncTasks = true,  // MCP Task support enabled: long-running operations (build, test, publish) can run as async tasks
                 Prompts = true,     // Predefined prompt catalog: create_new_webapi, add_package_and_restore, run_tests_with_coverage
-                Elicitation = true  // Elicitation for confirmation before destructive ops (Clean, solution Remove)
+                Elicitation = true, // Elicitation for confirmation before destructive ops (Clean, solution Remove)
+                ProgressNotifications = true // Real-time progress updates for build, test, publish, and other long-running operations
             },
             SdkVersions = new SdkVersionInfo
             {
