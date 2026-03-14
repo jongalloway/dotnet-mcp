@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using DotNetMcp;
 using DotNetMcp.Actions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -26,12 +28,13 @@ public class ProgressReportingTests
 
     /// <summary>
     /// Synchronous IProgress&lt;T&gt; implementation for capturing reports in tests.
-    /// Unlike the BCL Progress&lt;T&gt;, this calls the callback directly on the reporting thread.
+    /// Uses ConcurrentBag for thread-safe report collection.
     /// </summary>
     private sealed class CapturingProgress<T> : IProgress<T>
     {
-        public List<T> Reports { get; } = new();
-        public void Report(T value) => Reports.Add(value);
+        private readonly ConcurrentBag<T> _reports = new();
+        public IReadOnlyList<T> Reports => _reports.ToArray();
+        public void Report(T value) => _reports.Add(value);
     }
 
     // ── DotnetProject ────────────────────────────────────────────────────────
@@ -266,12 +269,12 @@ public class ProgressReportingTests
             progress: progress);
 
         // Start message should mention restoring or building
-        var startReport = progress.Reports.Find(r => r.Progress == 0);
+        var startReport = progress.Reports.FirstOrDefault(r => r.Progress == 0);
         Assert.NotNull(startReport);
         Assert.False(string.IsNullOrWhiteSpace(startReport.Message));
 
         // Complete message should mention build
-        var completeReport = progress.Reports.Find(r => r.Progress == 1);
+        var completeReport = progress.Reports.FirstOrDefault(r => r.Progress == 1);
         Assert.NotNull(completeReport);
         Assert.False(string.IsNullOrWhiteSpace(completeReport.Message));
     }

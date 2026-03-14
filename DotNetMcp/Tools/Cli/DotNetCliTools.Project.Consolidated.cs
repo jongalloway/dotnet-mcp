@@ -118,7 +118,7 @@ public sealed partial class DotNetCliTools
             {
                 DotnetProjectAction.New => await HandleNewAction(template, name, output, framework, additionalOptions),
                 DotnetProjectAction.Restore => await ExecuteWithProgress(progress, "Restoring packages...", "Restore complete", () => HandleRestoreAction(project)),
-                DotnetProjectAction.Build => await ExecuteWithProgress(progress, "Restoring packages...", "Build complete", () => HandleBuildAction(project, configuration, framework)),
+                DotnetProjectAction.Build => await ExecuteWithProgress(progress, "Building project...", "Build complete", () => HandleBuildAction(project, configuration, framework)),
                 DotnetProjectAction.Run => await ExecuteWithProgress(progress, "Building and starting application...", "Run complete", () => HandleRunAction(project, configuration, appArgs, noBuild, startMode)),
                 DotnetProjectAction.Test => await ExecuteWithProgress(progress, "Running tests...", "Tests complete", () => HandleTestAction(project, configuration, filter, collect, resultsDirectory, logger, noBuild, noRestore, verbosity, framework, blame, listTests, testRunner, useLegacyProjectArgument)),
                 DotnetProjectAction.Publish => await ExecuteWithProgress(progress, "Publishing project...", "Publish complete", () => HandlePublishAction(project, configuration, output, runtime)),
