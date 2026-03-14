@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
@@ -24,6 +25,10 @@ public sealed partial class DotNetCliTools
     // Constants for server capability discovery
     private const string DefaultServerVersion = "1.0.0";
     private const string ProtocolVersion = "2025-11-25";
+
+    // Constants for sampling (AI-assisted error interpretation)
+    private const int MaxSamplingPromptLength = 4000;
+    private const int MaxSamplingResponseTokens = 256;
 
     public DotNetCliTools(ILogger<DotNetCliTools> logger, ConcurrencyManager concurrencyManager, ProcessSessionManager processSessionManager, ToolMetricsAccumulator? metricsAccumulator = null, ResourceSubscriptionManager? subscriptions = null)
     {
@@ -164,6 +169,32 @@ public sealed partial class DotNetCliTools
         }
 
         return sdks.ToArray();
+    }
+
+    /// <summary>
+    /// Sends an MCP log notification to the client if a server connection is available.
+    /// Failures are silently swallowed so logging never breaks tool execution.
+    /// </summary>
+    private static async Task SendMcpLogAsync(McpServer? server, string message, LoggingLevel level = LoggingLevel.Info)
+    {
+        if (server is null) return;
+        try
+        {
+            await server.SendNotificationAsync(
+                NotificationMethods.LoggingMessageNotification,
+                new LoggingMessageNotificationParams
+                {
+                    Level = level,
+                    Logger = "dotnet-mcp",
+                    Data = JsonSerializer.SerializeToElement(message)
+                },
+                McpJsonUtilities.DefaultOptions,
+                CancellationToken.None);
+        }
+        catch (Exception)
+        {
+            // Don't let logging failures break tool execution
+        }
     }
 
     /// <summary>

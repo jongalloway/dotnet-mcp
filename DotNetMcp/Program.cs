@@ -80,6 +80,18 @@ mcpServerBuilder
         if (!string.IsNullOrEmpty(uri))
             context.Server.Services!.GetRequiredService<ResourceSubscriptionManager>().Unsubscribe(uri);
         return ValueTask.FromResult(new EmptyResult());
+    })
+    .WithCompleteHandler(async (ctx, ct) =>
+    {
+        var argument = ctx.Params?.Argument;
+        if (argument is null)
+            return new CompleteResult { Completion = new Completion { Values = [] } };
+        var prefix = argument.Value ?? string.Empty;
+        var values = (await CompletionProvider.GetCompletionsAsync(argument.Name, prefix, ct)).ToList();
+        return new CompleteResult
+        {
+            Completion = new Completion { Values = values }
+        };
     });
 
 // Register the telemetry filter that intercepts every CallTool request to record
