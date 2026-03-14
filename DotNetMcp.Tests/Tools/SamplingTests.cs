@@ -87,8 +87,8 @@ public class SamplingTests
 
         Assert.NotNull(result);
         Assert.DoesNotContain("AI Analysis", result);
-        // Should have attempted to run dotnet test
-        Assert.Contains("dotnet test", result);
+        // Should have attempted to run dotnet test (MTP uses --project flag by default)
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet test --project \"test.csproj\"");
     }
 
     #endregion

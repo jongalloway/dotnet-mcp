@@ -182,7 +182,6 @@ public sealed partial class DotNetCliTools
         result.AppendLine("  • dotnet_project (action: Test) - analyzes test failures and suggests which tests need attention");
         result.AppendLine("  Clients that do not support sampling receive raw command output only.");
         result.AppendLine();
-        result.AppendLine();
 
         result.AppendLine("DOCUMENTATION:");
         result.AppendLine("  • README: https://github.com/jongalloway/dotnet-mcp");

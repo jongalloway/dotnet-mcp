@@ -169,26 +169,10 @@ public sealed partial class DotNetCliTools
             configuration: configuration,
             framework: framework);
 
-        // Use sampling for AI-assisted error interpretation when build fails and client supports sampling
-        if (server?.ClientCapabilities?.Sampling != null && result.Contains("Exit Code:") && !result.Contains("Exit Code: 0"))
-        {
-            var chatClient = server.AsSamplingChatClient();
-            try
-            {
-                var prompt = result.Length > MaxSamplingPromptLength ? result[^MaxSamplingPromptLength..] : result;
-                var suggestion = await chatClient.GetResponseAsync(
-                    [new ChatMessage(ChatRole.User, $"Summarize these .NET build errors and suggest fixes (be concise):\n\n{prompt}")],
-                    new ChatOptions { MaxOutputTokens = MaxSamplingResponseTokens });
-                if (!string.IsNullOrWhiteSpace(suggestion.Text))
-                    result += $"\n\nAI Analysis:\n{suggestion.Text}";
-            }
-            catch (Exception)
-            {
-                // Sampling is best-effort; fall back gracefully to raw output
-            }
-        }
-
-        return result;
+        // Use sampling for AI-assisted error interpretation when build fails and client supports sampling.
+        // Note: the result string has already had SecretRedactor applied by DotNetCommandExecutor.
+        return await AppendAiAnalysisOnFailureAsync(result, server,
+            "Summarize these .NET build errors and suggest fixes (be concise):");
     }
 
     private async Task<string> HandleRunAction(string? project, string? configuration, string? appArgs, bool? noBuild, StartMode? startMode)
@@ -344,26 +328,10 @@ public sealed partial class DotNetCliTools
             testRunner: testRunner,
             useLegacyProjectArgument: useLegacyProjectArgument ?? false);
 
-        // Use sampling for AI-assisted failure analysis when tests fail and client supports sampling
-        if (server?.ClientCapabilities?.Sampling != null && result.Contains("Exit Code:") && !result.Contains("Exit Code: 0"))
-        {
-            var chatClient = server.AsSamplingChatClient();
-            try
-            {
-                var prompt = result.Length > MaxSamplingPromptLength ? result[^MaxSamplingPromptLength..] : result;
-                var suggestion = await chatClient.GetResponseAsync(
-                    [new ChatMessage(ChatRole.User, $"Summarize these .NET test results and suggest which tests need attention (be concise):\n\n{prompt}")],
-                    new ChatOptions { MaxOutputTokens = MaxSamplingResponseTokens });
-                if (!string.IsNullOrWhiteSpace(suggestion.Text))
-                    result += $"\n\nAI Analysis:\n{suggestion.Text}";
-            }
-            catch (Exception)
-            {
-                // Sampling is best-effort; fall back gracefully to raw output
-            }
-        }
-
-        return result;
+        // Use sampling for AI-assisted failure analysis when tests fail and client supports sampling.
+        // Note: the result string has already had SecretRedactor applied by DotNetCommandExecutor.
+        return await AppendAiAnalysisOnFailureAsync(result, server,
+            "Summarize these .NET test results and suggest which tests need attention (be concise):");
     }
 
     private async Task<string> HandlePublishAction(string? project, string? configuration, string? output, string? runtime)
@@ -1110,5 +1078,47 @@ public sealed partial class DotNetCliTools
 
         _logger.LogDebug("Validating project: {ProjectPath}", projectPath);
         return await ProjectAnalysisHelper.ValidateProjectAsync(projectPath, _logger);
+    }
+
+    /// <summary>
+    /// Appends an AI-generated analysis section to a command result when the command failed
+    /// and the MCP client supports sampling. Falls back gracefully when sampling is unavailable.
+    /// </summary>
+    private static async Task<string> AppendAiAnalysisOnFailureAsync(string result, McpServer? server, string promptPrefix)
+    {
+        if (server?.ClientCapabilities?.Sampling == null || !IsCommandFailure(result))
+            return result;
+
+        var chatClient = server.AsSamplingChatClient();
+        try
+        {
+            var prompt = result.Length > MaxSamplingPromptLength ? result[^MaxSamplingPromptLength..] : result;
+            var suggestion = await chatClient.GetResponseAsync(
+                [new ChatMessage(ChatRole.User, $"{promptPrefix}\n\n{prompt}")],
+                new ChatOptions { MaxOutputTokens = MaxSamplingResponseTokens });
+            if (!string.IsNullOrWhiteSpace(suggestion.Text))
+                result += $"\n\nAI Analysis:\n{suggestion.Text}";
+        }
+        catch (Exception)
+        {
+            // Sampling is best-effort; fall back gracefully to raw output
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Detects whether a dotnet command output string represents a non-zero (failure) exit code.
+    /// Parses the "Exit Code: N" line that DotNetCommandExecutor appends to every result.
+    /// </summary>
+    private static bool IsCommandFailure(string commandOutput)
+    {
+        const string prefix = "Exit Code: ";
+        var idx = commandOutput.LastIndexOf(prefix, StringComparison.Ordinal);
+        if (idx < 0) return false;
+        var start = idx + prefix.Length;
+        var end = commandOutput.IndexOfAny(['\r', '\n'], start);
+        var codeSpan = (end >= 0 ? commandOutput[start..end] : commandOutput[start..]).AsSpan().Trim();
+        return int.TryParse(codeSpan, out var code) && code != 0;
     }
 }
