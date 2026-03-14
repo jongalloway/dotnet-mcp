@@ -225,6 +225,21 @@ public class ServerCapabilitiesTests
     }
 
     [Fact]
+    public async Task DotnetServerCapabilities_Supports_Completions_IsTrue()
+    {
+        // Act
+        var result = (await _tools.DotnetServerCapabilities()).GetText();
+        var jsonDoc = JsonDocument.Parse(result);
+        var completions = jsonDoc.RootElement
+            .GetProperty("supports")
+            .GetProperty("completions")
+            .GetBoolean();
+
+        // Assert - Completion handler is registered via WithCompleteHandler in Program.cs
+        Assert.True(completions);
+    }
+
+    [Fact]
     public async Task DotnetServerCapabilities_JsonSchema_MatchesExpectedStructure()
     {
         // Act
@@ -250,6 +265,7 @@ public class ServerCapabilitiesTests
         Assert.True(capabilities.Supports.AsyncTasks);
         Assert.True(capabilities.Supports.Prompts);
         Assert.True(capabilities.Supports.Elicitation);
+        Assert.True(capabilities.Supports.Completions);
         Assert.NotNull(capabilities.SdkVersions);
         Assert.NotEmpty(capabilities.SdkVersions.Installed);
         Assert.Equal("net10.0", capabilities.SdkVersions.Recommended);

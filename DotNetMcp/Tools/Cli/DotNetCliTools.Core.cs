@@ -25,6 +25,10 @@ public sealed partial class DotNetCliTools
     private const string DefaultServerVersion = "1.0.0";
     private const string ProtocolVersion = "2025-11-25";
 
+    // Constants for sampling (AI-assisted error interpretation)
+    private const int MaxSamplingPromptLength = 4000;
+    private const int MaxSamplingResponseTokens = 256;
+
     public DotNetCliTools(ILogger<DotNetCliTools> logger, ConcurrencyManager concurrencyManager, ProcessSessionManager processSessionManager, ToolMetricsAccumulator? metricsAccumulator = null)
     {
         // DI guarantees logger is never null
