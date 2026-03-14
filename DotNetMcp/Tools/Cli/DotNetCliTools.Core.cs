@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Text;
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -22,6 +23,10 @@ public sealed partial class DotNetCliTools
     // Constants for server capability discovery
     private const string DefaultServerVersion = "1.0.0";
     private const string ProtocolVersion = "2025-11-25";
+
+    // Constants for sampling (AI-assisted error interpretation)
+    private const int MaxSamplingPromptLength = 4000;
+    private const int MaxSamplingResponseTokens = 256;
 
     public DotNetCliTools(ILogger<DotNetCliTools> logger, ConcurrencyManager concurrencyManager, ProcessSessionManager processSessionManager, ToolMetricsAccumulator? metricsAccumulator = null)
     {
@@ -161,5 +166,28 @@ public sealed partial class DotNetCliTools
         }
 
         return sdks.ToArray();
+    }
+
+    /// <summary>
+    /// Executes a long-running operation with progress notifications sent before and after execution.
+    /// The completion notification is always sent, even if the operation throws.
+    /// </summary>
+    private static async Task<string> ExecuteWithProgress(
+        IProgress<ProgressNotificationValue>? progress,
+        string startMessage,
+        string completeMessage,
+        Func<Task<string>> execute)
+    {
+        progress?.Report(new ProgressNotificationValue { Progress = 0, Total = 1, Message = startMessage });
+        string result;
+        try
+        {
+            result = await execute();
+        }
+        finally
+        {
+            progress?.Report(new ProgressNotificationValue { Progress = 1, Total = 1, Message = completeMessage });
+        }
+        return result;
     }
 }

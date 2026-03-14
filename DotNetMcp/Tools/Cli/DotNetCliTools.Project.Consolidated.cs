@@ -1,6 +1,8 @@
 using System.Text;
 using DotNetMcp.Actions;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -101,6 +103,7 @@ public sealed partial class DotNetCliTools
         string? propertyValue = null,
         string? itemType = null,
         string? include = null,
+        IProgress<ProgressNotificationValue>? progress = null,
         McpServer? server = null)
     {
         var textResult = await WithWorkingDirectoryAsync(workingDirectory, async () =>
@@ -115,16 +118,16 @@ public sealed partial class DotNetCliTools
             return action switch
             {
                 DotnetProjectAction.New => await HandleNewAction(template, name, output, framework, additionalOptions),
-                DotnetProjectAction.Restore => await HandleRestoreAction(project),
-                DotnetProjectAction.Build => await HandleBuildAction(project, configuration, framework),
-                DotnetProjectAction.Run => await HandleRunAction(project, configuration, appArgs, noBuild, startMode),
-                DotnetProjectAction.Test => await HandleTestAction(project, configuration, filter, collect, resultsDirectory, logger, noBuild, noRestore, verbosity, framework, blame, listTests, testRunner, useLegacyProjectArgument),
-                DotnetProjectAction.Publish => await HandlePublishAction(project, configuration, output, runtime),
-                DotnetProjectAction.Clean => await HandleCleanAction(project, configuration, server),
+                DotnetProjectAction.Restore => await ExecuteWithProgress(progress, "Restoring packages...", "Restore complete", () => HandleRestoreAction(project)),
+                DotnetProjectAction.Build => await ExecuteWithProgress(progress, "Building project...", "Build complete", () => HandleBuildAction(project, configuration, framework, server)),
+                DotnetProjectAction.Run => await ExecuteWithProgress(progress, "Building and starting application...", "Run complete", () => HandleRunAction(project, configuration, appArgs, noBuild, startMode)),
+                DotnetProjectAction.Test => await ExecuteWithProgress(progress, "Running tests...", "Tests complete", () => HandleTestAction(project, configuration, filter, collect, resultsDirectory, logger, noBuild, noRestore, verbosity, framework, blame, listTests, testRunner, useLegacyProjectArgument, server)),
+                DotnetProjectAction.Publish => await ExecuteWithProgress(progress, "Publishing project...", "Publish complete", () => HandlePublishAction(project, configuration, output, runtime)),
+                DotnetProjectAction.Clean => await ExecuteWithProgress(progress, "Cleaning output directories...", "Clean complete", () => HandleCleanAction(project, configuration, server)),
                 DotnetProjectAction.Analyze => await HandleAnalyzeAction(projectPath),
                 DotnetProjectAction.Dependencies => await HandleDependenciesAction(projectPath),
                 DotnetProjectAction.Validate => await HandleValidateAction(projectPath),
-                DotnetProjectAction.Pack => await HandlePackAction(project, configuration, output, includeSymbols, includeSource),
+                DotnetProjectAction.Pack => await ExecuteWithProgress(progress, "Packing project...", "Pack complete", () => HandlePackAction(project, configuration, output, includeSymbols, includeSource)),
                 DotnetProjectAction.Watch => await HandleWatchAction(watchAction, project, configuration, appArgs, filter, noHotReload),
                 DotnetProjectAction.Format => await HandleFormatAction(project, verify, includeGenerated, diagnostics, severity),
                 DotnetProjectAction.Stop => await HandleStopAction(sessionId),
@@ -161,13 +164,17 @@ public sealed partial class DotNetCliTools
             project: project);
     }
 
-    private async Task<string> HandleBuildAction(string? project, string? configuration, string? framework)
+    private async Task<string> HandleBuildAction(string? project, string? configuration, string? framework, McpServer? server = null)
     {
-        // Route to existing DotnetProjectBuild method
-        return await DotnetProjectBuild(
+        var result = await DotnetProjectBuild(
             project: project,
             configuration: configuration,
             framework: framework);
+
+        // Use sampling for AI-assisted error interpretation when build fails and client supports sampling.
+        // Note: the result string has already had SecretRedactor applied by DotNetCommandExecutor.
+        return await AppendAiAnalysisOnFailureAsync(result, server,
+            "Summarize these .NET build errors and suggest fixes (be concise):");
     }
 
     private async Task<string> HandleRunAction(string? project, string? configuration, string? appArgs, bool? noBuild, StartMode? startMode)
@@ -305,10 +312,9 @@ public sealed partial class DotNetCliTools
         }
     }
 
-    private async Task<string> HandleTestAction(string? project, string? configuration, string? filter, string? collect, string? resultsDirectory, string? logger, bool? noBuild, bool? noRestore, string? verbosity, string? framework, bool? blame, bool? listTests, TestRunner? testRunner, bool? useLegacyProjectArgument)
+    private async Task<string> HandleTestAction(string? project, string? configuration, string? filter, string? collect, string? resultsDirectory, string? logger, bool? noBuild, bool? noRestore, string? verbosity, string? framework, bool? blame, bool? listTests, TestRunner? testRunner, bool? useLegacyProjectArgument, McpServer? server = null)
     {
-        // Route to existing DotnetProjectTest method
-        return await DotnetProjectTest(
+        var result = await DotnetProjectTest(
             project: project,
             configuration: configuration,
             filter: filter,
@@ -323,6 +329,11 @@ public sealed partial class DotNetCliTools
             listTests: listTests ?? false,
             testRunner: testRunner,
             useLegacyProjectArgument: useLegacyProjectArgument ?? false);
+
+        // Use sampling for AI-assisted failure analysis when tests fail and client supports sampling.
+        // Note: the result string has already had SecretRedactor applied by DotNetCommandExecutor.
+        return await AppendAiAnalysisOnFailureAsync(result, server,
+            "Summarize these .NET test results and suggest which tests need attention (be concise):");
     }
 
     private async Task<string> HandlePublishAction(string? project, string? configuration, string? output, string? runtime)
@@ -1069,5 +1080,47 @@ public sealed partial class DotNetCliTools
 
         _logger.LogDebug("Validating project: {ProjectPath}", projectPath);
         return await ProjectAnalysisHelper.ValidateProjectAsync(projectPath, _logger);
+    }
+
+    /// <summary>
+    /// Appends an AI-generated analysis section to a command result when the command failed
+    /// and the MCP client supports sampling. Falls back gracefully when sampling is unavailable.
+    /// </summary>
+    private static async Task<string> AppendAiAnalysisOnFailureAsync(string result, McpServer? server, string promptPrefix)
+    {
+        if (server?.ClientCapabilities?.Sampling == null || !IsCommandFailure(result))
+            return result;
+
+        var chatClient = server.AsSamplingChatClient();
+        try
+        {
+            var prompt = result.Length > MaxSamplingPromptLength ? result[^MaxSamplingPromptLength..] : result;
+            var suggestion = await chatClient.GetResponseAsync(
+                [new ChatMessage(ChatRole.User, $"{promptPrefix}\n\n{prompt}")],
+                new ChatOptions { MaxOutputTokens = MaxSamplingResponseTokens });
+            if (!string.IsNullOrWhiteSpace(suggestion.Text))
+                result += $"\n\nAI Analysis:\n{suggestion.Text}";
+        }
+        catch (Exception)
+        {
+            // Sampling is best-effort; fall back gracefully to raw output
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Detects whether a dotnet command output string represents a non-zero (failure) exit code.
+    /// Parses the "Exit Code: N" line that DotNetCommandExecutor appends to every result.
+    /// </summary>
+    private static bool IsCommandFailure(string commandOutput)
+    {
+        const string prefix = "Exit Code: ";
+        var idx = commandOutput.LastIndexOf(prefix, StringComparison.Ordinal);
+        if (idx < 0) return false;
+        var start = idx + prefix.Length;
+        var end = commandOutput.IndexOfAny(['\r', '\n'], start);
+        var codeSpan = (end >= 0 ? commandOutput[start..end] : commandOutput[start..]).AsSpan().Trim();
+        return int.TryParse(codeSpan, out var code) && code != 0;
     }
 }

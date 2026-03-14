@@ -1,5 +1,6 @@
 using System.Text;
 using DotNetMcp.Actions;
+using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using ModelContextProtocol.Protocol;
 
@@ -53,7 +54,8 @@ public sealed partial class DotNetCliTools
         string? args = null,
         string? output = null,
         bool? force = null,
-        string? workingDirectory = null)
+        string? workingDirectory = null,
+        IProgress<ProgressNotificationValue>? progress = null)
     {
         var textResult = await WithWorkingDirectoryAsync(workingDirectory, async () =>
         {
@@ -66,11 +68,11 @@ public sealed partial class DotNetCliTools
             // Route to appropriate handler based on action
             return action switch
             {
-                DotnetToolAction.Install => await HandleInstallAction(packageId, global ?? false, version, framework, toolPath),
+                DotnetToolAction.Install => await ExecuteWithProgress(progress, "Installing tool...", "Tool installed", () => HandleInstallAction(packageId, global ?? false, version, framework, toolPath)),
                 DotnetToolAction.List => await HandleListAction(global ?? false),
-                DotnetToolAction.Update => await HandleUpdateAction(packageId, global ?? false, version),
+                DotnetToolAction.Update => await ExecuteWithProgress(progress, "Updating tool...", "Tool updated", () => HandleUpdateAction(packageId, global ?? false, version)),
                 DotnetToolAction.Uninstall => await HandleUninstallAction(packageId, global ?? false),
-                DotnetToolAction.Restore => await HandleRestoreAction(),
+                DotnetToolAction.Restore => await ExecuteWithProgress(progress, "Restoring tools...", "Tools restored", () => HandleRestoreAction()),
                 DotnetToolAction.CreateManifest => await HandleCreateManifestAction(output, force ?? false),
                 DotnetToolAction.Search => await HandleSearchAction(searchTerm, detail ?? false, take, skip, prerelease ?? false),
                 DotnetToolAction.Run => await HandleRunAction(toolName, args),
