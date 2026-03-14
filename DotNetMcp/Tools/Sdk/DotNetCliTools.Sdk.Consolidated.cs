@@ -54,7 +54,8 @@ public sealed partial class DotNetCliTools
         string? sdkVersion = null,
         string? rollForward = null,
         string? testRunner = null,
-        string? globalJsonPath = null)
+        string? globalJsonPath = null,
+        McpServer? server = null)
     {
         var textResult = await WithWorkingDirectoryAsync(workingDirectory, async () =>
         {
@@ -76,10 +77,10 @@ public sealed partial class DotNetCliTools
                 DotnetSdkAction.ListTemplates => await DotnetTemplateList(forceReload),
                 DotnetSdkAction.SearchTemplates => await HandleSearchTemplatesAction(searchTerm, forceReload),
                 DotnetSdkAction.TemplateInfo => await HandleTemplateInfoAction(templateShortName, forceReload),
-                DotnetSdkAction.ClearTemplateCache => await DotnetTemplateClearCache(),
+                DotnetSdkAction.ClearTemplateCache => await DotnetTemplateClearCache(server),
                 DotnetSdkAction.ListTemplatePacks => await DotnetTemplatePackList(),
-                DotnetSdkAction.InstallTemplatePack => await HandleTemplatePackInstallAction(templatePackage, templateVersion, nugetSource, interactive, force),
-                DotnetSdkAction.UninstallTemplatePack => await HandleTemplatePackUninstallAction(templatePackage),
+                DotnetSdkAction.InstallTemplatePack => await HandleTemplatePackInstallAction(templatePackage, templateVersion, nugetSource, interactive, force, server),
+                DotnetSdkAction.UninstallTemplatePack => await HandleTemplatePackUninstallAction(templatePackage, server),
                 DotnetSdkAction.FrameworkInfo => await DotnetFrameworkInfo(framework),
                 DotnetSdkAction.CacheMetrics => await DotnetCacheMetrics(),
                 DotnetSdkAction.ConfigureGlobalJson => HandleConfigureGlobalJsonAction(sdkVersion, rollForward, testRunner, globalJsonPath),
@@ -126,7 +127,8 @@ public sealed partial class DotNetCliTools
         string? templateVersion,
         string? nugetSource,
         bool interactive,
-        bool force)
+        bool force,
+        McpServer? server = null)
     {
         if (!ParameterValidator.ValidateTemplatePackage(templatePackage, out var packageError))
         {
@@ -152,10 +154,10 @@ public sealed partial class DotNetCliTools
             return $"Error: {message}";
         }
 
-        return await DotnetTemplatePackInstall(templatePackage!, templateVersion, nugetSource, interactive, force);
+        return await DotnetTemplatePackInstall(templatePackage!, templateVersion, nugetSource, interactive, force, server);
     }
 
-    private async Task<string> HandleTemplatePackUninstallAction(string? templatePackage)
+    private async Task<string> HandleTemplatePackUninstallAction(string? templatePackage, McpServer? server = null)
     {
         // For uninstall, templatePackage is optional: if not provided, dotnet will list installed template packages.
         if (!string.IsNullOrWhiteSpace(templatePackage)
@@ -164,7 +166,7 @@ public sealed partial class DotNetCliTools
             return $"Error: {packageError}";
         }
 
-        return await DotnetTemplatePackUninstall(templatePackage);
+        return await DotnetTemplatePackUninstall(templatePackage, server);
     }
 
     private string HandleConfigureGlobalJsonAction(
@@ -309,9 +311,18 @@ public sealed partial class DotNetCliTools
     /// </summary>
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
-    internal async Task<string> DotnetTemplateClearCache()
+    internal async Task<string> DotnetTemplateClearCache(McpServer? server = null)
     {
         await DotNetResources.ClearAllCachesAsync();
+
+        // Notify subscribers that the cleared resources may have changed.
+        if (_subscriptions != null)
+        {
+            await _subscriptions.SendResourceUpdatedAsync(server, "dotnet://sdk-info");
+            await _subscriptions.SendResourceUpdatedAsync(server, "dotnet://runtime-info");
+            await _subscriptions.SendResourceUpdatedAsync(server, "dotnet://templates");
+        }
+
         return "All caches (templates, SDK, runtime) and metrics cleared successfully. Next query will reload from disk.";
     }
 
@@ -330,7 +341,8 @@ public sealed partial class DotNetCliTools
         string? templateVersion = null,
         string? nugetSource = null,
         bool interactive = false,
-        bool force = false)
+        bool force = false,
+        McpServer? server = null)
     {
         var packageExpression = !string.IsNullOrWhiteSpace(templateVersion)
             ? $"{templatePackage}@{templateVersion}"
@@ -346,6 +358,10 @@ public sealed partial class DotNetCliTools
         // Installing templates changes the template engine state. Clear internal caches so follow-up template queries refresh.
         await DotNetResources.ClearAllCachesAsync();
 
+        // Notify subscribers that the template catalog has changed.
+        if (_subscriptions != null)
+            await _subscriptions.SendResourceUpdatedAsync(server, "dotnet://templates");
+
         return result;
     }
 
@@ -356,7 +372,8 @@ public sealed partial class DotNetCliTools
     /// <param name="templatePackage">NuGet package ID (without version) or path to folder to uninstall</param>
     [McpMeta("category", "template")]
     internal async Task<string> DotnetTemplatePackUninstall(
-        string? templatePackage = null)
+        string? templatePackage = null,
+        McpServer? server = null)
     {
         var args = new StringBuilder("new uninstall");
         if (!string.IsNullOrWhiteSpace(templatePackage)) args.Append($" \"{templatePackage}\"");
@@ -365,6 +382,10 @@ public sealed partial class DotNetCliTools
 
         // Uninstalling templates changes the template engine state. Clear internal caches so follow-up template queries refresh.
         await DotNetResources.ClearAllCachesAsync();
+
+        // Notify subscribers that the template catalog has changed.
+        if (_subscriptions != null)
+            await _subscriptions.SendResourceUpdatedAsync(server, "dotnet://templates");
 
         return result;
     }

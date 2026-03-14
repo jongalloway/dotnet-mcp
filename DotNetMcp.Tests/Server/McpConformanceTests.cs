@@ -519,6 +519,37 @@ public class McpConformanceTests : IAsyncLifetime
         }
     }
 
+    [Fact]
+    public void Server_ShouldAdvertiseResourceSubscribeCapability()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Assert - server should expose Subscribe = true so clients can call resources/subscribe
+        Assert.NotNull(_client.ServerCapabilities);
+        Assert.NotNull(_client.ServerCapabilities.Resources);
+        Assert.True(_client.ServerCapabilities.Resources.Subscribe);
+    }
+
+    [Fact]
+    public async Task Server_SubscribeToResource_ShouldSucceed()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act — subscribe to a known resource URI; the server must accept the request
+        var registration = await _client.SubscribeToResourceAsync(
+            "dotnet://templates",
+            (_, _) => ValueTask.CompletedTask,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert — no exception means the server accepted the subscription
+        Assert.NotNull(registration);
+
+        // Cleanup
+        await registration.DisposeAsync();
+    }
+
     #endregion
 
     #region Prompt Listing Tests
