@@ -1,6 +1,4 @@
 using DotNetMcp;
-using DotNetMcp.Actions;
-using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace DotNetMcp.Tests.Helpers;

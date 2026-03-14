@@ -34,7 +34,14 @@ internal static class WorkspaceDiscovery
             if (localPath == null || !Directory.Exists(localPath))
                 continue;
 
-            candidates.AddRange(Directory.GetFiles(localPath, "*.csproj", SearchOption.TopDirectoryOnly));
+            try
+            {
+                candidates.AddRange(Directory.GetFiles(localPath, "*.csproj", SearchOption.TopDirectoryOnly));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Skip roots that cannot be accessed
+            }
         }
 
         return candidates.Count == 1 ? candidates[0] : null;
@@ -64,8 +71,15 @@ internal static class WorkspaceDiscovery
             if (localPath == null || !Directory.Exists(localPath))
                 continue;
 
-            candidates.AddRange(Directory.GetFiles(localPath, "*.sln", SearchOption.TopDirectoryOnly));
-            candidates.AddRange(Directory.GetFiles(localPath, "*.slnx", SearchOption.TopDirectoryOnly));
+            try
+            {
+                candidates.AddRange(Directory.GetFiles(localPath, "*.sln", SearchOption.TopDirectoryOnly));
+                candidates.AddRange(Directory.GetFiles(localPath, "*.slnx", SearchOption.TopDirectoryOnly));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Skip roots that cannot be accessed
+            }
         }
 
         return candidates.Count == 1 ? candidates[0] : null;

@@ -119,7 +119,8 @@ public class RootsFallbackTests
             server: null)).GetText();
 
         Assert.NotNull(result);
-        Assert.DoesNotContain("Error", result, StringComparison.OrdinalIgnoreCase);
+        // Assert the command was attempted regardless of NuGet connectivity
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet package search Newtonsoft.Json");
     }
 
     [Fact]
