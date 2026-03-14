@@ -289,7 +289,10 @@ public enum DotnetSdkAction
     FrameworkInfo,
 
     /// <summary>Get cache performance metrics</summary>
-    CacheMetrics
+    CacheMetrics,
+
+    /// <summary>Create or update global.json to configure SDK version, roll-forward policy, and test runner</summary>
+    ConfigureGlobalJson
 }
 
 /// <summary>

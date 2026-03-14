@@ -1,4 +1,6 @@
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
@@ -14,6 +16,7 @@ public sealed partial class DotNetCliTools
     /// Query .NET SDK, runtime, template, and framework information.
     /// Provides a unified interface for all SDK-related queries including version info,
     /// installed SDKs and runtimes, template discovery, framework metadata, and cache metrics.
+    /// Also supports creating or updating <c>global.json</c> to configure the SDK version, roll-forward policy, and test runner.
     /// </summary>
     /// <param name="action">The SDK information operation to perform</param>
     /// <param name="searchTerm">Search query for template search operations</param>
@@ -26,12 +29,16 @@ public sealed partial class DotNetCliTools
     /// <param name="framework">Specific framework to query for framework info (e.g., 'net10.0', 'net8.0')</param>
     /// <param name="forceReload">If true, bypasses cache and reloads from disk (applies to template operations)</param>
     /// <param name="workingDirectory">Working directory for command execution</param>
-    [McpServerTool(Title = ".NET SDK & Templates", IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Gear/Flat/gear_flat.svg")]
+    /// <param name="sdkVersion">SDK version to pin in global.json (e.g., '10.0.100') for ConfigureGlobalJson action</param>
+    /// <param name="rollForward">SDK roll-forward policy for global.json (e.g., 'latestMinor', 'latestMajor', 'disable') for ConfigureGlobalJson action</param>
+    /// <param name="testRunner">Test runner to configure in global.json (e.g., 'Microsoft.Testing.Platform', 'VSTest') for ConfigureGlobalJson action</param>
+    /// <param name="globalJsonPath">Path to global.json file; defaults to 'global.json' in the working directory for ConfigureGlobalJson action</param>
+    [McpServerTool(Title = ".NET SDK & Templates", Destructive = true, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Gear/Flat/gear_flat.svg")]
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("consolidatedTool", true)]
-    [McpMeta("actions", JsonValue = """["Version","Info","ListSdks","ListRuntimes","ListTemplates","SearchTemplates","TemplateInfo","ClearTemplateCache","ListTemplatePacks","InstallTemplatePack","UninstallTemplatePack","FrameworkInfo","CacheMetrics"]""")]
+    [McpMeta("actions", JsonValue = """["Version","Info","ListSdks","ListRuntimes","ListTemplates","SearchTemplates","TemplateInfo","ClearTemplateCache","ListTemplatePacks","InstallTemplatePack","UninstallTemplatePack","FrameworkInfo","CacheMetrics","ConfigureGlobalJson"]""")]
     public async partial Task<CallToolResult> DotnetSdk(
         DotnetSdkAction action,
         string? searchTerm = null,
@@ -43,7 +50,11 @@ public sealed partial class DotNetCliTools
         bool force = false,
         string? framework = null,
         bool forceReload = false,
-        string? workingDirectory = null)
+        string? workingDirectory = null,
+        string? sdkVersion = null,
+        string? rollForward = null,
+        string? testRunner = null,
+        string? globalJsonPath = null)
     {
         var textResult = await WithWorkingDirectoryAsync(workingDirectory, async () =>
         {
@@ -71,6 +82,7 @@ public sealed partial class DotNetCliTools
                 DotnetSdkAction.UninstallTemplatePack => await HandleTemplatePackUninstallAction(templatePackage),
                 DotnetSdkAction.FrameworkInfo => await DotnetFrameworkInfo(framework),
                 DotnetSdkAction.CacheMetrics => await DotnetCacheMetrics(),
+                DotnetSdkAction.ConfigureGlobalJson => HandleConfigureGlobalJsonAction(sdkVersion, rollForward, testRunner, globalJsonPath),
                 _ => $"Error: Action '{action}' is not supported."
             };
         });
@@ -153,6 +165,108 @@ public sealed partial class DotNetCliTools
         }
 
         return await DotnetTemplatePackUninstall(templatePackage);
+    }
+
+    private string HandleConfigureGlobalJsonAction(
+        string? sdkVersion,
+        string? rollForward,
+        string? testRunner,
+        string? globalJsonPath)
+    {
+        // At least one configuration value must be provided
+        if (string.IsNullOrWhiteSpace(sdkVersion)
+            && string.IsNullOrWhiteSpace(rollForward)
+            && string.IsNullOrWhiteSpace(testRunner))
+        {
+            return "Error: At least one of sdkVersion, rollForward, or testRunner must be specified.";
+        }
+
+        // Resolve target file path — resolve relative paths against baseDir so workingDirectory is honored
+        var baseDir = DotNetCommandExecutor.WorkingDirectoryOverride.Value ?? Directory.GetCurrentDirectory();
+        var filePath = string.IsNullOrWhiteSpace(globalJsonPath)
+            ? Path.Join(baseDir, "global.json")
+            : Path.GetFullPath(globalJsonPath, baseDir);
+
+        // Load existing content or start fresh
+        JsonObject root;
+        bool fileExisted = File.Exists(filePath);
+        if (fileExisted)
+        {
+            try
+            {
+                var existingContent = File.ReadAllText(filePath);
+                var parsed = JsonNode.Parse(existingContent,
+                    nodeOptions: null,
+                    documentOptions: new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip });
+
+                if (parsed is not JsonObject parsedObj)
+                {
+                    var kind = parsed is null ? "null" : parsed.GetValueKind() switch
+                    {
+                        System.Text.Json.JsonValueKind.Array => "array",
+                        System.Text.Json.JsonValueKind.String => "string",
+                        System.Text.Json.JsonValueKind.Number => "number",
+                        System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False => "boolean",
+                        _ => parsed.GetValueKind().ToString().ToLowerInvariant()
+                    };
+                    return $"Error: Existing global.json at '{filePath}' must contain a JSON object, but found {kind}.";
+                }
+
+                root = parsedObj;
+            }
+            catch (JsonException ex)
+            {
+                return $"Error: Could not parse existing global.json at '{filePath}': {ex.Message}";
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return $"Error: Could not read existing global.json at '{filePath}': {ex.Message}";
+            }
+        }
+        else
+        {
+            root = new JsonObject();
+        }
+
+        // Apply sdk section changes
+        if (!string.IsNullOrWhiteSpace(sdkVersion) || !string.IsNullOrWhiteSpace(rollForward))
+        {
+            var sdk = root["sdk"] as JsonObject ?? new JsonObject();
+            if (!string.IsNullOrWhiteSpace(sdkVersion))
+                sdk["version"] = JsonValue.Create(sdkVersion.Trim());
+            if (!string.IsNullOrWhiteSpace(rollForward))
+                sdk["rollForward"] = JsonValue.Create(rollForward.Trim());
+            root["sdk"] = sdk;
+        }
+
+        // Apply test section changes
+        if (!string.IsNullOrWhiteSpace(testRunner))
+        {
+            var test = root["test"] as JsonObject ?? new JsonObject();
+            test["runner"] = JsonValue.Create(testRunner.Trim());
+            root["test"] = test;
+        }
+
+        // Write back with consistent formatting
+        var options = new JsonSerializerOptions { WriteIndented = true };
+        var json = root.ToJsonString(options);
+
+        // Ensure the parent directory exists
+        var parentDir = Path.GetDirectoryName(filePath);
+        try
+        {
+            if (!string.IsNullOrEmpty(parentDir))
+                Directory.CreateDirectory(parentDir);
+
+            File.WriteAllText(filePath, json);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return $"Error: Could not write global.json to '{filePath}': {ex.Message}";
+        }
+
+        var action = fileExisted ? "Updated" : "Created";
+        return $"{action} '{filePath}' successfully.\n{json}";
     }
 
     // ===== Template & SDK helper methods (moved from DotNetCliTools.Template.cs and DotNetCliTools.Sdk.cs) =====

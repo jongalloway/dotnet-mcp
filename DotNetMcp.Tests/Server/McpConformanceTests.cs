@@ -315,6 +315,7 @@ public class McpConformanceTests : IAsyncLifetime
             "dotnet_workload",  // Uninstall action
             "dotnet_dev_certs", // CertificateClean/SecretsClear actions
             "dotnet_ef",        // DatabaseDrop action
+            "dotnet_sdk",       // ConfigureGlobalJson action (writes global.json)
         };
         foreach (var toolName in destructiveToolNames)
         {
