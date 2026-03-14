@@ -101,6 +101,14 @@ public sealed class ServerFeatureSupport
     /// </summary>
     [JsonPropertyName("elicitation")]
     public bool Elicitation { get; init; }
+
+    /// <summary>
+    /// Whether the server uses MCP Sampling to request LLM completions from the client for
+    /// intelligent error interpretation. When true, clients that support sampling will receive
+    /// AI-assisted analysis of build and test failures.
+    /// </summary>
+    [JsonPropertyName("sampling")]
+    public bool Sampling { get; init; }
 }
 
 /// <summary>

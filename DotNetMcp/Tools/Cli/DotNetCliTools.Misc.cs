@@ -73,7 +73,8 @@ public sealed partial class DotNetCliTools
                 Metrics = true,    // In-memory per-tool metrics via MCP message filter (dotnet_server_metrics tool)
                 AsyncTasks = true,  // MCP Task support enabled: long-running operations (build, test, publish) can run as async tasks
                 Prompts = true,     // Predefined prompt catalog: create_new_webapi, add_package_and_restore, run_tests_with_coverage
-                Elicitation = true  // Elicitation for confirmation before destructive ops (Clean, solution Remove)
+                Elicitation = true,  // Elicitation for confirmation before destructive ops (Clean, solution Remove)
+                Sampling = true     // Sampling for AI-assisted build/test error interpretation (when client supports it)
             },
             SdkVersions = new SdkVersionInfo
             {
@@ -173,6 +174,14 @@ public sealed partial class DotNetCliTools
         result.AppendLine("  • dotnet_project (action: Clean) - confirms before deleting build artifacts");
         result.AppendLine("  • dotnet_solution (action: Remove) - confirms before removing projects from solution");
         result.AppendLine("  Clients that do not support elicitation proceed without a confirmation prompt.");
+        result.AppendLine();
+
+        result.AppendLine("SAMPLING (AI-Assisted Error Analysis):");
+        result.AppendLine("  When the MCP client supports sampling, the server requests LLM completions to interpret:");
+        result.AppendLine("  • dotnet_project (action: Build) - summarizes build errors and suggests fixes on failure");
+        result.AppendLine("  • dotnet_project (action: Test) - analyzes test failures and suggests which tests need attention");
+        result.AppendLine("  Clients that do not support sampling receive raw command output only.");
+        result.AppendLine();
         result.AppendLine();
 
         result.AppendLine("DOCUMENTATION:");
