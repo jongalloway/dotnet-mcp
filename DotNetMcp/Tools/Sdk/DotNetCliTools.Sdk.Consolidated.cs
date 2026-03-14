@@ -33,7 +33,7 @@ public sealed partial class DotNetCliTools
     /// <param name="rollForward">SDK roll-forward policy for global.json (e.g., 'latestMinor', 'latestMajor', 'disable') for ConfigureGlobalJson action</param>
     /// <param name="testRunner">Test runner to configure in global.json (e.g., 'Microsoft.Testing.Platform', 'VSTest') for ConfigureGlobalJson action</param>
     /// <param name="globalJsonPath">Path to global.json file; defaults to 'global.json' in the working directory for ConfigureGlobalJson action</param>
-    [McpServerTool(Title = ".NET SDK & Templates", IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Gear/Flat/gear_flat.svg")]
+    [McpServerTool(Title = ".NET SDK & Templates", Destructive = true, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Gear/Flat/gear_flat.svg")]
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]
@@ -181,11 +181,11 @@ public sealed partial class DotNetCliTools
             return "Error: At least one of sdkVersion, rollForward, or testRunner must be specified.";
         }
 
-        // Resolve target file path
+        // Resolve target file path — resolve relative paths against baseDir so workingDirectory is honored
         var baseDir = DotNetCommandExecutor.WorkingDirectoryOverride.Value ?? Directory.GetCurrentDirectory();
         var filePath = string.IsNullOrWhiteSpace(globalJsonPath)
             ? Path.Join(baseDir, "global.json")
-            : Path.GetFullPath(globalJsonPath);
+            : Path.GetFullPath(globalJsonPath, baseDir);
 
         // Load existing content or start fresh
         JsonObject root;
@@ -195,14 +195,32 @@ public sealed partial class DotNetCliTools
             try
             {
                 var existingContent = File.ReadAllText(filePath);
-                root = JsonNode.Parse(existingContent,
+                var parsed = JsonNode.Parse(existingContent,
                     nodeOptions: null,
-                    documentOptions: new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip })
-                    as JsonObject ?? new JsonObject();
+                    documentOptions: new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip });
+
+                if (parsed is not JsonObject parsedObj)
+                {
+                    var kind = parsed is null ? "null" : parsed.GetValueKind() switch
+                    {
+                        System.Text.Json.JsonValueKind.Array => "array",
+                        System.Text.Json.JsonValueKind.String => "string",
+                        System.Text.Json.JsonValueKind.Number => "number",
+                        System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False => "boolean",
+                        _ => parsed.GetValueKind().ToString().ToLowerInvariant()
+                    };
+                    return $"Error: Existing global.json at '{filePath}' must contain a JSON object, but found {kind}.";
+                }
+
+                root = parsedObj;
             }
             catch (JsonException ex)
             {
                 return $"Error: Could not parse existing global.json at '{filePath}': {ex.Message}";
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return $"Error: Could not read existing global.json at '{filePath}': {ex.Message}";
             }
         }
         else

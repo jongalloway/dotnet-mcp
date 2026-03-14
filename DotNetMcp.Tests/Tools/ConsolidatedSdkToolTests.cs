@@ -816,5 +816,58 @@ public class ConsolidatedSdkToolTests
         }
     }
 
+    [Fact]
+    public async Task DotnetSdk_ConfigureGlobalJson_NonObjectJsonRoot_ReturnsError()
+    {
+        var tempDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-globaljson-" + Guid.NewGuid().ToString("n"));
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            // Arrange - write a valid JSON file whose root is not an object (array)
+            var filePath = Path.Join(tempDir, "global.json");
+            File.WriteAllText(filePath, """["not", "an", "object"]""");
+
+            var result = await _tools.DotnetSdk(
+                action: DotnetSdkAction.ConfigureGlobalJson,
+                testRunner: "Microsoft.Testing.Platform",
+                workingDirectory: tempDir);
+
+            Assert.Contains("Error:", result.GetText(), StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("JSON object", result.GetText(), StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, recursive: true); }
+            catch (IOException) { /* best-effort cleanup */ }
+            catch (UnauthorizedAccessException) { /* best-effort cleanup */ }
+        }
+    }
+
+    [Fact]
+    public async Task DotnetSdk_ConfigureGlobalJson_RelativeGlobalJsonPath_ResolvesAgainstWorkingDirectory()
+    {
+        var tempDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-globaljson-" + Guid.NewGuid().ToString("n"));
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            // Pass a relative path — should resolve against workingDirectory, not process CWD
+            var result = await _tools.DotnetSdk(
+                action: DotnetSdkAction.ConfigureGlobalJson,
+                testRunner: "Microsoft.Testing.Platform",
+                globalJsonPath: "global.json",
+                workingDirectory: tempDir);
+
+            Assert.Contains("Created", result.GetText(), StringComparison.OrdinalIgnoreCase);
+            var expectedFile = Path.Join(tempDir, "global.json");
+            Assert.True(File.Exists(expectedFile));
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, recursive: true); }
+            catch (IOException) { /* best-effort cleanup */ }
+            catch (UnauthorizedAccessException) { /* best-effort cleanup */ }
+        }
+    }
+
     #endregion
 }
