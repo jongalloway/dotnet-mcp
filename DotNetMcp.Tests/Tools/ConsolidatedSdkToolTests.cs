@@ -585,4 +585,242 @@ public class ConsolidatedSdkToolTests
     }
 
     #endregion
+
+    #region ConfigureGlobalJson Action Tests
+
+    [Fact]
+    public async Task DotnetSdk_ConfigureGlobalJson_NoParams_ReturnsError()
+    {
+        var result = await _tools.DotnetSdk(action: DotnetSdkAction.ConfigureGlobalJson);
+
+        Assert.NotNull(result);
+        Assert.Contains("Error", result.GetText(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("sdkVersion", result.GetText());
+    }
+
+    [Fact]
+    public async Task DotnetSdk_ConfigureGlobalJson_InvalidRollForward_ReturnsError()
+    {
+        var tempDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-globaljson-test-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            var result = await _tools.DotnetSdk(
+                action: DotnetSdkAction.ConfigureGlobalJson,
+                rollForward: "invalid-value",
+                workingDirectory: tempDir);
+
+            Assert.NotNull(result);
+            Assert.Contains("Error", result.GetText(), StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("rollForward", result.GetText());
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, recursive: true); }
+            catch (IOException) { /* best-effort cleanup */ }
+            catch (UnauthorizedAccessException) { /* best-effort cleanup */ }
+        }
+    }
+
+    [Fact]
+    public async Task DotnetSdk_ConfigureGlobalJson_CreatesNewFile_WithTestRunner()
+    {
+        var tempDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-globaljson-test-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            var result = await _tools.DotnetSdk(
+                action: DotnetSdkAction.ConfigureGlobalJson,
+                testRunner: "Microsoft.Testing.Platform",
+                workingDirectory: tempDir);
+
+            Assert.NotNull(result);
+            Assert.DoesNotContain("Error:", result.GetText(), StringComparison.OrdinalIgnoreCase);
+
+            var globalJsonPath = Path.Join(tempDir, "global.json");
+            Assert.True(File.Exists(globalJsonPath), "global.json should be created");
+            var content = File.ReadAllText(globalJsonPath);
+            Assert.Contains("Microsoft.Testing.Platform", content);
+            Assert.Contains("runner", content);
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, recursive: true); }
+            catch (IOException) { /* best-effort cleanup */ }
+            catch (UnauthorizedAccessException) { /* best-effort cleanup */ }
+        }
+    }
+
+    [Fact]
+    public async Task DotnetSdk_ConfigureGlobalJson_CreatesNewFile_WithSdkVersion()
+    {
+        var tempDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-globaljson-test-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            var result = await _tools.DotnetSdk(
+                action: DotnetSdkAction.ConfigureGlobalJson,
+                sdkVersion: "10.0.100",
+                workingDirectory: tempDir);
+
+            Assert.NotNull(result);
+            Assert.DoesNotContain("Error:", result.GetText(), StringComparison.OrdinalIgnoreCase);
+
+            var globalJsonPath = Path.Join(tempDir, "global.json");
+            Assert.True(File.Exists(globalJsonPath), "global.json should be created");
+            var content = File.ReadAllText(globalJsonPath);
+            Assert.Contains("10.0.100", content);
+            Assert.Contains("\"version\"", content);
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, recursive: true); }
+            catch (IOException) { /* best-effort cleanup */ }
+            catch (UnauthorizedAccessException) { /* best-effort cleanup */ }
+        }
+    }
+
+    [Fact]
+    public async Task DotnetSdk_ConfigureGlobalJson_CreatesNewFile_WithAllParams()
+    {
+        var tempDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-globaljson-test-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            var result = await _tools.DotnetSdk(
+                action: DotnetSdkAction.ConfigureGlobalJson,
+                sdkVersion: "10.0.100",
+                rollForward: "latestFeature",
+                testRunner: "Microsoft.Testing.Platform",
+                workingDirectory: tempDir);
+
+            Assert.NotNull(result);
+            Assert.DoesNotContain("Error:", result.GetText(), StringComparison.OrdinalIgnoreCase);
+
+            var globalJsonPath = Path.Join(tempDir, "global.json");
+            Assert.True(File.Exists(globalJsonPath), "global.json should be created");
+            var content = File.ReadAllText(globalJsonPath);
+            Assert.Contains("10.0.100", content);
+            Assert.Contains("latestFeature", content);
+            Assert.Contains("Microsoft.Testing.Platform", content);
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, recursive: true); }
+            catch (IOException) { /* best-effort cleanup */ }
+            catch (UnauthorizedAccessException) { /* best-effort cleanup */ }
+        }
+    }
+
+    [Fact]
+    public async Task DotnetSdk_ConfigureGlobalJson_UpdatesExistingFile_PreservesFields()
+    {
+        var tempDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-globaljson-test-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            // Write an existing global.json with sdk.version already set
+            var existing = """
+                {
+                  "sdk": {
+                    "version": "9.0.100",
+                    "allowPrerelease": false
+                  }
+                }
+                """;
+            File.WriteAllText(Path.Join(tempDir, "global.json"), existing);
+
+            // Update only the test runner, keeping sdk fields intact
+            var result = await _tools.DotnetSdk(
+                action: DotnetSdkAction.ConfigureGlobalJson,
+                testRunner: "Microsoft.Testing.Platform",
+                workingDirectory: tempDir);
+
+            Assert.NotNull(result);
+            Assert.DoesNotContain("Error:", result.GetText(), StringComparison.OrdinalIgnoreCase);
+
+            var content = File.ReadAllText(Path.Join(tempDir, "global.json"));
+            // Existing sdk fields should be preserved
+            Assert.Contains("9.0.100", content);
+            Assert.Contains("allowPrerelease", content);
+            // New test runner should be added
+            Assert.Contains("Microsoft.Testing.Platform", content);
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, recursive: true); }
+            catch (IOException) { /* best-effort cleanup */ }
+            catch (UnauthorizedAccessException) { /* best-effort cleanup */ }
+        }
+    }
+
+    [Fact]
+    public async Task DotnetSdk_ConfigureGlobalJson_UpdatesExistingFile_OverwritesSdkVersion()
+    {
+        var tempDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-globaljson-test-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            // Write an existing global.json
+            var existing = """
+                {
+                  "sdk": {
+                    "version": "9.0.100"
+                  },
+                  "test": {
+                    "runner": "Microsoft.Testing.Platform"
+                  }
+                }
+                """;
+            File.WriteAllText(Path.Join(tempDir, "global.json"), existing);
+
+            // Update sdk version
+            var result = await _tools.DotnetSdk(
+                action: DotnetSdkAction.ConfigureGlobalJson,
+                sdkVersion: "10.0.100",
+                workingDirectory: tempDir);
+
+            Assert.NotNull(result);
+            Assert.DoesNotContain("Error:", result.GetText(), StringComparison.OrdinalIgnoreCase);
+
+            var content = File.ReadAllText(Path.Join(tempDir, "global.json"));
+            Assert.Contains("10.0.100", content);
+            Assert.DoesNotContain("9.0.100", content);
+            // test.runner should still be present
+            Assert.Contains("Microsoft.Testing.Platform", content);
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, recursive: true); }
+            catch (IOException) { /* best-effort cleanup */ }
+            catch (UnauthorizedAccessException) { /* best-effort cleanup */ }
+        }
+    }
+
+    [Fact]
+    public async Task DotnetSdk_ConfigureGlobalJson_ReturnsJsonContent()
+    {
+        var tempDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-globaljson-test-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            var result = await _tools.DotnetSdk(
+                action: DotnetSdkAction.ConfigureGlobalJson,
+                testRunner: "Microsoft.Testing.Platform",
+                workingDirectory: tempDir);
+
+            Assert.NotNull(result);
+            // Result should contain the JSON content written to the file
+            Assert.Contains("{", result.GetText());
+            Assert.Contains("Microsoft.Testing.Platform", result.GetText());
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, recursive: true); }
+            catch (IOException) { /* best-effort cleanup */ }
+            catch (UnauthorizedAccessException) { /* best-effort cleanup */ }
+        }
+    }
+
+    #endregion
 }
