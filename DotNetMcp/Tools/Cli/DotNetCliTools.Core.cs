@@ -166,6 +166,7 @@ public sealed partial class DotNetCliTools
 
     /// <summary>
     /// Executes a long-running operation with progress notifications sent before and after execution.
+    /// The completion notification is always sent, even if the operation throws.
     /// </summary>
     private static async Task<string> ExecuteWithProgress(
         IProgress<ProgressNotificationValue>? progress,
@@ -174,8 +175,15 @@ public sealed partial class DotNetCliTools
         Func<Task<string>> execute)
     {
         progress?.Report(new ProgressNotificationValue { Progress = 0, Total = 1, Message = startMessage });
-        var result = await execute();
-        progress?.Report(new ProgressNotificationValue { Progress = 1, Total = 1, Message = completeMessage });
+        string result;
+        try
+        {
+            result = await execute();
+        }
+        finally
+        {
+            progress?.Report(new ProgressNotificationValue { Progress = 1, Total = 1, Message = completeMessage });
+        }
         return result;
     }
 }

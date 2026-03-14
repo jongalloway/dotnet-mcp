@@ -103,9 +103,10 @@ public sealed class ServerFeatureSupport
     public bool Elicitation { get; init; }
 
     /// <summary>
-    /// Whether the server reports real-time progress notifications for long-running operations.
-    /// When true, clients that supply a progress token will receive incremental progress updates
-    /// during build, test, publish, and other slow operations via the MCP progress notification protocol.
+    /// Whether the server reports progress notifications for long-running operations.
+    /// When true, clients that supply a progress token will receive start and completion
+    /// progress notifications during build, test, publish, and other slow operations
+    /// via the MCP progress notification protocol.
     /// </summary>
     [JsonPropertyName("progressNotifications")]
     public bool ProgressNotifications { get; init; }

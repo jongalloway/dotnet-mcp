@@ -18,6 +18,13 @@ public class ProgressReportingTests
 {
     private readonly DotNetCliTools _tools;
 
+    /// <summary>
+    /// A non-existent directory used to make the dotnet executor return an error immediately,
+    /// without performing real network or file-system operations. Progress notifications are
+    /// still emitted because they are sent before (start) and after (complete) the executor call.
+    /// </summary>
+    private static readonly string NonExistentDir = "/tmp/dotnet-mcp-nonexistent-progress-test";
+
     public ProgressReportingTests()
     {
         _tools = new DotNetCliTools(
@@ -46,6 +53,7 @@ public class ProgressReportingTests
 
         var result = (await _tools.DotnetProject(
             action: DotnetProjectAction.Build,
+            workingDirectory: NonExistentDir,
             progress: progress)).GetText();
 
         Assert.NotNull(result);
@@ -60,6 +68,7 @@ public class ProgressReportingTests
 
         var result = (await _tools.DotnetProject(
             action: DotnetProjectAction.Test,
+            workingDirectory: NonExistentDir,
             progress: progress)).GetText();
 
         Assert.NotNull(result);
@@ -74,6 +83,7 @@ public class ProgressReportingTests
 
         var result = (await _tools.DotnetProject(
             action: DotnetProjectAction.Publish,
+            workingDirectory: NonExistentDir,
             progress: progress)).GetText();
 
         Assert.NotNull(result);
@@ -88,6 +98,7 @@ public class ProgressReportingTests
 
         var result = (await _tools.DotnetProject(
             action: DotnetProjectAction.Clean,
+            workingDirectory: NonExistentDir,
             progress: progress)).GetText();
 
         Assert.NotNull(result);
@@ -102,6 +113,7 @@ public class ProgressReportingTests
 
         var result = (await _tools.DotnetProject(
             action: DotnetProjectAction.Restore,
+            workingDirectory: NonExistentDir,
             progress: progress)).GetText();
 
         Assert.NotNull(result);
@@ -116,6 +128,7 @@ public class ProgressReportingTests
 
         var result = (await _tools.DotnetProject(
             action: DotnetProjectAction.Pack,
+            workingDirectory: NonExistentDir,
             progress: progress)).GetText();
 
         Assert.NotNull(result);
@@ -128,6 +141,7 @@ public class ProgressReportingTests
     {
         var result = (await _tools.DotnetProject(
             action: DotnetProjectAction.Build,
+            workingDirectory: NonExistentDir,
             progress: null)).GetText();
 
         Assert.NotNull(result);
@@ -143,6 +157,7 @@ public class ProgressReportingTests
         var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.Add,
             packageId: "Newtonsoft.Json",
+            workingDirectory: NonExistentDir,
             progress: progress)).GetText();
 
         Assert.NotNull(result);
@@ -157,6 +172,7 @@ public class ProgressReportingTests
 
         var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.Update,
+            workingDirectory: NonExistentDir,
             progress: progress)).GetText();
 
         Assert.NotNull(result);
@@ -170,6 +186,7 @@ public class ProgressReportingTests
         var result = (await _tools.DotnetPackage(
             action: DotnetPackageAction.Add,
             packageId: "Newtonsoft.Json",
+            workingDirectory: NonExistentDir,
             progress: null)).GetText();
 
         Assert.NotNull(result);
@@ -185,6 +202,7 @@ public class ProgressReportingTests
         var result = (await _tools.DotnetTool(
             action: DotnetToolAction.Install,
             packageId: "dotnet-ef",
+            workingDirectory: NonExistentDir,
             progress: progress)).GetText();
 
         Assert.NotNull(result);
@@ -199,6 +217,7 @@ public class ProgressReportingTests
 
         var result = (await _tools.DotnetTool(
             action: DotnetToolAction.Update,
+            workingDirectory: NonExistentDir,
             progress: progress)).GetText();
 
         Assert.NotNull(result);
@@ -226,6 +245,7 @@ public class ProgressReportingTests
         var result = (await _tools.DotnetWorkload(
             action: DotnetWorkloadAction.Install,
             workloadIds: ["maui"],
+            workingDirectory: NonExistentDir,
             progress: progress)).GetText();
 
         Assert.NotNull(result);
@@ -240,6 +260,7 @@ public class ProgressReportingTests
 
         var result = (await _tools.DotnetWorkload(
             action: DotnetWorkloadAction.Update,
+            workingDirectory: NonExistentDir,
             progress: progress)).GetText();
 
         Assert.NotNull(result);
@@ -266,14 +287,15 @@ public class ProgressReportingTests
 
         await _tools.DotnetProject(
             action: DotnetProjectAction.Build,
+            workingDirectory: NonExistentDir,
             progress: progress);
 
-        // Start message should mention restoring or building
+        // Start message should mention building
         var startReport = progress.Reports.FirstOrDefault(r => r.Progress == 0);
         Assert.NotNull(startReport);
         Assert.False(string.IsNullOrWhiteSpace(startReport.Message));
 
-        // Complete message should mention build
+        // Complete message should be non-empty
         var completeReport = progress.Reports.FirstOrDefault(r => r.Progress == 1);
         Assert.NotNull(completeReport);
         Assert.False(string.IsNullOrWhiteSpace(completeReport.Message));
