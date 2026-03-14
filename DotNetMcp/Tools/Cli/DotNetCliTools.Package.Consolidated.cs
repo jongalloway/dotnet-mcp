@@ -1,5 +1,6 @@
 using System.Text;
 using DotNetMcp.Actions;
+using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -55,6 +56,7 @@ public sealed partial class DotNetCliTools
         string? referencePath = null,
         string? cacheType = null,
         string? workingDirectory = null,
+        IProgress<ProgressNotificationValue>? progress = null,
         McpServer? server = null)
     {
         var textResult = await WithWorkingDirectoryAsync(workingDirectory, async () =>
@@ -68,10 +70,10 @@ public sealed partial class DotNetCliTools
             // Route to appropriate handler based on action
             return action switch
             {
-                DotnetPackageAction.Add => await HandleAddAction(packageId, project, version, source, framework, prerelease ?? false, server),
+                DotnetPackageAction.Add => await ExecuteWithProgress(progress, "Adding package...", "Package added", () => HandleAddAction(packageId, project, version, source, framework, prerelease ?? false, server)),
                 DotnetPackageAction.Remove => await HandleRemoveAction(packageId, project),
                 DotnetPackageAction.Search => await HandleSearchAction(searchTerm, take, skip, prerelease ?? false, exactMatch ?? false),
-                DotnetPackageAction.Update => await HandleUpdateAction(packageId, project, version, prerelease ?? false, server),
+                DotnetPackageAction.Update => await ExecuteWithProgress(progress, "Updating packages...", "Update complete", () => HandleUpdateAction(packageId, project, version, prerelease ?? false, server)),
                 DotnetPackageAction.List => await HandleListAction(project, outdated ?? false, deprecated ?? false),
                 DotnetPackageAction.AddReference => await HandleAddReferenceAction(project, referencePath),
                 DotnetPackageAction.RemoveReference => await HandleRemoveReferenceAction(project, referencePath),

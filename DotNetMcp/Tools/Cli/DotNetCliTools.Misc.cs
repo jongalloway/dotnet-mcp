@@ -74,7 +74,8 @@ public sealed partial class DotNetCliTools
                 AsyncTasks = true,  // MCP Task support enabled: long-running operations (build, test, publish) can run as async tasks
                 Prompts = true,     // Predefined prompt catalog: create_new_webapi, add_package_and_restore, run_tests_with_coverage
                 Elicitation = true, // Elicitation for confirmation before destructive ops (Clean, solution Remove)
-                McpLogging = true   // MCP log notifications sent to client during key operations (build, test, publish, restore, package add/update)
+                McpLogging = true,  // MCP log notifications sent to client during key operations (build, test, publish, restore, package add/update)
+                ProgressNotifications = true // Real-time progress updates for build, test, publish, and other long-running operations
             },
             SdkVersions = new SdkVersionInfo
             {
