@@ -70,15 +70,17 @@ mcpServerBuilder
     .WithSubscribeToResourcesHandler((context, ct) =>
     {
         var uri = context.Params?.Uri;
-        if (!string.IsNullOrEmpty(uri))
-            context.Server.Services!.GetRequiredService<ResourceSubscriptionManager>().Subscribe(uri);
+        if (string.IsNullOrWhiteSpace(uri))
+            throw new McpException("Subscribe request must include a non-empty resource URI.");
+        context.Server.Services!.GetRequiredService<ResourceSubscriptionManager>().Subscribe(uri);
         return ValueTask.FromResult(new EmptyResult());
     })
     .WithUnsubscribeFromResourcesHandler((context, ct) =>
     {
         var uri = context.Params?.Uri;
-        if (!string.IsNullOrEmpty(uri))
-            context.Server.Services!.GetRequiredService<ResourceSubscriptionManager>().Unsubscribe(uri);
+        if (string.IsNullOrWhiteSpace(uri))
+            throw new McpException("Unsubscribe request must include a non-empty resource URI.");
+        context.Server.Services!.GetRequiredService<ResourceSubscriptionManager>().Unsubscribe(uri);
         return ValueTask.FromResult(new EmptyResult());
     })
     .WithCompleteHandler(async (ctx, ct) =>

@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -11,6 +12,19 @@ namespace DotNetMcp;
 /// </summary>
 public class ResourceSubscriptionManager
 {
+    /// <summary>
+    /// The set of resource URIs this server actually serves.
+    /// Subscribe/unsubscribe requests for URIs outside this set are rejected with an error.
+    /// </summary>
+    public static readonly IReadOnlySet<string> KnownResourceUris = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "dotnet://sdk-info",
+        "dotnet://runtime-info",
+        "dotnet://templates",
+        "dotnet://frameworks",
+        "dotnet://telemetry-data",
+    };
+
     private readonly ConcurrentDictionary<string, byte> _subscriptions =
         new(StringComparer.Ordinal);
     private readonly ILogger<ResourceSubscriptionManager>? _logger;
@@ -27,9 +41,13 @@ public class ResourceSubscriptionManager
     /// <summary>
     /// Registers a subscription for the specified resource URI.
     /// </summary>
-    /// <param name="uri">The resource URI to subscribe to.</param>
+    /// <param name="uri">The resource URI to subscribe to. Must be one of <see cref="KnownResourceUris"/>.</param>
+    /// <exception cref="McpException">Thrown when <paramref name="uri"/> is not a known resource URI.</exception>
     public void Subscribe(string uri)
     {
+        if (!KnownResourceUris.Contains(uri))
+            throw new McpException($"Unknown resource URI '{uri}'. Known URIs: {string.Join(", ", KnownResourceUris)}");
+
         _subscriptions.TryAdd(uri, 0);
         _logger?.LogDebug("Client subscribed to resource: {Uri}", uri);
     }
@@ -37,9 +55,13 @@ public class ResourceSubscriptionManager
     /// <summary>
     /// Removes the subscription for the specified resource URI.
     /// </summary>
-    /// <param name="uri">The resource URI to unsubscribe from.</param>
+    /// <param name="uri">The resource URI to unsubscribe from. Must be one of <see cref="KnownResourceUris"/>.</param>
+    /// <exception cref="McpException">Thrown when <paramref name="uri"/> is not a known resource URI.</exception>
     public void Unsubscribe(string uri)
     {
+        if (!KnownResourceUris.Contains(uri))
+            throw new McpException($"Unknown resource URI '{uri}'. Known URIs: {string.Join(", ", KnownResourceUris)}");
+
         _subscriptions.TryRemove(uri, out _);
         _logger?.LogDebug("Client unsubscribed from resource: {Uri}", uri);
     }

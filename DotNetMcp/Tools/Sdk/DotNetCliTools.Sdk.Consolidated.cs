@@ -321,6 +321,8 @@ public sealed partial class DotNetCliTools
             await _subscriptions.SendResourceUpdatedAsync(server, "dotnet://sdk-info");
             await _subscriptions.SendResourceUpdatedAsync(server, "dotnet://runtime-info");
             await _subscriptions.SendResourceUpdatedAsync(server, "dotnet://templates");
+            // dotnet://frameworks derives its framework list from the SDK cache, so notify it too.
+            await _subscriptions.SendResourceUpdatedAsync(server, "dotnet://frameworks");
         }
 
         return "All caches (templates, SDK, runtime) and metrics cleared successfully. Next query will reload from disk.";
@@ -355,12 +357,16 @@ public sealed partial class DotNetCliTools
 
         var result = await ExecuteDotNetCommand(args.ToString());
 
-        // Installing templates changes the template engine state. Clear internal caches so follow-up template queries refresh.
-        await DotNetResources.ClearAllCachesAsync();
+        // Only clear caches and notify subscribers when the command succeeded.
+        if (!IsCommandFailure(result))
+        {
+            // Installing templates changes the template engine state. Clear internal caches so follow-up template queries refresh.
+            await DotNetResources.ClearAllCachesAsync();
 
-        // Notify subscribers that the template catalog has changed.
-        if (_subscriptions != null)
-            await _subscriptions.SendResourceUpdatedAsync(server, "dotnet://templates");
+            // Notify subscribers that the template catalog has changed.
+            if (_subscriptions != null)
+                await _subscriptions.SendResourceUpdatedAsync(server, "dotnet://templates");
+        }
 
         return result;
     }
@@ -380,12 +386,16 @@ public sealed partial class DotNetCliTools
 
         var result = await ExecuteDotNetCommand(args.ToString());
 
-        // Uninstalling templates changes the template engine state. Clear internal caches so follow-up template queries refresh.
-        await DotNetResources.ClearAllCachesAsync();
+        // Only clear caches and notify subscribers when the command succeeded.
+        if (!IsCommandFailure(result))
+        {
+            // Uninstalling templates changes the template engine state. Clear internal caches so follow-up template queries refresh.
+            await DotNetResources.ClearAllCachesAsync();
 
-        // Notify subscribers that the template catalog has changed.
-        if (_subscriptions != null)
-            await _subscriptions.SendResourceUpdatedAsync(server, "dotnet://templates");
+            // Notify subscribers that the template catalog has changed.
+            if (_subscriptions != null)
+                await _subscriptions.SendResourceUpdatedAsync(server, "dotnet://templates");
+        }
 
         return result;
     }
