@@ -115,11 +115,11 @@ public sealed partial class DotNetCliTools
             return action switch
             {
                 DotnetProjectAction.New => await HandleNewAction(template, name, output, framework, additionalOptions),
-                DotnetProjectAction.Restore => await HandleRestoreAction(project),
-                DotnetProjectAction.Build => await HandleBuildAction(project, configuration, framework),
+                DotnetProjectAction.Restore => await HandleRestoreAction(project, server),
+                DotnetProjectAction.Build => await HandleBuildAction(project, configuration, framework, server),
                 DotnetProjectAction.Run => await HandleRunAction(project, configuration, appArgs, noBuild, startMode),
-                DotnetProjectAction.Test => await HandleTestAction(project, configuration, filter, collect, resultsDirectory, logger, noBuild, noRestore, verbosity, framework, blame, listTests, testRunner, useLegacyProjectArgument),
-                DotnetProjectAction.Publish => await HandlePublishAction(project, configuration, output, runtime),
+                DotnetProjectAction.Test => await HandleTestAction(project, configuration, filter, collect, resultsDirectory, logger, noBuild, noRestore, verbosity, framework, blame, listTests, testRunner, useLegacyProjectArgument, server),
+                DotnetProjectAction.Publish => await HandlePublishAction(project, configuration, output, runtime, server),
                 DotnetProjectAction.Clean => await HandleCleanAction(project, configuration, server),
                 DotnetProjectAction.Analyze => await HandleAnalyzeAction(projectPath),
                 DotnetProjectAction.Dependencies => await HandleDependenciesAction(projectPath),
@@ -154,16 +154,21 @@ public sealed partial class DotNetCliTools
             additionalOptions: additionalOptions);
     }
 
-    private async Task<string> HandleRestoreAction(string? project)
+    private async Task<string> HandleRestoreAction(string? project, McpServer? server = null)
     {
         // Route to existing DotnetProjectRestore method
+        var target = string.IsNullOrEmpty(project) ? "project" : $"\"{Path.GetFileName(project)}\"";
+        await SendMcpLogAsync(server, $"Restoring NuGet packages for {target}...");
         return await DotnetProjectRestore(
             project: project);
     }
 
-    private async Task<string> HandleBuildAction(string? project, string? configuration, string? framework)
+    private async Task<string> HandleBuildAction(string? project, string? configuration, string? framework, McpServer? server = null)
     {
         // Route to existing DotnetProjectBuild method
+        var target = string.IsNullOrEmpty(project) ? "project" : $"\"{Path.GetFileName(project)}\"";
+        var config = string.IsNullOrEmpty(configuration) ? "" : $" ({configuration})";
+        await SendMcpLogAsync(server, $"Building {target}{config}...");
         return await DotnetProjectBuild(
             project: project,
             configuration: configuration,
@@ -305,9 +310,12 @@ public sealed partial class DotNetCliTools
         }
     }
 
-    private async Task<string> HandleTestAction(string? project, string? configuration, string? filter, string? collect, string? resultsDirectory, string? logger, bool? noBuild, bool? noRestore, string? verbosity, string? framework, bool? blame, bool? listTests, TestRunner? testRunner, bool? useLegacyProjectArgument)
+    private async Task<string> HandleTestAction(string? project, string? configuration, string? filter, string? collect, string? resultsDirectory, string? logger, bool? noBuild, bool? noRestore, string? verbosity, string? framework, bool? blame, bool? listTests, TestRunner? testRunner, bool? useLegacyProjectArgument, McpServer? server = null)
     {
         // Route to existing DotnetProjectTest method
+        var target = string.IsNullOrEmpty(project) ? "project" : $"\"{Path.GetFileName(project)}\"";
+        var filterInfo = string.IsNullOrEmpty(filter) ? "" : $" (filter: {filter})";
+        await SendMcpLogAsync(server, $"Running tests for {target}{filterInfo}...");
         return await DotnetProjectTest(
             project: project,
             configuration: configuration,
@@ -325,9 +333,12 @@ public sealed partial class DotNetCliTools
             useLegacyProjectArgument: useLegacyProjectArgument ?? false);
     }
 
-    private async Task<string> HandlePublishAction(string? project, string? configuration, string? output, string? runtime)
+    private async Task<string> HandlePublishAction(string? project, string? configuration, string? output, string? runtime, McpServer? server = null)
     {
         // Route to existing DotnetProjectPublish method
+        var target = string.IsNullOrEmpty(project) ? "project" : $"\"{Path.GetFileName(project)}\"";
+        var runtimeInfo = string.IsNullOrEmpty(runtime) ? "" : $" for {runtime}";
+        await SendMcpLogAsync(server, $"Publishing {target}{runtimeInfo}...");
         return await DotnetProjectPublish(
             project: project,
             configuration: configuration,

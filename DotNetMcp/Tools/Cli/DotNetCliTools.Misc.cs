@@ -73,7 +73,8 @@ public sealed partial class DotNetCliTools
                 Metrics = true,    // In-memory per-tool metrics via MCP message filter (dotnet_server_metrics tool)
                 AsyncTasks = true,  // MCP Task support enabled: long-running operations (build, test, publish) can run as async tasks
                 Prompts = true,     // Predefined prompt catalog: create_new_webapi, add_package_and_restore, run_tests_with_coverage
-                Elicitation = true  // Elicitation for confirmation before destructive ops (Clean, solution Remove)
+                Elicitation = true, // Elicitation for confirmation before destructive ops (Clean, solution Remove)
+                McpLogging = true   // MCP log notifications sent to client during key operations (build, test, publish, restore, package add/update)
             },
             SdkVersions = new SdkVersionInfo
             {
@@ -109,6 +110,7 @@ public sealed partial class DotNetCliTools
         result.AppendLine("  • 4 MCP Resources (SDK, Runtime, Templates, Frameworks)");
         result.AppendLine("  • 3 Predefined Prompts (create_new_webapi, add_package_and_restore, run_tests_with_coverage)");
         result.AppendLine("  • Elicitation support: confirmation dialogs for destructive operations (Clean, solution Remove)");
+        result.AppendLine("  • MCP logging notifications: informational messages sent to the client during key operations (build, test, publish, restore, package add/update)");
         result.AppendLine("  • Telemetry: in-memory metrics collected via MCP message filter (dotnet_server_metrics)");
         result.AppendLine("  • Direct .NET SDK integration via NuGet packages");
         result.AppendLine("  • Template Engine integration with caching (5-min TTL)");

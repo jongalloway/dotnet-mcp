@@ -54,7 +54,8 @@ public sealed partial class DotNetCliTools
         bool? deprecated = null,
         string? referencePath = null,
         string? cacheType = null,
-        string? workingDirectory = null)
+        string? workingDirectory = null,
+        McpServer? server = null)
     {
         var textResult = await WithWorkingDirectoryAsync(workingDirectory, async () =>
         {
@@ -67,10 +68,10 @@ public sealed partial class DotNetCliTools
             // Route to appropriate handler based on action
             return action switch
             {
-                DotnetPackageAction.Add => await HandleAddAction(packageId, project, version, source, framework, prerelease ?? false),
+                DotnetPackageAction.Add => await HandleAddAction(packageId, project, version, source, framework, prerelease ?? false, server),
                 DotnetPackageAction.Remove => await HandleRemoveAction(packageId, project),
                 DotnetPackageAction.Search => await HandleSearchAction(searchTerm, take, skip, prerelease ?? false, exactMatch ?? false),
-                DotnetPackageAction.Update => await HandleUpdateAction(packageId, project, version, prerelease ?? false),
+                DotnetPackageAction.Update => await HandleUpdateAction(packageId, project, version, prerelease ?? false, server),
                 DotnetPackageAction.List => await HandleListAction(project, outdated ?? false, deprecated ?? false),
                 DotnetPackageAction.AddReference => await HandleAddReferenceAction(project, referencePath),
                 DotnetPackageAction.RemoveReference => await HandleRemoveReferenceAction(project, referencePath),
@@ -88,13 +89,17 @@ public sealed partial class DotNetCliTools
         return StructuredContentHelper.ToCallToolResult(textResult, structured);
     }
 
-    private async Task<string> HandleAddAction(string? packageId, string? project, string? version, string? source, string? framework, bool prerelease)
+    private async Task<string> HandleAddAction(string? packageId, string? project, string? version, string? source, string? framework, bool prerelease, McpServer? server = null)
     {
         // Validate required parameters
         if (!ParameterValidator.ValidateRequiredParameter(packageId, "packageId", out var errorMessage))
         {
             return $"Error: {errorMessage}";
         }
+
+        var target = string.IsNullOrEmpty(project) ? "" : $" to \"{Path.GetFileName(project)}\"";
+        var versionInfo = string.IsNullOrEmpty(version) ? "" : $" {version}";
+        await SendMcpLogAsync(server, $"Adding NuGet package '{packageId}'{versionInfo}{target}...");
 
         // If no source/framework specified, preserve existing behavior by routing to DotnetPackageAdd
         if (string.IsNullOrWhiteSpace(source) && string.IsNullOrWhiteSpace(framework))
@@ -171,13 +176,17 @@ public sealed partial class DotNetCliTools
             exactMatch: exactMatch);
     }
 
-    private async Task<string> HandleUpdateAction(string? packageId, string? project, string? version, bool prerelease)
+    private async Task<string> HandleUpdateAction(string? packageId, string? project, string? version, bool prerelease, McpServer? server = null)
     {
         // Validate required parameters
         if (!ParameterValidator.ValidateRequiredParameter(packageId, "packageId", out var errorMessage))
         {
             return $"Error: {errorMessage}";
         }
+
+        var target = string.IsNullOrEmpty(project) ? "" : $" in \"{Path.GetFileName(project)}\"";
+        var versionInfo = string.IsNullOrEmpty(version) ? "" : $" to {version}";
+        await SendMcpLogAsync(server, $"Updating NuGet package '{packageId}'{versionInfo}{target}...");
 
         // Route to existing DotnetPackageUpdate method
         return await DotnetPackageUpdate(

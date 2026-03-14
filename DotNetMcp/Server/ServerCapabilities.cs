@@ -101,6 +101,14 @@ public sealed class ServerFeatureSupport
     /// </summary>
     [JsonPropertyName("elicitation")]
     public bool Elicitation { get; init; }
+
+    /// <summary>
+    /// Whether the server sends MCP logging notifications to the client during tool execution.
+    /// When true, clients receive informational log messages (e.g. "Building project...", "Running tests...")
+    /// via the MCP <c>notifications/message</c> protocol method.
+    /// </summary>
+    [JsonPropertyName("mcpLogging")]
+    public bool McpLogging { get; init; }
 }
 
 /// <summary>
