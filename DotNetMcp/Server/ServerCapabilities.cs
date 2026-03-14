@@ -101,6 +101,13 @@ public sealed class ServerFeatureSupport
     /// </summary>
     [JsonPropertyName("elicitation")]
     public bool Elicitation { get; init; }
+
+    /// <summary>
+    /// Whether the server provides argument autocomplete suggestions for prompt arguments and resource
+    /// template parameters (template names, framework TFMs, configurations, runtime identifiers).
+    /// </summary>
+    [JsonPropertyName("completions")]
+    public bool Completions { get; init; }
 }
 
 /// <summary>

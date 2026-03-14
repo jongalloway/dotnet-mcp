@@ -629,6 +629,57 @@ public class McpConformanceTests : IAsyncLifetime
         Assert.NotNull(_client.ServerCapabilities.Prompts);
     }
 
+    [Fact]
+    public void Server_ShouldAdvertiseCompletionsCapability()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Assert - server should expose completions capability after WithCompleteHandler is registered
+        Assert.NotNull(_client.ServerCapabilities);
+        Assert.NotNull(_client.ServerCapabilities.Completions);
+    }
+
+    [Fact]
+    public async Task Server_CompleteHandler_ShouldReturnFrameworkSuggestions()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act - request completions for a "framework" argument with prefix "net1"
+        var result = await _client.CompleteAsync(
+            new PromptReference { Name = "create_new_webapi" },
+            "framework",
+            "net1",
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotNull(result.Completion);
+        Assert.NotEmpty(result.Completion.Values);
+        Assert.All(result.Completion.Values, v => Assert.StartsWith("net1", v, StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task Server_CompleteHandler_ShouldReturnConfigurationSuggestions()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act - request completions for a "configuration" argument with empty prefix
+        var result = await _client.CompleteAsync(
+            new PromptReference { Name = "create_new_webapi" },
+            "configuration",
+            "",
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotNull(result.Completion);
+        Assert.Contains("Debug", result.Completion.Values);
+        Assert.Contains("Release", result.Completion.Values);
+    }
+
     #endregion
 
     #region MCP Task Support Tests
