@@ -103,6 +103,15 @@ public sealed class ServerFeatureSupport
     public bool Elicitation { get; init; }
 
     /// <summary>
+    /// Whether the server sends MCP logging notifications to the client during tool execution.
+    /// When true, clients receive informational log messages (e.g. "Building project...", "Running tests...")
+    /// via the MCP logging notification (<c>notifications/message</c>,
+    /// i.e. <c>NotificationMethods.LoggingMessageNotification</c>).
+    /// </summary>
+    [JsonPropertyName("mcpLogging")]
+    public bool McpLogging { get; init; }
+
+    /// <summary>
     /// Whether the server provides argument autocomplete suggestions for prompt arguments and resource
     /// template parameters (template names, framework TFMs, configurations, runtime identifiers).
     /// </summary>

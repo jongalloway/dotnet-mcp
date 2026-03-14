@@ -741,6 +741,84 @@ public class McpConformanceTests : IAsyncLifetime
 
     #endregion
 
+    #region MCP Logging Notification Tests
+
+    [Fact]
+    public async Task Server_BuildAction_SendsMcpLoggingNotification()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+        var notificationReceived = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        await using var handler = _client.RegisterNotificationHandler(
+            NotificationMethods.LoggingMessageNotification,
+            (notification, ct) =>
+            {
+                notificationReceived.TrySetResult(true);
+                return ValueTask.CompletedTask;
+            });
+
+        // Act - invoke Build with "nonexistent.csproj".
+        // ValidateProjectPath accepts any path with a valid extension, so validation passes,
+        // the logging notification fires, and then dotnet build fails at runtime.
+        await _client.CallToolAsync(
+            "dotnet_project",
+            new Dictionary<string, object?>
+            {
+                ["action"] = "Build",
+                ["project"] = "nonexistent.csproj"
+            },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Give async notification delivery a short grace period
+        var notifyTask = notificationReceived.Task;
+        var delayTask = Task.Delay(2000, TestContext.Current.CancellationToken);
+        var winner = await Task.WhenAny(notifyTask, delayTask);
+
+        // Assert - at least one notifications/message should have arrived
+        Assert.True(winner == notifyTask,
+            "Expected at least one MCP logging notification (notifications/message) " +
+            "to be delivered when invoking dotnet_project Build.");
+    }
+
+    [Fact]
+    public async Task Server_RestoreAction_SendsMcpLoggingNotification()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+        var notificationReceived = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        await using var handler = _client.RegisterNotificationHandler(
+            NotificationMethods.LoggingMessageNotification,
+            (notification, ct) =>
+            {
+                notificationReceived.TrySetResult(true);
+                return ValueTask.CompletedTask;
+            });
+
+        // Act - invoke Restore with "nonexistent.csproj".
+        // ValidateProjectPath accepts any path with a valid extension, so validation passes,
+        // the logging notification fires, and then dotnet restore fails at runtime.
+        await _client.CallToolAsync(
+            "dotnet_project",
+            new Dictionary<string, object?>
+            {
+                ["action"] = "Restore",
+                ["project"] = "nonexistent.csproj"
+            },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        var notifyTask = notificationReceived.Task;
+        var delayTask = Task.Delay(2000, TestContext.Current.CancellationToken);
+        var winner = await Task.WhenAny(notifyTask, delayTask);
+
+        Assert.True(winner == notifyTask,
+            "Expected at least one MCP logging notification (notifications/message) " +
+            "to be delivered when invoking dotnet_project Restore.");
+    }
+
+    #endregion
+
     #region Helper Methods
 
     /// <summary>

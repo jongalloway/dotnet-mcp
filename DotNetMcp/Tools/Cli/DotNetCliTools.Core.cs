@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
@@ -166,6 +167,32 @@ public sealed partial class DotNetCliTools
         }
 
         return sdks.ToArray();
+    }
+
+    /// <summary>
+    /// Sends an MCP log notification to the client if a server connection is available.
+    /// Failures are silently swallowed so logging never breaks tool execution.
+    /// </summary>
+    private static async Task SendMcpLogAsync(McpServer? server, string message, LoggingLevel level = LoggingLevel.Info)
+    {
+        if (server is null) return;
+        try
+        {
+            await server.SendNotificationAsync(
+                NotificationMethods.LoggingMessageNotification,
+                new LoggingMessageNotificationParams
+                {
+                    Level = level,
+                    Logger = "dotnet-mcp",
+                    Data = JsonSerializer.SerializeToElement(message)
+                },
+                McpJsonUtilities.DefaultOptions,
+                CancellationToken.None);
+        }
+        catch (Exception)
+        {
+            // Don't let logging failures break tool execution
+        }
     }
 
     /// <summary>

@@ -118,11 +118,11 @@ public sealed partial class DotNetCliTools
             return action switch
             {
                 DotnetProjectAction.New => await HandleNewAction(template, name, output, framework, additionalOptions),
-                DotnetProjectAction.Restore => await ExecuteWithProgress(progress, "Restoring packages...", "Restore complete", () => HandleRestoreAction(project)),
+                DotnetProjectAction.Restore => await ExecuteWithProgress(progress, "Restoring packages...", "Restore complete", () => HandleRestoreAction(project, server)),
                 DotnetProjectAction.Build => await ExecuteWithProgress(progress, "Building project...", "Build complete", () => HandleBuildAction(project, configuration, framework, server)),
                 DotnetProjectAction.Run => await ExecuteWithProgress(progress, "Building and starting application...", "Run complete", () => HandleRunAction(project, configuration, appArgs, noBuild, startMode)),
                 DotnetProjectAction.Test => await ExecuteWithProgress(progress, "Running tests...", "Tests complete", () => HandleTestAction(project, configuration, filter, collect, resultsDirectory, logger, noBuild, noRestore, verbosity, framework, blame, listTests, testRunner, useLegacyProjectArgument, server)),
-                DotnetProjectAction.Publish => await ExecuteWithProgress(progress, "Publishing project...", "Publish complete", () => HandlePublishAction(project, configuration, output, runtime)),
+                DotnetProjectAction.Publish => await ExecuteWithProgress(progress, "Publishing project...", "Publish complete", () => HandlePublishAction(project, configuration, output, runtime, server)),
                 DotnetProjectAction.Clean => await ExecuteWithProgress(progress, "Cleaning output directories...", "Clean complete", () => HandleCleanAction(project, configuration, server)),
                 DotnetProjectAction.Analyze => await HandleAnalyzeAction(projectPath),
                 DotnetProjectAction.Dependencies => await HandleDependenciesAction(projectPath),
@@ -157,15 +157,31 @@ public sealed partial class DotNetCliTools
             additionalOptions: additionalOptions);
     }
 
-    private async Task<string> HandleRestoreAction(string? project)
+    private async Task<string> HandleRestoreAction(string? project, McpServer? server = null)
     {
-        // Route to existing DotnetProjectRestore method
+        // Validate before sending the notification so clients don't see misleading messages
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+
+        var target = string.IsNullOrEmpty(project) ? "project" : $"\"{Path.GetFileName(project)}\"";
+        await SendMcpLogAsync(server, $"Restoring NuGet packages for {target}...");
         return await DotnetProjectRestore(
             project: project);
     }
 
     private async Task<string> HandleBuildAction(string? project, string? configuration, string? framework, McpServer? server = null)
     {
+        // Validate before sending the notification so clients don't see misleading messages
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+        if (!ParameterValidator.ValidateConfiguration(configuration, out var configError))
+            return $"Error: {configError}";
+        if (!ParameterValidator.ValidateFramework(framework, out var frameworkError))
+            return $"Error: {frameworkError}";
+
+        var target = string.IsNullOrEmpty(project) ? "project" : $"\"{Path.GetFileName(project)}\"";
+        var config = string.IsNullOrEmpty(configuration) ? "" : $" ({configuration})";
+        await SendMcpLogAsync(server, $"Building {target}{config}...");
         var result = await DotnetProjectBuild(
             project: project,
             configuration: configuration,
@@ -314,6 +330,20 @@ public sealed partial class DotNetCliTools
 
     private async Task<string> HandleTestAction(string? project, string? configuration, string? filter, string? collect, string? resultsDirectory, string? logger, bool? noBuild, bool? noRestore, string? verbosity, string? framework, bool? blame, bool? listTests, TestRunner? testRunner, bool? useLegacyProjectArgument, McpServer? server = null)
     {
+        // Validate before sending the notification so clients don't see misleading messages
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+        if (!ParameterValidator.ValidateConfiguration(configuration, out var configError))
+            return $"Error: {configError}";
+        if (!ParameterValidator.ValidateVerbosity(verbosity, out var verbosityError))
+            return $"Error: {verbosityError}";
+        if (!ParameterValidator.ValidateFramework(framework, out var frameworkError))
+            return $"Error: {frameworkError}";
+
+        // Route to existing DotnetProjectTest method
+        var target = string.IsNullOrEmpty(project) ? "project" : $"\"{Path.GetFileName(project)}\"";
+        var filterInfo = string.IsNullOrEmpty(filter) ? "" : $" (filter: {filter})";
+        await SendMcpLogAsync(server, $"Running tests for {target}{filterInfo}...");
         var result = await DotnetProjectTest(
             project: project,
             configuration: configuration,
@@ -336,9 +366,20 @@ public sealed partial class DotNetCliTools
             "Summarize these .NET test results and suggest which tests need attention (be concise):");
     }
 
-    private async Task<string> HandlePublishAction(string? project, string? configuration, string? output, string? runtime)
+    private async Task<string> HandlePublishAction(string? project, string? configuration, string? output, string? runtime, McpServer? server = null)
     {
+        // Validate before sending the notification so clients don't see misleading messages
+        if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            return $"Error: {projectError}";
+        if (!ParameterValidator.ValidateConfiguration(configuration, out var configError))
+            return $"Error: {configError}";
+        if (!ParameterValidator.ValidateRuntimeIdentifier(runtime, out var runtimeError))
+            return $"Error: {runtimeError}";
+
         // Route to existing DotnetProjectPublish method
+        var target = string.IsNullOrEmpty(project) ? "project" : $"\"{Path.GetFileName(project)}\"";
+        var runtimeInfo = string.IsNullOrEmpty(runtime) ? "" : $" for {runtime}";
+        await SendMcpLogAsync(server, $"Publishing {target}{runtimeInfo}...");
         return await DotnetProjectPublish(
             project: project,
             configuration: configuration,
