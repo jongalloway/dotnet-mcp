@@ -10,6 +10,12 @@ internal static class CompletionProvider
     internal const int MaxResults = 20;
 
     /// <summary>
+    /// Test seam: when set, <see cref="GetTemplateCompletionsAsync"/> returns these short names
+    /// instead of querying the template engine. Reset to <see langword="null"/> after each test.
+    /// </summary>
+    internal static Func<CancellationToken, Task<IEnumerable<string>>>? GetTemplateShortNamesOverride { get; set; }
+
+    /// <summary>
     /// Returns up to <see cref="MaxResults"/> completion candidates for the given argument name,
     /// filtered to those that start with <paramref name="prefix"/> (case-insensitive).
     /// </summary>
@@ -18,9 +24,13 @@ internal static class CompletionProvider
     /// <param name="ct">Cancellation token.</param>
     public static async Task<IEnumerable<string>> GetCompletionsAsync(string argumentName, string prefix, CancellationToken ct)
     {
+        // Template completions apply prefix filtering before dedup+sort to avoid
+        // processing the full (potentially large) template list on every keystroke.
+        if (argumentName == "template")
+            return await GetTemplateCompletionsAsync(prefix, ct);
+
         IEnumerable<string> candidates = argumentName switch
         {
-            "template" => await GetTemplateCompletionsAsync(ct),
             "framework" => FrameworkHelper.GetSupportedModernFrameworks(),
             "configuration" => [DotNetSdkConstants.Configurations.Debug, DotNetSdkConstants.Configurations.Release],
             "runtime" => GetRuntimeCompletions(),
@@ -32,18 +42,29 @@ internal static class CompletionProvider
             .Take(MaxResults);
     }
 
-    private static async Task<IEnumerable<string>> GetTemplateCompletionsAsync(CancellationToken ct)
+    private static async Task<IEnumerable<string>> GetTemplateCompletionsAsync(string prefix, CancellationToken ct)
     {
+        var rawShortNames = await GetRawTemplateShortNamesAsync(ct);
+        return rawShortNames
+            .Where(sn => sn.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(sn => sn, StringComparer.OrdinalIgnoreCase)
+            .Take(MaxResults);
+    }
+
+    private static async Task<IEnumerable<string>> GetRawTemplateShortNamesAsync(CancellationToken ct)
+    {
+        if (GetTemplateShortNamesOverride is { } overrideFunc)
+            return await overrideFunc(ct);
+
         try
         {
             var templates = await TemplateEngineHelper.GetTemplatesCachedInternalAsync();
             return templates
                 .SelectMany(t => t.ShortNameList)
-                .Where(sn => !string.IsNullOrEmpty(sn))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(sn => sn, StringComparer.OrdinalIgnoreCase);
+                .Where(sn => !string.IsNullOrEmpty(sn));
         }
-        catch
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             return GetFallbackTemplateCompletions();
         }

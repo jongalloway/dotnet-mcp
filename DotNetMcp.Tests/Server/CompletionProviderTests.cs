@@ -8,7 +8,13 @@ namespace DotNetMcp.Tests;
 /// correctly generated and filtered for each supported argument name.
 /// These tests exercise the provider directly without starting the MCP server.
 /// </summary>
-public class CompletionHandlerTests
+/// <remarks>
+/// Uses the CachingIntegrationTests collection to ensure sequential execution when
+/// the <see cref="CompletionProvider.GetTemplateShortNamesOverride"/> test seam is set,
+/// following the same convention as <see cref="TemplateEngineHelperTests"/>.
+/// </remarks>
+[Collection("CachingIntegrationTests")]
+public class CompletionProviderTests
 {
     #region Framework Completions
 
@@ -194,14 +200,26 @@ public class CompletionHandlerTests
     #region MaxResults
 
     [Fact]
-    public async Task GetCompletionsAsync_ResultCount_NeverExceedsMaxResults()
+    public async Task GetCompletionsAsync_Template_ResultCountCappedAtMaxResults()
     {
-        // Act - use empty prefix to maximize results returned
-        var result = (await CompletionProvider.GetCompletionsAsync("framework", "", TestContext.Current.CancellationToken)).ToList();
+        // Arrange – inject more short names than MaxResults so the Take() cap is actually exercised.
+        var manyNames = Enumerable.Range(1, CompletionProvider.MaxResults + 5)
+            .Select(i => $"fake-template-{i:D3}")
+            .ToList();
+        CompletionProvider.GetTemplateShortNamesOverride = _ => Task.FromResult<IEnumerable<string>>(manyNames);
 
-        // Assert
-        Assert.True(result.Count <= CompletionProvider.MaxResults,
-            $"Expected at most {CompletionProvider.MaxResults} results, but got {result.Count}");
+        try
+        {
+            // Act – empty prefix so all injected names are candidates
+            var result = (await CompletionProvider.GetCompletionsAsync("template", "", TestContext.Current.CancellationToken)).ToList();
+
+            // Assert – result is capped, not the full injected list
+            Assert.Equal(CompletionProvider.MaxResults, result.Count);
+        }
+        finally
+        {
+            CompletionProvider.GetTemplateShortNamesOverride = null;
+        }
     }
 
     #endregion
