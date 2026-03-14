@@ -166,6 +166,14 @@ public class XmlDocumentationCoverageTests
         if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
             type = type.GetGenericArguments()[0];
 
+        // IProgress<ProgressNotificationValue> — SDK injects a progress forwarder
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IProgress<>))
+        {
+            var typeArg = type.GetGenericArguments()[0];
+            if (typeArg.FullName == "ModelContextProtocol.ProgressNotificationValue")
+                return true;
+        }
+
         return type == typeof(ModelContextProtocol.Server.McpServer)
             || type == typeof(CancellationToken)
             || type == typeof(IServiceProvider);

@@ -2,6 +2,7 @@ using System.Text;
 using DotNetMcp.Actions;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -102,6 +103,7 @@ public sealed partial class DotNetCliTools
         string? propertyValue = null,
         string? itemType = null,
         string? include = null,
+        IProgress<ProgressNotificationValue>? progress = null,
         McpServer? server = null)
     {
         var textResult = await WithWorkingDirectoryAsync(workingDirectory, async () =>
@@ -116,16 +118,16 @@ public sealed partial class DotNetCliTools
             return action switch
             {
                 DotnetProjectAction.New => await HandleNewAction(template, name, output, framework, additionalOptions),
-                DotnetProjectAction.Restore => await HandleRestoreAction(project),
-                DotnetProjectAction.Build => await HandleBuildAction(project, configuration, framework, server),
-                DotnetProjectAction.Run => await HandleRunAction(project, configuration, appArgs, noBuild, startMode),
-                DotnetProjectAction.Test => await HandleTestAction(project, configuration, filter, collect, resultsDirectory, logger, noBuild, noRestore, verbosity, framework, blame, listTests, testRunner, useLegacyProjectArgument, server),
-                DotnetProjectAction.Publish => await HandlePublishAction(project, configuration, output, runtime),
-                DotnetProjectAction.Clean => await HandleCleanAction(project, configuration, server),
+                DotnetProjectAction.Restore => await ExecuteWithProgress(progress, "Restoring packages...", "Restore complete", () => HandleRestoreAction(project)),
+                DotnetProjectAction.Build => await ExecuteWithProgress(progress, "Building project...", "Build complete", () => HandleBuildAction(project, configuration, framework, server)),
+                DotnetProjectAction.Run => await ExecuteWithProgress(progress, "Building and starting application...", "Run complete", () => HandleRunAction(project, configuration, appArgs, noBuild, startMode)),
+                DotnetProjectAction.Test => await ExecuteWithProgress(progress, "Running tests...", "Tests complete", () => HandleTestAction(project, configuration, filter, collect, resultsDirectory, logger, noBuild, noRestore, verbosity, framework, blame, listTests, testRunner, useLegacyProjectArgument, server)),
+                DotnetProjectAction.Publish => await ExecuteWithProgress(progress, "Publishing project...", "Publish complete", () => HandlePublishAction(project, configuration, output, runtime)),
+                DotnetProjectAction.Clean => await ExecuteWithProgress(progress, "Cleaning output directories...", "Clean complete", () => HandleCleanAction(project, configuration, server)),
                 DotnetProjectAction.Analyze => await HandleAnalyzeAction(projectPath),
                 DotnetProjectAction.Dependencies => await HandleDependenciesAction(projectPath),
                 DotnetProjectAction.Validate => await HandleValidateAction(projectPath),
-                DotnetProjectAction.Pack => await HandlePackAction(project, configuration, output, includeSymbols, includeSource),
+                DotnetProjectAction.Pack => await ExecuteWithProgress(progress, "Packing project...", "Pack complete", () => HandlePackAction(project, configuration, output, includeSymbols, includeSource)),
                 DotnetProjectAction.Watch => await HandleWatchAction(watchAction, project, configuration, appArgs, filter, noHotReload),
                 DotnetProjectAction.Format => await HandleFormatAction(project, verify, includeGenerated, diagnostics, severity),
                 DotnetProjectAction.Stop => await HandleStopAction(sessionId),
