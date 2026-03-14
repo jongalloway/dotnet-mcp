@@ -103,6 +103,14 @@ public sealed class ServerFeatureSupport
     public bool Elicitation { get; init; }
 
     /// <summary>
+    /// Whether the server uses MCP Sampling to request LLM completions from the client for
+    /// intelligent error interpretation. When true, clients that support sampling will receive
+    /// AI-assisted analysis of build and test failures.
+    /// </summary>
+    [JsonPropertyName("sampling")]
+    public bool Sampling { get; init; }
+
+    /// <summary>
     /// Whether the server reports progress notifications for long-running operations.
     /// When true, clients that supply a progress token will receive start and completion
     /// progress notifications during build, test, publish, and other slow operations
