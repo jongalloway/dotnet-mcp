@@ -1,5 +1,6 @@
 using System.Text;
 using DotNetMcp.Actions;
+using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using ModelContextProtocol.Protocol;
 
@@ -38,7 +39,8 @@ public sealed partial class DotNetCliTools
         bool includePreviews = false,
         string? source = null,
         string? configFile = null,
-        string? workingDirectory = null)
+        string? workingDirectory = null,
+        IProgress<ProgressNotificationValue>? progress = null)
     {
         var textResult = await WithWorkingDirectoryAsync(workingDirectory, async () =>
         {
@@ -54,8 +56,8 @@ public sealed partial class DotNetCliTools
                 DotnetWorkloadAction.List => await HandleWorkloadListAction(),
                 DotnetWorkloadAction.Info => await HandleWorkloadInfoAction(),
                 DotnetWorkloadAction.Search => await HandleWorkloadSearchAction(searchTerm),
-                DotnetWorkloadAction.Install => await HandleWorkloadInstallAction(workloadIds, skipManifestUpdate, includePreviews, source, configFile),
-                DotnetWorkloadAction.Update => await HandleWorkloadUpdateAction(includePreviews, source, configFile),
+                DotnetWorkloadAction.Install => await ExecuteWithProgress(progress, "Installing workloads...", "Workloads installed", () => HandleWorkloadInstallAction(workloadIds, skipManifestUpdate, includePreviews, source, configFile)),
+                DotnetWorkloadAction.Update => await ExecuteWithProgress(progress, "Updating workloads...", "Workloads updated", () => HandleWorkloadUpdateAction(includePreviews, source, configFile)),
                 DotnetWorkloadAction.Uninstall => await HandleWorkloadUninstallAction(workloadIds),
                 _ => $"Error: Unsupported action '{action}'"
             };
