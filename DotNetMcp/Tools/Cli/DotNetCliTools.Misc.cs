@@ -74,6 +74,7 @@ public sealed partial class DotNetCliTools
                 AsyncTasks = true,  // MCP Task support enabled: long-running operations (build, test, publish) can run as async tasks
                 Prompts = true,     // Predefined prompt catalog: create_new_webapi, add_package_and_restore, run_tests_with_coverage
                 Elicitation = true,  // Elicitation for confirmation before destructive ops (Clean, solution Remove)
+                Completions = true,  // Argument autocomplete: template names, framework TFMs, configurations, runtime identifiers
                 Sampling = true,     // Sampling for AI-assisted build/test error interpretation (when client supports it)
                 ProgressNotifications = true // Real-time progress updates for build, test, publish, and other long-running operations
             },
@@ -110,6 +111,7 @@ public sealed partial class DotNetCliTools
         result.AppendLine("  • 12 Consolidated MCP Tools (8 functional + 4 utility)");
         result.AppendLine("  • 4 MCP Resources (SDK, Runtime, Templates, Frameworks)");
         result.AppendLine("  • 3 Predefined Prompts (create_new_webapi, add_package_and_restore, run_tests_with_coverage)");
+        result.AppendLine("  • Completion handler: argument autocomplete for templates, frameworks, configurations, and runtime identifiers");
         result.AppendLine("  • Elicitation support: confirmation dialogs for destructive operations (Clean, solution Remove)");
         result.AppendLine("  • Telemetry: in-memory metrics collected via MCP message filter (dotnet_server_metrics)");
         result.AppendLine("  • Direct .NET SDK integration via NuGet packages");

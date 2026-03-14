@@ -103,6 +103,13 @@ public sealed class ServerFeatureSupport
     public bool Elicitation { get; init; }
 
     /// <summary>
+    /// Whether the server provides argument autocomplete suggestions for prompt arguments and resource
+    /// template parameters (template names, framework TFMs, configurations, runtime identifiers).
+    /// </summary>
+    [JsonPropertyName("completions")]
+    public bool Completions { get; init; }
+
+    /// <summary>
     /// Whether the server uses MCP Sampling to request LLM completions from the client for
     /// intelligent error interpretation. When true, clients that support sampling will receive
     /// AI-assisted analysis of build and test failures.
