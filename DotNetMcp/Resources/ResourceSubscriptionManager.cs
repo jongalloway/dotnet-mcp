@@ -76,7 +76,7 @@ public class ResourceSubscriptionManager
             await server.SendNotificationAsync(
                 NotificationMethods.ResourceUpdatedNotification,
                 new ResourceUpdatedNotificationParams { Uri = uri },
-                null,
+                serializerOptions: null, // use MCP default serializer options
                 cancellationToken);
 
             _logger?.LogDebug("Sent resource updated notification for: {Uri}", uri);

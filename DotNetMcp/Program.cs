@@ -69,18 +69,16 @@ mcpServerBuilder
     .WithPrompts<DotNetPrompts>()
     .WithSubscribeToResourcesHandler((context, ct) =>
     {
-        var subscriptions = context.Server.Services!.GetRequiredService<ResourceSubscriptionManager>();
         var uri = context.Params?.Uri;
         if (!string.IsNullOrEmpty(uri))
-            subscriptions.Subscribe(uri);
+            context.Server.Services!.GetRequiredService<ResourceSubscriptionManager>().Subscribe(uri);
         return ValueTask.FromResult(new EmptyResult());
     })
     .WithUnsubscribeFromResourcesHandler((context, ct) =>
     {
-        var subscriptions = context.Server.Services!.GetRequiredService<ResourceSubscriptionManager>();
         var uri = context.Params?.Uri;
         if (!string.IsNullOrEmpty(uri))
-            subscriptions.Unsubscribe(uri);
+            context.Server.Services!.GetRequiredService<ResourceSubscriptionManager>().Unsubscribe(uri);
         return ValueTask.FromResult(new EmptyResult());
     });
 
