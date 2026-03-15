@@ -1752,5 +1752,326 @@ public class ConsolidatedProjectToolTests
     }
 
     #endregion
+
+    #region CLI Flag Wiring Tests
+
+    [Fact]
+    public async Task DotnetProject_Build_WithNoRestore_WiresFlag()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Build,
+            project: "MyProject.csproj",
+            noRestore: true)).GetText();
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet build \"MyProject.csproj\" --no-restore");
+    }
+
+    [Fact]
+    public async Task DotnetProject_Build_WithVerbosity_WiresFlag()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Build,
+            project: "MyProject.csproj",
+            verbosity: "detailed")).GetText();
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet build \"MyProject.csproj\" -v detailed");
+    }
+
+    [Fact]
+    public async Task DotnetProject_Build_WithOutput_WiresFlag()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Build,
+            project: "MyProject.csproj",
+            output: "bin/publish")).GetText();
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet build \"MyProject.csproj\" -o \"bin/publish\"");
+    }
+
+    [Fact]
+    public async Task DotnetProject_Build_WithAllNewFlags_WiresAll()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Build,
+            project: "MyProject.csproj",
+            configuration: "Release",
+            framework: "net8.0",
+            noRestore: true,
+            verbosity: "minimal",
+            output: "out")).GetText();
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet build \"MyProject.csproj\" -c Release -f net8.0 --no-restore -v minimal -o \"out\"");
+    }
+
+    [Fact]
+    public async Task DotnetProject_Restore_WithVerbosity_WiresFlag()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Restore,
+            project: "MyProject.csproj",
+            verbosity: "quiet")).GetText();
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet restore \"MyProject.csproj\" -v quiet");
+    }
+
+    [Fact]
+    public async Task DotnetProject_Restore_WithSource_WiresFlag()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Restore,
+            project: "MyProject.csproj",
+            source: "https://api.nuget.org/v3/index.json")).GetText();
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet restore \"MyProject.csproj\" --source \"https://api.nuget.org/v3/index.json\"");
+    }
+
+    [Fact]
+    public async Task DotnetProject_Restore_WithLockedMode_WiresFlag()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Restore,
+            project: "MyProject.csproj",
+            lockedMode: true)).GetText();
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet restore \"MyProject.csproj\" --locked-mode");
+    }
+
+    [Fact]
+    public async Task DotnetProject_Restore_WithConfigFile_WiresFlag()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Restore,
+            project: "MyProject.csproj",
+            configFile: "nuget.config")).GetText();
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet restore \"MyProject.csproj\" --configfile \"nuget.config\"");
+    }
+
+    [Fact]
+    public async Task DotnetProject_Restore_WithAllNewFlags_WiresAll()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Restore,
+            project: "MyProject.csproj",
+            verbosity: "normal",
+            source: "https://myfeed/nuget",
+            lockedMode: true,
+            configFile: "custom.config")).GetText();
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet restore \"MyProject.csproj\" -v normal --source \"https://myfeed/nuget\" --locked-mode --configfile \"custom.config\"");
+    }
+
+    [Fact]
+    public async Task DotnetProject_Publish_WithFramework_WiresFlag()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Publish,
+            project: "MyProject.csproj",
+            framework: "net8.0")).GetText();
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet publish \"MyProject.csproj\" -f net8.0");
+    }
+
+    [Fact]
+    public async Task DotnetProject_Publish_WithNoRestore_WiresFlag()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Publish,
+            project: "MyProject.csproj",
+            noRestore: true)).GetText();
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet publish \"MyProject.csproj\" --no-restore");
+    }
+
+    [Fact]
+    public async Task DotnetProject_Publish_WithNoBuild_WiresFlag()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Publish,
+            project: "MyProject.csproj",
+            noBuild: true)).GetText();
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet publish \"MyProject.csproj\" --no-build");
+    }
+
+    [Fact]
+    public async Task DotnetProject_Publish_WithSelfContainedTrue_WiresFlag()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Publish,
+            project: "MyProject.csproj",
+            selfContained: true)).GetText();
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet publish \"MyProject.csproj\" --self-contained true");
+    }
+
+    [Fact]
+    public async Task DotnetProject_Publish_WithSelfContainedFalse_WiresFlag()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Publish,
+            project: "MyProject.csproj",
+            selfContained: false)).GetText();
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet publish \"MyProject.csproj\" --self-contained false");
+    }
+
+    [Fact]
+    public async Task DotnetProject_Publish_WithArch_WiresFlag()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Publish,
+            project: "MyProject.csproj",
+            arch: "arm64")).GetText();
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet publish \"MyProject.csproj\" --arch arm64");
+    }
+
+    [Fact]
+    public async Task DotnetProject_Publish_WithOs_WiresFlag()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Publish,
+            project: "MyProject.csproj",
+            os: "linux")).GetText();
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet publish \"MyProject.csproj\" --os linux");
+    }
+
+    [Fact]
+    public async Task DotnetProject_Publish_WithVerbosity_WiresFlag()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Publish,
+            project: "MyProject.csproj",
+            verbosity: "minimal")).GetText();
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet publish \"MyProject.csproj\" -v minimal");
+    }
+
+    [Fact]
+    public async Task DotnetProject_Publish_WithAllNewFlags_WiresAll()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Publish,
+            project: "MyProject.csproj",
+            configuration: "Release",
+            runtime: "linux-x64",
+            framework: "net8.0",
+            noRestore: true,
+            noBuild: true,
+            selfContained: true,
+            arch: "x64",
+            os: "linux",
+            verbosity: "quiet")).GetText();
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet publish \"MyProject.csproj\" -c Release -r linux-x64 -f net8.0 --no-restore --no-build --self-contained true --arch x64 --os linux -v quiet");
+    }
+
+    [Fact]
+    public async Task DotnetProject_Clean_WithFramework_WiresFlag()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Clean,
+            project: "MyProject.csproj",
+            framework: "net8.0")).GetText();
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet clean \"MyProject.csproj\" -f net8.0");
+    }
+
+    [Fact]
+    public async Task DotnetProject_Clean_WithVerbosity_WiresFlag()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Clean,
+            project: "MyProject.csproj",
+            verbosity: "diagnostic")).GetText();
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet clean \"MyProject.csproj\" -v diagnostic");
+    }
+
+    [Fact]
+    public async Task DotnetProject_Clean_WithAllNewFlags_WiresAll()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Clean,
+            project: "MyProject.csproj",
+            configuration: "Release",
+            framework: "net8.0",
+            verbosity: "minimal")).GetText();
+
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet clean \"MyProject.csproj\" -c Release -f net8.0 -v minimal");
+    }
+
+    [Fact]
+    public async Task DotnetProject_Build_WithInvalidVerbosity_ReturnsError()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Build,
+            project: "MyProject.csproj",
+            verbosity: "notaverbosity")).GetText();
+
+        Assert.Contains("Error", result);
+        Assert.Contains("verbosity", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_Restore_WithInvalidVerbosity_ReturnsError()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Restore,
+            project: "MyProject.csproj",
+            verbosity: "notaverbosity")).GetText();
+
+        Assert.Contains("Error", result);
+        Assert.Contains("verbosity", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_Publish_WithInvalidVerbosity_ReturnsError()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Publish,
+            project: "MyProject.csproj",
+            verbosity: "notaverbosity")).GetText();
+
+        Assert.Contains("Error", result);
+        Assert.Contains("verbosity", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_Clean_WithInvalidVerbosity_ReturnsError()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Clean,
+            project: "MyProject.csproj",
+            verbosity: "notaverbosity")).GetText();
+
+        Assert.Contains("Error", result);
+        Assert.Contains("verbosity", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    #endregion
 }
 
