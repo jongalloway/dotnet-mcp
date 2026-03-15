@@ -519,6 +519,37 @@ public class McpConformanceTests : IAsyncLifetime
         }
     }
 
+    [Fact]
+    public void Server_ShouldAdvertiseResourceSubscribeCapability()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Assert - server should expose Subscribe = true so clients can call resources/subscribe
+        Assert.NotNull(_client.ServerCapabilities);
+        Assert.NotNull(_client.ServerCapabilities.Resources);
+        Assert.True(_client.ServerCapabilities.Resources.Subscribe);
+    }
+
+    [Fact]
+    public async Task Server_SubscribeToResource_ShouldSucceed()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act — subscribe to a known resource URI; the server must accept the request
+        var registration = await _client.SubscribeToResourceAsync(
+            "dotnet://templates",
+            (_, _) => ValueTask.CompletedTask,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert — no exception means the server accepted the subscription
+        Assert.NotNull(registration);
+
+        // Cleanup
+        await registration.DisposeAsync();
+    }
+
     #endregion
 
     #region Prompt Listing Tests
@@ -629,6 +660,57 @@ public class McpConformanceTests : IAsyncLifetime
         Assert.NotNull(_client.ServerCapabilities.Prompts);
     }
 
+    [Fact]
+    public void Server_ShouldAdvertiseCompletionsCapability()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Assert - server should expose completions capability after WithCompleteHandler is registered
+        Assert.NotNull(_client.ServerCapabilities);
+        Assert.NotNull(_client.ServerCapabilities.Completions);
+    }
+
+    [Fact]
+    public async Task Server_CompleteHandler_ShouldReturnFrameworkSuggestions()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act - request completions for a "framework" argument with prefix "net1"
+        var result = await _client.CompleteAsync(
+            new PromptReference { Name = "create_new_webapi" },
+            "framework",
+            "net1",
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotNull(result.Completion);
+        Assert.NotEmpty(result.Completion.Values);
+        Assert.All(result.Completion.Values, v => Assert.StartsWith("net1", v, StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task Server_CompleteHandler_ShouldReturnConfigurationSuggestions()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act - request completions for a "configuration" argument with empty prefix
+        var result = await _client.CompleteAsync(
+            new PromptReference { Name = "create_new_webapi" },
+            "configuration",
+            "",
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotNull(result.Completion);
+        Assert.Contains("Debug", result.Completion.Values);
+        Assert.Contains("Release", result.Completion.Values);
+    }
+
     #endregion
 
     #region MCP Task Support Tests
@@ -686,6 +768,84 @@ public class McpConformanceTests : IAsyncLifetime
 
         // Assert - no tasks should be running at server start
         Assert.NotNull(tasks);
+    }
+
+    #endregion
+
+    #region MCP Logging Notification Tests
+
+    [Fact]
+    public async Task Server_BuildAction_SendsMcpLoggingNotification()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+        var notificationReceived = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        await using var handler = _client.RegisterNotificationHandler(
+            NotificationMethods.LoggingMessageNotification,
+            (notification, ct) =>
+            {
+                notificationReceived.TrySetResult(true);
+                return ValueTask.CompletedTask;
+            });
+
+        // Act - invoke Build with "nonexistent.csproj".
+        // ValidateProjectPath accepts any path with a valid extension, so validation passes,
+        // the logging notification fires, and then dotnet build fails at runtime.
+        await _client.CallToolAsync(
+            "dotnet_project",
+            new Dictionary<string, object?>
+            {
+                ["action"] = "Build",
+                ["project"] = "nonexistent.csproj"
+            },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Give async notification delivery a short grace period
+        var notifyTask = notificationReceived.Task;
+        var delayTask = Task.Delay(2000, TestContext.Current.CancellationToken);
+        var winner = await Task.WhenAny(notifyTask, delayTask);
+
+        // Assert - at least one notifications/message should have arrived
+        Assert.True(winner == notifyTask,
+            "Expected at least one MCP logging notification (notifications/message) " +
+            "to be delivered when invoking dotnet_project Build.");
+    }
+
+    [Fact]
+    public async Task Server_RestoreAction_SendsMcpLoggingNotification()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+        var notificationReceived = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        await using var handler = _client.RegisterNotificationHandler(
+            NotificationMethods.LoggingMessageNotification,
+            (notification, ct) =>
+            {
+                notificationReceived.TrySetResult(true);
+                return ValueTask.CompletedTask;
+            });
+
+        // Act - invoke Restore with "nonexistent.csproj".
+        // ValidateProjectPath accepts any path with a valid extension, so validation passes,
+        // the logging notification fires, and then dotnet restore fails at runtime.
+        await _client.CallToolAsync(
+            "dotnet_project",
+            new Dictionary<string, object?>
+            {
+                ["action"] = "Restore",
+                ["project"] = "nonexistent.csproj"
+            },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        var notifyTask = notificationReceived.Task;
+        var delayTask = Task.Delay(2000, TestContext.Current.CancellationToken);
+        var winner = await Task.WhenAny(notifyTask, delayTask);
+
+        Assert.True(winner == notifyTask,
+            "Expected at least one MCP logging notification (notifications/message) " +
+            "to be delivered when invoking dotnet_project Restore.");
     }
 
     #endregion

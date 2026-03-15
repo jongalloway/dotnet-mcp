@@ -101,6 +101,39 @@ public sealed class ServerFeatureSupport
     /// </summary>
     [JsonPropertyName("elicitation")]
     public bool Elicitation { get; init; }
+
+    /// <summary>
+    /// Whether the server sends MCP logging notifications to the client during tool execution.
+    /// When true, clients receive informational log messages (e.g. "Building project...", "Running tests...")
+    /// via the MCP logging notification (<c>notifications/message</c>,
+    /// i.e. <c>NotificationMethods.LoggingMessageNotification</c>).
+    /// </summary>
+    [JsonPropertyName("mcpLogging")]
+    public bool McpLogging { get; init; }
+
+    /// <summary>
+    /// Whether the server provides argument autocomplete suggestions for prompt arguments and resource
+    /// template parameters (template names, framework TFMs, configurations, runtime identifiers).
+    /// </summary>
+    [JsonPropertyName("completions")]
+    public bool Completions { get; init; }
+
+    /// <summary>
+    /// Whether the server uses MCP Sampling to request LLM completions from the client for
+    /// intelligent error interpretation. When true, clients that support sampling will receive
+    /// AI-assisted analysis of build and test failures.
+    /// </summary>
+    [JsonPropertyName("sampling")]
+    public bool Sampling { get; init; }
+
+    /// <summary>
+    /// Whether the server reports progress notifications for long-running operations.
+    /// When true, clients that supply a progress token will receive start and completion
+    /// progress notifications during build, test, publish, and other slow operations
+    /// via the MCP progress notification protocol.
+    /// </summary>
+    [JsonPropertyName("progressNotifications")]
+    public bool ProgressNotifications { get; init; }
 }
 
 /// <summary>

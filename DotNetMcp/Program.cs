@@ -1,4 +1,4 @@
-﻿using DotNetMcp;
+using DotNetMcp;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -30,7 +30,10 @@ builder.Services.AddSingleton<IMcpTaskStore, InMemoryMcpTaskStore>();
 var metricsAccumulator = new ToolMetricsAccumulator();
 builder.Services.AddSingleton(metricsAccumulator);
 
-builder.Services.AddMcpServer(options =>
+// Register ResourceSubscriptionManager for tracking client resource subscriptions.
+builder.Services.AddSingleton<ResourceSubscriptionManager>();
+
+var mcpServerBuilder = builder.Services.AddMcpServer(options =>
 {
     // Configure server implementation with .NET-themed icon
     options.ServerInfo = new Implementation
@@ -57,11 +60,41 @@ builder.Services.AddMcpServer(options =>
             }
         ]
     };
-})
+});
+
+mcpServerBuilder
     .WithStdioServerTransport()
     .WithTools<DotNetCliTools>()
     .WithResources<DotNetResources>()
-    .WithPrompts<DotNetPrompts>();
+    .WithPrompts<DotNetPrompts>()
+    .WithSubscribeToResourcesHandler((context, ct) =>
+    {
+        var uri = context.Params?.Uri;
+        if (string.IsNullOrWhiteSpace(uri))
+            throw new McpException("Subscribe request must include a non-empty resource URI.");
+        context.Server.Services!.GetRequiredService<ResourceSubscriptionManager>().Subscribe(uri);
+        return ValueTask.FromResult(new EmptyResult());
+    })
+    .WithUnsubscribeFromResourcesHandler((context, ct) =>
+    {
+        var uri = context.Params?.Uri;
+        if (string.IsNullOrWhiteSpace(uri))
+            throw new McpException("Unsubscribe request must include a non-empty resource URI.");
+        context.Server.Services!.GetRequiredService<ResourceSubscriptionManager>().Unsubscribe(uri);
+        return ValueTask.FromResult(new EmptyResult());
+    })
+    .WithCompleteHandler(async (ctx, ct) =>
+    {
+        var argument = ctx.Params?.Argument;
+        if (argument is null)
+            return new CompleteResult { Completion = new Completion { Values = [] } };
+        var prefix = argument.Value ?? string.Empty;
+        var values = (await CompletionProvider.GetCompletionsAsync(argument.Name, prefix, ct)).ToList();
+        return new CompleteResult
+        {
+            Completion = new Completion { Values = values }
+        };
+    });
 
 // Register the telemetry filter that intercepts every CallTool request to record
 // invocation counts, durations, and success/failure rates — without modifying individual tools.
