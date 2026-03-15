@@ -56,6 +56,12 @@ public sealed partial class DotNetCliTools
     /// <param name="since">Return logs only after this timestamp (ISO 8601 format) for logs action (optional)</param>
     /// <param name="propertyName">MSBuild property name for SetProperty/GetProperty/RemoveProperty actions (e.g., 'OutputType')</param>
     /// <param name="propertyValue">Value to set for SetProperty action (e.g., 'Exe')</param>
+    /// <param name="selfContained">Publish as self-contained deployment (true) or framework-dependent (false) for publish action</param>
+    /// <param name="arch">Target architecture for publish action (e.g., 'x64', 'arm64')</param>
+    /// <param name="os">Target operating system for publish action (e.g., 'win', 'linux', 'osx')</param>
+    /// <param name="source">NuGet package source URL or local path for restore action</param>
+    /// <param name="lockedMode">Run restore in locked mode (fail if lock file is out of date) for restore action</param>
+    /// <param name="configFile">NuGet.config file to use for restore action</param>
     /// <param name="itemType">Item type for AddItem/RemoveItem/ListItems actions (e.g., 'Using', 'Content', 'None')</param>
     /// <param name="include">The Include attribute value for AddItem/RemoveItem actions</param>
     [McpServerTool(Title = ".NET Project", Destructive = true, TaskSupport = ToolTaskSupport.Optional, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/File%20Folder/Flat/file_folder_flat.svg")]
@@ -102,6 +108,12 @@ public sealed partial class DotNetCliTools
         string? since = null,
         string? propertyName = null,
         string? propertyValue = null,
+        bool? selfContained = null,
+        string? arch = null,
+        string? os = null,
+        string? source = null,
+        bool? lockedMode = null,
+        string? configFile = null,
         string? itemType = null,
         string? include = null,
         IProgress<ProgressNotificationValue>? progress = null,
@@ -135,12 +147,12 @@ public sealed partial class DotNetCliTools
             return action switch
             {
                 DotnetProjectAction.New => await HandleNewAction(template, name, output, framework, additionalOptions),
-                DotnetProjectAction.Restore => await ExecuteWithProgress(progress, "Restoring packages...", "Restore complete", () => HandleRestoreAction(effectiveProject, server)),
-                DotnetProjectAction.Build => await ExecuteWithProgress(progress, "Building project...", "Build complete", () => HandleBuildAction(effectiveProject, configuration, framework, server)),
+                DotnetProjectAction.Restore => await ExecuteWithProgress(progress, "Restoring packages...", "Restore complete", () => HandleRestoreAction(effectiveProject, verbosity, source, lockedMode, configFile, server)),
+                DotnetProjectAction.Build => await ExecuteWithProgress(progress, "Building project...", "Build complete", () => HandleBuildAction(effectiveProject, configuration, framework, noRestore, verbosity, output, server)),
                 DotnetProjectAction.Run => await ExecuteWithProgress(progress, "Building and starting application...", "Run complete", () => HandleRunAction(effectiveProject, configuration, appArgs, noBuild, startMode)),
                 DotnetProjectAction.Test => await ExecuteWithProgress(progress, "Running tests...", "Tests complete", () => HandleTestAction(effectiveProject, configuration, filter, collect, resultsDirectory, logger, noBuild, noRestore, verbosity, framework, blame, listTests, testRunner, useLegacyProjectArgument, server)),
-                DotnetProjectAction.Publish => await ExecuteWithProgress(progress, "Publishing project...", "Publish complete", () => HandlePublishAction(effectiveProject, configuration, output, runtime, server)),
-                DotnetProjectAction.Clean => await ExecuteWithProgress(progress, "Cleaning output directories...", "Clean complete", () => HandleCleanAction(effectiveProject, configuration, server)),
+                DotnetProjectAction.Publish => await ExecuteWithProgress(progress, "Publishing project...", "Publish complete", () => HandlePublishAction(effectiveProject, configuration, output, runtime, framework, noRestore, noBuild, selfContained, arch, os, verbosity, server)),
+                DotnetProjectAction.Clean => await ExecuteWithProgress(progress, "Cleaning output directories...", "Clean complete", () => HandleCleanAction(effectiveProject, configuration, framework, verbosity, server)),
                 DotnetProjectAction.Analyze => await HandleAnalyzeAction(projectPath),
                 DotnetProjectAction.Dependencies => await HandleDependenciesAction(projectPath),
                 DotnetProjectAction.Validate => await HandleValidateAction(projectPath),
@@ -174,19 +186,25 @@ public sealed partial class DotNetCliTools
             additionalOptions: additionalOptions);
     }
 
-    private async Task<string> HandleRestoreAction(string? project, McpServer? server = null)
+    private async Task<string> HandleRestoreAction(string? project, string? verbosity, string? source, bool? lockedMode, string? configFile, McpServer? server = null)
     {
         // Validate before sending the notification so clients don't see misleading messages
         if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
             return $"Error: {projectError}";
+        if (!ParameterValidator.ValidateVerbosity(verbosity, out var verbosityError))
+            return $"Error: {verbosityError}";
 
         var target = string.IsNullOrEmpty(project) ? "project" : $"\"{Path.GetFileName(project)}\"";
         await SendMcpLogAsync(server, $"Restoring NuGet packages for {target}...");
         return await DotnetProjectRestore(
-            project: project);
+            project: project,
+            verbosity: verbosity,
+            source: source,
+            lockedMode: lockedMode ?? false,
+            configFile: configFile);
     }
 
-    private async Task<string> HandleBuildAction(string? project, string? configuration, string? framework, McpServer? server = null)
+    private async Task<string> HandleBuildAction(string? project, string? configuration, string? framework, bool? noRestore, string? verbosity, string? output, McpServer? server = null)
     {
         // Validate before sending the notification so clients don't see misleading messages
         if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
@@ -195,6 +213,8 @@ public sealed partial class DotNetCliTools
             return $"Error: {configError}";
         if (!ParameterValidator.ValidateFramework(framework, out var frameworkError))
             return $"Error: {frameworkError}";
+        if (!ParameterValidator.ValidateVerbosity(verbosity, out var verbosityError))
+            return $"Error: {verbosityError}";
 
         var target = string.IsNullOrEmpty(project) ? "project" : $"\"{Path.GetFileName(project)}\"";
         var config = string.IsNullOrEmpty(configuration) ? "" : $" ({configuration})";
@@ -202,7 +222,10 @@ public sealed partial class DotNetCliTools
         var result = await DotnetProjectBuild(
             project: project,
             configuration: configuration,
-            framework: framework);
+            framework: framework,
+            noRestore: noRestore ?? false,
+            verbosity: verbosity,
+            output: output);
 
         // Use sampling for AI-assisted error interpretation when build fails and client supports sampling.
         // Note: the result string has already had SecretRedactor applied by DotNetCommandExecutor.
@@ -383,7 +406,7 @@ public sealed partial class DotNetCliTools
             "Summarize these .NET test results and suggest which tests need attention (be concise):");
     }
 
-    private async Task<string> HandlePublishAction(string? project, string? configuration, string? output, string? runtime, McpServer? server = null)
+    private async Task<string> HandlePublishAction(string? project, string? configuration, string? output, string? runtime, string? framework, bool? noRestore, bool? noBuild, bool? selfContained, string? arch, string? os, string? verbosity, McpServer? server = null)
     {
         // Validate before sending the notification so clients don't see misleading messages
         if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
@@ -392,6 +415,10 @@ public sealed partial class DotNetCliTools
             return $"Error: {configError}";
         if (!ParameterValidator.ValidateRuntimeIdentifier(runtime, out var runtimeError))
             return $"Error: {runtimeError}";
+        if (!ParameterValidator.ValidateFramework(framework, out var frameworkError))
+            return $"Error: {frameworkError}";
+        if (!ParameterValidator.ValidateVerbosity(verbosity, out var verbosityError))
+            return $"Error: {verbosityError}";
 
         // Route to existing DotnetProjectPublish method
         var target = string.IsNullOrEmpty(project) ? "project" : $"\"{Path.GetFileName(project)}\"";
@@ -401,11 +428,24 @@ public sealed partial class DotNetCliTools
             project: project,
             configuration: configuration,
             output: output,
-            runtime: runtime);
+            runtime: runtime,
+            framework: framework,
+            noRestore: noRestore ?? false,
+            noBuild: noBuild ?? false,
+            selfContained: selfContained,
+            arch: arch,
+            os: os,
+            verbosity: verbosity);
     }
 
-    private async Task<string> HandleCleanAction(string? project, string? configuration, McpServer? server = null)
+    private async Task<string> HandleCleanAction(string? project, string? configuration, string? framework, string? verbosity, McpServer? server = null)
     {
+        // Validate before sending the notification so clients don't see misleading messages
+        if (!ParameterValidator.ValidateFramework(framework, out var frameworkError))
+            return $"Error: {frameworkError}";
+        if (!ParameterValidator.ValidateVerbosity(verbosity, out var verbosityError))
+            return $"Error: {verbosityError}";
+
         // Request confirmation via elicitation when client supports it
         if (server != null && server.ClientCapabilities?.Elicitation != null)
         {
@@ -435,7 +475,9 @@ public sealed partial class DotNetCliTools
         // Route to existing DotnetProjectClean method
         return await DotnetProjectClean(
             project: project,
-            configuration: configuration);
+            configuration: configuration,
+            framework: framework,
+            verbosity: verbosity);
     }
 
     private async Task<string> HandleAnalyzeAction(string? projectPath)
@@ -979,7 +1021,11 @@ public sealed partial class DotNetCliTools
     /// Restore the dependencies and tools of a .NET project.
     /// </summary>
     internal async Task<string> DotnetProjectRestore(
-        string? project = null)
+        string? project = null,
+        string? verbosity = null,
+        string? source = null,
+        bool lockedMode = false,
+        string? configFile = null)
     {
         // Validate project path if provided
         if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
@@ -987,9 +1033,17 @@ public sealed partial class DotNetCliTools
             return $"Error: {projectError}";
         }
 
-        var args = "restore";
-        if (!string.IsNullOrEmpty(project)) args += $" \"{project}\"";
-        return await ExecuteDotNetCommand(args);
+        // Validate verbosity
+        if (!ParameterValidator.ValidateVerbosity(verbosity, out var verbosityError))
+            return $"Error: {verbosityError}";
+
+        var args = new StringBuilder("restore");
+        if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
+        if (!string.IsNullOrEmpty(verbosity)) args.Append($" -v {verbosity}");
+        if (!string.IsNullOrEmpty(source)) args.Append($" --source \"{source}\"");
+        if (lockedMode) args.Append(" --locked-mode");
+        if (!string.IsNullOrEmpty(configFile)) args.Append($" --configfile \"{configFile}\"");
+        return await ExecuteDotNetCommand(args.ToString());
     }
 
     /// <summary>
@@ -998,7 +1052,10 @@ public sealed partial class DotNetCliTools
     internal async Task<string> DotnetProjectBuild(
         string? project = null,
         string? configuration = null,
-        string? framework = null)
+        string? framework = null,
+        bool noRestore = false,
+        string? verbosity = null,
+        string? output = null)
     {
         // Validate project path if provided
         if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
@@ -1014,10 +1071,17 @@ public sealed partial class DotNetCliTools
         if (!ParameterValidator.ValidateFramework(framework, out var frameworkError))
             return $"Error: {frameworkError}";
 
+        // Validate verbosity
+        if (!ParameterValidator.ValidateVerbosity(verbosity, out var verbosityError))
+            return $"Error: {verbosityError}";
+
         var args = new StringBuilder("build");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
         if (!string.IsNullOrEmpty(framework)) args.Append($" -f {framework}");
+        if (noRestore) args.Append(" --no-restore");
+        if (!string.IsNullOrEmpty(verbosity)) args.Append($" -v {verbosity}");
+        if (!string.IsNullOrEmpty(output)) args.Append($" -o \"{output}\"");
 
         // Capture working directory for concurrency target selection
         var workingDir = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
@@ -1161,7 +1225,14 @@ public sealed partial class DotNetCliTools
         string? project = null,
         string? configuration = null,
         string? output = null,
-        string? runtime = null)
+        string? runtime = null,
+        string? framework = null,
+        bool noRestore = false,
+        bool noBuild = false,
+        bool? selfContained = null,
+        string? arch = null,
+        string? os = null,
+        string? verbosity = null)
     {
         // Validate project path if provided
         if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
@@ -1175,11 +1246,26 @@ public sealed partial class DotNetCliTools
         if (!ParameterValidator.ValidateRuntimeIdentifier(runtime, out var runtimeError))
             return $"Error: {runtimeError}";
 
+        // Validate framework
+        if (!ParameterValidator.ValidateFramework(framework, out var frameworkError))
+            return $"Error: {frameworkError}";
+
+        // Validate verbosity
+        if (!ParameterValidator.ValidateVerbosity(verbosity, out var verbosityError))
+            return $"Error: {verbosityError}";
+
         var args = new StringBuilder("publish");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
         if (!string.IsNullOrEmpty(output)) args.Append($" -o \"{output}\"");
         if (!string.IsNullOrEmpty(runtime)) args.Append($" -r {runtime}");
+        if (!string.IsNullOrEmpty(framework)) args.Append($" -f {framework}");
+        if (noRestore) args.Append(" --no-restore");
+        if (noBuild) args.Append(" --no-build");
+        if (selfContained.HasValue) args.Append($" --self-contained {(selfContained.Value ? "true" : "false")}");
+        if (!string.IsNullOrEmpty(arch)) args.Append($" --arch {arch}");
+        if (!string.IsNullOrEmpty(os)) args.Append($" --os {os}");
+        if (!string.IsNullOrEmpty(verbosity)) args.Append($" -v {verbosity}");
 
         // Capture working directory for concurrency target selection
         var workingDir = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
@@ -1191,7 +1277,9 @@ public sealed partial class DotNetCliTools
     /// </summary>
     internal async Task<string> DotnetProjectClean(
         string? project = null,
-        string? configuration = null)
+        string? configuration = null,
+        string? framework = null,
+        string? verbosity = null)
     {
         // Validate project path if provided
         if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
@@ -1201,9 +1289,19 @@ public sealed partial class DotNetCliTools
         if (!ParameterValidator.ValidateConfiguration(configuration, out var configError))
             return $"Error: {configError}";
 
+        // Validate framework
+        if (!ParameterValidator.ValidateFramework(framework, out var frameworkError))
+            return $"Error: {frameworkError}";
+
+        // Validate verbosity
+        if (!ParameterValidator.ValidateVerbosity(verbosity, out var verbosityError))
+            return $"Error: {verbosityError}";
+
         var args = new StringBuilder("clean");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
+        if (!string.IsNullOrEmpty(framework)) args.Append($" -f {framework}");
+        if (!string.IsNullOrEmpty(verbosity)) args.Append($" -v {verbosity}");
         return await ExecuteDotNetCommand(args.ToString());
     }
 
