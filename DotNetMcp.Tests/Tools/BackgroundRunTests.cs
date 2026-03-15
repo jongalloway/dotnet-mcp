@@ -71,18 +71,31 @@ public class BackgroundRunTests : IDisposable
                 project: projectPath,
                 configuration: "Release")).GetText();
 
-            // Ensure build artifacts exist before running
-            var binPath = Path.Join(tempDir, "bin", "Release", "net10.0");
-            var exePath = Path.Join(binPath, "TestApp.dll");
+            // Ensure build artifacts exist before running - search for DLL
+            // rather than hardcoding TFM (SDK version determines the default TFM)
+            var releaseBinPath = Path.Join(tempDir, "bin", "Release");
             
-            // Give the file system a moment to settle (especially in CI)
-            // Increased from 500ms to 1000ms to improve reliability in CI environments
-            await Task.Delay(1000, TestContext.Current.CancellationToken);
+            // Poll for build artifact instead of fixed delay (file system flush can vary)
+            var artifactDeadline = DateTime.UtcNow.AddSeconds(15);
+            string? exePath = null;
+            while (DateTime.UtcNow < artifactDeadline)
+            {
+                if (Directory.Exists(releaseBinPath))
+                {
+                    var candidates = Directory.GetFiles(releaseBinPath, "TestApp.dll", SearchOption.AllDirectories);
+                    if (candidates.Length > 0)
+                    {
+                        exePath = candidates[0];
+                        break;
+                    }
+                }
+                await Task.Delay(250, TestContext.Current.CancellationToken);
+            }
             
             // Verify the built DLL exists
-            if (!File.Exists(exePath))
+            if (exePath == null)
             {
-                throw new InvalidOperationException($"Build artifact not found at: {exePath}");
+                throw new InvalidOperationException($"Build artifact not found under: {releaseBinPath}");
             }
 
             // Run in foreground mode (default) - should block until exit
@@ -390,23 +403,22 @@ Console.WriteLine(""Done"");
             var sessionExists = _sessionManager.TryGetSession(sessionId, out _);
             Assert.True(sessionExists);
 
-            // Wait for the process to exit
-            await Task.Delay(5000, cancellationToken);
-
-            // Session should be cleaned up automatically (the cleanup happens in the background task)
-            // Give it a moment for the cleanup task to run
-            await Task.Delay(1000, cancellationToken);
-
-            // Try to get the session - it might still be there if cleanup hasn't run yet
-            // But we can verify by checking active sessions
-            var activeSessions = _sessionManager.GetActiveSessions();
-            var activeSession = activeSessions.FirstOrDefault(s => s.SessionId == sessionId);
-
-            // The process should not be running
-            if (activeSession != null)
+            // Poll for process exit instead of fixed delays (startup + JIT time can vary)
+            var exitDeadline = DateTime.UtcNow.AddSeconds(30);
+            bool processExited = false;
+            while (DateTime.UtcNow < exitDeadline)
             {
-                Assert.False(activeSession.IsRunning, "Process should have exited");
+                var activeSessions = _sessionManager.GetActiveSessions();
+                var activeSession = activeSessions.FirstOrDefault(s => s.SessionId == sessionId);
+                if (activeSession == null || !activeSession.IsRunning)
+                {
+                    processExited = true;
+                    break;
+                }
+                await Task.Delay(500, cancellationToken);
             }
+
+            Assert.True(processExited, "Process should have exited within 30 seconds");
         }
         finally
         {
