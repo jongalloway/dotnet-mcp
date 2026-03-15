@@ -149,6 +149,7 @@ public static partial class ErrorResultFactory
             var genericCode = $"EXIT_{exitCode}";
             var category = "Unknown";
             var mcpErrorCode = McpErrorCodes.GetMcpErrorCode(genericCode, category, exitCode);
+            var (rootCause, recommendedAction) = RootCauseClassifier.Classify(genericCode, errorMessage, error, exitCode);
 
             errors.Add(new ErrorResult
             {
@@ -158,6 +159,8 @@ public static partial class ErrorResultFactory
                 Hint = "Check the command syntax and arguments",
                 RawOutput = SanitizeOutput(combinedOutput),
                 McpErrorCode = mcpErrorCode,
+                RootCauseKind = rootCause != RootCauseKind.Unknown ? rootCause : null,
+                RecommendedAction = recommendedAction,
                 Data = CreateErrorData(command, exitCode, error)
             });
         }
@@ -211,14 +214,16 @@ public static partial class ErrorResultFactory
         if (compilerMatch.Success)
         {
             var code = compilerMatch.Groups["code"].Value;
+            var message = compilerMatch.Groups["message"].Value.Trim();
             var category = GetCategory(code);
             var mcpErrorCode = McpErrorCodes.GetMcpErrorCode(code, category, exitCode);
             var errorInfo = ErrorCodeDictionary.GetErrorInfo(code);
+            var (rootCause, recommendedAction) = RootCauseClassifier.Classify(code, message, stderr, exitCode);
 
             return new ErrorResult
             {
                 Code = code,
-                Message = compilerMatch.Groups["message"].Value.Trim(),
+                Message = message,
                 Category = category,
                 Hint = GetHint(code),
                 Explanation = errorInfo?.Explanation,
@@ -226,6 +231,8 @@ public static partial class ErrorResultFactory
                 SuggestedFixes = errorInfo?.SuggestedFixes,
                 RawOutput = SanitizeOutput(line),
                 McpErrorCode = mcpErrorCode,
+                RootCauseKind = rootCause != RootCauseKind.Unknown ? rootCause : null,
+                RecommendedAction = recommendedAction,
                 Data = CreateErrorData(command, exitCode, stderr)
             };
         }
@@ -235,14 +242,16 @@ public static partial class ErrorResultFactory
         if (nugetMatch.Success)
         {
             var code = nugetMatch.Groups["code"].Value;
+            var nugetMessage = nugetMatch.Groups["message"].Value.Trim();
             var category = "Package";
             var mcpErrorCode = McpErrorCodes.GetMcpErrorCode(code, category, exitCode);
             var errorInfo = ErrorCodeDictionary.GetErrorInfo(code);
+            var (rootCause, recommendedAction) = RootCauseClassifier.Classify(code, nugetMessage, stderr, exitCode);
 
             return new ErrorResult
             {
                 Code = code,
-                Message = nugetMatch.Groups["message"].Value.Trim(),
+                Message = nugetMessage,
                 Category = category,
                 Hint = GetHint(code),
                 Explanation = errorInfo?.Explanation,
@@ -250,6 +259,8 @@ public static partial class ErrorResultFactory
                 SuggestedFixes = errorInfo?.SuggestedFixes,
                 RawOutput = SanitizeOutput(line),
                 McpErrorCode = mcpErrorCode,
+                RootCauseKind = rootCause != RootCauseKind.Unknown ? rootCause : null,
+                RecommendedAction = recommendedAction,
                 Data = CreateErrorData(command, exitCode, stderr)
             };
         }
@@ -259,14 +270,16 @@ public static partial class ErrorResultFactory
         if (genericMatch.Success)
         {
             var code = genericMatch.Groups["code"].Value;
+            var genericMessage = genericMatch.Groups["message"].Value.Trim();
             var category = GetCategory(code);
             var mcpErrorCode = McpErrorCodes.GetMcpErrorCode(code, category, exitCode);
             var errorInfo = ErrorCodeDictionary.GetErrorInfo(code);
+            var (rootCause, recommendedAction) = RootCauseClassifier.Classify(code, genericMessage, stderr, exitCode);
 
             return new ErrorResult
             {
                 Code = code,
-                Message = genericMatch.Groups["message"].Value.Trim(),
+                Message = genericMessage,
                 Category = category,
                 Hint = GetHint(code),
                 Explanation = errorInfo?.Explanation,
@@ -274,6 +287,8 @@ public static partial class ErrorResultFactory
                 SuggestedFixes = errorInfo?.SuggestedFixes,
                 RawOutput = SanitizeOutput(line),
                 McpErrorCode = mcpErrorCode,
+                RootCauseKind = rootCause != RootCauseKind.Unknown ? rootCause : null,
+                RecommendedAction = recommendedAction,
                 Data = CreateErrorData(command, exitCode, stderr)
             };
         }
