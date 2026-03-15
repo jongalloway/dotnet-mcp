@@ -18,7 +18,7 @@ public class ConsolidatedProjectToolCoverageFollowUpTests
     }
 
     [Fact]
-    public async Task DotnetProject_Test_WithMultipleParameters_AndExplicitMtp_UsesStrictCommandAssertion()
+    public async Task DotnetProject_Test_WithMultipleParameters_AndExplicitMtp_UsesCommandSubstringAssertion()
     {
         var result = (await _tools.DotnetProject(
             action: DotnetProjectAction.Test,
@@ -33,7 +33,7 @@ public class ConsolidatedProjectToolCoverageFollowUpTests
     }
 
     [Fact]
-    public async Task DotnetProject_Test_WithLegacyFlag_AndConfiguration_UsesStrictCommandAssertion()
+    public async Task DotnetProject_Test_WithLegacyFlag_AndConfiguration_UsesCommandSubstringAssertion()
     {
         var result = (await _tools.DotnetProject(
             action: DotnetProjectAction.Test,
@@ -46,7 +46,7 @@ public class ConsolidatedProjectToolCoverageFollowUpTests
     }
 
     [Fact]
-    public async Task DotnetProject_Test_WithLegacyFlag_MultipleParameters_UsesStrictCommandAssertion()
+    public async Task DotnetProject_Test_WithLegacyFlag_MultipleParameters_UsesCommandSubstringAssertion()
     {
         var result = (await _tools.DotnetProject(
             action: DotnetProjectAction.Test,
