@@ -85,7 +85,11 @@ public class WatchSessionTests : IDisposable
             {
                 Directory.Delete(tempDir, recursive: true);
             }
-            catch
+            catch (IOException)
+            {
+                // Best effort cleanup
+            }
+            catch (UnauthorizedAccessException)
             {
                 // Best effort cleanup
             }
@@ -179,7 +183,7 @@ public class WatchSessionTests : IDisposable
             var pid = int.Parse(pidStr);
 
             // Verify process is running
-            var process = Process.GetProcessById(pid);
+            using var process = Process.GetProcessById(pid);
             Assert.False(process.HasExited);
 
             // Stop it
@@ -202,8 +206,6 @@ public class WatchSessionTests : IDisposable
             {
                 // Process no longer exists - this is expected
             }
-
-            process.Dispose();
         }
         finally
         {
@@ -211,7 +213,11 @@ public class WatchSessionTests : IDisposable
             {
                 Directory.Delete(tempDir, recursive: true);
             }
-            catch
+            catch (IOException)
+            {
+                // Best effort cleanup
+            }
+            catch (UnauthorizedAccessException)
             {
                 // Best effort cleanup
             }
@@ -265,7 +271,11 @@ public class WatchSessionTests : IDisposable
             {
                 Directory.Delete(tempDir, recursive: true);
             }
-            catch
+            catch (IOException)
+            {
+                // Best effort cleanup
+            }
+            catch (UnauthorizedAccessException)
             {
                 // Best effort cleanup
             }
@@ -275,16 +285,14 @@ public class WatchSessionTests : IDisposable
     private static string ExtractRequiredMetadataValue(string output, string key)
     {
         var prefix = key + ":";
-        foreach (var line in output
-            .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-            .Where(line => line.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
-        {
-            var value = line[prefix.Length..].Trim();
-            if (!string.IsNullOrEmpty(value))
-            {
-                return value;
-            }
-        }
+        var found = output
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+            .Where(line => line.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            .Select(line => line[prefix.Length..].Trim())
+            .FirstOrDefault(value => !string.IsNullOrEmpty(value));
+
+        if (found != null)
+            return found;
 
         throw new InvalidOperationException($"Missing '{prefix}' in output: {output}");
     }

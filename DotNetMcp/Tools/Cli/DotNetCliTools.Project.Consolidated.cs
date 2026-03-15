@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Text;
 using DotNetMcp.Actions;
 using Microsoft.Extensions.AI;
@@ -548,73 +549,61 @@ public sealed partial class DotNetCliTools
             {
                 // Start the process without waiting
                 var process = DotNetCommandExecutor.StartProcess(args.ToString(), _logger, workingDir);
-                var sessionRegistered = false;
 
-                try
+                // Register the session; if registration fails, dispose the process
+                if (!_processSessionManager.RegisterSession(sessionId, process, "watch", target))
                 {
-                    // Register the session
-                    if (!_processSessionManager.RegisterSession(sessionId, process, "watch", target))
+                    using (process)
                     {
                         try
                         {
                             process.Kill(entireProcessTree: true);
                         }
-                        catch (Exception ex)
+                        catch (Win32Exception ex)
                         {
                             _logger.LogDebug(ex, "Failed to kill process during registration failure for watch session {SessionId}", sessionId);
                         }
-                        finally
+                        catch (InvalidOperationException ex)
                         {
-                            process.Dispose();
+                            _logger.LogDebug(ex, "Failed to kill process during registration failure for watch session {SessionId}", sessionId);
                         }
-
-                        return "Error: Failed to register watch process session. Session ID may already exist.";
                     }
 
-                    sessionRegistered = true;
-
-                    // Attach cleanup continuation for when process exits
-                    _ = Task.Run(async () =>
-                    {
-                        try
-                        {
-                            await process.WaitForExitAsync();
-                            try
-                            {
-                                var exitCode = process.ExitCode;
-                                _logger.LogDebug("Background watch process {SessionId} exited with code {ExitCode}", sessionId, exitCode);
-                            }
-                            catch (InvalidOperationException)
-                            {
-                                _logger.LogDebug("Background watch process {SessionId} exited (exit code unavailable)", sessionId);
-                            }
-
-                            _processSessionManager.CleanupCompletedSessions();
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "Error in background watch process cleanup for session {SessionId}", sessionId);
-                        }
-                    });
-
-                    return $"Watch process started in background mode\nSession ID: {sessionId}\nPID: {process.Id}\nTarget: {target}\nWatch Action: {watchAction}\n\nUse 'dotnet_project' with action 'Stop' and sessionId '{sessionId}' to terminate the watch process.";
+                    return "Error: Failed to register watch process session. Session ID may already exist.";
                 }
-                finally
+
+                // Attach cleanup continuation for when process exits
+                _ = Task.Run(async () =>
                 {
-                    if (!sessionRegistered)
+                    try
                     {
+                        await process.WaitForExitAsync();
                         try
                         {
-                            process.Dispose();
+                            var exitCode = process.ExitCode;
+                            _logger.LogDebug("Background watch process {SessionId} exited with code {ExitCode}", sessionId, exitCode);
                         }
-                        catch (Exception ex)
+                        catch (InvalidOperationException)
                         {
-                            _logger.LogDebug(ex, "Failed to dispose process for watch session {SessionId}", sessionId);
+                            _logger.LogDebug("Background watch process {SessionId} exited (exit code unavailable)", sessionId);
                         }
+
+                        _processSessionManager.CleanupCompletedSessions();
                     }
-                }
+                    catch (InvalidOperationException ex)
+                    {
+                        _logger.LogError(ex, "Error in background watch process cleanup for session {SessionId}", sessionId);
+                    }
+                });
+
+                return $"Watch process started in background mode\nSession ID: {sessionId}\nPID: {process.Id}\nTarget: {target}\nWatch Action: {watchAction}\n\nUse 'dotnet_project' with action 'Stop' and sessionId '{sessionId}' to terminate the watch process.";
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError(ex, "Failed to start background watch process");
+                return $"Error: Failed to start watch process: {ex.Message}";
+            }
+            catch (DirectoryNotFoundException ex)
             {
                 _logger.LogError(ex, "Failed to start background watch process");
                 return $"Error: Failed to start watch process: {ex.Message}";
