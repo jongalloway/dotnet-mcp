@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated `ModelContextProtocol` SDK dependency from v1.0.0 to v1.1.0.
+- Renamed and updated `doc/sdk-v1.0-compatibility.md` → `doc/sdk-v1.1-compatibility.md` to cover the v1.1 audit and task-related adoption.
+- Added an MCP feature usage table to `README.md` covering resources, prompts, roots, sampling, elicitation, progress, tasks, completion, and tool metadata.
+- Refreshed MCP SDK version references in `doc/telemetry.md` and `doc/icons.md` for the v1.1 update.
 - Updated `ModelContextProtocol` SDK dependency from v1.0.0-rc.1 to v1.0.0.
 - Updated MCP protocol version string from `"0.5.0-preview.1"` to `"2025-11-25"` (spec date format).
 - Renamed and updated `doc/sdk-v0.6-compatibility.md` → `doc/sdk-v1.0-compatibility.md` to cover v0.7–v1.0 changes.
