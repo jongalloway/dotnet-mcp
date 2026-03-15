@@ -251,23 +251,9 @@ internal static class RootCauseClassifier
     private static bool Contains(string text, string value) =>
         text.Contains(value, StringComparison.OrdinalIgnoreCase);
 
-    private static bool ContainsAny(string text, params string[] values)
-    {
-        foreach (var value in values)
-        {
-            if (text.Contains(value, StringComparison.OrdinalIgnoreCase))
-                return true;
-        }
-        return false;
-    }
+    private static bool ContainsAny(string text, params string[] values) =>
+        values.Any(value => text.Contains(value, StringComparison.OrdinalIgnoreCase));
 
-    private static bool ContainsAll(string text, params string[] values)
-    {
-        foreach (var value in values)
-        {
-            if (!text.Contains(value, StringComparison.OrdinalIgnoreCase))
-                return false;
-        }
-        return true;
-    }
+    private static bool ContainsAll(string text, params string[] values) =>
+        values.All(value => text.Contains(value, StringComparison.OrdinalIgnoreCase));
 }

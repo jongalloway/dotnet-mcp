@@ -136,7 +136,7 @@ public class RootCauseClassifierTests
     [Fact]
     public void Classify_SdkNotInstalled_ReturnsMissingSdk()
     {
-        var (kind, action) = RootCauseClassifier.Classify(
+        var (kind, _) = RootCauseClassifier.Classify(
             "EXIT_1", null, ".NET SDK is not installed. Install it from https://dot.net", 1);
 
         Assert.Equal(RootCauseKind.MissingSdk, kind);
@@ -169,7 +169,7 @@ public class RootCauseClassifierTests
     [Fact]
     public void Classify_CouldNotFindCsproj_ReturnsProjectNotFound()
     {
-        var (kind, action) = RootCauseClassifier.Classify(
+        var (kind, _) = RootCauseClassifier.Classify(
             "EXIT_1", null, "Could not find a .csproj file in the specified directory.", 1);
 
         Assert.Equal(RootCauseKind.ProjectNotFound, kind);
