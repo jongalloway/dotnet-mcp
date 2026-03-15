@@ -104,7 +104,7 @@ public sealed partial class DotNetCliTools
     [McpMeta("priority", 10.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("consolidatedTool", true)]
-    [McpMeta("actions", JsonValue = """["Create","Add","List","Remove"]""")]
+    [McpMeta("actions", JsonValue = """["Create","Add","List","Remove","Analyze","Dependencies","Validate"]""")]
     [McpMeta("tags", JsonValue = """["solution","consolidated","create","add","list","remove","organization","multi-project"]""")]
     public async partial Task<CallToolResult> DotnetSolution(
         DotnetSolutionAction action,
@@ -126,7 +126,8 @@ public sealed partial class DotNetCliTools
         // Create uses the name parameter instead.
         var effectiveSolution = solution;
         if (string.IsNullOrEmpty(effectiveSolution) && action is
-            DotnetSolutionAction.Add or DotnetSolutionAction.List or DotnetSolutionAction.Remove)
+            DotnetSolutionAction.Add or DotnetSolutionAction.List or DotnetSolutionAction.Remove
+            or DotnetSolutionAction.Analyze or DotnetSolutionAction.Dependencies or DotnetSolutionAction.Validate)
         {
             effectiveSolution = await WorkspaceDiscovery.TryFindSolutionInRootsAsync(server);
         }
@@ -138,6 +139,9 @@ public sealed partial class DotNetCliTools
             DotnetSolutionAction.Add => await HandleAddAction(effectiveSolution, projects),
             DotnetSolutionAction.List => await HandleListAction(effectiveSolution),
             DotnetSolutionAction.Remove => await HandleRemoveAction(effectiveSolution, projects, server),
+            DotnetSolutionAction.Analyze => await HandleSolutionAnalyzeAction(effectiveSolution),
+            DotnetSolutionAction.Dependencies => await HandleSolutionDependenciesAction(effectiveSolution),
+            DotnetSolutionAction.Validate => await HandleSolutionValidateAction(effectiveSolution),
             _ => throw new InvalidOperationException($"Unsupported action '{action}'. This should have been caught by validation.")
         };
 
@@ -229,6 +233,36 @@ public sealed partial class DotNetCliTools
         }
 
         return await DotnetSolutionRemove(solution!, projects);
+    }
+
+    private async Task<string> HandleSolutionAnalyzeAction(string? solution)
+    {
+        if (!ParameterValidator.ValidateRequiredParameter(solution, "solution", out var solutionError))
+        {
+            return $"Error: {solutionError}";
+        }
+
+        return await SolutionAnalysisHelper.AnalyzeSolutionAsync(solution!, args => ExecuteDotNetCommand(args), _logger);
+    }
+
+    private async Task<string> HandleSolutionDependenciesAction(string? solution)
+    {
+        if (!ParameterValidator.ValidateRequiredParameter(solution, "solution", out var solutionError))
+        {
+            return $"Error: {solutionError}";
+        }
+
+        return await SolutionAnalysisHelper.GetSolutionDependenciesAsync(solution!, args => ExecuteDotNetCommand(args), _logger);
+    }
+
+    private async Task<string> HandleSolutionValidateAction(string? solution)
+    {
+        if (!ParameterValidator.ValidateRequiredParameter(solution, "solution", out var solutionError))
+        {
+            return $"Error: {solutionError}";
+        }
+
+        return await SolutionAnalysisHelper.ValidateSolutionAsync(solution!, args => ExecuteDotNetCommand(args), _logger);
     }
 
     private static object? BuildSolutionListStructuredContent(string textResult)
