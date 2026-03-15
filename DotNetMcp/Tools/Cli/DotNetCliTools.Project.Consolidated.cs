@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Text;
 using DotNetMcp.Actions;
 using Microsoft.Extensions.AI;
@@ -50,7 +51,7 @@ public sealed partial class DotNetCliTools
     /// <param name="testRunner">Test runner selection for test action (Auto, MicrosoftTestingPlatform, or VSTest). Auto detects from global.json. Default: Auto</param>
     /// <param name="useLegacyProjectArgument">DEPRECATED: Use testRunner parameter instead. When true, uses positional project argument (VSTest mode)</param>
     /// <param name="sessionId">Session ID for stop/logs actions (required when action is Stop or Logs)</param>
-    /// <param name="startMode">Start mode for run action (Foreground or Background). Foreground blocks until exit, Background returns immediately with sessionId. Default: Foreground</param>
+    /// <param name="startMode">Start mode for run/watch actions (Foreground or Background). Foreground blocks until exit, Background returns immediately with sessionId. Default: Foreground</param>
     /// <param name="tailLines">Number of most recent log lines to return for logs action (optional, returns all if not specified)</param>
     /// <param name="since">Return logs only after this timestamp (ISO 8601 format) for logs action (optional)</param>
     /// <param name="propertyName">MSBuild property name for SetProperty/GetProperty/RemoveProperty actions (e.g., 'OutputType')</param>
@@ -144,7 +145,7 @@ public sealed partial class DotNetCliTools
                 DotnetProjectAction.Dependencies => await HandleDependenciesAction(projectPath),
                 DotnetProjectAction.Validate => await HandleValidateAction(projectPath),
                 DotnetProjectAction.Pack => await ExecuteWithProgress(progress, "Packing project...", "Pack complete", () => HandlePackAction(effectiveProject, configuration, output, includeSymbols, includeSource)),
-                DotnetProjectAction.Watch => await HandleWatchAction(watchAction, effectiveProject, configuration, appArgs, filter, noHotReload),
+                DotnetProjectAction.Watch => await HandleWatchAction(watchAction, effectiveProject, configuration, appArgs, filter, noHotReload, startMode),
                 DotnetProjectAction.Format => await HandleFormatAction(effectiveProject, verify, includeGenerated, diagnostics, severity),
                 DotnetProjectAction.Stop => await HandleStopAction(sessionId),
                 DotnetProjectAction.Logs => await HandleLogsAction(sessionId, tailLines, since),
@@ -484,7 +485,7 @@ public sealed partial class DotNetCliTools
             includeSource: includeSource ?? false);
     }
 
-    private async Task<string> HandleWatchAction(string? watchAction, string? project, string? configuration, string? appArgs, string? filter, bool? noHotReload)
+    private async Task<string> HandleWatchAction(string? watchAction, string? project, string? configuration, string? appArgs, string? filter, bool? noHotReload, StartMode? startMode = null)
     {
         // Validate required parameter
         if (!ParameterValidator.ValidateRequiredParameter(watchAction, "watchAction", out var errorMessage))
@@ -499,7 +500,117 @@ public sealed partial class DotNetCliTools
             return $"Error: Invalid watchAction '{watchAction}'. Valid values: run, test, build";
         }
 
-        // Route to appropriate watch method based on watchAction
+        var effectiveStartMode = startMode ?? StartMode.Foreground;
+
+        // Background mode - start the watch process and return immediately with session metadata
+        if (effectiveStartMode == StartMode.Background)
+        {
+            // Validate project path if provided
+            if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
+            {
+                return $"Error: {projectError}";
+            }
+
+            // Validate configuration if provided
+            if (!ParameterValidator.ValidateConfiguration(configuration, out var configError))
+            {
+                return $"Error: {configError}";
+            }
+
+            // Build the watch command arguments
+            var args = new StringBuilder("watch");
+            if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
+
+            switch (watchAction.ToLowerInvariant())
+            {
+                case "run":
+                    args.Append(" run");
+                    if (noHotReload ?? false) args.Append(" --no-hot-reload");
+                    if (!string.IsNullOrEmpty(appArgs)) args.Append($" -- {appArgs}");
+                    break;
+                case "test":
+                    args.Append(" test");
+                    if (!string.IsNullOrEmpty(filter)) args.Append($" --filter \"{filter}\"");
+                    break;
+                case "build":
+                    args.Append(" build");
+                    if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
+                    break;
+            }
+
+            // Determine the target for session tracking
+            var workingDir = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
+            var target = GetOperationTarget(project, workingDir);
+
+            // Generate a session ID
+            var sessionId = Guid.NewGuid().ToString();
+
+            try
+            {
+                // Start the process without waiting
+                var process = DotNetCommandExecutor.StartProcess(args.ToString(), _logger, workingDir);
+
+                // Register the session; if registration fails, dispose the process
+                if (!_processSessionManager.RegisterSession(sessionId, process, "watch", target))
+                {
+                    using (process)
+                    {
+                        try
+                        {
+                            process.Kill(entireProcessTree: true);
+                        }
+                        catch (Win32Exception ex)
+                        {
+                            _logger.LogDebug(ex, "Failed to kill process during registration failure for watch session {SessionId}", sessionId);
+                        }
+                        catch (InvalidOperationException ex)
+                        {
+                            _logger.LogDebug(ex, "Failed to kill process during registration failure for watch session {SessionId}", sessionId);
+                        }
+                    }
+
+                    return "Error: Failed to register watch process session. Session ID may already exist.";
+                }
+
+                // Attach cleanup continuation for when process exits
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await process.WaitForExitAsync();
+                        try
+                        {
+                            var exitCode = process.ExitCode;
+                            _logger.LogDebug("Background watch process {SessionId} exited with code {ExitCode}", sessionId, exitCode);
+                        }
+                        catch (InvalidOperationException)
+                        {
+                            _logger.LogDebug("Background watch process {SessionId} exited (exit code unavailable)", sessionId);
+                        }
+
+                        _processSessionManager.CleanupCompletedSessions();
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        _logger.LogError(ex, "Error in background watch process cleanup for session {SessionId}", sessionId);
+                    }
+                });
+
+                return $"Watch process started in background mode\nSession ID: {sessionId}\nPID: {process.Id}\nTarget: {target}\nWatch Action: {watchAction}\n\nUse 'dotnet_project' with action 'Stop' and sessionId '{sessionId}' to terminate the watch process.";
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError(ex, "Failed to start background watch process");
+                return $"Error: Failed to start watch process: {ex.Message}";
+            }
+            catch (DirectoryNotFoundException ex)
+            {
+                _logger.LogError(ex, "Failed to start background watch process");
+                return $"Error: Failed to start watch process: {ex.Message}";
+            }
+        }
+
+        // Foreground mode - route to appropriate watch method based on watchAction
         return watchAction.ToLowerInvariant() switch
         {
             "run" => await DotnetWatchRun(project: project, appArgs: appArgs, noHotReload: noHotReload ?? false),

@@ -71,6 +71,19 @@ public sealed class ErrorResult
     public int? McpErrorCode { get; init; }
 
     /// <summary>
+    /// Classified root cause of the error for programmatic handling.
+    /// </summary>
+    [JsonPropertyName("rootCauseKind")]
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public RootCauseKind? RootCauseKind { get; init; }
+
+    /// <summary>
+    /// Recommended next action to resolve the error.
+    /// </summary>
+    [JsonPropertyName("recommendedAction")]
+    public RecommendedAction? RecommendedAction { get; init; }
+
+    /// <summary>
     /// Structured data payload with actionable details for programmatic error handling.
     /// Contains information like exit code, command arguments, and error details (with secrets redacted).
     /// </summary>

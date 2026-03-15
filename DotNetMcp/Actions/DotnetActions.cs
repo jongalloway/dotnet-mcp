@@ -153,7 +153,16 @@ public enum DotnetSolutionAction
     List,
 
     /// <summary>Remove a project from the solution</summary>
-    Remove
+    Remove,
+
+    /// <summary>Analyze solution structure including project types, frameworks, and dependencies</summary>
+    Analyze,
+
+    /// <summary>Show dependency graph between projects in the solution</summary>
+    Dependencies,
+
+    /// <summary>Validate solution health and detect issues</summary>
+    Validate
 }
 
 /// <summary>
