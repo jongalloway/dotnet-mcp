@@ -20,6 +20,7 @@ public sealed partial class DotNetCliTools
     private readonly ConcurrencyManager _concurrencyManager;
     private readonly ProcessSessionManager _processSessionManager;
     private readonly ToolMetricsAccumulator? _metricsAccumulator;
+    private readonly ResourceSubscriptionManager? _subscriptions;
 
     // Constants for server capability discovery
     private const string DefaultServerVersion = "1.0.0";
@@ -29,13 +30,14 @@ public sealed partial class DotNetCliTools
     private const int MaxSamplingPromptLength = 4000;
     private const int MaxSamplingResponseTokens = 256;
 
-    public DotNetCliTools(ILogger<DotNetCliTools> logger, ConcurrencyManager concurrencyManager, ProcessSessionManager processSessionManager, ToolMetricsAccumulator? metricsAccumulator = null)
+    public DotNetCliTools(ILogger<DotNetCliTools> logger, ConcurrencyManager concurrencyManager, ProcessSessionManager processSessionManager, ToolMetricsAccumulator? metricsAccumulator = null, ResourceSubscriptionManager? subscriptions = null)
     {
         // DI guarantees logger is never null
         _logger = logger!;
         _concurrencyManager = concurrencyManager!;
         _processSessionManager = processSessionManager!;
         _metricsAccumulator = metricsAccumulator;
+        _subscriptions = subscriptions;
     }
 
     private async Task<string> ExecuteDotNetCommand(string arguments, CancellationToken cancellationToken = default, string? workingDirectory = null)
