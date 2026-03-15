@@ -106,6 +106,22 @@ public sealed partial class DotNetCliTools
         IProgress<ProgressNotificationValue>? progress = null,
         McpServer? server = null)
     {
+        // Auto-detect project from workspace roots when not explicitly specified.
+        // Only attempt discovery for actions that use the project parameter; skip New,
+        // Stop, Logs, ListTemplateOptions, Analyze, Dependencies, and Validate which
+        // either don't need a project path or use projectPath instead.
+        var effectiveProject = project;
+        if (string.IsNullOrEmpty(effectiveProject) && action is
+            DotnetProjectAction.Restore or DotnetProjectAction.Build or DotnetProjectAction.Run or
+            DotnetProjectAction.Test or DotnetProjectAction.Publish or DotnetProjectAction.Clean or
+            DotnetProjectAction.Pack or DotnetProjectAction.Watch or DotnetProjectAction.Format or
+            DotnetProjectAction.SetProperty or DotnetProjectAction.GetProperty or
+            DotnetProjectAction.RemoveProperty or DotnetProjectAction.AddItem or
+            DotnetProjectAction.RemoveItem or DotnetProjectAction.ListItems)
+        {
+            effectiveProject = await WorkspaceDiscovery.TryFindProjectInRootsAsync(server);
+        }
+
         var textResult = await WithWorkingDirectoryAsync(workingDirectory, async () =>
         {
             // Validate action parameter
@@ -118,27 +134,27 @@ public sealed partial class DotNetCliTools
             return action switch
             {
                 DotnetProjectAction.New => await HandleNewAction(template, name, output, framework, additionalOptions),
-                DotnetProjectAction.Restore => await ExecuteWithProgress(progress, "Restoring packages...", "Restore complete", () => HandleRestoreAction(project, server)),
-                DotnetProjectAction.Build => await ExecuteWithProgress(progress, "Building project...", "Build complete", () => HandleBuildAction(project, configuration, framework, server)),
-                DotnetProjectAction.Run => await ExecuteWithProgress(progress, "Building and starting application...", "Run complete", () => HandleRunAction(project, configuration, appArgs, noBuild, startMode)),
-                DotnetProjectAction.Test => await ExecuteWithProgress(progress, "Running tests...", "Tests complete", () => HandleTestAction(project, configuration, filter, collect, resultsDirectory, logger, noBuild, noRestore, verbosity, framework, blame, listTests, testRunner, useLegacyProjectArgument, server)),
-                DotnetProjectAction.Publish => await ExecuteWithProgress(progress, "Publishing project...", "Publish complete", () => HandlePublishAction(project, configuration, output, runtime, server)),
-                DotnetProjectAction.Clean => await ExecuteWithProgress(progress, "Cleaning output directories...", "Clean complete", () => HandleCleanAction(project, configuration, server)),
+                DotnetProjectAction.Restore => await ExecuteWithProgress(progress, "Restoring packages...", "Restore complete", () => HandleRestoreAction(effectiveProject, server)),
+                DotnetProjectAction.Build => await ExecuteWithProgress(progress, "Building project...", "Build complete", () => HandleBuildAction(effectiveProject, configuration, framework, server)),
+                DotnetProjectAction.Run => await ExecuteWithProgress(progress, "Building and starting application...", "Run complete", () => HandleRunAction(effectiveProject, configuration, appArgs, noBuild, startMode)),
+                DotnetProjectAction.Test => await ExecuteWithProgress(progress, "Running tests...", "Tests complete", () => HandleTestAction(effectiveProject, configuration, filter, collect, resultsDirectory, logger, noBuild, noRestore, verbosity, framework, blame, listTests, testRunner, useLegacyProjectArgument, server)),
+                DotnetProjectAction.Publish => await ExecuteWithProgress(progress, "Publishing project...", "Publish complete", () => HandlePublishAction(effectiveProject, configuration, output, runtime, server)),
+                DotnetProjectAction.Clean => await ExecuteWithProgress(progress, "Cleaning output directories...", "Clean complete", () => HandleCleanAction(effectiveProject, configuration, server)),
                 DotnetProjectAction.Analyze => await HandleAnalyzeAction(projectPath),
                 DotnetProjectAction.Dependencies => await HandleDependenciesAction(projectPath),
                 DotnetProjectAction.Validate => await HandleValidateAction(projectPath),
-                DotnetProjectAction.Pack => await ExecuteWithProgress(progress, "Packing project...", "Pack complete", () => HandlePackAction(project, configuration, output, includeSymbols, includeSource)),
-                DotnetProjectAction.Watch => await HandleWatchAction(watchAction, project, configuration, appArgs, filter, noHotReload),
-                DotnetProjectAction.Format => await HandleFormatAction(project, verify, includeGenerated, diagnostics, severity),
+                DotnetProjectAction.Pack => await ExecuteWithProgress(progress, "Packing project...", "Pack complete", () => HandlePackAction(effectiveProject, configuration, output, includeSymbols, includeSource)),
+                DotnetProjectAction.Watch => await HandleWatchAction(watchAction, effectiveProject, configuration, appArgs, filter, noHotReload),
+                DotnetProjectAction.Format => await HandleFormatAction(effectiveProject, verify, includeGenerated, diagnostics, severity),
                 DotnetProjectAction.Stop => await HandleStopAction(sessionId),
                 DotnetProjectAction.Logs => await HandleLogsAction(sessionId, tailLines, since),
                 DotnetProjectAction.ListTemplateOptions => await HandleListTemplateOptionsAction(template),
-                DotnetProjectAction.SetProperty => await HandleSetPropertyAction(project, propertyName, propertyValue),
-                DotnetProjectAction.GetProperty => await HandleGetPropertyAction(project, propertyName),
-                DotnetProjectAction.RemoveProperty => await HandleRemovePropertyAction(project, propertyName),
-                DotnetProjectAction.AddItem => await HandleAddItemAction(project, itemType, include),
-                DotnetProjectAction.RemoveItem => await HandleRemoveItemAction(project, itemType, include),
-                DotnetProjectAction.ListItems => await HandleListItemsAction(project, itemType),
+                DotnetProjectAction.SetProperty => await HandleSetPropertyAction(effectiveProject, propertyName, propertyValue),
+                DotnetProjectAction.GetProperty => await HandleGetPropertyAction(effectiveProject, propertyName),
+                DotnetProjectAction.RemoveProperty => await HandleRemovePropertyAction(effectiveProject, propertyName),
+                DotnetProjectAction.AddItem => await HandleAddItemAction(effectiveProject, itemType, include),
+                DotnetProjectAction.RemoveItem => await HandleRemoveItemAction(effectiveProject, itemType, include),
+                DotnetProjectAction.ListItems => await HandleListItemsAction(effectiveProject, itemType),
                 _ => $"Error: Action '{action}' is not supported."
             };
         });

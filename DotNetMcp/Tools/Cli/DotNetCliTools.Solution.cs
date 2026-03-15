@@ -121,13 +121,23 @@ public sealed partial class DotNetCliTools
             return StructuredContentHelper.ToCallToolResult($"Error: {actionError}");
         }
 
+        // Auto-detect solution from workspace roots when not explicitly specified.
+        // Only applicable for actions that require a solution path (Add, List, Remove);
+        // Create uses the name parameter instead.
+        var effectiveSolution = solution;
+        if (string.IsNullOrEmpty(effectiveSolution) && action is
+            DotnetSolutionAction.Add or DotnetSolutionAction.List or DotnetSolutionAction.Remove)
+        {
+            effectiveSolution = await WorkspaceDiscovery.TryFindSolutionInRootsAsync(server);
+        }
+
         // Route to appropriate method based on action
         var textResult = action switch
         {
             DotnetSolutionAction.Create => await HandleCreateAction(name, output, format),
-            DotnetSolutionAction.Add => await HandleAddAction(solution, projects),
-            DotnetSolutionAction.List => await HandleListAction(solution),
-            DotnetSolutionAction.Remove => await HandleRemoveAction(solution, projects, server),
+            DotnetSolutionAction.Add => await HandleAddAction(effectiveSolution, projects),
+            DotnetSolutionAction.List => await HandleListAction(effectiveSolution),
+            DotnetSolutionAction.Remove => await HandleRemoveAction(effectiveSolution, projects, server),
             _ => throw new InvalidOperationException($"Unsupported action '{action}'. This should have been caught by validation.")
         };
 
