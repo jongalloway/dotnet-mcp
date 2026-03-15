@@ -1,13 +1,13 @@
 # Icon Implementation Summary
 
-This document provides a visual reference for all icons used in the .NET MCP Server.
+This document provides a visual reference for all icons used in the .NET MCP Server and how they align with MCP C# SDK v1.1 tool and server metadata support.
 
 ## Server-Level Icons
 
 The server itself has icons configured in `Program.cs`:
 
 | Format | Source | Size | Theme |
-|--------|--------|------|-------|
+| ------ | ------ | ---- | ----- |
 | SVG | [gear_flat.svg](https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Gear/Flat/gear_flat.svg) | any (scalable) | light |
 | PNG | [gear_3d.png](https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Gear/3D/gear_3d.png) | 256x256 | default |
 
@@ -15,10 +15,10 @@ The server itself has icons configured in `Program.cs`:
 
 ## Tool-Level Icons
 
-All 11 MCP tools have icons configured via the `IconSource` property:
+All 11 MCP tools have icons configured via the `IconSource` property. In addition to icons, dotnet-mcp uses MCP SDK tool metadata such as titles, categories, priorities, and task support declarations to help clients present the tool catalog more effectively.
 
 | Tool | Category | Icon | Visual | Description |
-|------|----------|------|--------|-------------|
+| ---- | -------- | ---- | ------ | ----------- |
 | `dotnet_project` | project | [file_folder_flat.svg](https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/File%20Folder/Flat/file_folder_flat.svg) | 📁 | Project lifecycle management |
 | `dotnet_package` | package | [package_flat.svg](https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Package/Flat/package_flat.svg) | 📦 | NuGet package operations |
 | `dotnet_solution` | solution | [card_file_box_flat.svg](https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Card%20File%20Box/Flat/card_file_box_flat.svg) | 🗂️ | Solution file management |
@@ -138,5 +138,6 @@ Icons are validated with comprehensive tests:
 ## References
 
 - [Microsoft Fluent UI Emoji](https://github.com/microsoft/fluentui-emoji)
-- [MCP SDK v1.0.0](https://github.com/modelcontextprotocol/csharp-sdk/releases/tag/v1.0.0)
+- [MCP C# SDK v1.1.0](https://github.com/modelcontextprotocol/csharp-sdk/releases/tag/v1.1.0)
+- [MCP C# SDK documentation](https://csharp.sdk.modelcontextprotocol.io/)
 - [Icon Support PR #1096](https://github.com/modelcontextprotocol/csharp-sdk/pull/1096)

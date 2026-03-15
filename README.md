@@ -65,6 +65,23 @@ Instead of relying on the LLM to infer state by reading and re-reading console o
 - `machineReadable: true` returns structured JSON (no log scraping)
 - MCP Resources provide lightweight metadata without running commands
 
+### 🧩 **MCP C# SDK Features Used**
+
+dotnet-mcp uses the official [MCP C# SDK](https://csharp.sdk.modelcontextprotocol.io/) and exercises a broad set of MCP features beyond basic tool invocation:
+
+| Feature | How dotnet-mcp uses it | Why |
+| ------- | ---------------------- | --- |
+| [Resources](https://modelcontextprotocol.io/specification/latest/server/resources) | Exposes `dotnet://sdk-info`, `dotnet://runtime-info`, `dotnet://templates`, and `dotnet://frameworks` as read-only MCP resources. | Lets clients answer environment questions quickly without shelling out, and reduces token churn from repeated CLI discovery. |
+| [Prompts](https://modelcontextprotocol.io/specification/latest/server/prompts) | Publishes reusable prompts such as `create_new_webapi`, `add_package_and_restore`, and `run_tests_with_coverage`. | Gives MCP clients guided, discoverable workflows instead of rebuilding common prompt scaffolding from scratch. |
+| [Roots](https://modelcontextprotocol.io/specification/latest/client/roots) | Uses client workspace roots to auto-detect a single project or solution when the user omits an explicit path. | Improves out-of-box behavior in IDE clients and reduces the number of parameters users need to supply. |
+| [Sampling](https://modelcontextprotocol.io/specification/latest/client/sampling) | Requests client-mediated LLM summaries for build and test failures when the client supports sampling. | Keeps intelligent diagnostics inside the MCP flow without requiring separate server-side model credentials. |
+| [Elicitation](https://modelcontextprotocol.io/specification/latest/client/elicitation) | Requests explicit confirmation before destructive actions such as clean and solution removal. | Adds a human-in-the-loop safety check for operations that delete artifacts or mutate project structure. |
+| [Progress notifications](https://modelcontextprotocol.io/specification/latest/basic/utilities/progress) | Reports start/completion progress for long-running restore, build, test, publish, pack, tool, and workload operations. | Gives clients a better UX for slow operations and makes orchestration easier for agents that surface progress. |
+| [Tasks](https://modelcontextprotocol.io/specification/latest/basic/utilities/tasks) | Registers an `IMcpTaskStore` and marks `dotnet_project` with optional task support for long-running operations. | Enables async execution, polling, and cancellation patterns instead of forcing every long-running request to block the session. |
+| [Tools and tool metadata](https://modelcontextprotocol.io/specification/latest/server/tools) | Uses consolidated tools with rich metadata such as titles, categories, priorities, action lists, and task support declarations. | Improves discoverability, routing, and client-side presentation, especially in MCP-aware IDE integrations. |
+| [Prompt and resource completion](https://modelcontextprotocol.io/specification/latest/server/utilities/completion) | Implements a completion handler so clients can autocomplete prompt and resource argument values. | Makes guided workflows faster and reduces invalid argument entry in clients that support completion UX. |
+| [Icons and server metadata](https://csharp.sdk.modelcontextprotocol.io/) | Configures server-level icons plus per-tool `IconSource`, title, and descriptive metadata across the consolidated surface. | Helps clients present the server and tool catalog more clearly, especially in visual MCP management UIs. |
+
 ### 🎯 **Why Not Just Let the AI Call `dotnet` Directly?**
 
 The .NET MCP Server provides **context and intelligence** that raw CLI execution cannot:
@@ -227,14 +244,7 @@ Follow the instructions below for your specific development environment:
 **Using Quick Install** (recommended - .NET 10 required):
 
 1. Click the [VS Code Install badge](#quick-install) at the top of this page
-2. Or manually add via Command Palette:
-   - Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on macOS)
-   - Run **"GitHub Copilot: Add MCP Server"**
-   - Enter:
-     - **Name**: `dotnet`
-     - **Type**: `stdio`
-     - **Command**: `dnx`
-    - **Arguments**: `Community.Mcp.DotNet@1.* --yes`
+2. Or manually add via Command Palette: press `Ctrl+Shift+P` (or `Cmd+Shift+P` on macOS), run **"GitHub Copilot: Add MCP Server"**, then enter **Name** `dotnet`, **Type** `stdio`, **Command** `dnx`, and **Arguments** `Community.Mcp.DotNet@1.* --yes`.
 
 **Manual Configuration** (for source builds or custom setups):
 
@@ -261,14 +271,7 @@ Edit your VS Code settings (`Ctrl+,` or `Cmd+,`, search for "mcp"):
 **Using Quick Install** (recommended - .NET 10 required):
 
 1. Click the [Visual Studio Install badge](#quick-install) at the top of this page
-2. Or manually add via Options:
-   - Go to **Tools** > **Options** > **GitHub Copilot** > **MCP Servers**
-   - Click **Add**
-   - Enter:
-     - **Name**: `dotnet`
-     - **Type**: `stdio`
-     - **Command**: `dnx`
-    - **Arguments**: `Community.Mcp.DotNet@1.* --yes`
+2. Or manually add via Options: go to **Tools** > **Options** > **GitHub Copilot** > **MCP Servers**, click **Add**, then enter **Name** `dotnet`, **Type** `stdio`, **Command** `dnx`, and **Arguments** `Community.Mcp.DotNet@1.* --yes`.
 
 **Manual Configuration** (for source builds or custom setups):
 

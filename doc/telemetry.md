@@ -1,18 +1,18 @@
 # Telemetry and Observability
 
-This document describes the telemetry and observability features available in dotnet-mcp, leveraging the MCP C# SDK v1.0.
+This document describes the telemetry and observability features available in dotnet-mcp, leveraging the MCP C# SDK v1.1.
 
 ## Overview
 
 dotnet-mcp provides comprehensive telemetry and observability through:
 
-1. **Built-in SDK Telemetry** - Request duration logging and OpenTelemetry semantic conventions (SDK v0.6+)
+1. **Built-in SDK Telemetry** - Request duration logging and OpenTelemetry semantic conventions provided by the MCP C# SDK
 2. **Structured Logging** - Microsoft.Extensions.Logging with configurable log levels
 3. **OpenTelemetry Integration** - Optional instrumentation for tools, resources, and operations
 
-## Built-in SDK Telemetry (v0.6+)
+## Built-in SDK Telemetry (v1.1)
 
-The MCP C# SDK v1.0 automatically provides telemetry aligned with OpenTelemetry semantic conventions.
+The MCP C# SDK v1.1 automatically provides telemetry aligned with OpenTelemetry semantic conventions.
 
 ### Request Duration Logging
 
@@ -29,9 +29,11 @@ These logs are emitted automatically by the SDK and include:
 - Success/failure status
 - Exception details (if applicable)
 
+dotnet-mcp also layers MCP progress notifications on top of this for long-running operations such as restore, build, test, publish, pack, tool installation, and workload management. For task-augmented requests, the server keeps progress updates within the MCP request/task lifecycle rather than relying on ad-hoc console output.
+
 ### Log Examples
 
-```
+```text
 info: ModelContextProtocol.Server.McpServer[LogRequestHandlerCompleted]
       Request handler completed: tools/call (DotnetSdkVersion) in 125ms
       
@@ -242,7 +244,7 @@ See [doc/performance-baseline.md](./performance-baseline.md) for baseline perfor
 
 Resource access is logged with duration:
 
-```
+```text
 info: ModelContextProtocol.Server.McpServer[LogRequestHandlerCompleted]
       Request handler completed: resources/read (dotnet://info) in 45ms
 ```
