@@ -60,16 +60,11 @@ internal static class SolutionAnalysisHelper
                     // Target frameworks
                     if (root.TryGetProperty("targetFrameworks", out var frameworks))
                     {
-                        var tfms = new List<string>();
-                        foreach (var fw in frameworks.EnumerateArray())
-                        {
-                            var tfm = fw.GetString();
-                            if (tfm != null)
-                            {
-                                tfms.Add(tfm);
-                                allFrameworks.Add(tfm);
-                            }
-                        }
+                        var tfms = frameworks.EnumerateArray()
+                            .Select(fw => fw.GetString())
+                            .OfType<string>()
+                            .ToList();
+                        allFrameworks.UnionWith(tfms);
                         sb.AppendLine($"  Frameworks: {string.Join(", ", tfms)}");
                     }
 
@@ -109,7 +104,7 @@ internal static class SolutionAnalysisHelper
                     sb.AppendLine($"  Error: {error}");
                 }
             }
-            catch (Exception ex)
+            catch (JsonException ex)
             {
                 logger?.LogWarning(ex, "Failed to analyze project {ProjectPath}", fullPath);
                 sb.AppendLine($"  Error: {ex.Message}");
@@ -212,7 +207,7 @@ internal static class SolutionAnalysisHelper
                     sb.AppendLine($"  {projectName}: Error - {error}");
                 }
             }
-            catch (Exception ex)
+            catch (JsonException ex)
             {
                 logger?.LogWarning(ex, "Failed to analyze dependencies for {ProjectPath}", fullPath);
                 projectDeps[projectName] = new List<string>();
@@ -349,13 +344,10 @@ internal static class SolutionAnalysisHelper
                 {
                     if (analysisRoot.TryGetProperty("targetFrameworks", out var frameworks))
                     {
-                        var tfms = new List<string>();
-                        foreach (var fw in frameworks.EnumerateArray())
-                        {
-                            var tfm = fw.GetString();
-                            if (tfm != null) tfms.Add(tfm);
-                        }
-                        projectFrameworks[projectName] = tfms.ToArray();
+                        projectFrameworks[projectName] = frameworks.EnumerateArray()
+                            .Select(fw => fw.GetString())
+                            .OfType<string>()
+                            .ToArray();
                     }
 
                     if (analysisRoot.TryGetProperty("packageReferences", out var packages))
@@ -374,7 +366,7 @@ internal static class SolutionAnalysisHelper
                     }
                 }
             }
-            catch (Exception ex)
+            catch (JsonException ex)
             {
                 logger?.LogWarning(ex, "Failed to validate project {ProjectPath}", fullPath);
                 allErrors.Add($"[{projectName}] Exception: {ex.Message}");
@@ -465,16 +457,7 @@ internal static class SolutionAnalysisHelper
         if (string.IsNullOrWhiteSpace(solutionPath))
             return (Array.Empty<string>(), "Error: solution path is required for this action.");
 
-        string listOutput;
-        try
-        {
-            listOutput = await executor($"solution \"{solutionPath}\" list");
-        }
-        catch (Exception ex)
-        {
-            logger?.LogWarning(ex, "Failed to list projects in solution {SolutionPath}", solutionPath);
-            return (Array.Empty<string>(), $"Error: Failed to list projects in solution: {ex.Message}");
-        }
+        string listOutput = await executor($"solution \"{solutionPath}\" list");
 
         var paths = listOutput
             .Split('\n', StringSplitOptions.RemoveEmptyEntries)
