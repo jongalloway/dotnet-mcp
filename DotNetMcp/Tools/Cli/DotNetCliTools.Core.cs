@@ -207,7 +207,7 @@ public sealed partial class DotNetCliTools
         string completeMessage,
         Func<Task<string>> execute)
     {
-        progress?.Report(new ProgressNotificationValue { Progress = 0, Total = 1, Message = startMessage });
+        ReportProgressSafe(progress, 0, startMessage);
         string result;
         try
         {
@@ -215,8 +215,24 @@ public sealed partial class DotNetCliTools
         }
         finally
         {
-            progress?.Report(new ProgressNotificationValue { Progress = 1, Total = 1, Message = completeMessage });
+            ReportProgressSafe(progress, 1, completeMessage);
         }
         return result;
+    }
+
+    /// <summary>
+    /// Sends a progress notification, swallowing any exceptions so that a broken or
+    /// unsupported progress channel never causes a tool invocation (or MCP task) to fail.
+    /// </summary>
+    private static void ReportProgressSafe(IProgress<ProgressNotificationValue>? progress, int value, string message)
+    {
+        try
+        {
+            progress?.Report(new ProgressNotificationValue { Progress = value, Total = 1, Message = message });
+        }
+        catch (Exception)
+        {
+            // Progress is best-effort; never let it break tool execution.
+        }
     }
 }

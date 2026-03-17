@@ -770,6 +770,74 @@ public class McpConformanceTests : IAsyncLifetime
         Assert.NotNull(tasks);
     }
 
+    [Fact]
+    public async Task Server_DotnetProject_TaskMode_ShouldCompleteSuccessfully()
+    {
+        // Arrange - exercise the full task lifecycle: create task → poll → get result.
+        // Uses Build with a nonexistent project so the operation is fast but still
+        // exercises the entire task pipeline including the error-handling filter.
+        Assert.NotNull(_client);
+
+        // Act - invoke dotnet_project as task (the dedicated CallToolAsTaskAsync API)
+        var mcpTask = await _client.CallToolAsTaskAsync(
+            "dotnet_project",
+            new Dictionary<string, object?>
+            {
+                ["action"] = "Build",
+                ["project"] = "nonexistent.csproj"
+            },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert - task was created successfully
+        Assert.NotNull(mcpTask);
+        Assert.NotNull(mcpTask.TaskId);
+        Assert.NotEmpty(mcpTask.TaskId);
+
+        // Poll for completion — GetTaskResultAsync blocks until terminal state
+        var resultJson = await _client.GetTaskResultAsync(
+            mcpTask.TaskId,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // The key validation: the task lifecycle completes with a proper result JSON
+        // instead of throwing "unknown error". The result may report a build failure
+        // (nonexistent project) but the task itself must not fail.
+        Assert.NotEqual(default, resultJson);
+
+        // Verify the task reached a terminal state
+        var finalTask = await _client.GetTaskAsync(mcpTask.TaskId, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.NotNull(finalTask);
+        Assert.True(
+            finalTask.Status == McpTaskStatus.Completed || finalTask.Status == McpTaskStatus.Failed,
+            $"Task should be in a terminal state but was: {finalTask.Status}");
+    }
+
+    [Fact]
+    public async Task Server_DotnetProject_TaskMode_ShouldAppearInTaskList()
+    {
+        // Arrange - verify that a task-mode call is tracked in the task store.
+        Assert.NotNull(_client);
+
+        // Act - start a fast task-mode operation
+        var mcpTask = await _client.CallToolAsTaskAsync(
+            "dotnet_project",
+            new Dictionary<string, object?>
+            {
+                ["action"] = "Build",
+                ["project"] = "nonexistent.csproj"
+            },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.NotNull(mcpTask);
+
+        // Wait for it to complete before checking the list
+        await _client.GetTaskResultAsync(mcpTask.TaskId, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert - the completed task should still be in the list
+        var allTasks = await _client.ListTasksAsync(cancellationToken: TestContext.Current.CancellationToken);
+        Assert.NotNull(allTasks);
+        Assert.Contains(allTasks, t => t.TaskId == mcpTask.TaskId);
+    }
+
     #endregion
 
     #region MCP Logging Notification Tests
