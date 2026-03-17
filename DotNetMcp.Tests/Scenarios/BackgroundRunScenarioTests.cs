@@ -6,6 +6,38 @@ namespace DotNetMcp.Tests.Scenarios;
 
 public class BackgroundRunScenarioTests
 {
+    private static async Task<string> WaitForLogsContainingAsync(
+        McpScenarioClient client,
+        string sessionId,
+        string[] expectedFragments,
+        CancellationToken cancellationToken,
+        int timeoutSeconds = 15)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
+        string? latestLogs = null;
+
+        while (DateTime.UtcNow < deadline)
+        {
+            latestLogs = await client.CallToolTextAsync(
+                toolName: "dotnet_project",
+                args: new Dictionary<string, object?>
+                {
+                    ["action"] = "Logs",
+                    ["sessionId"] = sessionId,
+                },
+                cancellationToken);
+
+            if (expectedFragments.All(fragment => latestLogs.Contains(fragment, StringComparison.Ordinal)))
+            {
+                return latestLogs;
+            }
+
+            await Task.Delay(250, cancellationToken);
+        }
+
+        return latestLogs ?? string.Empty;
+    }
+
     private static string? ParsePrefixedLine(string text, string prefix)
     {
         var idx = text.IndexOf(prefix, StringComparison.Ordinal);
@@ -181,17 +213,15 @@ Console.WriteLine(""Line 4: Application finished"");
 
         try
         {
-            // Wait a moment for the app to produce output
-            await Task.Delay(2000, cancellationToken);
-
-            // Retrieve logs
-            var logsText = await client.CallToolTextAsync(
-                toolName: "dotnet_project",
-                args: new Dictionary<string, object?>
-                {
-                    ["action"] = "Logs",
-                    ["sessionId"] = sessionId,
-                },
+            var logsText = await WaitForLogsContainingAsync(
+                client,
+                sessionId!,
+                [
+                    "Line 1: Application started",
+                    "Line 2: Initializing...",
+                    "Line 3: Processing...",
+                    "[stderr] Error: This is an error message",
+                ],
                 cancellationToken);
 
             Assert.StartsWith("Logs for session", logsText);
