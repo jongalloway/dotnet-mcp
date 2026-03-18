@@ -210,7 +210,7 @@ public class ServerCapabilitiesTests
     }
 
     [Fact]
-    public async Task DotnetServerCapabilities_Supports_AsyncTasks_IsTrue()
+    public async Task DotnetServerCapabilities_Supports_AsyncTasks_IsFalse()
     {
         // Act
         var result = (await _tools.DotnetServerCapabilities()).GetText();
@@ -220,8 +220,8 @@ public class ServerCapabilitiesTests
             .GetProperty("asyncTasks")
             .GetBoolean();
 
-        // Assert - MCP Task support is enabled via InMemoryMcpTaskStore
-        Assert.True(asyncTasks);
+        // Assert - MCP Task support disabled due to SDK v1.1.0 DI scope lifetime bug
+        Assert.False(asyncTasks);
     }
 
     [Fact]
@@ -262,7 +262,7 @@ public class ServerCapabilitiesTests
         Assert.True(capabilities.Supports.MachineReadable);
         Assert.True(capabilities.Supports.Cancellation);
         Assert.True(capabilities.Supports.Telemetry);
-        Assert.True(capabilities.Supports.AsyncTasks);
+        Assert.False(capabilities.Supports.AsyncTasks);
         Assert.True(capabilities.Supports.Prompts);
         Assert.True(capabilities.Supports.Elicitation);
         Assert.True(capabilities.Supports.Completions);

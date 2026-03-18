@@ -71,7 +71,7 @@ public sealed partial class DotNetCliTools
                 Cancellation = true,
                 Telemetry = true,  // SDK v0.6+ supports request duration logging and OpenTelemetry semantic conventions
                 Metrics = true,    // In-memory per-tool metrics via MCP message filter (dotnet_server_metrics tool)
-                AsyncTasks = true,  // MCP Task support enabled: long-running operations (build, test, publish) can run as async tasks
+                AsyncTasks = _taskStore != null, // Derived from DI: true when IMcpTaskStore is registered; currently false (MCP SDK DI scope bug https://github.com/modelcontextprotocol/csharp-sdk/issues/1430)
                 Prompts = true,     // Predefined prompt catalog: create_new_webapi, add_package_and_restore, run_tests_with_coverage
                 Elicitation = true,  // Elicitation for confirmation before destructive ops (Clean, solution Remove)
                 McpLogging = true,   // MCP log notifications sent to client during key operations (build, test, publish, restore, package add/update)
