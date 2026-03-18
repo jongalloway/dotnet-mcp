@@ -91,7 +91,8 @@ if ($branch -ne 'main')
 Invoke-Git @('pull', '--ff-only')
 
 # Require clean working tree
-$statusPorcelain = (& git status --porcelain).Trim()
+$statusPorcelain = (& git status --porcelain) | Out-String
+$statusPorcelain = $statusPorcelain.Trim()
 if ($LASTEXITCODE -ne 0)
 {
     Fail "Unable to read git status."
