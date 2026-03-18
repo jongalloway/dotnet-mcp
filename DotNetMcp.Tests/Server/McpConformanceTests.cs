@@ -742,8 +742,9 @@ public class McpConformanceTests : IAsyncLifetime
         var projectTool = tools.FirstOrDefault(t => t.Name == "dotnet_project");
 
         // Assert - the tool attribute declares TaskSupport = Optional so it's ready when
-        // task support is enabled via Features:EnableTaskSupport. Without a task store
-        // registered, the SDK runs it synchronously inline (graceful degradation).
+        // task support is re-enabled by un-commenting the IMcpTaskStore registration in Program.cs
+        // (pending fix of https://github.com/modelcontextprotocol/csharp-sdk/issues/1430).
+        // Without a task store registered, the SDK runs it synchronously inline (graceful degradation).
         Assert.NotNull(projectTool);
         var execution = projectTool.ProtocolTool.Execution;
         Assert.NotNull(execution);
