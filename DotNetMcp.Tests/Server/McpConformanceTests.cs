@@ -713,34 +713,26 @@ public class McpConformanceTests : IAsyncLifetime
 
     #endregion
 
-    #region MCP Task Support Tests
+    #region MCP Task Support Tests (Graceful Degradation)
+
+    // Task support is intentionally disabled: MCP SDK v1.1.0's ExecuteToolAsTaskAsync
+    // disposes the DI scope before the background task resolves services, causing
+    // ObjectDisposedException on every tool call. Without InMemoryMcpTaskStore,
+    // the server runs tools synchronously and does not advertise task capabilities.
 
     [Fact]
-    public void Server_ShouldAdvertiseTasksCapability()
+    public void Server_ShouldNotAdvertiseTasksCapability_WhenTaskStoreNotRegistered()
     {
         // Arrange
         Assert.NotNull(_client);
 
-        // Assert - server should expose tasks capability (InMemoryMcpTaskStore is registered)
+        // Assert - no task store means no tasks capability advertised
         Assert.NotNull(_client.ServerCapabilities);
-        Assert.NotNull(_client.ServerCapabilities.Tasks);
+        Assert.Null(_client.ServerCapabilities.Tasks);
     }
 
     [Fact]
-    public void Server_TasksCapability_ShouldSupportListAndCancel()
-    {
-        // Arrange
-        Assert.NotNull(_client);
-
-        // Assert
-        var tasks = _client.ServerCapabilities?.Tasks;
-        Assert.NotNull(tasks);
-        Assert.NotNull(tasks.List);
-        Assert.NotNull(tasks.Cancel);
-    }
-
-    [Fact]
-    public async Task Server_DotnetProject_ShouldHaveTaskSupport()
+    public async Task Server_DotnetProject_ShouldDeclareTaskSupportOptional()
     {
         // Arrange
         Assert.NotNull(_client);
@@ -749,8 +741,9 @@ public class McpConformanceTests : IAsyncLifetime
         var tools = await _client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
         var projectTool = tools.FirstOrDefault(t => t.Name == "dotnet_project");
 
-        // Assert - dotnet_project should declare TaskSupport = Optional so clients can run
-        // long operations (build, test, publish) as async tasks
+        // Assert - the tool attribute declares TaskSupport = Optional so it's ready when
+        // task support is enabled via Features:EnableTaskSupport. Without a task store
+        // registered, the SDK runs it synchronously inline (graceful degradation).
         Assert.NotNull(projectTool);
         var execution = projectTool.ProtocolTool.Execution;
         Assert.NotNull(execution);
@@ -758,28 +751,13 @@ public class McpConformanceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Server_TaskList_ShouldReturnEmptyWhenNoTasksRunning()
+    public async Task Server_DotnetProject_ShouldWorkSynchronously()
     {
-        // Arrange
+        // Arrange - verify tools work reliably via normal tools/call (no tasks)
         Assert.NotNull(_client);
 
-        // Act
-        var tasks = await _client.ListTasksAsync(cancellationToken: TestContext.Current.CancellationToken);
-
-        // Assert - no tasks should be running at server start
-        Assert.NotNull(tasks);
-    }
-
-    [Fact]
-    public async Task Server_DotnetProject_TaskMode_ShouldCompleteSuccessfully()
-    {
-        // Arrange - exercise the full task lifecycle: create task → poll → get result.
-        // Uses Build with a nonexistent project so the operation is fast but still
-        // exercises the entire task pipeline including the error-handling filter.
-        Assert.NotNull(_client);
-
-        // Act - invoke dotnet_project as task (the dedicated CallToolAsTaskAsync API)
-        var mcpTask = await _client.CallToolAsTaskAsync(
+        // Act - standard synchronous tool call
+        var result = await _client.CallToolAsync(
             "dotnet_project",
             new Dictionary<string, object?>
             {
@@ -788,55 +766,10 @@ public class McpConformanceTests : IAsyncLifetime
             },
             cancellationToken: TestContext.Current.CancellationToken);
 
-        // Assert - task was created successfully
-        Assert.NotNull(mcpTask);
-        Assert.NotNull(mcpTask.TaskId);
-        Assert.NotEmpty(mcpTask.TaskId);
-
-        // Poll for completion — GetTaskResultAsync blocks until terminal state
-        var resultJson = await _client.GetTaskResultAsync(
-            mcpTask.TaskId,
-            cancellationToken: TestContext.Current.CancellationToken);
-
-        // The key validation: the task infrastructure returns a structured result JSON
-        // instead of throwing "unknown error". The underlying tool may report a build
-        // failure (nonexistent project), so the task status may be Completed or Failed —
-        // what matters is that a proper result is returned rather than an opaque error.
-        Assert.NotEqual(default, resultJson);
-
-        // Verify the task reached a terminal state
-        var finalTask = await _client.GetTaskAsync(mcpTask.TaskId, cancellationToken: TestContext.Current.CancellationToken);
-        Assert.NotNull(finalTask);
-        Assert.True(
-            finalTask.Status == McpTaskStatus.Completed || finalTask.Status == McpTaskStatus.Failed,
-            $"Task should be in a terminal state but was: {finalTask.Status}");
-    }
-
-    [Fact]
-    public async Task Server_DotnetProject_TaskMode_ShouldAppearInTaskList()
-    {
-        // Arrange - verify that a task-mode call is tracked in the task store.
-        Assert.NotNull(_client);
-
-        // Act - start a fast task-mode operation
-        var mcpTask = await _client.CallToolAsTaskAsync(
-            "dotnet_project",
-            new Dictionary<string, object?>
-            {
-                ["action"] = "Build",
-                ["project"] = "nonexistent.csproj"
-            },
-            cancellationToken: TestContext.Current.CancellationToken);
-
-        Assert.NotNull(mcpTask);
-
-        // Wait for it to complete before checking the list
-        await _client.GetTaskResultAsync(mcpTask.TaskId, cancellationToken: TestContext.Current.CancellationToken);
-
-        // Assert - the completed task should still be in the list
-        var allTasks = await _client.ListTasksAsync(cancellationToken: TestContext.Current.CancellationToken);
-        Assert.NotNull(allTasks);
-        Assert.Contains(allTasks, t => t.TaskId == mcpTask.TaskId);
+        // Assert - tool returns a result (may be an error about missing project, but
+        // the call itself should not throw ObjectDisposedException)
+        Assert.NotNull(result);
+        Assert.NotEmpty(result.Content);
     }
 
     #endregion
