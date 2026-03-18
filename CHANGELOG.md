@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Task-mode tool calls (MCP SDK v1.1.0 `ToolTaskSupport.Optional`) failed with opaque "unknown error" when tools threw unhandled exceptions. Added resilient error-handling filter that catches exceptions and returns structured `CallToolResult { IsError = true }` instead.
+- Progress channel failures could crash tool execution when the client does not support progress notifications. Added defensive `ReportProgressSafe()` wrapper.
+
+### Added
+
+- Task lifecycle conformance tests (`CallToolAsTaskAsync` → `GetTaskResultAsync` → `GetTaskAsync`) to prevent regressions.
+
+## [1.1.0] - 2026-03-17
+
 ### Changed
 
 - Updated `ModelContextProtocol` SDK dependency from v1.0.0 to v1.1.0.
