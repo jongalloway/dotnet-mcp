@@ -39,7 +39,11 @@ var mcpServerBuilder = builder.Services.AddMcpServer(options =>
     options.ServerInfo = new Implementation
     {
         Name = "dotnet-mcp",
-        Version = "1.0.0",
+        Version = typeof(Program).Assembly.GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+                .OfType<System.Reflection.AssemblyInformationalVersionAttribute>()
+                .FirstOrDefault()?.InformationalVersion
+            ?? typeof(Program).Assembly.GetName().Version?.ToString()
+            ?? "0.0.0",
         Title = ".NET MCP Server",
         Description = "MCP server providing AI assistants with direct access to the .NET SDK through both official NuGet packages and CLI execution",
         WebsiteUrl = "https://github.com/jongalloway/dotnet-mcp",
