@@ -99,6 +99,12 @@ mcpServerBuilder
 // Register the telemetry filter that intercepts every CallTool request to record
 // invocation counts, durations, and success/failure rates — without modifying individual tools.
 // The filter captures the shared metricsAccumulator instance via closure.
+//
+// The outermost filter also provides resilient error handling: if a tool throws an unhandled
+// exception, the filter catches it and returns a structured CallToolResult with IsError = true
+// instead of letting the exception propagate. This is critical for MCP Task support — without
+// it, an unhandled exception causes the task to fail with "unknown error" because the SDK's
+// task infrastructure has no CallToolResult to return to the client.
 builder.Services.Configure<McpServerOptions>(options =>
 {
     options.Filters.Request.CallToolFilters.Add(next => async (context, ct) =>
@@ -111,6 +117,30 @@ builder.Services.Configure<McpServerOptions>(options =>
             var result = await next(context, ct);
             success = true;
             return result;
+        }
+        catch (OperationCanceledException)
+        {
+            // Let cancellations propagate normally — the SDK handles these for task cancellation.
+            throw;
+        }
+        catch (McpException)
+        {
+            // Let MCP protocol exceptions propagate — these carry proper JSON-RPC error codes.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            // Convert unhandled exceptions to a structured error result so the MCP task
+            // lifecycle completes with a proper error instead of "unknown error".
+            // Redact the message and tool name to avoid leaking sensitive information
+            // (e.g., command-line arguments embedded in exception messages).
+            var redactedTool = SecretRedactor.Redact(toolName);
+            var redactedMessage = SecretRedactor.Redact(ex.Message);
+            return new CallToolResult
+            {
+                IsError = true,
+                Content = [new TextContentBlock { Text = $"Internal error in {redactedTool}: {redactedMessage}" }]
+            };
         }
         finally
         {
