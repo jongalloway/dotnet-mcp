@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-03-17
+
+### Fixed
+
+- **ObjectDisposedException on all tool calls** — MCP SDK v1.1.0's `ExecuteToolAsTaskAsync` disposes the request-scoped `IServiceProvider` before the background task resolves services ([csharp-sdk#1430](https://github.com/modelcontextprotocol/csharp-sdk/issues/1430)). Disabled `InMemoryMcpTaskStore` registration as a workaround; `ToolTaskSupport.Optional` attribute is preserved for re-enablement when the upstream fix ships.
+- Server reported hardcoded version `1.0.0` instead of the actual build version. Now reads from `AssemblyInformationalVersionAttribute` (set by MinVer).
+
+### Changed
+
+- `asyncTasks` capability now reports `false` until the upstream SDK bug is resolved (tracking issue [#410](https://github.com/jongalloway/dotnet-mcp/issues/410)).
+
+## [1.1.1] - 2026-03-17
+
 ### Fixed
 
 - Task-mode tool calls (MCP SDK v1.1.0 `ToolTaskSupport.Optional`) failed with opaque "unknown error" when tools threw unhandled exceptions. Added resilient error-handling filter that catches exceptions and returns structured `CallToolResult { IsError = true }` instead.
