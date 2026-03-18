@@ -798,9 +798,10 @@ public class McpConformanceTests : IAsyncLifetime
             mcpTask.TaskId,
             cancellationToken: TestContext.Current.CancellationToken);
 
-        // The key validation: the task lifecycle completes with a proper result JSON
-        // instead of throwing "unknown error". The result may report a build failure
-        // (nonexistent project) but the task itself must not fail.
+        // The key validation: the task infrastructure returns a structured result JSON
+        // instead of throwing "unknown error". The underlying tool may report a build
+        // failure (nonexistent project), so the task status may be Completed or Failed —
+        // what matters is that a proper result is returned rather than an opaque error.
         Assert.NotEqual(default, resultJson);
 
         // Verify the task reached a terminal state

@@ -132,10 +132,14 @@ builder.Services.Configure<McpServerOptions>(options =>
         {
             // Convert unhandled exceptions to a structured error result so the MCP task
             // lifecycle completes with a proper error instead of "unknown error".
+            // Redact the message and tool name to avoid leaking sensitive information
+            // (e.g., command-line arguments embedded in exception messages).
+            var redactedTool = SecretRedactor.Redact(toolName);
+            var redactedMessage = SecretRedactor.Redact(ex.Message);
             return new CallToolResult
             {
                 IsError = true,
-                Content = [new TextContentBlock { Text = $"Internal error in {toolName}: {ex.Message}" }]
+                Content = [new TextContentBlock { Text = $"Internal error in {redactedTool}: {redactedMessage}" }]
             };
         }
         finally
