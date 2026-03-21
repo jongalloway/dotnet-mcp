@@ -1181,6 +1181,21 @@ public sealed partial class DotNetCliTools
             selectionSource = detectionSource;
         }
 
+        // When MTP is detected and a project path is provided, ensure the working
+        // directory is the project's directory so that `dotnet test` also walks up and
+        // discovers global.json with the MTP runner config.  Without this, the CLI may
+        // fall back to VSTest internally and choke on the `--project` flag (MSB1001).
+        if (effectiveRunner == TestRunner.MicrosoftTestingPlatform
+            && !string.IsNullOrEmpty(project)
+            && string.IsNullOrEmpty(DotNetCommandExecutor.WorkingDirectoryOverride.Value))
+        {
+            var projectDir = Path.GetDirectoryName(Path.GetFullPath(project));
+            if (!string.IsNullOrEmpty(projectDir))
+            {
+                DotNetCommandExecutor.WorkingDirectoryOverride.Value = projectDir;
+            }
+        }
+
         // Build the command
         var args = new StringBuilder("test");
         
