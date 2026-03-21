@@ -578,7 +578,6 @@ public sealed partial class DotNetCliTools
         try
         {
             var runtimeTextResult = await ExecuteDotNetCommand("--list-runtimes");
-            var runtimeContent = BuildListRuntimesStructuredContent(runtimeTextResult);
 
             // Merge both into a single object the dashboard can consume
             var sdkLines = sdkTextResult.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -613,7 +612,7 @@ public sealed partial class DotNetCliTools
 
             return new { sdks, runtimes };
         }
-        catch
+        catch (Exception)
         {
             // If runtime fetch fails, return SDKs only — dashboard will show what it can
             return sdkContent;
