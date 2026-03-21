@@ -299,6 +299,10 @@ function renderFromToolResult(params) {
   // DotnetSdk Version/ListSdks/ListRuntimes structured content
   if (structured.sdks) renderSdksFromStructured(structured);
   if (structured.runtimes) renderRuntimesFromStructured(structured);
+  else if (structured.sdks) {
+    // ListSdks was called but runtimes weren't included — show a helpful message
+    document.getElementById('runtimes').innerHTML = '<div class="loading" style="font-size:12px;">Runtime data not available from this action. Click Refresh to load.</div>';
+  }
   if (structured.version) {
     setStatus('SDK version: ' + structured.version);
   }
