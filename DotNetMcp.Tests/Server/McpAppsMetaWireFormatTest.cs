@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
@@ -20,7 +21,7 @@ public class McpAppsMetaWireFormatTest : IAsyncLifetime
         var transportOptions = new StdioClientTransportOptions
         {
             Command = serverPath.command,
-            Arguments = serverPath.args,
+            Arguments = serverPath.arguments,
             Name = "dotnet-mcp-test",
         };
 
@@ -77,10 +78,39 @@ public class McpAppsMetaWireFormatTest : IAsyncLifetime
         return meta.Clone();
     }
 
-    private static (string command, string[] args) GetServerExecutablePath()
+    /// <summary>
+    /// Finds the pre-built DotNetMcp server binary, matching the same
+    /// configuration/framework as the test project to work in CI.
+    /// </summary>
+    private static (string command, string[] arguments) GetServerExecutablePath()
     {
-        var csproj = Path.GetFullPath(
-            Path.Join(AppContext.BaseDirectory, "..", "..", "..", "..", "DotNetMcp", "DotNetMcp.csproj"));
-        return ("dotnet", ["run", "--project", csproj, "--no-build"]);
+        var testBinaryDir = AppContext.BaseDirectory;
+        var configuration = Path.GetFileName(Path.GetDirectoryName(testBinaryDir.TrimEnd(Path.DirectorySeparatorChar))!);
+        var targetFramework = Path.GetFileName(testBinaryDir.TrimEnd(Path.DirectorySeparatorChar));
+
+        var serverBinaryDir = Path.GetFullPath(
+            Path.Join(testBinaryDir, "..", "..", "..", "..", "DotNetMcp", "bin", configuration, targetFramework));
+
+        if (!Directory.Exists(serverBinaryDir))
+        {
+            throw new DirectoryNotFoundException(
+                $"Server binary directory not found at: {serverBinaryDir}. " +
+                $"Make sure DotNetMcp project is built before running tests.");
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            var exePath = Path.Join(serverBinaryDir, "DotNetMcp.exe");
+            if (!File.Exists(exePath))
+                throw new FileNotFoundException($"Server executable not found at: {exePath}");
+            return (exePath, Array.Empty<string>());
+        }
+        else
+        {
+            var dllPath = Path.Join(serverBinaryDir, "DotNetMcp.dll");
+            if (!File.Exists(dllPath))
+                throw new FileNotFoundException($"Server assembly not found at: {dllPath}");
+            return ("dotnet", new[] { dllPath });
+        }
     }
 }
