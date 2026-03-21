@@ -99,7 +99,13 @@ public sealed partial class DotNetCliTools
             _ => null
         };
 
-        return StructuredContentHelper.ToCallToolResult(textResult, structured);
+        // When structured content is available, the SDK dashboard UI renders it visually.
+        // Add a hint so the LLM avoids repeating the same data in prose.
+        var displayText = structured != null
+            ? $"[This data is displayed in the SDK dashboard UI. Summarize briefly or refer the user to it rather than repeating all details.]\n\n{textResult}"
+            : textResult;
+
+        return StructuredContentHelper.ToCallToolResult(displayText, structured);
     }
 
     private async Task<string> HandleSearchTemplatesAction(string? searchTerm, bool forceReload)
