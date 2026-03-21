@@ -73,6 +73,7 @@ mcpServerBuilder
     .WithStdioServerTransport()
     .WithTools<DotNetCliTools>()
     .WithResources<DotNetResources>()
+    .WithResources<McpAppsResources>()
     .WithPrompts<DotNetPrompts>()
     .WithSubscribeToResourcesHandler((context, ct) =>
     {

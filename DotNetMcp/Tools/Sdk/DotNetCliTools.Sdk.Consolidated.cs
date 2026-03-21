@@ -39,6 +39,8 @@ public sealed partial class DotNetCliTools
     [McpMeta("commonlyUsed", true)]
     [McpMeta("consolidatedTool", true)]
     [McpMeta("actions", JsonValue = """["Version","Info","ListSdks","ListRuntimes","ListTemplates","SearchTemplates","TemplateInfo","ClearTemplateCache","ListTemplatePacks","InstallTemplatePack","UninstallTemplatePack","FrameworkInfo","CacheMetrics","ConfigureGlobalJson"]""")]
+    [McpMeta("ui", JsonValue = """{"resourceUri": "ui://dotnet-mcp/sdk-dashboard"}""")]
+    [McpMeta("ui/resourceUri", "ui://dotnet-mcp/sdk-dashboard")]
     public async partial Task<CallToolResult> DotnetSdk(
         DotnetSdkAction action,
         string? searchTerm = null,
@@ -88,16 +90,25 @@ public sealed partial class DotNetCliTools
             };
         });
 
-        // Add structured content for key actions
+        // Add structured content for key actions.
+        // For ListSdks, also fetch runtimes so the dashboard UI can render both
+        // from a single tool-result notification (tools/call from MCP App iframes
+        // is not reliably supported by all hosts).
         object? structured = action switch
         {
             DotnetSdkAction.Version => BuildVersionStructuredContent(textResult),
-            DotnetSdkAction.ListSdks => BuildListSdksStructuredContent(textResult),
+            DotnetSdkAction.ListSdks => await BuildListSdksWithRuntimesStructuredContentAsync(textResult),
             DotnetSdkAction.ListRuntimes => BuildListRuntimesStructuredContent(textResult),
             _ => null
         };
 
-        return StructuredContentHelper.ToCallToolResult(textResult, structured);
+        // When structured content is available, the SDK dashboard UI renders it visually.
+        // Add a hint so the LLM avoids repeating the same data in prose.
+        var displayText = structured != null
+            ? $"[This data is displayed in the SDK dashboard UI. Summarize briefly or refer the user to it rather than repeating all details.]\n\n{textResult}"
+            : textResult;
+
+        return StructuredContentHelper.ToCallToolResult(displayText, structured);
     }
 
     private async Task<string> HandleSearchTemplatesAction(string? searchTerm, bool forceReload)
@@ -553,6 +564,59 @@ public sealed partial class DotNetCliTools
             })
             .ToArray();
         return new { sdks };
+    }
+
+    /// <summary>
+    /// Build structured content for ListSdks that also includes runtime data.
+    /// The SDK dashboard UI needs both to render fully from a single tool-result notification.
+    /// </summary>
+    private async Task<object?> BuildListSdksWithRuntimesStructuredContentAsync(string sdkTextResult)
+    {
+        var sdkContent = BuildListSdksStructuredContent(sdkTextResult);
+
+        // Fetch runtimes in the background for the dashboard
+        try
+        {
+            var runtimeTextResult = await ExecuteDotNetCommand("--list-runtimes");
+
+            // Merge both into a single object the dashboard can consume
+            var sdkLines = sdkTextResult.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            var sdks = sdkLines
+                .Where(l => !l.StartsWith("Exit Code:", StringComparison.OrdinalIgnoreCase)
+                    && !l.StartsWith("Error", StringComparison.OrdinalIgnoreCase)
+                    && l.TrimStart().Length > 0 && char.IsDigit(l.TrimStart()[0]))
+                .Select(l =>
+                {
+                    var parts = l.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                    var ver = parts.Length > 0 ? parts[0] : l.Trim();
+                    var path = parts.Length > 1 ? parts[1].Trim('[', ']', ' ') : null;
+                    return new { version = ver, path };
+                })
+                .ToArray();
+
+            var runtimeLines = runtimeTextResult.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            var runtimes = runtimeLines
+                .Where(l => !l.StartsWith("Exit Code:", StringComparison.OrdinalIgnoreCase)
+                    && !l.StartsWith("Error", StringComparison.OrdinalIgnoreCase)
+                    && !l.StartsWith("Command:", StringComparison.OrdinalIgnoreCase)
+                    && l.TrimStart().Length > 0 && char.IsAsciiLetter(l.TrimStart()[0]))
+                .Select(l =>
+                {
+                    var parts = l.Trim().Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
+                    var name = parts.Length > 0 ? parts[0] : string.Empty;
+                    var ver = parts.Length > 1 ? parts[1] : string.Empty;
+                    var path = parts.Length > 2 ? parts[2].Trim('[', ']', ' ') : null;
+                    return new { name, version = ver, path };
+                })
+                .ToArray();
+
+            return new { sdks, runtimes };
+        }
+        catch (Exception)
+        {
+            // If runtime fetch fails, return SDKs only — dashboard will show what it can
+            return sdkContent;
+        }
     }
 
     private static object? BuildListRuntimesStructuredContent(string textResult)
