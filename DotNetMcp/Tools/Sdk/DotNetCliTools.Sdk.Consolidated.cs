@@ -39,6 +39,8 @@ public sealed partial class DotNetCliTools
     [McpMeta("commonlyUsed", true)]
     [McpMeta("consolidatedTool", true)]
     [McpMeta("actions", JsonValue = """["Version","Info","ListSdks","ListRuntimes","ListTemplates","SearchTemplates","TemplateInfo","ClearTemplateCache","ListTemplatePacks","InstallTemplatePack","UninstallTemplatePack","FrameworkInfo","CacheMetrics","ConfigureGlobalJson"]""")]
+    [McpMeta("ui", JsonValue = """{"resourceUri": "ui://dotnet-mcp/sdk-dashboard"}""")]
+    [McpMeta("ui/resourceUri", "ui://dotnet-mcp/sdk-dashboard")]
     public async partial Task<CallToolResult> DotnetSdk(
         DotnetSdkAction action,
         string? searchTerm = null,
