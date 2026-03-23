@@ -99,6 +99,8 @@ public sealed partial class DotNetCliTools
             DotnetSdkAction.Version => BuildVersionStructuredContent(textResult),
             DotnetSdkAction.ListSdks => await BuildListSdksWithRuntimesStructuredContentAsync(textResult),
             DotnetSdkAction.ListRuntimes => BuildListRuntimesStructuredContent(textResult),
+            DotnetSdkAction.ListTemplates => BuildListTemplatesStructuredContent(textResult),
+            DotnetSdkAction.TemplateInfo => BuildTemplateInfoStructuredContent(textResult, templateShortName),
             _ => null
         };
 
@@ -637,5 +639,32 @@ public sealed partial class DotNetCliTools
             })
             .ToArray();
         return new { runtimes };
+    }
+
+    private static object? BuildListTemplatesStructuredContent(string textResult)
+    {
+        if (string.IsNullOrWhiteSpace(textResult) || textResult.StartsWith("Error", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        return new
+        {
+            action = "listTemplates",
+            templateWizardUri = "ui://dotnet-mcp/template-wizard",
+            templatesText = textResult
+        };
+    }
+
+    private static object? BuildTemplateInfoStructuredContent(string textResult, string? templateShortName)
+    {
+        if (string.IsNullOrWhiteSpace(textResult) || textResult.StartsWith("Error", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        return new
+        {
+            action = "templateInfo",
+            template = templateShortName ?? "unknown",
+            templateWizardUri = "ui://dotnet-mcp/template-wizard",
+            infoText = textResult
+        };
     }
 }

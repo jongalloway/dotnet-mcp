@@ -39,6 +39,8 @@ public sealed partial class DotNetCliTools
     [McpMeta("commonlyUsed", true)]
     [McpMeta("consolidatedTool", true)]
     [McpMeta("actions", JsonValue = """["Add","Remove","Search","Update","List","AddReference","RemoveReference","ListReferences","ClearCache"]""")]
+    [McpMeta("ui", JsonValue = """{"resourceUri": "ui://dotnet-mcp/package-explorer"}""")]
+    [McpMeta("ui/resourceUri", "ui://dotnet-mcp/package-explorer")]
     public async partial Task<CallToolResult> DotnetPackage(
         DotnetPackageAction action,
         string? packageId = null,

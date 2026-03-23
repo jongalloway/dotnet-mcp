@@ -107,4 +107,83 @@ public sealed class DotNetPrompts
                 """)
         ];
     }
+
+    /// <summary>
+    /// Guided exploration of the .NET SDK environment with the interactive dashboard.
+    /// </summary>
+    [McpServerPrompt(Name = "explore_sdk_environment", Title = "Explore SDK Environment")]
+    [Description("Interactive exploration of the .NET SDK environment using the SDK dashboard")]
+    public static IList<ChatMessage> ExploreSdkEnvironment()
+    {
+        return
+        [
+            new ChatMessage(ChatRole.User,
+                """
+                Show me my .NET SDK environment using the SDK dashboard.
+
+                Steps:
+                1. Use DotnetSdk (action: ListSdks) to show installed SDKs — the dashboard will display them visually
+                2. Briefly summarize the SDK versions and suggest next steps like:
+                   - Upgrading to the latest SDK if not current
+                   - Setting up a global.json to pin a specific version
+                   - Exploring available templates for new projects
+                
+                Keep your text response brief since the dashboard shows the details.
+                """)
+        ];
+    }
+
+    /// <summary>
+    /// Project health check workflow with interactive dashboard.
+    /// </summary>
+    /// <param name="projectPath">Path to the project to analyze (optional)</param>
+    [McpServerPrompt(Name = "project_health_check", Title = "Project Health Check")]
+    [Description("Run a comprehensive health check on a .NET project with interactive dashboard")]
+    public static IList<ChatMessage> ProjectHealthCheck(
+        [Description("Path to the project file to check (optional)")] string? projectPath = null)
+    {
+        var projectArg = projectPath != null ? $", project: {projectPath}" : string.Empty;
+
+        return
+        [
+            new ChatMessage(ChatRole.User,
+                $"""
+                Run a health check on my .NET project{(projectPath != null ? $" at '{projectPath}'" : string.Empty)} and show results in the project dashboard.
+
+                Steps:
+                1. Use DotnetProject (action: Build{projectArg}) to verify the project compiles
+                2. Use DotnetPackage (action: List{projectArg}, outdated: true) to check for outdated packages
+                3. Use DotnetProject (action: Test{projectArg}) to run tests if a test project
+                4. Summarize the health status: build OK/failed, outdated packages count, test results
+                
+                The project dashboard will display results visually. Keep your summary brief — focus on action items.
+                """)
+        ];
+    }
+
+    /// <summary>
+    /// Guided NuGet package exploration using the package explorer dashboard.
+    /// </summary>
+    /// <param name="searchTerm">What to search for on NuGet</param>
+    [McpServerPrompt(Name = "explore_packages", Title = "Explore NuGet Packages")]
+    [Description("Search and explore NuGet packages using the interactive package explorer")]
+    public static IList<ChatMessage> ExplorePackages(
+        [Description("Package or category to search for (e.g., 'logging', 'json', 'testing')")] string searchTerm)
+    {
+        return
+        [
+            new ChatMessage(ChatRole.User,
+                $"""
+                Help me find a good NuGet package for "{searchTerm}" using the package explorer.
+
+                Steps:
+                1. Use DotnetPackage (action: Search, searchTerm: {searchTerm}) to find relevant packages
+                2. Recommend the top 2-3 packages, comparing their popularity and features
+                3. If I already have related packages installed, use DotnetPackage (action: List) to check compatibility
+                4. Suggest which package to add and explain why
+                
+                The package explorer dashboard will display search results interactively.
+                """)
+        ];
+    }
 }

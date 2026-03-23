@@ -70,6 +70,8 @@ public sealed partial class DotNetCliTools
     [McpMeta("commonlyUsed", true)]
     [McpMeta("consolidatedTool", true)]
     [McpMeta("actions", JsonValue = """["New","Restore","Build","Run","Test","Publish","Clean","Analyze","Dependencies","Validate","Pack","Watch","Format","Stop","Logs","SetProperty","GetProperty","RemoveProperty","AddItem","RemoveItem","ListItems"]""")]
+    [McpMeta("ui", JsonValue = """{"resourceUri": "ui://dotnet-mcp/project-dashboard"}""")]
+    [McpMeta("ui/resourceUri", "ui://dotnet-mcp/project-dashboard")]
     public async partial Task<CallToolResult> DotnetProject(
         DotnetProjectAction action,
         string? project = null,
@@ -172,7 +174,21 @@ public sealed partial class DotNetCliTools
             };
         });
 
-        return StructuredContentHelper.ToCallToolResult(textResult);
+        // Build structured content for actions that benefit from dashboard display.
+        object? structured = action switch
+        {
+            DotnetProjectAction.New => BuildNewProjectStructuredContent(textResult, template, name, output, framework),
+            DotnetProjectAction.Build => BuildBuildStructuredContent(textResult, effectiveProject, configuration),
+            DotnetProjectAction.Analyze => BuildAnalyzeStructuredContent(textResult),
+            DotnetProjectAction.ListTemplateOptions => BuildTemplateOptionsStructuredContent(textResult, template),
+            _ => null
+        };
+
+        var displayText = structured != null
+            ? $"[This data is displayed in the project dashboard UI. Summarize briefly or refer the user to it rather than repeating all details.]\n\n{textResult}"
+            : textResult;
+
+        return StructuredContentHelper.ToCallToolResult(displayText, structured);
     }
 
     private async Task<string> HandleNewAction(string? template, string? name, string? output, string? framework, string? additionalOptions)
@@ -1388,6 +1404,88 @@ public sealed partial class DotNetCliTools
         }
 
         return result;
+    }
+
+    // ── Structured content builders for project dashboard ─────────────
+
+    private static object? BuildNewProjectStructuredContent(string textResult, string? template, string? name, string? output, string? framework)
+    {
+        var success = textResult.Contains("was created successfully", StringComparison.OrdinalIgnoreCase);
+        return new
+        {
+            action = "new",
+            success,
+            template = template ?? "unknown",
+            projectName = name,
+            outputDirectory = output,
+            framework,
+            summary = success ? "Project created successfully" : "Project creation failed"
+        };
+    }
+
+    private static object? BuildBuildStructuredContent(string textResult, string? project, string? configuration)
+    {
+        var success = textResult.Contains("Build succeeded", StringComparison.OrdinalIgnoreCase);
+        var failed = textResult.Contains("Build FAILED", StringComparison.OrdinalIgnoreCase);
+        if (!success && !failed) return null;
+
+        // Extract warning and error counts
+        var warningCount = 0;
+        var errorCount = 0;
+        foreach (var line in textResult.Split('\n'))
+        {
+            if (line.Contains("Warning(s)", StringComparison.OrdinalIgnoreCase))
+            {
+                var parts = line.Trim().Split(' ');
+                if (parts.Length > 0 && int.TryParse(parts[0], out var w)) warningCount = w;
+            }
+            else if (line.Contains("Error(s)", StringComparison.OrdinalIgnoreCase))
+            {
+                var parts = line.Trim().Split(' ');
+                if (parts.Length > 0 && int.TryParse(parts[0], out var e)) errorCount = e;
+            }
+        }
+
+        return new
+        {
+            action = "build",
+            buildResult = new
+            {
+                success,
+                project,
+                configuration = configuration ?? "Debug",
+                warningCount,
+                errorCount,
+                summary = success
+                    ? $"Build succeeded ({warningCount} warnings)"
+                    : $"Build FAILED ({errorCount} errors, {warningCount} warnings)"
+            }
+        };
+    }
+
+    private static object? BuildAnalyzeStructuredContent(string textResult)
+    {
+        if (string.IsNullOrWhiteSpace(textResult) || textResult.StartsWith("Error", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        return new
+        {
+            action = "analyze",
+            analysisText = textResult
+        };
+    }
+
+    private static object? BuildTemplateOptionsStructuredContent(string textResult, string? template)
+    {
+        if (string.IsNullOrWhiteSpace(textResult) || textResult.StartsWith("Error", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        return new
+        {
+            action = "listTemplateOptions",
+            template = template ?? "unknown",
+            optionsText = textResult
+        };
     }
 
     /// <summary>
