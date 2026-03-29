@@ -578,6 +578,18 @@ public class ConsolidatedSdkToolTests
         }
         finally
         {
+            // Uninstall the template pack before deleting the directory so the .NET template engine
+            // does not retain a registration for a path that no longer exists. Without this step,
+            // subsequent `dotnet new` invocations emit "Failed to scan <path>" warnings for every
+            // abandoned temporary registration left behind by this test.
+            try
+            {
+                await _tools.DotnetSdk(
+                    action: DotnetSdkAction.UninstallTemplatePack,
+                    templatePackage: tempDir);
+            }
+            catch (Exception) { /* best-effort uninstall */ }
+
             try { Directory.Delete(tempDir, recursive: true); }
             catch (IOException) { /* best-effort cleanup */ }
             catch (UnauthorizedAccessException) { /* best-effort cleanup */ }
