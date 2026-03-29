@@ -144,25 +144,16 @@ public class SdkAndServerInfoToolsTests
     public async Task DotnetSdk_TemplatePackInstall_BuildsCorrectCommand()
     {
         // Use a local empty directory to avoid NuGet network calls in unit tests.
-        var tempDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-template-pack-test", Guid.NewGuid().ToString("n"));
-        Directory.CreateDirectory(tempDir);
-        try
-        {
-            // Act
-            var result = (await _tools.DotnetSdk(
-                action: DotNetMcp.Actions.DotnetSdkAction.InstallTemplatePack,
-                templatePackage: tempDir)).GetText();
+        await using var temp = TempTemplatePackDirectory.Create(_tools, "dotnet-mcp-template-pack-test");
 
-            // Assert
-            Assert.NotNull(result);
-            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, $"dotnet new install \"{tempDir}\"");
-        }
-        finally
-        {
-            try { System.IO.Directory.Delete(tempDir, recursive: true); }
-            catch (System.IO.IOException) { /* best-effort cleanup */ }
-            catch (System.UnauthorizedAccessException) { /* best-effort cleanup */ }
-        }
+        // Act
+        var result = (await _tools.DotnetSdk(
+            action: DotNetMcp.Actions.DotnetSdkAction.InstallTemplatePack,
+            templatePackage: temp.Path)).GetText();
+
+        // Assert
+        Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, $"dotnet new install \"{temp.Path}\"");
     }
 
     [Fact]

@@ -449,27 +449,18 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_InstallTemplatePack_WithVersion_UsesAtSymbol()
     {
         // Arrange
-        var tempDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-template-pack-test", Guid.NewGuid().ToString("n"));
-        Directory.CreateDirectory(tempDir);
-        try
-        {
-            // Act
-            var result = (await _tools.DotnetSdk(
-                action: DotnetSdkAction.InstallTemplatePack,
-                templatePackage: tempDir,
-                templateVersion: "1.0.0"));
+        await using var temp = TempTemplatePackDirectory.Create(_tools, "dotnet-mcp-template-pack-test");
 
-            // Assert
-            Assert.NotNull(result);
-            // Verify the @ symbol is used for version specification
-            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), $"dotnet new install \"{tempDir}@1.0.0\"");
-        }
-        finally
-        {
-            try { Directory.Delete(tempDir, recursive: true); }
-            catch (IOException) { /* best-effort cleanup */ }
-            catch (UnauthorizedAccessException) { /* best-effort cleanup */ }
-        }
+        // Act
+        var result = (await _tools.DotnetSdk(
+            action: DotnetSdkAction.InstallTemplatePack,
+            templatePackage: temp.Path,
+            templateVersion: "1.0.0"));
+
+        // Assert
+        Assert.NotNull(result);
+        // Verify the @ symbol is used for version specification
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result.GetText(), $"dotnet new install \"{temp.Path}@1.0.0\"");
     }
 
     [Fact]
@@ -564,24 +555,15 @@ public class ConsolidatedSdkToolTests
     public async Task DotnetSdk_InstallTemplatePack_WithValidPackageIdInline_Succeeds()
     {
         // Arrange - valid package with inline version using @
-        var tempDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-valid-test", Guid.NewGuid().ToString("n"));
-        Directory.CreateDirectory(tempDir);
-        try
-        {
-            // Create a minimal valid package structure to avoid actual NuGet call
-            var result = (await _tools.DotnetSdk(
-                action: DotnetSdkAction.InstallTemplatePack,
-                templatePackage: tempDir));
+        await using var temp = TempTemplatePackDirectory.Create(_tools, "dotnet-mcp-valid-test");
 
-            // Should execute without validation error (may fail at install if not a valid template)
-            Assert.NotNull(result);
-        }
-        finally
-        {
-            try { Directory.Delete(tempDir, recursive: true); }
-            catch (IOException) { /* best-effort cleanup */ }
-            catch (UnauthorizedAccessException) { /* best-effort cleanup */ }
-        }
+        // Create a minimal valid package structure to avoid actual NuGet call
+        var result = (await _tools.DotnetSdk(
+            action: DotnetSdkAction.InstallTemplatePack,
+            templatePackage: temp.Path));
+
+        // Should execute without validation error (may fail at install if not a valid template)
+        Assert.NotNull(result);
     }
 
     #endregion
