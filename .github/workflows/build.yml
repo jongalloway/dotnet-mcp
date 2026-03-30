@@ -86,7 +86,7 @@ jobs:
         id: upload_codecov
         # Only upload from pushes (PR workflows from forks don't have secrets).
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           files: coverage.cobertura.xml
           token: ${{ secrets.CODECOV_TOKEN }}
