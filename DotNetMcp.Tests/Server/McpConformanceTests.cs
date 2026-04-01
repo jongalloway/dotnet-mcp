@@ -713,22 +713,21 @@ public class McpConformanceTests : IAsyncLifetime
 
     #endregion
 
-    #region MCP Task Support Tests (Graceful Degradation)
+    #region MCP Task Support Tests
 
-    // Task support is intentionally disabled: MCP SDK v1.1.0's ExecuteToolAsTaskAsync
-    // disposes the DI scope before the background task resolves services, causing
-    // ObjectDisposedException on every tool call. Without InMemoryMcpTaskStore,
-    // the server runs tools synchronously and does not advertise task capabilities.
+    // Task support is enabled: MCP SDK v1.2.0 fixed the DI scope lifetime bug (#1430).
+    // InMemoryMcpTaskStore is registered, so tool calls with TaskSupport = Optional
+    // can run as background tasks.
 
     [Fact]
-    public void Server_ShouldNotAdvertiseTasksCapability_WhenTaskStoreNotRegistered()
+    public void Server_ShouldAdvertiseTasksCapability_WhenTaskStoreRegistered()
     {
         // Arrange
         Assert.NotNull(_client);
 
-        // Assert - no task store means no tasks capability advertised
+        // Assert - task store is registered so tasks capability is advertised
         Assert.NotNull(_client.ServerCapabilities);
-        Assert.Null(_client.ServerCapabilities.Tasks);
+        Assert.NotNull(_client.ServerCapabilities.Tasks);
     }
 
     [Fact]
@@ -741,10 +740,7 @@ public class McpConformanceTests : IAsyncLifetime
         var tools = await _client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
         var projectTool = tools.FirstOrDefault(t => t.Name == "dotnet_project");
 
-        // Assert - the tool attribute declares TaskSupport = Optional so it's ready when
-        // task support is re-enabled by un-commenting the IMcpTaskStore registration in Program.cs
-        // (pending fix of https://github.com/modelcontextprotocol/csharp-sdk/issues/1430).
-        // Without a task store registered, the SDK runs it synchronously inline (graceful degradation).
+        // Assert - the tool attribute declares TaskSupport = Optional
         Assert.NotNull(projectTool);
         var execution = projectTool.ProtocolTool.Execution;
         Assert.NotNull(execution);
@@ -752,12 +748,12 @@ public class McpConformanceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Server_DotnetProject_ShouldWorkSynchronously()
+    public async Task Server_DotnetProject_ShouldWorkWithTaskStore()
     {
-        // Arrange - verify tools work reliably via normal tools/call (no tasks)
+        // Arrange - verify tools work reliably with task store registered
         Assert.NotNull(_client);
 
-        // Act - standard synchronous tool call
+        // Act - tool call (task store is present; SDK may run as task or inline)
         var result = await _client.CallToolAsync(
             "dotnet_project",
             new Dictionary<string, object?>
