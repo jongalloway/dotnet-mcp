@@ -1096,7 +1096,7 @@ Key files to start with:
 - 📖 [Concurrency Safety](doc/concurrency.md) - Parallel execution guidance for AI orchestrators
 - 📖 [Testing](doc/testing.md) - How to run tests (including opt-in interactive tests)
 - 📖 [Model Context Protocol](https://modelcontextprotocol.io/) - Official MCP specification
-- 📖 [MCP C# SDK Docs](https://modelcontextprotocol.github.io/csharp-sdk/) - SDK documentation
+- 📖 [MCP C# SDK Docs](https://csharp.sdk.modelcontextprotocol.io/) - SDK documentation
 
 ## Interoperability
 

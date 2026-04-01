@@ -2,6 +2,7 @@ using System.Text.Json;
 using DotNetMcp;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using ModelContextProtocol;
 using Xunit;
 
 namespace DotNetMcp.Tests;
@@ -16,7 +17,7 @@ public class ServerCapabilitiesTests
     {
         _logger = NullLogger<DotNetCliTools>.Instance;
         _concurrencyManager = new ConcurrencyManager();
-        _tools = new DotNetCliTools(_logger, _concurrencyManager, new ProcessSessionManager());
+        _tools = new DotNetCliTools(_logger, _concurrencyManager, new ProcessSessionManager(), taskStore: new InMemoryMcpTaskStore());
     }
 
     [Fact]
@@ -210,7 +211,7 @@ public class ServerCapabilitiesTests
     }
 
     [Fact]
-    public async Task DotnetServerCapabilities_Supports_AsyncTasks_IsFalse()
+    public async Task DotnetServerCapabilities_Supports_AsyncTasks_IsTrue()
     {
         // Act
         var result = (await _tools.DotnetServerCapabilities()).GetText();
@@ -220,8 +221,8 @@ public class ServerCapabilitiesTests
             .GetProperty("asyncTasks")
             .GetBoolean();
 
-        // Assert - MCP Task support disabled due to SDK v1.1.0 DI scope lifetime bug
-        Assert.False(asyncTasks);
+        // Assert - MCP Task support enabled with MCP SDK v1.2.0 fix for DI scope lifetime bug
+        Assert.True(asyncTasks);
     }
 
     [Fact]
@@ -262,7 +263,7 @@ public class ServerCapabilitiesTests
         Assert.True(capabilities.Supports.MachineReadable);
         Assert.True(capabilities.Supports.Cancellation);
         Assert.True(capabilities.Supports.Telemetry);
-        Assert.False(capabilities.Supports.AsyncTasks);
+        Assert.True(capabilities.Supports.AsyncTasks);
         Assert.True(capabilities.Supports.Prompts);
         Assert.True(capabilities.Supports.Elicitation);
         Assert.True(capabilities.Supports.Completions);

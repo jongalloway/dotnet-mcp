@@ -21,12 +21,8 @@ builder.Services.AddSingleton<ConcurrencyManager>();
 // Register ProcessSessionManager as a singleton
 builder.Services.AddSingleton<ProcessSessionManager>();
 
-// TODO: Re-enable InMemoryMcpTaskStore once the MCP SDK fixes the DI scope lifetime bug.
-// Upstream issue: https://github.com/modelcontextprotocol/csharp-sdk/issues/1430
-// MCP SDK v1.1.0's ExecuteToolAsTaskAsync disposes the request-scoped IServiceProvider
-// before the background task resolves services, causing ObjectDisposedException on every
-// tool call. Without a task store, the SDK runs tools synchronously inline.
-// builder.Services.AddSingleton<IMcpTaskStore, InMemoryMcpTaskStore>();
+// Register InMemoryMcpTaskStore for async task support (MCP SDK v1.2.0 fixed #1430).
+builder.Services.AddSingleton<IMcpTaskStore, InMemoryMcpTaskStore>();
 
 // Register ToolMetricsAccumulator for in-memory telemetry collection.
 // The accumulator is also captured by the telemetry filter added below.
