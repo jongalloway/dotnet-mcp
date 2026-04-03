@@ -219,6 +219,9 @@ public static partial class ErrorResultFactory
             var mcpErrorCode = McpErrorCodes.GetMcpErrorCode(code, category, exitCode);
             var errorInfo = ErrorCodeDictionary.GetErrorInfo(code);
             var (rootCause, recommendedAction) = RootCauseClassifier.Classify(code, message, stderr, exitCode);
+            var file = compilerMatch.Groups["file"].Value.Trim();
+            int? lineNum = int.TryParse(compilerMatch.Groups["line"].Value, out var ln) ? ln : null;
+            int? colNum = int.TryParse(compilerMatch.Groups["col"].Value, out var cn) ? cn : null;
 
             return new ErrorResult
             {
@@ -229,6 +232,9 @@ public static partial class ErrorResultFactory
                 Explanation = errorInfo?.Explanation,
                 DocumentationUrl = errorInfo?.DocumentationUrl,
                 SuggestedFixes = errorInfo?.SuggestedFixes,
+                File = string.IsNullOrWhiteSpace(file) ? null : SanitizeOutput(file),
+                Line = lineNum,
+                Column = colNum,
                 RawOutput = SanitizeOutput(line),
                 McpErrorCode = mcpErrorCode,
                 RootCauseKind = rootCause != RootCauseKind.Unknown ? rootCause : null,
@@ -668,5 +674,136 @@ public static partial class ErrorResultFactory
             WriteIndented = true,
             DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
         });
+    }
+
+    // Regex to match MSBuild "X Error(s)" / "X Warning(s)" summary lines.
+    [GeneratedRegex(@"(\d+)\s+Error\(s\)", RegexOptions.IgnoreCase)]
+    private static partial Regex ErrorCountRegex();
+
+    [GeneratedRegex(@"(\d+)\s+Warning\(s\)", RegexOptions.IgnoreCase)]
+    private static partial Regex WarningCountRegex();
+
+    // Regex to match "Build FAILED" or "Build succeeded" outcome line.
+    [GeneratedRegex(@"Build\s+(FAILED|succeeded)", RegexOptions.IgnoreCase)]
+    private static partial Regex BuildOutcomeRegex();
+
+    /// <summary>
+    /// Parse the raw text output produced by <c>DotNetCommandExecutor.ExecuteCommandAsync</c> for a
+    /// <c>dotnet build</c> invocation and return a <see cref="BuildResult"/> with structured diagnostics.
+    /// </summary>
+    /// <param name="rawOutput">
+    /// The raw text returned by <c>ExecuteCommandAsync</c>. Expected to contain lines in the format
+    /// <c>file(line,col): error|warning CODE: message</c> and a trailing <c>Exit Code: N</c> line.
+    /// </param>
+    /// <param name="project">The project path that was built, forwarded to <see cref="BuildResult.Project"/>.</param>
+    /// <param name="configuration">The build configuration, forwarded to <see cref="BuildResult.Configuration"/>.</param>
+    /// <returns>A <see cref="BuildResult"/> populated from the parsed output.</returns>
+    public static BuildResult ParseBuildOutput(string rawOutput, string? project = null, string? configuration = null)
+    {
+        if (string.IsNullOrWhiteSpace(rawOutput))
+        {
+            return new BuildResult
+            {
+                Success = true,
+                Project = project,
+                Configuration = configuration,
+                Summary = "Build succeeded"
+            };
+        }
+
+        var lines = rawOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+        // Determine exit code from the trailing "Exit Code: N" line.
+        var exitCode = 0;
+        foreach (var line in lines)
+        {
+            var trimmed = line.TrimStart();
+            if (trimmed.StartsWith("Exit Code:", StringComparison.OrdinalIgnoreCase))
+            {
+                var codeStr = trimmed["Exit Code:".Length..].Trim();
+                if (int.TryParse(codeStr, out var parsed))
+                    exitCode = parsed;
+                break;
+            }
+        }
+
+        var success = exitCode == 0;
+
+        // Collect diagnostics via the compiler error regex.
+        var errors = new List<BuildDiagnostic>();
+        var warnings = new List<BuildDiagnostic>();
+
+        foreach (var line in lines)
+        {
+            var compilerMatch = CompilerErrorRegex().Match(line);
+            if (!compilerMatch.Success)
+                continue;
+
+            var severity = compilerMatch.Groups["severity"].Value.ToLowerInvariant();
+            var file = compilerMatch.Groups["file"].Value.Trim();
+            int? lineNum = int.TryParse(compilerMatch.Groups["line"].Value, out var ln) ? ln : null;
+            int? colNum = int.TryParse(compilerMatch.Groups["col"].Value, out var cn) ? cn : null;
+            var code = compilerMatch.Groups["code"].Value;
+            var message = compilerMatch.Groups["message"].Value.Trim();
+
+            var diagnostic = new BuildDiagnostic
+            {
+                File = string.IsNullOrWhiteSpace(file) ? null : SanitizeOutput(file),
+                Line = lineNum,
+                Column = colNum,
+                Code = code,
+                Message = SanitizeOutput(message),
+                Severity = severity
+            };
+
+            if (severity == "warning")
+                warnings.Add(diagnostic);
+            else
+                errors.Add(diagnostic);
+        }
+
+        // Fallback counts from the MSBuild summary lines when regex diagnostics are not available
+        // (e.g., very short verbosity or unusual output format).
+        var errorCount = errors.Count;
+        var warningCount = warnings.Count;
+
+        if (errorCount == 0 && warningCount == 0)
+        {
+            foreach (var line in lines)
+            {
+                var em = ErrorCountRegex().Match(line);
+                if (em.Success && int.TryParse(em.Groups[1].Value, out var ec))
+                    errorCount = Math.Max(errorCount, ec);
+
+                var wm = WarningCountRegex().Match(line);
+                if (wm.Success && int.TryParse(wm.Groups[1].Value, out var wc))
+                    warningCount = Math.Max(warningCount, wc);
+            }
+        }
+
+        // Build a concise summary string.
+        string summary;
+        if (success)
+        {
+            summary = warningCount > 0
+                ? $"Build succeeded ({warningCount} warning(s))"
+                : "Build succeeded";
+        }
+        else
+        {
+            summary = $"Build FAILED ({errorCount} error(s), {warningCount} warning(s))";
+        }
+
+        return new BuildResult
+        {
+            Success = success,
+            Project = string.IsNullOrWhiteSpace(project) ? null : project,
+            Configuration = string.IsNullOrWhiteSpace(configuration) ? null : configuration,
+            ErrorCount = errorCount,
+            WarningCount = warningCount,
+            Summary = summary,
+            Errors = errors.Count > 0 ? errors : null,
+            Warnings = warnings.Count > 0 ? warnings : null
+        };
     }
 }

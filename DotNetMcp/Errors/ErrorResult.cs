@@ -57,6 +57,25 @@ public sealed class ErrorResult
     public List<string>? Alternatives { get; init; }
 
     /// <summary>
+    /// Source file where the error or warning occurred (for compiler errors).
+    /// Populated from MSBuild/Roslyn diagnostics that include a file location.
+    /// </summary>
+    [JsonPropertyName("file")]
+    public string? File { get; init; }
+
+    /// <summary>
+    /// Line number within the source file (1-based, for compiler errors).
+    /// </summary>
+    [JsonPropertyName("line")]
+    public int? Line { get; init; }
+
+    /// <summary>
+    /// Column number within the source file (1-based, for compiler errors).
+    /// </summary>
+    [JsonPropertyName("column")]
+    public int? Column { get; init; }
+
+    /// <summary>
     /// Original raw output for reference (sanitized to remove sensitive data)
     /// </summary>
     [JsonPropertyName("rawOutput")]
@@ -158,6 +177,105 @@ public sealed class SuccessResult
     /// </summary>
     [JsonPropertyName("metadata")]
     public Dictionary<string, string>? Metadata { get; init; }
+}
+
+/// <summary>
+/// Represents a single compiler/MSBuild diagnostic (error or warning) with source location.
+/// Used in <see cref="BuildResult"/> to report individual diagnostics from a build.
+/// </summary>
+public sealed class BuildDiagnostic
+{
+    /// <summary>
+    /// Source file where the diagnostic occurred (relative or absolute path).
+    /// </summary>
+    [JsonPropertyName("file")]
+    public string? File { get; init; }
+
+    /// <summary>
+    /// Line number within the source file (1-based).
+    /// </summary>
+    [JsonPropertyName("line")]
+    public int? Line { get; init; }
+
+    /// <summary>
+    /// Column number within the source file (1-based).
+    /// </summary>
+    [JsonPropertyName("column")]
+    public int? Column { get; init; }
+
+    /// <summary>
+    /// Diagnostic code (e.g., "CS0246", "MSB3644").
+    /// </summary>
+    [JsonPropertyName("code")]
+    public string Code { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Human-readable diagnostic message.
+    /// </summary>
+    [JsonPropertyName("message")]
+    public string Message { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Severity: "error" or "warning".
+    /// </summary>
+    [JsonPropertyName("severity")]
+    public string Severity { get; init; } = "error";
+}
+
+/// <summary>
+/// Structured result of a <c>dotnet build</c> invocation, including counts and
+/// individual compiler/MSBuild diagnostics so callers can diagnose failures
+/// without re-parsing raw CLI output.
+/// </summary>
+public sealed class BuildResult
+{
+    /// <summary>
+    /// <c>true</c> when the build succeeded (exit code 0).
+    /// </summary>
+    [JsonPropertyName("success")]
+    public bool Success { get; init; }
+
+    /// <summary>
+    /// The project or solution file that was built, if specified.
+    /// </summary>
+    [JsonPropertyName("project")]
+    public string? Project { get; init; }
+
+    /// <summary>
+    /// Build configuration used (e.g., "Debug", "Release").
+    /// </summary>
+    [JsonPropertyName("configuration")]
+    public string? Configuration { get; init; }
+
+    /// <summary>
+    /// Number of compiler/MSBuild errors.
+    /// </summary>
+    [JsonPropertyName("errorCount")]
+    public int ErrorCount { get; init; }
+
+    /// <summary>
+    /// Number of compiler/MSBuild warnings.
+    /// </summary>
+    [JsonPropertyName("warningCount")]
+    public int WarningCount { get; init; }
+
+    /// <summary>
+    /// Short summary line (e.g., "Build succeeded" or "Build FAILED (1 errors, 0 warnings)").
+    /// </summary>
+    [JsonPropertyName("summary")]
+    public string Summary { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Individual error diagnostics. <c>null</c> when there are no errors.
+    /// </summary>
+    [JsonPropertyName("errors")]
+    public List<BuildDiagnostic>? Errors { get; init; }
+
+    /// <summary>
+    /// Individual warning diagnostics. <c>null</c> when there are no warnings.
+    /// </summary>
+    [JsonPropertyName("warnings")]
+    public List<BuildDiagnostic>? Warnings { get; init; }
 }
 
 /// <summary>

@@ -1808,6 +1808,32 @@ public class ConsolidatedProjectToolTests
     }
 
     [Fact]
+    public async Task DotnetProject_Build_ReturnsStructuredContent()
+    {
+        // Build action should always return structured content (BuildResult) regardless of success/failure.
+        var callResult = await _tools.DotnetProject(
+            action: DotnetProjectAction.Build,
+            project: "MyProject.csproj",
+            configuration: "Release");
+
+        // Text content should still be present
+        var text = callResult.GetText();
+        Assert.NotNull(text);
+
+        // Structured content must be populated
+        Assert.True(callResult.StructuredContent.HasValue, "Build action should always return structured content");
+        var structuredJson = callResult.StructuredContent!.Value.GetRawText();
+        Assert.False(string.IsNullOrWhiteSpace(structuredJson));
+
+        // The structured content should be a valid BuildResult with success/errorCount/summary
+        using var doc = System.Text.Json.JsonDocument.Parse(structuredJson);
+        var root = doc.RootElement;
+        Assert.True(root.TryGetProperty("success", out _), "BuildResult should have 'success' field");
+        Assert.True(root.TryGetProperty("errorCount", out _), "BuildResult should have 'errorCount' field");
+        Assert.True(root.TryGetProperty("summary", out _), "BuildResult should have 'summary' field");
+    }
+
+    [Fact]
     public async Task DotnetProject_Restore_WithVerbosity_WiresFlag()
     {
         var result = (await _tools.DotnetProject(

@@ -86,6 +86,23 @@ internal sealed class McpScenarioClient : IAsyncDisposable
     }
 
     /// <summary>
+    /// Calls an MCP tool and returns the full <see cref="CallToolResult"/>, including any structured content.
+    /// </summary>
+    /// <param name="toolName">The name of the tool to call.</param>
+    /// <param name="args">The arguments to pass to the tool.</param>
+    /// <param name="cancellationToken">A cancellation token to cancel the operation.</param>
+    /// <returns>The full <see cref="CallToolResult"/> from the tool response.</returns>
+    public async Task<CallToolResult> CallToolAsync(string toolName, Dictionary<string, object?> args, CancellationToken cancellationToken)
+    {
+        if (_client is null)
+        {
+            throw new InvalidOperationException("MCP client not initialized.");
+        }
+
+        return await _client.CallToolAsync(toolName, args, cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
     /// Disposes the MCP client and releases all associated resources.
     /// </summary>
     /// <returns>A task representing the asynchronous dispose operation.</returns>

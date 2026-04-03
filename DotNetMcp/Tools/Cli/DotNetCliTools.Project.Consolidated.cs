@@ -172,6 +172,15 @@ public sealed partial class DotNetCliTools
             };
         });
 
+        // For Build actions, parse the raw output into structured content so callers get
+        // individual compiler errors (file, line, column, code, message) without having to
+        // re-parse the raw CLI text themselves.
+        if (action == DotnetProjectAction.Build)
+        {
+            var buildResult = ErrorResultFactory.ParseBuildOutput(textResult, effectiveProject, configuration);
+            return StructuredContentHelper.ToCallToolResult(textResult, buildResult);
+        }
+
         return StructuredContentHelper.ToCallToolResult(textResult);
     }
 
