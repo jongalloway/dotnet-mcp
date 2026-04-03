@@ -1463,6 +1463,29 @@ Program.cs(15,10): error CS1001: Identifier expected";
         Assert.True(result.Success);
     }
 
+    [Fact]
+    public void ParseBuildOutput_WithAbsoluteProjectPath_SanitizesToFilename()
+    {
+        // Absolute project paths should be reduced to just the filename to avoid leaking machine paths.
+        var absolutePath = Path.Join(Path.GetTempPath(), "my-project", "MyApp.csproj");
+        var rawOutput = "Command: dotnet build\nBuild succeeded.\n   0 Warning(s)\n   0 Error(s)\nExit Code: 0";
+
+        var result = ErrorResultFactory.ParseBuildOutput(rawOutput, project: absolutePath);
+
+        Assert.True(result.Success);
+        Assert.Equal("MyApp.csproj", result.Project);
+    }
+
+    [Fact]
+    public void ParseBuildOutput_WithRelativeProjectPath_PreservesAsIs()
+    {
+        var result = ErrorResultFactory.ParseBuildOutput(
+            "Command: dotnet build\nBuild succeeded.\nExit Code: 0",
+            project: "src/MyApp.csproj");
+
+        Assert.Equal("src/MyApp.csproj", result.Project);
+    }
+
     #endregion
 
     #region ErrorResult File/Line/Column Tests

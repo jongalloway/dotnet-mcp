@@ -683,10 +683,6 @@ public static partial class ErrorResultFactory
     [GeneratedRegex(@"(\d+)\s+Warning\(s\)", RegexOptions.IgnoreCase)]
     private static partial Regex WarningCountRegex();
 
-    // Regex to match "Build FAILED" or "Build succeeded" outcome line.
-    [GeneratedRegex(@"Build\s+(FAILED|succeeded)", RegexOptions.IgnoreCase)]
-    private static partial Regex BuildOutcomeRegex();
-
     /// <summary>
     /// Parse the raw text output produced by <c>DotNetCommandExecutor.ExecuteCommandAsync</c> for a
     /// <c>dotnet build</c> invocation and return a <see cref="BuildResult"/> with structured diagnostics.
@@ -715,16 +711,14 @@ public static partial class ErrorResultFactory
 
         // Determine exit code from the trailing "Exit Code: N" line.
         var exitCode = 0;
-        foreach (var line in lines)
+        var exitCodeLine = lines
+            .Select(l => l.TrimStart())
+            .FirstOrDefault(l => l.StartsWith("Exit Code:", StringComparison.OrdinalIgnoreCase));
+        if (exitCodeLine != null)
         {
-            var trimmed = line.TrimStart();
-            if (trimmed.StartsWith("Exit Code:", StringComparison.OrdinalIgnoreCase))
-            {
-                var codeStr = trimmed.Substring("Exit Code:".Length).Trim();
-                if (int.TryParse(codeStr, out var parsed))
-                    exitCode = parsed;
-                break;
-            }
+            var codeStr = exitCodeLine.Substring("Exit Code:".Length).Trim();
+            if (int.TryParse(codeStr, out var parsed))
+                exitCode = parsed;
         }
 
         var success = exitCode == 0;
@@ -733,12 +727,8 @@ public static partial class ErrorResultFactory
         var errors = new List<BuildDiagnostic>();
         var warnings = new List<BuildDiagnostic>();
 
-        foreach (var line in lines)
+        foreach (var compilerMatch in lines.Select(line => CompilerErrorRegex().Match(line)).Where(m => m.Success))
         {
-            var compilerMatch = CompilerErrorRegex().Match(line);
-            if (!compilerMatch.Success)
-                continue;
-
             var severity = compilerMatch.Groups["severity"].Value.ToLowerInvariant();
             var file = compilerMatch.Groups["file"].Value.Trim();
             int? lineNum = int.TryParse(compilerMatch.Groups["line"].Value, out var ln) ? ln : null;
@@ -800,22 +790,14 @@ public static partial class ErrorResultFactory
         }
 
         // Build a concise summary string.
-        string summary;
-        if (success)
-        {
-            summary = warningCount > 0
-                ? $"Build succeeded ({warningCount} warning(s))"
-                : "Build succeeded";
-        }
-        else
-        {
-            summary = $"Build FAILED ({errorCount} error(s), {warningCount} warning(s))";
-        }
+        var summary = success
+            ? (warningCount > 0 ? $"Build succeeded ({warningCount} warning(s))" : "Build succeeded")
+            : $"Build FAILED ({errorCount} error(s), {warningCount} warning(s))";
 
         return new BuildResult
         {
             Success = success,
-            Project = string.IsNullOrWhiteSpace(project) ? null : project,
+            Project = SanitizeProjectPath(project),
             Configuration = string.IsNullOrWhiteSpace(configuration) ? null : configuration,
             ErrorCount = errorCount,
             WarningCount = warningCount,
@@ -823,5 +805,20 @@ public static partial class ErrorResultFactory
             Errors = errors.Count > 0 ? errors : null,
             Warnings = warnings.Count > 0 ? warnings : null
         };
+    }
+
+    /// <summary>
+    /// Sanitize a project path for inclusion in structured content.
+    /// Absolute paths are reduced to just the filename to avoid leaking machine-specific paths;
+    /// relative paths (typically already short identifiers) are returned as-is.
+    /// </summary>
+    private static string? SanitizeProjectPath(string? projectValue)
+    {
+        if (string.IsNullOrWhiteSpace(projectValue))
+            return null;
+
+        return Path.IsPathRooted(projectValue)
+            ? Path.GetFileName(projectValue)
+            : projectValue;
     }
 }
