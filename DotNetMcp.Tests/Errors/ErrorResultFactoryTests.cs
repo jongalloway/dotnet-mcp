@@ -1467,7 +1467,8 @@ Program.cs(15,10): error CS1001: Identifier expected";
     public void ParseBuildOutput_WithAbsoluteProjectPath_SanitizesToFilename()
     {
         // Absolute project paths should be reduced to just the filename to avoid leaking machine paths.
-        var absolutePath = Path.Join(Path.GetTempPath(), "my-project", "MyApp.csproj");
+        // Path.GetFullPath ensures this is a rooted/absolute path on any platform.
+        var absolutePath = Path.GetFullPath(Path.Join("my-project", "MyApp.csproj"));
         var rawOutput = "Command: dotnet build\nBuild succeeded.\n   0 Warning(s)\n   0 Error(s)\nExit Code: 0";
 
         var result = ErrorResultFactory.ParseBuildOutput(rawOutput, project: absolutePath);
