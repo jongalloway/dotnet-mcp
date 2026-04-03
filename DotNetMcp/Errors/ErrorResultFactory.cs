@@ -711,7 +711,7 @@ public static partial class ErrorResultFactory
             };
         }
 
-        var lines = rawOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var lines = rawOutput.Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries);
 
         // Determine exit code from the trailing "Exit Code: N" line.
         var exitCode = 0;
@@ -720,7 +720,7 @@ public static partial class ErrorResultFactory
             var trimmed = line.TrimStart();
             if (trimmed.StartsWith("Exit Code:", StringComparison.OrdinalIgnoreCase))
             {
-                var codeStr = trimmed["Exit Code:".Length..].Trim();
+                var codeStr = trimmed.Substring("Exit Code:".Length).Trim();
                 if (int.TryParse(codeStr, out var parsed))
                     exitCode = parsed;
                 break;
@@ -763,21 +763,39 @@ public static partial class ErrorResultFactory
         }
 
         // Fallback counts from the MSBuild summary lines when regex diagnostics are not available
-        // (e.g., very short verbosity or unusual output format).
+        // (e.g., very short verbosity or unusual output format). We take the first match found
+        // since dotnet build emits exactly one summary block.
         var errorCount = errors.Count;
         var warningCount = warnings.Count;
 
         if (errorCount == 0 && warningCount == 0)
         {
+            var foundErrorCount = false;
+            var foundWarningCount = false;
             foreach (var line in lines)
             {
-                var em = ErrorCountRegex().Match(line);
-                if (em.Success && int.TryParse(em.Groups[1].Value, out var ec))
-                    errorCount = Math.Max(errorCount, ec);
+                if (!foundErrorCount)
+                {
+                    var em = ErrorCountRegex().Match(line);
+                    if (em.Success && int.TryParse(em.Groups[1].Value, out var ec))
+                    {
+                        errorCount = ec;
+                        foundErrorCount = true;
+                    }
+                }
 
-                var wm = WarningCountRegex().Match(line);
-                if (wm.Success && int.TryParse(wm.Groups[1].Value, out var wc))
-                    warningCount = Math.Max(warningCount, wc);
+                if (!foundWarningCount)
+                {
+                    var wm = WarningCountRegex().Match(line);
+                    if (wm.Success && int.TryParse(wm.Groups[1].Value, out var wc))
+                    {
+                        warningCount = wc;
+                        foundWarningCount = true;
+                    }
+                }
+
+                if (foundErrorCount && foundWarningCount)
+                    break;
             }
         }
 
