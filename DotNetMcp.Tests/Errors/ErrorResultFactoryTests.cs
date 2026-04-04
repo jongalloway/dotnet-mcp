@@ -1347,5 +1347,170 @@ Program.cs(15,10): error CS1001: Identifier expected";
     }
 
     #endregion
+
+    #region ParseBuildOutput Tests
+
+    [Fact]
+    public void ParseBuildOutput_WithCompilerError_ReturnsFailureWithDiagnostic()
+    {
+        // Arrange - simulate what DotNetCommandExecutor.ExecuteCommandAsync returns for a failed build
+        var rawOutput = """
+            Command: dotnet build "MyProject.csproj"
+            Build FAILED.
+
+            Build FAILED.
+
+            Error(s)
+            Program.cs(9,51): error CS0246: The type or namespace name 'IRenderable' could not be found (are you missing a using directive or an assembly reference?) [MyProject.csproj]
+               0 Warning(s)
+               1 Error(s)
+
+            Exit Code: 1
+            """;
+
+        // Act
+        var result = ErrorResultFactory.ParseBuildOutput(rawOutput, project: "MyProject.csproj", configuration: "Debug");
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal("MyProject.csproj", result.Project);
+        Assert.Equal("Debug", result.Configuration);
+        Assert.Equal(1, result.ErrorCount);
+        Assert.Equal(0, result.WarningCount);
+        Assert.Contains("FAILED", result.Summary, StringComparison.OrdinalIgnoreCase);
+
+        Assert.NotNull(result.Errors);
+        var diag = Assert.Single(result.Errors);
+        Assert.Equal("CS0246", diag.Code);
+        Assert.Contains("IRenderable", diag.Message);
+        Assert.Equal("error", diag.Severity);
+        Assert.Equal(9, diag.Line);
+        Assert.Equal(51, diag.Column);
+        Assert.False(string.IsNullOrWhiteSpace(diag.File));
+        Assert.Contains("Program.cs", diag.File);
+
+        Assert.Null(result.Warnings);
+    }
+
+    [Fact]
+    public void ParseBuildOutput_WithWarning_ReturnsSuccessWithWarningDiagnostic()
+    {
+        // Arrange
+        var rawOutput = """
+            Command: dotnet build "MyProject.csproj"
+            Program.cs(3,1): warning CS0219: The variable 'x' is assigned but its value is never used [MyProject.csproj]
+            Build succeeded.
+               1 Warning(s)
+               0 Error(s)
+
+            Exit Code: 0
+            """;
+
+        // Act
+        var result = ErrorResultFactory.ParseBuildOutput(rawOutput, project: "MyProject.csproj");
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal(0, result.ErrorCount);
+        Assert.Equal(1, result.WarningCount);
+        Assert.Contains("succeeded", result.Summary, StringComparison.OrdinalIgnoreCase);
+
+        Assert.Null(result.Errors);
+        Assert.NotNull(result.Warnings);
+        var diag = Assert.Single(result.Warnings);
+        Assert.Equal("CS0219", diag.Code);
+        Assert.Equal("warning", diag.Severity);
+        Assert.Equal(3, diag.Line);
+        Assert.Equal(1, diag.Column);
+    }
+
+    [Fact]
+    public void ParseBuildOutput_WithSuccessNoWarnings_ReturnsCleanSuccess()
+    {
+        // Arrange
+        var rawOutput = """
+            Command: dotnet build "MyProject.csproj"
+            Build succeeded.
+               0 Warning(s)
+               0 Error(s)
+
+            Exit Code: 0
+            """;
+
+        // Act
+        var result = ErrorResultFactory.ParseBuildOutput(rawOutput, project: "MyProject.csproj");
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal(0, result.ErrorCount);
+        Assert.Equal(0, result.WarningCount);
+        Assert.Equal("Build succeeded", result.Summary);
+        Assert.Null(result.Errors);
+        Assert.Null(result.Warnings);
+    }
+
+    [Fact]
+    public void ParseBuildOutput_WithNullInput_ReturnsSafeSuccess()
+    {
+        var result = ErrorResultFactory.ParseBuildOutput(null!);
+        Assert.True(result.Success);
+    }
+
+    [Fact]
+    public void ParseBuildOutput_WithEmptyInput_ReturnsSafeSuccess()
+    {
+        var result = ErrorResultFactory.ParseBuildOutput(string.Empty);
+        Assert.True(result.Success);
+    }
+
+    [Fact]
+    public void ParseBuildOutput_WithAbsoluteProjectPath_SanitizesToFilename()
+    {
+        // Absolute project paths should be reduced to just the filename to avoid leaking machine paths.
+        // Path.GetFullPath ensures this is a rooted/absolute path on any platform.
+        var absolutePath = Path.GetFullPath(Path.Join("my-project", "MyApp.csproj"));
+        var rawOutput = "Command: dotnet build\nBuild succeeded.\n   0 Warning(s)\n   0 Error(s)\nExit Code: 0";
+
+        var result = ErrorResultFactory.ParseBuildOutput(rawOutput, project: absolutePath);
+
+        Assert.True(result.Success);
+        Assert.Equal("MyApp.csproj", result.Project);
+    }
+
+    [Fact]
+    public void ParseBuildOutput_WithRelativeProjectPath_PreservesAsIs()
+    {
+        var result = ErrorResultFactory.ParseBuildOutput(
+            "Command: dotnet build\nBuild succeeded.\nExit Code: 0",
+            project: "src/MyApp.csproj");
+
+        Assert.Equal("src/MyApp.csproj", result.Project);
+    }
+
+    #endregion
+
+    #region ErrorResult File/Line/Column Tests
+
+    [Fact]
+    public void CreateResult_WithCompilerError_PopulatesFileLineColumn()
+    {
+        // Arrange
+        var output = "Program.cs(9,51): error CS0246: The type or namespace name 'IRenderable' could not be found";
+        var error = "";
+        var exitCode = 1;
+
+        // Act
+        var result = ErrorResultFactory.CreateResult(output, error, exitCode);
+
+        // Assert
+        var errorResponse = Assert.IsType<ErrorResponse>(result);
+        var parsedError = Assert.Single(errorResponse.Errors);
+        Assert.Equal("CS0246", parsedError.Code);
+        Assert.Contains("Program.cs", parsedError.File);
+        Assert.Equal(9, parsedError.Line);
+        Assert.Equal(51, parsedError.Column);
+    }
+
+    #endregion
 }
 
