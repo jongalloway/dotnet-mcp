@@ -32,9 +32,9 @@ public sealed class LockInfo
     public LockScope LockScope { get; init; }
 
     /// <summary>
-    /// Stable identifier for the locked resource — normalized, lowercased full path to
+    /// Stable identifier for the locked resource — the normalized absolute full path to
     /// the .csproj/.sln file or the working directory. Stable across invocations on the
-    /// same target.
+    /// same target; case matches the file system (no case normalization is applied).
     /// </summary>
     [JsonPropertyName("lockKey")]
     public string LockKey { get; init; } = string.Empty;

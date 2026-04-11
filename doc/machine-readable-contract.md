@@ -35,7 +35,7 @@ All `dotnet_project` actions that acquire a concurrency lock — **Build**, **Ru
 | Field | Type | Description |
 |-------|------|-------------|
 | `lockScope` | `"project" \| "solution" \| "workingDirectory" \| "global"` | Scope of the lock acquired. `project` when a `.csproj`/`.fsproj`/`.vbproj` is the target; `solution` for `.sln`/`.slnx`; `workingDirectory` when no project file was specified; `global` for server-wide operations. |
-| `lockKey` | `string` | Stable, normalised (lower-cased) absolute path to the locked resource. Identical across invocations on the same target. |
+| `lockKey` | `string` | Stable, normalised absolute path to the locked resource. Case matches the file system (no lowercasing). Identical across invocations on the same target. |
 | `lockContended` | `boolean` (absent on success) | `true` when the operation could not acquire the lock because a conflicting operation was already in progress. Absent when the lock was acquired without conflict. |
 | `lockWaitedMs` | `number` (absent on success) | Milliseconds spent waiting to acquire the lock. Currently always `0` (fail-fast conflict detection); reserved for future queuing. |
 
