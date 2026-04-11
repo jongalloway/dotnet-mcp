@@ -64,93 +64,262 @@ public class ProjectAnalysisHelperTests
     }
 
     [Fact]
-    public async Task AnalyzeProjectAsync_WithValidProject_ReturnsSuccessJson()
+    public async Task AnalyzeProjectAsync_WithMinimalProject_ReturnsSuccessJson()
     {
-        // Arrange - use the test project itself
-        var testProjectPath = FindTestProjectPath();
-        if (testProjectPath == null)
+        var projectFile = CreateTempProject("""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net8.0</TargetFramework>
+                <OutputType>Exe</OutputType>
+                <Nullable>enable</Nullable>
+              </PropertyGroup>
+            </Project>
+            """);
+
+        try
         {
-            // Skip test if we can't find the project file
-            return;
+            var result = await ProjectAnalysisHelper.AnalyzeProjectAsync(projectFile, _logger);
+
+            Assert.NotNull(result);
+            var json = JsonDocument.Parse(result);
+            Assert.True(json.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal(projectFile, json.RootElement.GetProperty("projectPath").GetString());
+            Assert.Equal("Test", json.RootElement.GetProperty("projectName").GetString());
+            Assert.True(json.RootElement.TryGetProperty("targetFrameworks", out _));
+            Assert.Equal("Exe", json.RootElement.GetProperty("outputType").GetString());
+            Assert.True(json.RootElement.TryGetProperty("packageReferences", out _));
+            Assert.Equal("enable", json.RootElement.GetProperty("nullable").GetString());
         }
-
-        // Act
-        var result = await ProjectAnalysisHelper.AnalyzeProjectAsync(testProjectPath, _logger);
-
-        // Assert
-        Assert.NotNull(result);
-        var json = JsonDocument.Parse(result);
-        Assert.True(json.RootElement.GetProperty("success").GetBoolean());
-        Assert.True(json.RootElement.TryGetProperty("projectPath", out _));
-        Assert.True(json.RootElement.TryGetProperty("targetFrameworks", out _));
-        Assert.True(json.RootElement.TryGetProperty("outputType", out _));
-        Assert.True(json.RootElement.TryGetProperty("packageReferences", out _));
+        finally
+        {
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+        }
     }
 
     [Fact]
-    public async Task AnalyzeDependenciesAsync_WithValidProject_ReturnsSuccessJson()
+    public async Task AnalyzeProjectAsync_WithPackageReferences_ReturnsPackageInfo()
     {
-        // Arrange - use the test project itself
-        var testProjectPath = FindTestProjectPath();
-        if (testProjectPath == null)
+        var projectFile = CreateTempProject("""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net8.0</TargetFramework>
+              </PropertyGroup>
+              <ItemGroup>
+                <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+                <PackageReference Include="Serilog" Version="3.1.1" />
+              </ItemGroup>
+            </Project>
+            """);
+
+        try
         {
-            // Skip test if we can't find the project file
-            return;
+            var result = await ProjectAnalysisHelper.AnalyzeProjectAsync(projectFile, _logger);
+
+            var json = JsonDocument.Parse(result);
+            Assert.True(json.RootElement.GetProperty("success").GetBoolean());
+
+            var packages = json.RootElement.GetProperty("packageReferences").EnumerateArray().ToList();
+            Assert.Equal(2, packages.Count);
+
+            var names = packages.Select(p => p.GetProperty("name").GetString()).ToHashSet();
+            Assert.Contains("Newtonsoft.Json", names);
+            Assert.Contains("Serilog", names);
+
+            var newtonsoftPkg = packages.First(p => p.GetProperty("name").GetString() == "Newtonsoft.Json");
+            Assert.Equal("13.0.3", newtonsoftPkg.GetProperty("version").GetString());
         }
-
-        // Act
-        var result = await ProjectAnalysisHelper.AnalyzeDependenciesAsync(testProjectPath, _logger);
-
-        // Assert
-        Assert.NotNull(result);
-        var json = JsonDocument.Parse(result);
-        Assert.True(json.RootElement.GetProperty("success").GetBoolean());
-        Assert.True(json.RootElement.TryGetProperty("directPackageDependencies", out _));
-        Assert.True(json.RootElement.TryGetProperty("directProjectDependencies", out _));
-        Assert.True(json.RootElement.TryGetProperty("totalDirectDependencies", out _));
+        finally
+        {
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+        }
     }
 
     [Fact]
-    public async Task ValidateProjectAsync_WithValidProject_ReturnsSuccessJson()
+    public async Task AnalyzeProjectAsync_WithMultipleTargetFrameworks_ReturnsAllFrameworks()
     {
-        // Arrange - use the test project itself
-        var testProjectPath = FindTestProjectPath();
-        if (testProjectPath == null)
+        var projectFile = CreateTempProject("""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+              </PropertyGroup>
+            </Project>
+            """);
+
+        try
         {
-            // Skip test if we can't find the project file
-            return;
+            var result = await ProjectAnalysisHelper.AnalyzeProjectAsync(projectFile, _logger);
+
+            var json = JsonDocument.Parse(result);
+            Assert.True(json.RootElement.GetProperty("success").GetBoolean());
+
+            var frameworks = json.RootElement.GetProperty("targetFrameworks")
+                .EnumerateArray()
+                .Select(f => f.GetString())
+                .ToList();
+
+            Assert.Contains("net8.0", frameworks);
+            Assert.Contains("net9.0", frameworks);
         }
-
-        // Act
-        var result = await ProjectAnalysisHelper.ValidateProjectAsync(testProjectPath, _logger);
-
-        // Assert
-        Assert.NotNull(result);
-        var json = JsonDocument.Parse(result);
-        Assert.True(json.RootElement.GetProperty("success").GetBoolean());
-        Assert.True(json.RootElement.GetProperty("isValid").GetBoolean());
-        Assert.True(json.RootElement.TryGetProperty("errors", out _));
-        Assert.True(json.RootElement.TryGetProperty("warnings", out _));
-        Assert.True(json.RootElement.TryGetProperty("recommendations", out _));
+        finally
+        {
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+        }
     }
 
-    private string? FindTestProjectPath()
+    [Fact]
+    public async Task AnalyzeDependenciesAsync_WithMinimalProject_ReturnsSuccessJson()
     {
-        // Try to find the test project file
-        var currentDir = Directory.GetCurrentDirectory();
-        
-        // Common patterns where the test project might be
-        var possiblePaths = new[] 
-        {
-            Path.Join(currentDir, "DotNetMcp.Tests.csproj"),
-            Path.Join(currentDir, "..", "DotNetMcp.Tests", "DotNetMcp.Tests.csproj"),
-            Path.Join(currentDir, "..", "..", "DotNetMcp.Tests", "DotNetMcp.Tests.csproj"),
-        };
+        var projectFile = CreateTempProject("""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net8.0</TargetFramework>
+              </PropertyGroup>
+            </Project>
+            """);
 
-        return possiblePaths
-            .Where(File.Exists)
-            .Select(Path.GetFullPath)
-            .FirstOrDefault();
+        try
+        {
+            var result = await ProjectAnalysisHelper.AnalyzeDependenciesAsync(projectFile, _logger);
+
+            Assert.NotNull(result);
+            var json = JsonDocument.Parse(result);
+            Assert.True(json.RootElement.GetProperty("success").GetBoolean());
+            Assert.True(json.RootElement.TryGetProperty("directPackageDependencies", out _));
+            Assert.True(json.RootElement.TryGetProperty("directProjectDependencies", out _));
+            Assert.Equal(0, json.RootElement.GetProperty("totalDirectDependencies").GetInt32());
+        }
+        finally
+        {
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+        }
+    }
+
+    [Fact]
+    public async Task AnalyzeDependenciesAsync_WithPackageReferences_ReturnsDependencies()
+    {
+        var projectFile = CreateTempProject("""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net8.0</TargetFramework>
+              </PropertyGroup>
+              <ItemGroup>
+                <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+              </ItemGroup>
+            </Project>
+            """);
+
+        try
+        {
+            var result = await ProjectAnalysisHelper.AnalyzeDependenciesAsync(projectFile, _logger);
+
+            var json = JsonDocument.Parse(result);
+            Assert.True(json.RootElement.GetProperty("success").GetBoolean());
+
+            var packages = json.RootElement.GetProperty("directPackageDependencies").EnumerateArray().ToList();
+            Assert.Single(packages);
+            Assert.Equal("Newtonsoft.Json", packages[0].GetProperty("name").GetString());
+            Assert.Equal("13.0.3", packages[0].GetProperty("version").GetString());
+            Assert.Equal(1, json.RootElement.GetProperty("totalDirectDependencies").GetInt32());
+        }
+        finally
+        {
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+        }
+    }
+
+    [Fact]
+    public async Task ValidateProjectAsync_WithHealthyProject_ReturnsSuccessAndIsValid()
+    {
+        var projectFile = CreateTempProject("""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net8.0</TargetFramework>
+                <OutputType>Exe</OutputType>
+                <Nullable>enable</Nullable>
+              </PropertyGroup>
+            </Project>
+            """);
+
+        try
+        {
+            var result = await ProjectAnalysisHelper.ValidateProjectAsync(projectFile, _logger);
+
+            Assert.NotNull(result);
+            var json = JsonDocument.Parse(result);
+            Assert.True(json.RootElement.GetProperty("success").GetBoolean());
+            Assert.True(json.RootElement.GetProperty("isValid").GetBoolean());
+            Assert.True(json.RootElement.TryGetProperty("errors", out _));
+            Assert.True(json.RootElement.TryGetProperty("warnings", out _));
+            Assert.True(json.RootElement.TryGetProperty("recommendations", out _));
+            Assert.Equal(0, json.RootElement.GetProperty("errors").GetArrayLength());
+        }
+        finally
+        {
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+        }
+    }
+
+    [Fact]
+    public async Task ValidateProjectAsync_WithMissingTargetFramework_ReturnsErrors()
+    {
+        var projectFile = CreateTempProject("""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+              </PropertyGroup>
+            </Project>
+            """);
+
+        try
+        {
+            var result = await ProjectAnalysisHelper.ValidateProjectAsync(projectFile, _logger);
+
+            var json = JsonDocument.Parse(result);
+            Assert.True(json.RootElement.GetProperty("success").GetBoolean());
+            Assert.False(json.RootElement.GetProperty("isValid").GetBoolean());
+
+            var errors = json.RootElement.GetProperty("errors")
+                .EnumerateArray()
+                .Select(e => e.GetString())
+                .ToList();
+
+            Assert.Contains(errors, e => e != null && e.Contains("No target framework"));
+        }
+        finally
+        {
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+        }
+    }
+
+    [Fact]
+    public async Task ValidateProjectAsync_WithNullableEnabled_DoesNotRecommendNullable()
+    {
+        var projectFile = CreateTempProject("""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net8.0</TargetFramework>
+                <Nullable>enable</Nullable>
+              </PropertyGroup>
+            </Project>
+            """);
+
+        try
+        {
+            var result = await ProjectAnalysisHelper.ValidateProjectAsync(projectFile, _logger);
+
+            var json = JsonDocument.Parse(result);
+            Assert.True(json.RootElement.GetProperty("success").GetBoolean());
+
+            var recommendations = json.RootElement.GetProperty("recommendations")
+                .EnumerateArray()
+                .Select(r => r.GetString())
+                .ToList();
+
+            Assert.DoesNotContain(recommendations, r => r != null && r.Contains("nullable reference types"));
+        }
+        finally
+        {
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+        }
     }
 
     private static string CreateTempProject(string content)
