@@ -9,7 +9,7 @@ The .NET MCP Server provides two complementary mechanisms for machine-readable t
 
 ## Structured Content (CallToolResult)
 
-Four tools now return `CallToolResult` with a `structuredContent` field:
+The following tools return `CallToolResult` with a `structuredContent` field:
 
 | Tool | Action(s) | Structured Fields |
 |------|-----------|-------------------|
@@ -19,8 +19,88 @@ Four tools now return `CallToolResult` with a `structuredContent` field:
 | `dotnet_solution` | `List` | `{ "projects": ["path/to/project.csproj", ...] }` |
 | `dotnet_package` | `List` | `{ "packages": [{ "name": "...", "requestedVersion": "...", "resolvedVersion": "..." }] }` |
 | `dotnet_server_capabilities` | _(all)_ | Full `ServerCapabilities` object (see below) |
+| `dotnet_project` | `Build` | `BuildResult` with compiler diagnostics **and `lockInfo`** (see below) |
+| `dotnet_project` | `Run`, `Test`, `Publish` | `ConcurrencyAwareResult` containing **`lockInfo`** (see below) |
 
 All other actions for these tools return only text content (no `structuredContent`).
+
+---
+
+## Concurrency Lock Metadata (`lockInfo`)
+
+All `dotnet_project` actions that acquire a concurrency lock — **Build**, **Run**, **Test**, and **Publish** — include a `lockInfo` object in their `structuredContent`. This allows consumers to confirm lock granularity, diagnose contention, and implement higher-level orchestration policies.
+
+### `lockInfo` Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `lockScope` | `"project" \| "solution" \| "workingDirectory" \| "global"` | Scope of the lock acquired. `project` when a `.csproj`/`.fsproj`/`.vbproj` is the target; `solution` for `.sln`/`.slnx`; `workingDirectory` when no project file was specified; `global` for server-wide operations. |
+| `lockKey` | `string` | Stable, normalised (lower-cased) absolute path to the locked resource. Identical across invocations on the same target. |
+| `lockContended` | `boolean` (absent on success) | `true` when the operation could not acquire the lock because a conflicting operation was already in progress. Absent when the lock was acquired without conflict. |
+| `lockWaitedMs` | `number` (absent on success) | Milliseconds spent waiting to acquire the lock. Currently always `0` (fail-fast conflict detection); reserved for future queuing. |
+
+### Lock Selection Rules
+
+- If `project` is provided: lock on that file path.
+- Otherwise: lock on the resolved `workingDirectory` (or the process working directory as a final fallback).
+
+### Example: Successful Build
+
+```json
+{
+  "content": [{ "type": "text", "text": "Build succeeded.\nExit Code: 0" }],
+  "structuredContent": {
+    "success": true,
+    "project": "MyApp.csproj",
+    "configuration": "Release",
+    "errorCount": 0,
+    "warningCount": 0,
+    "summary": "Build succeeded",
+    "lockInfo": {
+      "lockScope": "project",
+      "lockKey": "/home/user/projects/myapp/myapp.csproj"
+    }
+  }
+}
+```
+
+### Example: Test / Run / Publish (success)
+
+```json
+{
+  "content": [{ "type": "text", "text": "Test run succeeded.\nExit Code: 0" }],
+  "structuredContent": {
+    "lockInfo": {
+      "lockScope": "workingDirectory",
+      "lockKey": "/home/user/projects/myapp"
+    }
+  }
+}
+```
+
+### Example: Concurrency Conflict
+
+When a conflicting operation is already in progress, the text content contains the error message **and** `structuredContent` exposes the lock details with `lockContended: true`:
+
+```json
+{
+  "content": [{ "type": "text", "text": "Error: Cannot execute 'build' on 'MyApp.csproj' because a conflicting operation is already in progress: build on /home/user/projects/myapp/myapp.csproj (started at 2026-04-11 05:30:00)\nHint: Wait for the conflicting operation to complete, or cancel it before retrying this operation." }],
+  "structuredContent": {
+    "success": false,
+    "errorCount": 0,
+    "warningCount": 0,
+    "summary": "",
+    "lockInfo": {
+      "lockScope": "project",
+      "lockKey": "/home/user/projects/myapp/myapp.csproj",
+      "lockContended": true,
+      "lockWaitedMs": 0
+    }
+  }
+}
+```
+
+---
 
 ### Example: `dotnet_sdk` Version
 
