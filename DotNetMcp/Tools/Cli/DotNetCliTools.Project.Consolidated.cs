@@ -186,16 +186,10 @@ public sealed partial class DotNetCliTools
         // For other concurrency-gated actions (Run, Test, Publish), include lock metadata
         // in a lightweight ConcurrencyAwareResult so consumers can confirm lock granularity
         // without parsing plain-text output.
-        if (action is DotnetProjectAction.Run or DotnetProjectAction.Test or DotnetProjectAction.Publish)
+        var concurrencyOpType = GetConcurrencyOperationType(action);
+        if (concurrencyOpType is not null)
         {
-            var opType = action switch
-            {
-                DotnetProjectAction.Run => "run",
-                DotnetProjectAction.Test => "test",
-                DotnetProjectAction.Publish => "publish",
-                _ => "unknown"
-            };
-            var lockInfo = BuildLockInfo(opType, GetOperationTarget(effectiveProject, workingDirectory),
+            var lockInfo = BuildLockInfo(concurrencyOpType, GetOperationTarget(effectiveProject, workingDirectory),
                 isContended: IsConcurrencyConflictText(textResult));
             return StructuredContentHelper.ToCallToolResult(textResult, new ConcurrencyAwareResult { LockInfo = lockInfo });
         }

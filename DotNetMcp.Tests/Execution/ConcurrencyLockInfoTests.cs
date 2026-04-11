@@ -92,7 +92,7 @@ public class ConcurrencyLockInfoTests
     }
 
     [Fact]
-    public async Task DotnetProject_Build_LockKey_IsNormalizedLowercasePath()
+    public async Task DotnetProject_Build_LockKey_IsAbsoluteNormalizedPath()
     {
         var projectPath = "MyProject.csproj";
 
@@ -104,11 +104,19 @@ public class ConcurrencyLockInfoTests
         var lockInfoProp = result.StructuredContent!.Value.GetProperty("lockInfo");
         var lockKey = lockInfoProp.GetProperty("lockKey").GetString()!;
 
-        // lockKey should be all lowercase
-        Assert.Equal(lockKey, lockKey.ToLowerInvariant());
+        // lockKey should be non-empty and an absolute path
+        Assert.False(string.IsNullOrWhiteSpace(lockKey), "lockKey should be non-empty");
+        Assert.True(Path.IsPathRooted(lockKey), "lockKey should be an absolute path");
 
-        // lockKey should be an absolute path (or contain the project name)
-        Assert.Contains("myproject.csproj", lockKey, StringComparison.OrdinalIgnoreCase);
+        // lockKey should contain the project name (case-insensitive check to handle OS differences)
+        Assert.Contains("MyProject.csproj", lockKey, StringComparison.OrdinalIgnoreCase);
+
+        // lockKey should be stable: two calls with the same input should yield the same key
+        var result2 = await _tools.DotnetProject(
+            action: DotnetProjectAction.Build,
+            project: projectPath);
+        var lockKey2 = result2.StructuredContent!.Value.GetProperty("lockInfo").GetProperty("lockKey").GetString()!;
+        Assert.Equal(lockKey, lockKey2);
     }
 
     // ──────────────────────────────────────────────────────────────────────────

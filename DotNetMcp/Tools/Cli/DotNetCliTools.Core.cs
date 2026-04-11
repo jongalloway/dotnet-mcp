@@ -60,7 +60,9 @@ public sealed partial class DotNetCliTools
         // Try to acquire the operation
         if (!_concurrencyManager.TryAcquireOperation(operationType, target, out var conflictingOperation))
         {
-            // Conflict detected - return error with lock contention info
+            // Conflict detected - return error with lock contention info.
+            // Note: the text starts with ConcurrencyConflictErrorTextPrefix so that
+            // IsConcurrencyConflictText can identify this result without re-parsing the message.
             var conflictedLockInfo = BuildLockInfo(operationType, target, isContended: true);
             var errorResponse = ErrorResultFactory.CreateConcurrencyConflict(operationType, target, conflictingOperation!);
             return ($"Error: {errorResponse.Errors[0].Message}\nHint: {errorResponse.Errors[0].Hint}", conflictedLockInfo);
@@ -144,7 +146,9 @@ public sealed partial class DotNetCliTools
     }
 
     /// <summary>
-    /// Computes the normalised lock key (lower-cased full path) for a given target string.
+    /// Computes the normalised lock key — the absolute full path — for a given target string.
+    /// The path is returned without case modification so that the key is accurate on both
+    /// case-sensitive (Linux/macOS) and case-insensitive (Windows) file systems.
     /// Returns an empty string when the target is null/empty.
     /// </summary>
     private static string ComputeLockKey(string target)
@@ -154,11 +158,11 @@ public sealed partial class DotNetCliTools
 
         try
         {
-            return Path.GetFullPath(target).ToLowerInvariant();
+            return Path.GetFullPath(target);
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
         {
-            return target.ToLowerInvariant();
+            return target;
         }
     }
 
@@ -178,12 +182,39 @@ public sealed partial class DotNetCliTools
         };
 
     /// <summary>
+    /// Returns the concurrency operation-type string for a <see cref="DotnetProjectAction"/>.
+    /// Returns <c>null</c> for actions that do not acquire a concurrency lock.
+    /// </summary>
+    private static string? GetConcurrencyOperationType(Actions.DotnetProjectAction action) => action switch
+    {
+        Actions.DotnetProjectAction.Build   => "build",
+        Actions.DotnetProjectAction.Run     => "run",
+        Actions.DotnetProjectAction.Test    => "test",
+        Actions.DotnetProjectAction.Publish => "publish",
+        _ => null
+    };
+
+    /// <summary>
     /// Returns <c>true</c> if <paramref name="text"/> represents a concurrency-conflict
     /// error emitted by <see cref="ExecuteWithConcurrencyCheck"/>.
+    /// <para>
+    /// Coupling note: this check relies on the text prefix produced by
+    /// <see cref="ExecuteWithConcurrencyCheck"/> when it formats the
+    /// <c>CONCURRENCY_CONFLICT</c> error from <see cref="ErrorResultFactory.CreateConcurrencyConflict"/>.
+    /// Both are in <c>DotNetCliTools</c>; if the error-message format changes, update this check.
+    /// </para>
     /// </summary>
     private static bool IsConcurrencyConflictText(string text)
-        => text.StartsWith("Error: Cannot execute '", StringComparison.Ordinal)
+        => text.StartsWith(ConcurrencyConflictErrorTextPrefix, StringComparison.Ordinal)
            && text.Contains("conflicting operation", StringComparison.Ordinal);
+
+    /// <summary>
+    /// The fixed text prefix that <see cref="ExecuteWithConcurrencyCheck"/> emits when it
+    /// returns a <c>CONCURRENCY_CONFLICT</c> error. Used by
+    /// <see cref="IsConcurrencyConflictText"/> to detect conflict results without re-parsing
+    /// the full message.
+    /// </summary>
+    private const string ConcurrencyConflictErrorTextPrefix = "Error: Cannot execute '";
 
     private static bool IsValidAdditionalOptions(string options)
     {
