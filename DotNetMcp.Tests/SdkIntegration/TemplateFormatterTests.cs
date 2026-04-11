@@ -240,8 +240,8 @@ public class TemplateFormatterTests
         Assert.Contains("Target framework", result);
         Assert.Contains("Default: net10.0", result);
         Assert.Contains("--NoRestore", result);
-        // No default for NoRestore - should not appear
-        Assert.DoesNotContain("Default: \n", result);
+        // Only the Framework param has a default value; verify exactly one "Default:" line appears
+        Assert.Equal(1, result.Split("Default:").Length - 1);
     }
 
     [Fact]
