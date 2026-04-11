@@ -6,6 +6,13 @@ namespace DotNetMcp.Tests.Scenarios;
 
 public class BackgroundRunScenarioTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public BackgroundRunScenarioTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     private static async Task<string> WaitForLogsContainingAsync(
         McpScenarioClient client,
         string sessionId,
@@ -77,7 +84,7 @@ Console.WriteLine(""Application finished"");
 ";
         File.WriteAllText(programPath, programContent);
 
-        await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
+        await using var client = await McpScenarioClient.CreateAsync(cancellationToken, _output);
 
         // Build the project
         var buildText = await client.CallToolTextAsync(
@@ -180,7 +187,7 @@ Console.WriteLine(""Line 4: Application finished"");
 ";
         File.WriteAllText(programPath, programContent);
 
-        await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
+        await using var client = await McpScenarioClient.CreateAsync(cancellationToken, _output);
 
         // Build the project
         var buildText = await client.CallToolTextAsync(
@@ -265,7 +272,7 @@ Console.WriteLine(""Line 4: Application finished"");
     public async Task Scenario_BackgroundRun_Logs_InvalidSessionId_ReturnsError()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
+        await using var client = await McpScenarioClient.CreateAsync(cancellationToken, _output);
 
         // Try to retrieve logs for a non-existent session
         var logsText = await client.CallToolTextAsync(

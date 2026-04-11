@@ -139,6 +139,43 @@ $env:DOTNET_MCP_SCENARIO_TESTS = "1"
 dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
 ```
 
+### Per-test diagnostics with ITestOutputHelper
+
+All scenario and conformance test classes receive `ITestOutputHelper` via constructor injection. The harness (`McpScenarioClient`) writes diagnostic lines to the per-test output channel so that CI logs for **failing tests** include actionable context without interleaving output across tests.
+
+Logged events (no arg values are logged to avoid leaking secrets):
+
+| Event | Example output |
+|---|---|
+| Server start command | `[MCP] Server command: dotnet /path/to/DotNetMcp.dll` |
+| Server connected | `[MCP] Server connected.` |
+| Tool call (arg keys only) | `[MCP] → dotnet_project (args: {action, project, configuration})` |
+| Tool response (first 500 chars) | `[MCP] ← dotnet_project: Build succeeded...` |
+
+For conformance tests the server command is also logged in `InitializeAsync` via `[MCP] Conformance server command: ...`.
+
+**Adding output to new scenario tests**: Every new scenario or release-scenario test class should accept `ITestOutputHelper` in its constructor and pass it to `McpScenarioClient.CreateAsync`:
+
+```csharp
+public class MyNewScenarioTests
+{
+    private readonly ITestOutputHelper _output;
+
+    public MyNewScenarioTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
+    [ScenarioFact]
+    public async Task MyScenario()
+    {
+        await using var client = await McpScenarioClient.CreateAsync(
+            TestContext.Current.CancellationToken, _output);
+        // ...
+    }
+}
+```
+
 ## Release-Gate Scenario Tests (Manual / workflow_dispatch)
 
 Release-gate scenarios are a second tier of **long-running** integration tests intended to run before shipping a release.

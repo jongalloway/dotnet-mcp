@@ -6,13 +6,20 @@ namespace DotNetMcp.Tests.ReleaseScenarios;
 
 public class LocalToolManifestReleaseScenarioTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public LocalToolManifestReleaseScenarioTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     [ReleaseScenarioFact]
     public async Task ReleaseScenario_DotnetTool_CreateManifest_Install_Restore_List()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         using var tempRoot = ScenarioHelpers.CreateTempDirectory(nameof(ReleaseScenario_DotnetTool_CreateManifest_Install_Restore_List));
 
-        await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
+        await using var client = await McpScenarioClient.CreateAsync(cancellationToken, _output);
 
         var createManifestText = await client.CallToolTextAsync(
             toolName: "dotnet_tool",

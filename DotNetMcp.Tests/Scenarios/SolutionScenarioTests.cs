@@ -10,6 +10,13 @@ namespace DotNetMcp.Tests.Scenarios;
 /// </summary>
 public class SolutionScenarioTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public SolutionScenarioTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     [ScenarioFact]
     public async Task Scenario_Solution_CreateAddList_VerifiesProjectMembership()
     {
@@ -31,7 +38,7 @@ public class SolutionScenarioTests
         Assert.True(File.Exists(libAProj), $"Expected LibA.csproj to exist at {libAProj}");
         Assert.True(File.Exists(libBProj), $"Expected LibB.csproj to exist at {libBProj}");
 
-        await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
+        await using var client = await McpScenarioClient.CreateAsync(cancellationToken, _output);
 
         // Step 1: Create solution via MCP
         var slnCreateText = await client.CallToolTextAsync(
@@ -104,7 +111,7 @@ public class SolutionScenarioTests
         Assert.True(File.Exists(libBProj), $"Expected LibB.csproj to exist at {libBProj}");
         Assert.True(File.Exists(libCProj), $"Expected LibC.csproj to exist at {libCProj}");
 
-        await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
+        await using var client = await McpScenarioClient.CreateAsync(cancellationToken, _output);
 
         // Step 1: Create solution with slnx format
         var slnCreateText = await client.CallToolTextAsync(
