@@ -3,6 +3,86 @@ using System.Text.Json.Serialization;
 namespace DotNetMcp;
 
 /// <summary>
+/// Scope of the concurrency lock acquired for an operation.
+/// </summary>
+public enum LockScope
+{
+    /// <summary>Lock is scoped to a specific .csproj file.</summary>
+    Project,
+    /// <summary>Lock is scoped to a specific .sln or .slnx file.</summary>
+    Solution,
+    /// <summary>Lock is scoped to a working directory (used when no project/solution file is specified).</summary>
+    WorkingDirectory,
+    /// <summary>Lock is global, applying across all targets of the same operation type.</summary>
+    Global
+}
+
+/// <summary>
+/// Metadata about the concurrency lock selected for an operation.
+/// Included in machine-readable (StructuredContent) output to allow consumers to
+/// confirm lock granularity, explain contention, and implement higher-level orchestration.
+/// </summary>
+public sealed class LockInfo
+{
+    /// <summary>
+    /// Scope of the lock: project, solution, workingDirectory, or global.
+    /// </summary>
+    [JsonPropertyName("lockScope")]
+    [JsonConverter(typeof(LockScopeJsonConverter))]
+    public LockScope LockScope { get; init; }
+
+    /// <summary>
+    /// Stable identifier for the locked resource — the normalized absolute full path to
+    /// the .csproj/.sln file or the working directory. Stable across invocations on the
+    /// same target; case matches the file system (no case normalization is applied).
+    /// </summary>
+    [JsonPropertyName("lockKey")]
+    public string LockKey { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Set to <c>true</c> when the operation encountered a concurrency conflict
+    /// (i.e., the lock could not be acquired). Absent (null) on successful lock acquisition.
+    /// </summary>
+    [JsonPropertyName("lockContended")]
+    public bool? LockContended { get; init; }
+
+    /// <summary>
+    /// Milliseconds spent waiting to acquire the lock. Currently always 0 because the
+    /// server uses fail-fast conflict detection rather than queuing, but reserved for
+    /// future queuing implementations.
+    /// </summary>
+    [JsonPropertyName("lockWaitedMs")]
+    public long? LockWaitedMs { get; init; }
+}
+
+/// <summary>
+/// Custom JSON converter that serialises <see cref="LockScope"/> as the camelCase strings
+/// required by the machine-readable contract: "project", "solution", "workingDirectory", "global".
+/// </summary>
+internal sealed class LockScopeJsonConverter : System.Text.Json.Serialization.JsonConverter<LockScope>
+{
+    public override LockScope Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+        => reader.GetString() switch
+        {
+            "project" => LockScope.Project,
+            "solution" => LockScope.Solution,
+            "workingDirectory" => LockScope.WorkingDirectory,
+            "global" => LockScope.Global,
+            _ => LockScope.WorkingDirectory
+        };
+
+    public override void Write(System.Text.Json.Utf8JsonWriter writer, LockScope value, System.Text.Json.JsonSerializerOptions options)
+        => writer.WriteStringValue(value switch
+        {
+            LockScope.Project => "project",
+            LockScope.Solution => "solution",
+            LockScope.WorkingDirectory => "workingDirectory",
+            LockScope.Global => "global",
+            _ => "workingDirectory"
+        });
+}
+
+/// <summary>
 /// Represents a structured error result from a .NET CLI command execution.
 /// </summary>
 public sealed class ErrorResult
@@ -276,6 +356,13 @@ public sealed class BuildResult
     /// </summary>
     [JsonPropertyName("warnings")]
     public List<BuildDiagnostic>? Warnings { get; init; }
+
+    /// <summary>
+    /// Concurrency lock metadata — which resource was locked and at what scope.
+    /// Absent when no concurrency lock was involved.
+    /// </summary>
+    [JsonPropertyName("lockInfo")]
+    public LockInfo? LockInfo { get; init; }
 }
 
 /// <summary>
@@ -307,4 +394,25 @@ public sealed class ErrorResponse
     /// </summary>
     [JsonPropertyName("metadata")]
     public Dictionary<string, string>? Metadata { get; init; }
+
+    /// <summary>
+    /// Concurrency lock metadata — which resource was locked and at what scope.
+    /// Included when a concurrency conflict is detected.
+    /// </summary>
+    [JsonPropertyName("lockInfo")]
+    public LockInfo? LockInfo { get; init; }
+}
+
+/// <summary>
+/// Structured result for operations that use concurrency control but do not have
+/// a more specific result type (e.g., Run, Test, Publish). Exposes lock metadata
+/// so consumers can confirm lock granularity without parsing plain-text output.
+/// </summary>
+public sealed class ConcurrencyAwareResult
+{
+    /// <summary>
+    /// Concurrency lock metadata — which resource was locked and at what scope.
+    /// </summary>
+    [JsonPropertyName("lockInfo")]
+    public LockInfo? LockInfo { get; init; }
 }

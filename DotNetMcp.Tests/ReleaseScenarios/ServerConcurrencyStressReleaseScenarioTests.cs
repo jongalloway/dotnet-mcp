@@ -6,12 +6,19 @@ namespace DotNetMcp.Tests.ReleaseScenarios;
 
 public class ServerConcurrencyStressReleaseScenarioTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public ServerConcurrencyStressReleaseScenarioTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     [ReleaseScenarioFact]
     public async Task ReleaseScenario_ServerConcurrency_ManyParallelSdkInfoCalls()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
 
-        await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
+        await using var client = await McpScenarioClient.CreateAsync(cancellationToken, _output);
 
         const int callCount = 64;
 

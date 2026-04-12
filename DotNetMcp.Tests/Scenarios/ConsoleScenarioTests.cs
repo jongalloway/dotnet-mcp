@@ -5,6 +5,13 @@ namespace DotNetMcp.Tests.Scenarios;
 
 public class ConsoleScenarioTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public ConsoleScenarioTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     [ScenarioFact]
     public async Task Scenario_ConsoleProject_AddPackageAndBuild_Release()
     {
@@ -22,7 +29,7 @@ public class ConsoleScenarioTests
         var projectPath = Path.Join(tempRoot.Path, "ConsoleApp.csproj");
         Assert.True(File.Exists(projectPath), $"Expected ConsoleApp.csproj to exist at {projectPath}");
 
-        await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
+        await using var client = await McpScenarioClient.CreateAsync(cancellationToken, _output);
 
         // Add a package via MCP.
         var addPackageText = await client.CallToolTextAsync(

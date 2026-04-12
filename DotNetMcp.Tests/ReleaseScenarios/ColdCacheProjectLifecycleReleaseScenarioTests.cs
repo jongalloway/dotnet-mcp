@@ -7,6 +7,13 @@ namespace DotNetMcp.Tests.ReleaseScenarios;
 [Collection("ProcessWideStateTests")]
 public class ColdCacheProjectLifecycleReleaseScenarioTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public ColdCacheProjectLifecycleReleaseScenarioTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     [ReleaseScenarioFact]
     public async Task ReleaseScenario_ColdNuGetCache_Console_AddPackage_Restore_Build_Publish()
     {
@@ -38,7 +45,7 @@ public class ColdCacheProjectLifecycleReleaseScenarioTests
             var projectPath = Path.Join(tempRoot.Path, "App.csproj");
             Assert.True(File.Exists(projectPath), $"Expected App.csproj to exist at {projectPath}");
 
-            await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
+            await using var client = await McpScenarioClient.CreateAsync(cancellationToken, _output);
 
             // Add a small public package to force a real restore against NuGet.
             var addPackageText = await client.CallToolTextAsync(

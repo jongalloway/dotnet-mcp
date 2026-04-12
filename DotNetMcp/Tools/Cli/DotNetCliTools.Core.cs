@@ -48,25 +48,31 @@ public sealed partial class DotNetCliTools
     /// <summary>
     /// Execute a command with concurrency control. Returns error if there's a conflict.
     /// </summary>
-    private async Task<string> ExecuteWithConcurrencyCheck(
+    private async Task<(string text, LockInfo lockInfo)> ExecuteWithConcurrencyCheck(
         string operationType,
         string target,
         string arguments,
         CancellationToken cancellationToken = default,
         string? workingDirectory = null)
     {
+        var lockInfo = BuildLockInfo(operationType, target);
+
         // Try to acquire the operation
         if (!_concurrencyManager.TryAcquireOperation(operationType, target, out var conflictingOperation))
         {
-            // Conflict detected - return error
+            // Conflict detected - return error with lock contention info.
+            // Note: the text starts with ConcurrencyConflictErrorTextPrefix so that
+            // IsConcurrencyConflictText can identify this result without re-parsing the message.
+            var conflictedLockInfo = BuildLockInfo(operationType, target, isContended: true);
             var errorResponse = ErrorResultFactory.CreateConcurrencyConflict(operationType, target, conflictingOperation!);
-            return $"Error: {errorResponse.Errors[0].Message}\nHint: {errorResponse.Errors[0].Hint}";
+            return ($"Error: {errorResponse.Errors[0].Message}\nHint: {errorResponse.Errors[0].Hint}", conflictedLockInfo);
         }
 
         try
         {
             // Execute the command
-            return await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, unsafeOutput: false, cancellationToken: cancellationToken, workingDirectory: workingDirectory);
+            var result = await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, unsafeOutput: false, cancellationToken: cancellationToken, workingDirectory: workingDirectory);
+            return (result, lockInfo);
         }
         finally
         {
@@ -100,6 +106,115 @@ public sealed partial class DotNetCliTools
 
         return Directory.GetCurrentDirectory();
     }
+
+    /// <summary>
+    /// Determines the <see cref="LockScope"/> for a given concurrency target path.
+    /// </summary>
+    private static LockScope DetermineLockScope(string target)
+    {
+        if (string.IsNullOrEmpty(target))
+            return LockScope.WorkingDirectory;
+
+        var ext = Path.GetExtension(target);
+        if (string.Equals(ext, ".csproj", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(ext, ".fsproj", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(ext, ".vbproj", StringComparison.OrdinalIgnoreCase))
+            return LockScope.Project;
+
+        if (string.Equals(ext, ".sln", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(ext, ".slnx", StringComparison.OrdinalIgnoreCase))
+            return LockScope.Solution;
+
+        return LockScope.WorkingDirectory;
+    }
+
+    /// <summary>
+    /// Determines the <see cref="LockScope"/> for a global operation type.
+    /// </summary>
+    private static LockScope DetermineLockScopeForOperation(string operationType, string target)
+    {
+        // Check global operations first
+        if (operationType is
+            "template_clear_cache" or
+            "certificate_trust" or
+            "certificate_clean" or
+            "tool_install_global" or
+            "tool_uninstall_global")
+            return LockScope.Global;
+
+        return DetermineLockScope(target);
+    }
+
+    /// <summary>
+    /// Computes the normalised lock key — the absolute full path — for a given target string.
+    /// The path is returned without case modification so that the key is accurate on both
+    /// case-sensitive (Linux/macOS) and case-insensitive (Windows) file systems.
+    /// Returns an empty string when the target is null/empty.
+    /// </summary>
+    private static string ComputeLockKey(string target)
+    {
+        if (string.IsNullOrEmpty(target))
+            return string.Empty;
+
+        try
+        {
+            return Path.GetFullPath(target);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return target;
+        }
+    }
+
+    /// <summary>
+    /// Builds a <see cref="LockInfo"/> value for a concurrency-gated operation.
+    /// </summary>
+    /// <param name="operationType">The operation type string (e.g. "build", "test").</param>
+    /// <param name="target">The raw concurrency target (project path, directory, etc.).</param>
+    /// <param name="isContended">Whether the lock could not be acquired due to a conflict.</param>
+    private static LockInfo BuildLockInfo(string operationType, string target, bool isContended = false)
+        => new LockInfo
+        {
+            LockScope = DetermineLockScopeForOperation(operationType, target),
+            LockKey = ComputeLockKey(target),
+            LockContended = isContended ? true : null,
+            LockWaitedMs = isContended ? 0L : null
+        };
+
+    /// <summary>
+    /// Returns the concurrency operation-type string for a <see cref="DotnetProjectAction"/>.
+    /// Returns <c>null</c> for actions that do not acquire a concurrency lock.
+    /// </summary>
+    private static string? GetConcurrencyOperationType(Actions.DotnetProjectAction action) => action switch
+    {
+        Actions.DotnetProjectAction.Build   => "build",
+        Actions.DotnetProjectAction.Run     => "run",
+        Actions.DotnetProjectAction.Test    => "test",
+        Actions.DotnetProjectAction.Publish => "publish",
+        _ => null
+    };
+
+    /// <summary>
+    /// Returns <c>true</c> if <paramref name="text"/> represents a concurrency-conflict
+    /// error emitted by <see cref="ExecuteWithConcurrencyCheck"/>.
+    /// <para>
+    /// Coupling note: this check relies on the text prefix produced by
+    /// <see cref="ExecuteWithConcurrencyCheck"/> when it formats the
+    /// <c>CONCURRENCY_CONFLICT</c> error from <see cref="ErrorResultFactory.CreateConcurrencyConflict"/>.
+    /// Both are in <c>DotNetCliTools</c>; if the error-message format changes, update this check.
+    /// </para>
+    /// </summary>
+    private static bool IsConcurrencyConflictText(string text)
+        => text.StartsWith(ConcurrencyConflictErrorTextPrefix, StringComparison.Ordinal)
+           && text.Contains("conflicting operation", StringComparison.Ordinal);
+
+    /// <summary>
+    /// The fixed text prefix that <see cref="ExecuteWithConcurrencyCheck"/> emits when it
+    /// returns a <c>CONCURRENCY_CONFLICT</c> error. Used by
+    /// <see cref="IsConcurrencyConflictText"/> to detect conflict results without re-parsing
+    /// the full message.
+    /// </summary>
+    private const string ConcurrencyConflictErrorTextPrefix = "Error: Cannot execute '";
 
     private static bool IsValidAdditionalOptions(string options)
     {

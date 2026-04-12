@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Text;
 using System.Text.Json;
 using System.Threading;
 using Microsoft.Extensions.Logging;
@@ -280,31 +279,8 @@ public class TemplateEngineHelper
                 return message;
             }
 
-            var result = new StringBuilder();
-            result.AppendLine("Installed .NET Templates:");
-            result.AppendLine();
-            result.AppendLine($"{"Short Name",-25} {"Language",-10} {"Type",-15} {"Description"}");
-            result.AppendLine(new string('-', 100));
-
-            foreach (var template in templates.OrderBy(t => t.ShortNameList.FirstOrDefault() ?? ""))
-            {
-                var shortName = template.ShortNameList.FirstOrDefault() ?? "N/A";
-                var language = template.GetLanguage() ?? "Multiple";
-                var type = template.GetTemplateType() ?? "Unknown";
-                var description = template.Description ?? "";
-
-                // Truncate long descriptions
-                if (description.Length > 40)
-                    description = description.Substring(0, 37) + "...";
-
-                result.AppendLine($"{shortName,-25} {language,-10} {type,-15} {description}");
-            }
-
-            result.AppendLine();
-            result.AppendLine($"Total templates: {templates.Count()}");
-
-            var output = result.ToString();
-            return output;
+            var displayInfos = templates.Select(TemplateDisplayInfo.FromTemplateInfo);
+            return TemplateFormatter.FormatInstalledTemplates(displayInfos);
         }
         catch (Exception ex)
         {
@@ -366,33 +342,8 @@ public class TemplateEngineHelper
                 return notFound;
             }
 
-            var result = new StringBuilder();
-            result.AppendLine($"Template: {template.Name}");
-            result.AppendLine($"Short Name(s): {string.Join(", ", template.ShortNameList)}");
-            result.AppendLine($"Author: {template.Author ?? "N/A"}");
-            result.AppendLine($"Language: {template.GetLanguage() ?? "Multiple"}");
-            result.AppendLine($"Type: {template.GetTemplateType() ?? "Unknown"}");
-            result.AppendLine($"Description: {template.Description ?? "N/A"}");
-            result.AppendLine();
-
-            // Get parameters/options
-            var parameters = template.ParameterDefinitions;
-            if (parameters.Any())
-            {
-                result.AppendLine("Parameters:");
-                foreach (var param in parameters.OrderBy(p => p.Name))
-                {
-                    result.AppendLine($"  --{param.Name}");
-                    result.AppendLine($"    Description: {param.Description ?? "N/A"}");
-                    result.AppendLine($"    Type: {param.DataType}");
-                    if (param.DefaultValue != null)
-                        result.AppendLine($"    Default: {param.DefaultValue}");
-                    result.AppendLine();
-                }
-            }
-
-            var output = result.ToString();
-            return output;
+            var displayInfo = TemplateDisplayInfo.FromTemplateInfo(template);
+            return TemplateFormatter.FormatTemplateDetails(displayInfo);
         }
         catch (Exception ex)
         {
@@ -440,29 +391,8 @@ public class TemplateEngineHelper
                 return message;
             }
 
-            var result = new StringBuilder();
-            result.AppendLine($"Templates matching '{searchTerm}':");
-            result.AppendLine();
-            result.AppendLine($"{"Short Name",-25} {"Language",-10} {"Description"}");
-            result.AppendLine(new string('-', 80));
-
-            foreach (var template in matches.OrderBy(t => t.ShortNameList.FirstOrDefault() ?? ""))
-            {
-                var shortName = template.ShortNameList.FirstOrDefault() ?? "N/A";
-                var language = template.GetLanguage() ?? "Multiple";
-                var description = template.Description ?? "";
-
-                if (description.Length > 35)
-                    description = description.Substring(0, 32) + "...";
-
-                result.AppendLine($"{shortName,-25} {language,-10} {description}");
-            }
-
-            result.AppendLine();
-            result.AppendLine($"Found {matches.Count} matching template(s).");
-
-            var output = result.ToString();
-            return output;
+            var displayInfos = matches.Select(TemplateDisplayInfo.FromTemplateInfo);
+            return TemplateFormatter.FormatSearchResults(searchTerm, displayInfos);
         }
         catch (Exception ex)
         {

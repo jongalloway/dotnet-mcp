@@ -5,12 +5,19 @@ namespace DotNetMcp.Tests.Scenarios;
 
 public class SdkContractScenarioTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public SdkContractScenarioTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     [ScenarioFact]
     public async Task Scenario_DotnetSdk_ListSdks_MachineReadable_Success()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
 
-        await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
+        await using var client = await McpScenarioClient.CreateAsync(cancellationToken, _output);
 
         var text = await client.CallToolTextAsync(
             toolName: "dotnet_sdk",
@@ -30,7 +37,7 @@ public class SdkContractScenarioTests
     {
         var cancellationToken = TestContext.Current.CancellationToken;
 
-        await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
+        await using var client = await McpScenarioClient.CreateAsync(cancellationToken, _output);
 
         var text = await client.CallToolTextAsync(
             toolName: "dotnet_sdk",
@@ -49,7 +56,7 @@ public class SdkContractScenarioTests
     {
         var cancellationToken = TestContext.Current.CancellationToken;
 
-        await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
+        await using var client = await McpScenarioClient.CreateAsync(cancellationToken, _output);
 
         var text = await client.CallToolTextAsync(
             toolName: "dotnet_sdk",
