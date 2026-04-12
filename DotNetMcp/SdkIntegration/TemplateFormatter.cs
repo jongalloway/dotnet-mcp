@@ -82,7 +82,7 @@ internal static class TemplateFormatter
     internal static string FormatTemplateDetails(TemplateDisplayInfo template)
     {
         var result = new StringBuilder();
-        result.AppendLine($"Template: {template.Name}");
+        result.AppendLine($"Template: {template.Name ?? "N/A"}");
         result.AppendLine($"Short Name(s): {string.Join(", ", template.ShortNames)}");
         result.AppendLine($"Author: {template.Author ?? "N/A"}");
         result.AppendLine($"Language: {template.Language}");

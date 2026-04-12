@@ -590,5 +590,11 @@ public class TemplateFormatterTests
         // IEquatable<ITemplateParameter>
         public bool Equals(Microsoft.TemplateEngine.Abstractions.ITemplateParameter? other) =>
             other is not null && other.Name == Name;
+
+        // Equals(object) required whenever IEquatable<T> is implemented
+        public override bool Equals(object? obj) =>
+            obj is Microsoft.TemplateEngine.Abstractions.ITemplateParameter other && Equals(other);
+
+        public override int GetHashCode() => Name.GetHashCode(StringComparison.Ordinal);
     }
 }
