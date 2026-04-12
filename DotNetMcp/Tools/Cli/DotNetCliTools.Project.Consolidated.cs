@@ -177,8 +177,21 @@ public sealed partial class DotNetCliTools
         // re-parse the raw CLI text themselves.
         if (action == DotnetProjectAction.Build)
         {
-            var buildResult = ErrorResultFactory.ParseBuildOutput(textResult, effectiveProject, configuration);
+            var lockInfo = BuildLockInfo("build", GetOperationTarget(effectiveProject, workingDirectory),
+                isContended: IsConcurrencyConflictText(textResult));
+            var buildResult = ErrorResultFactory.ParseBuildOutput(textResult, effectiveProject, configuration, lockInfo);
             return StructuredContentHelper.ToCallToolResult(textResult, buildResult);
+        }
+
+        // For other concurrency-gated actions (Run, Test, Publish), include lock metadata
+        // in a lightweight ConcurrencyAwareResult so consumers can confirm lock granularity
+        // without parsing plain-text output.
+        var concurrencyOpType = GetConcurrencyOperationType(action);
+        if (concurrencyOpType is not null)
+        {
+            var lockInfo = BuildLockInfo(concurrencyOpType, GetOperationTarget(effectiveProject, workingDirectory),
+                isContended: IsConcurrencyConflictText(textResult));
+            return StructuredContentHelper.ToCallToolResult(textResult, new ConcurrencyAwareResult { LockInfo = lockInfo });
         }
 
         return StructuredContentHelper.ToCallToolResult(textResult);
@@ -1094,7 +1107,7 @@ public sealed partial class DotNetCliTools
 
         // Capture working directory for concurrency target selection
         var workingDir = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
-        return await ExecuteWithConcurrencyCheck("build", GetOperationTarget(project, workingDir), args.ToString());
+        return (await ExecuteWithConcurrencyCheck("build", GetOperationTarget(project, workingDir), args.ToString())).text;
     }
 
     /// <summary>
@@ -1122,7 +1135,7 @@ public sealed partial class DotNetCliTools
 
         // Capture working directory for concurrency target selection
         var workingDir = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
-        return await ExecuteWithConcurrencyCheck("run", GetOperationTarget(project, workingDir), args.ToString());
+        return (await ExecuteWithConcurrencyCheck("run", GetOperationTarget(project, workingDir), args.ToString())).text;
     }
 
     /// <summary>
@@ -1239,7 +1252,7 @@ public sealed partial class DotNetCliTools
 
         // Use working directory for concurrency target selection
         var workingDirForTarget = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
-        return await ExecuteWithConcurrencyCheck("test", GetOperationTarget(project, workingDirForTarget), args.ToString());
+        return (await ExecuteWithConcurrencyCheck("test", GetOperationTarget(project, workingDirForTarget), args.ToString())).text;
     }
 
     /// <summary>
@@ -1293,7 +1306,7 @@ public sealed partial class DotNetCliTools
 
         // Capture working directory for concurrency target selection
         var workingDir = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
-        return await ExecuteWithConcurrencyCheck("publish", GetOperationTarget(project, workingDir), args.ToString());
+        return (await ExecuteWithConcurrencyCheck("publish", GetOperationTarget(project, workingDir), args.ToString())).text;
     }
 
     /// <summary>
