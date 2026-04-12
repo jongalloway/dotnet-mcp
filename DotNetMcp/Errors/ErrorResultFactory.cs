@@ -693,8 +693,9 @@ public static partial class ErrorResultFactory
     /// </param>
     /// <param name="project">The project path that was built, forwarded to <see cref="BuildResult.Project"/>.</param>
     /// <param name="configuration">The build configuration, forwarded to <see cref="BuildResult.Configuration"/>.</param>
+    /// <param name="lockInfo">Optional concurrency lock metadata to embed in the result.</param>
     /// <returns>A <see cref="BuildResult"/> populated from the parsed output.</returns>
-    public static BuildResult ParseBuildOutput(string rawOutput, string? project = null, string? configuration = null)
+    public static BuildResult ParseBuildOutput(string rawOutput, string? project = null, string? configuration = null, LockInfo? lockInfo = null)
     {
         if (string.IsNullOrWhiteSpace(rawOutput))
         {
@@ -703,7 +704,8 @@ public static partial class ErrorResultFactory
                 Success = true,
                 Project = project,
                 Configuration = configuration,
-                Summary = "Build succeeded"
+                Summary = "Build succeeded",
+                LockInfo = lockInfo
             };
         }
 
@@ -803,7 +805,8 @@ public static partial class ErrorResultFactory
             WarningCount = warningCount,
             Summary = summary,
             Errors = errors.Count > 0 ? errors : null,
-            Warnings = warnings.Count > 0 ? warnings : null
+            Warnings = warnings.Count > 0 ? warnings : null,
+            LockInfo = lockInfo
         };
     }
 
