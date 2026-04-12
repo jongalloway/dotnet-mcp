@@ -81,7 +81,7 @@ public class ProjectAnalysisHelperTests
             var result = await ProjectAnalysisHelper.AnalyzeProjectAsync(projectFile, _logger);
 
             Assert.NotNull(result);
-            var json = JsonDocument.Parse(result);
+            using var json = JsonDocument.Parse(result);
             Assert.True(json.RootElement.GetProperty("success").GetBoolean());
             Assert.Equal(projectFile, json.RootElement.GetProperty("projectPath").GetString());
             Assert.Equal("Test", json.RootElement.GetProperty("projectName").GetString());
@@ -92,7 +92,7 @@ public class ProjectAnalysisHelperTests
         }
         finally
         {
-            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch (IOException) { /* best-effort */ } catch (UnauthorizedAccessException) { /* best-effort */ }
         }
     }
 
@@ -115,7 +115,7 @@ public class ProjectAnalysisHelperTests
         {
             var result = await ProjectAnalysisHelper.AnalyzeProjectAsync(projectFile, _logger);
 
-            var json = JsonDocument.Parse(result);
+            using var json = JsonDocument.Parse(result);
             Assert.True(json.RootElement.GetProperty("success").GetBoolean());
 
             var packages = json.RootElement.GetProperty("packageReferences").EnumerateArray().ToList();
@@ -130,7 +130,7 @@ public class ProjectAnalysisHelperTests
         }
         finally
         {
-            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch (IOException) { /* best-effort */ } catch (UnauthorizedAccessException) { /* best-effort */ }
         }
     }
 
@@ -149,7 +149,7 @@ public class ProjectAnalysisHelperTests
         {
             var result = await ProjectAnalysisHelper.AnalyzeProjectAsync(projectFile, _logger);
 
-            var json = JsonDocument.Parse(result);
+            using var json = JsonDocument.Parse(result);
             Assert.True(json.RootElement.GetProperty("success").GetBoolean());
 
             var frameworks = json.RootElement.GetProperty("targetFrameworks")
@@ -162,7 +162,7 @@ public class ProjectAnalysisHelperTests
         }
         finally
         {
-            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch (IOException) { /* best-effort */ } catch (UnauthorizedAccessException) { /* best-effort */ }
         }
     }
 
@@ -182,7 +182,7 @@ public class ProjectAnalysisHelperTests
             var result = await ProjectAnalysisHelper.AnalyzeDependenciesAsync(projectFile, _logger);
 
             Assert.NotNull(result);
-            var json = JsonDocument.Parse(result);
+            using var json = JsonDocument.Parse(result);
             Assert.True(json.RootElement.GetProperty("success").GetBoolean());
             Assert.True(json.RootElement.TryGetProperty("directPackageDependencies", out _));
             Assert.True(json.RootElement.TryGetProperty("directProjectDependencies", out _));
@@ -190,7 +190,7 @@ public class ProjectAnalysisHelperTests
         }
         finally
         {
-            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch (IOException) { /* best-effort */ } catch (UnauthorizedAccessException) { /* best-effort */ }
         }
     }
 
@@ -212,7 +212,7 @@ public class ProjectAnalysisHelperTests
         {
             var result = await ProjectAnalysisHelper.AnalyzeDependenciesAsync(projectFile, _logger);
 
-            var json = JsonDocument.Parse(result);
+            using var json = JsonDocument.Parse(result);
             Assert.True(json.RootElement.GetProperty("success").GetBoolean());
 
             var packages = json.RootElement.GetProperty("directPackageDependencies").EnumerateArray().ToList();
@@ -223,7 +223,7 @@ public class ProjectAnalysisHelperTests
         }
         finally
         {
-            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch (IOException) { /* best-effort */ } catch (UnauthorizedAccessException) { /* best-effort */ }
         }
     }
 
@@ -245,7 +245,7 @@ public class ProjectAnalysisHelperTests
             var result = await ProjectAnalysisHelper.ValidateProjectAsync(projectFile, _logger);
 
             Assert.NotNull(result);
-            var json = JsonDocument.Parse(result);
+            using var json = JsonDocument.Parse(result);
             Assert.True(json.RootElement.GetProperty("success").GetBoolean());
             Assert.True(json.RootElement.GetProperty("isValid").GetBoolean());
             Assert.True(json.RootElement.TryGetProperty("errors", out _));
@@ -255,7 +255,7 @@ public class ProjectAnalysisHelperTests
         }
         finally
         {
-            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch (IOException) { /* best-effort */ } catch (UnauthorizedAccessException) { /* best-effort */ }
         }
     }
 
@@ -273,7 +273,7 @@ public class ProjectAnalysisHelperTests
         {
             var result = await ProjectAnalysisHelper.ValidateProjectAsync(projectFile, _logger);
 
-            var json = JsonDocument.Parse(result);
+            using var json = JsonDocument.Parse(result);
             Assert.True(json.RootElement.GetProperty("success").GetBoolean());
             Assert.False(json.RootElement.GetProperty("isValid").GetBoolean());
 
@@ -286,7 +286,7 @@ public class ProjectAnalysisHelperTests
         }
         finally
         {
-            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch (IOException) { /* best-effort */ } catch (UnauthorizedAccessException) { /* best-effort */ }
         }
     }
 
@@ -306,7 +306,7 @@ public class ProjectAnalysisHelperTests
         {
             var result = await ProjectAnalysisHelper.ValidateProjectAsync(projectFile, _logger);
 
-            var json = JsonDocument.Parse(result);
+            using var json = JsonDocument.Parse(result);
             Assert.True(json.RootElement.GetProperty("success").GetBoolean());
 
             var recommendations = json.RootElement.GetProperty("recommendations")
@@ -318,7 +318,7 @@ public class ProjectAnalysisHelperTests
         }
         finally
         {
-            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch { /* best-effort */ }
+            try { Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true); } catch (IOException) { /* best-effort */ } catch (UnauthorizedAccessException) { /* best-effort */ }
         }
     }
 
