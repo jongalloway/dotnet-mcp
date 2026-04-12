@@ -5,6 +5,13 @@ namespace DotNetMcp.Tests.Scenarios;
 
 public class PackageAndReferenceScenarioTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public PackageAndReferenceScenarioTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     [ScenarioFact]
     public async Task Scenario_DotnetPackage_AddInvalidPackage_ReturnsMachineReadableError()
     {
@@ -22,7 +29,7 @@ public class PackageAndReferenceScenarioTests
         var projectPath = Path.Join(tempRoot.Path, "TempProj.csproj");
         Assert.True(File.Exists(projectPath), $"Expected TempProj.csproj to exist at {projectPath}");
 
-        await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
+        await using var client = await McpScenarioClient.CreateAsync(cancellationToken, _output);
 
         var text = await client.CallToolTextAsync(
             toolName: "dotnet_package",
@@ -64,7 +71,7 @@ public class PackageAndReferenceScenarioTests
         Assert.True(File.Exists(libAProj));
         Assert.True(File.Exists(libBProj));
 
-        await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
+        await using var client = await McpScenarioClient.CreateAsync(cancellationToken, _output);
 
         // Create solution via MCP.
         var slnCreateText = await client.CallToolTextAsync(

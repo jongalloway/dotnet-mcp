@@ -5,6 +5,13 @@ namespace DotNetMcp.Tests.Scenarios;
 
 public class SecretsRedactionScenarioTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public SecretsRedactionScenarioTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     [ScenarioFact]
     public async Task Scenario_UserSecrets_NoSecretLeak_InOtherToolOutputs()
     {
@@ -24,7 +31,7 @@ public class SecretsRedactionScenarioTests
         var projectPath = Path.Join(tempRoot.Path, "SecretsProj.csproj");
         Assert.True(File.Exists(projectPath), $"Expected SecretsProj.csproj to exist at {projectPath}");
 
-        await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
+        await using var client = await McpScenarioClient.CreateAsync(cancellationToken, _output);
 
         // Initialize + set a secret for the main project.
         var initText = await client.CallToolTextAsync(

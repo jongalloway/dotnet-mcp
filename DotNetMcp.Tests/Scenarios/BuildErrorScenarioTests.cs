@@ -6,6 +6,13 @@ namespace DotNetMcp.Tests.Scenarios;
 
 public class BuildErrorScenarioTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public BuildErrorScenarioTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     [ScenarioFact]
     public async Task Scenario_DotnetProject_Build_WithCompileError_ReturnsMachineReadableError()
     {
@@ -32,7 +39,7 @@ public class BuildErrorScenarioTests
         Assert.True(File.Exists(programPath), "Expected Program.cs to exist");
         await File.WriteAllTextAsync(programPath, "IAmABogusType bogus = new IAmABogusType();\n", cancellationToken);
 
-        await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
+        await using var client = await McpScenarioClient.CreateAsync(cancellationToken, _output);
 
         var result = await client.CallToolAsync(
             toolName: "dotnet_project",

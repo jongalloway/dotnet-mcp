@@ -27,9 +27,11 @@ public class McpConformanceTests : IAsyncLifetime
 {
     private McpClient? _client;
     private readonly ILoggerFactory _loggerFactory;
+    private readonly ITestOutputHelper _output;
 
-    public McpConformanceTests()
+    public McpConformanceTests(ITestOutputHelper output)
     {
+        _output = output;
         _loggerFactory = LoggerFactory.Create(builder =>
         {
             builder.AddConsole(options =>
@@ -44,7 +46,9 @@ public class McpConformanceTests : IAsyncLifetime
     {
         // Start the dotnet-mcp server using stdio transport
         var serverPath = GetServerExecutablePath();
-        
+
+        _output.WriteLine($"[MCP] Conformance server command: {serverPath.command} {string.Join(" ", serverPath.arguments)}");
+
         var transportOptions = new StdioClientTransportOptions
         {
             Command = serverPath.command,
@@ -59,6 +63,8 @@ public class McpConformanceTests : IAsyncLifetime
             transport,
             loggerFactory: _loggerFactory,
             cancellationToken: TestContext.Current.CancellationToken);
+
+        _output.WriteLine("[MCP] Conformance server connected.");
     }
 
     public async ValueTask DisposeAsync()

@@ -7,6 +7,13 @@ namespace DotNetMcp.Tests.ReleaseScenarios;
 [Collection("ProcessWideStateTests")]
 public class EfCoreSqliteMigrationsReleaseScenarioTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public EfCoreSqliteMigrationsReleaseScenarioTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     [ReleaseScenarioFact]
     public async Task ReleaseScenario_EfCoreSqlite_MigrationsAdd_And_DatabaseUpdate()
     {
@@ -38,7 +45,7 @@ public class EfCoreSqliteMigrationsReleaseScenarioTests
             Assert.True(File.Exists(projectPath), $"Expected EfApp.csproj to exist at {projectPath}");
 
             // Add EF Core packages via MCP.
-            await using var client = await McpScenarioClient.CreateAsync(cancellationToken);
+            await using var client = await McpScenarioClient.CreateAsync(cancellationToken, _output);
 
             var addSqliteText = await client.CallToolTextAsync(
                 toolName: "dotnet_package",
