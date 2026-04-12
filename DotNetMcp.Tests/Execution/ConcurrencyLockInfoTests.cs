@@ -87,7 +87,7 @@ public class ConcurrencyLockInfoTests
         }
         finally
         {
-            try { Directory.Delete(workingDir, recursive: true); } catch { /* best effort */ }
+            try { Directory.Delete(workingDir, recursive: true); } catch (IOException) { /* best effort */ } catch (UnauthorizedAccessException) { /* best effort */ }
         }
     }
 
@@ -204,7 +204,7 @@ public class ConcurrencyLockInfoTests
         }
         finally
         {
-            try { Directory.Delete(workingDir, recursive: true); } catch { /* best effort */ }
+            try { Directory.Delete(workingDir, recursive: true); } catch (IOException) { /* best effort */ } catch (UnauthorizedAccessException) { /* best effort */ }
         }
     }
 
@@ -249,7 +249,7 @@ public class ConcurrencyLockInfoTests
         finally
         {
             _concurrencyManager.Clear();
-            try { Directory.Delete(workingDir, recursive: true); } catch { /* best effort */ }
+            try { Directory.Delete(workingDir, recursive: true); } catch (IOException) { /* best effort */ } catch (UnauthorizedAccessException) { /* best effort */ }
         }
     }
 
