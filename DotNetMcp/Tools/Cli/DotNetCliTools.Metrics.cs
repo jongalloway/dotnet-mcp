@@ -38,18 +38,13 @@ public sealed partial class DotNetCliTools
         {
             case DotnetServerMetricsAction.Reset:
                 _metricsAccumulator.Reset();
-                var resetSnapshot = _metricsAccumulator.GetSnapshot();
-                var metricsAfterReset = new ServerMetricsResponse
+                var resetResponse = new ServerMetricsResetResponse
                 {
-                    ToolMetrics = resetSnapshot
-                        .OrderBy(kv => kv.Key, StringComparer.Ordinal)
-                        .ToDictionary(kv => kv.Key, kv => kv.Value),
-                    TotalInvocations = resetSnapshot.Values.Sum(m => m.InvocationCount),
-                    TotalSuccesses = resetSnapshot.Values.Sum(m => m.SuccessCount),
-                    TotalFailures = resetSnapshot.Values.Sum(m => m.FailureCount)
+                    Success = true,
+                    Message = "Server metrics have been reset."
                 };
-                var resetJson = ErrorResultFactory.ToJson(metricsAfterReset);
-                return Task.FromResult(StructuredContentHelper.ToCallToolResult(resetJson, metricsAfterReset));
+                var resetJson = ErrorResultFactory.ToJson(resetResponse);
+                return Task.FromResult(StructuredContentHelper.ToCallToolResult(resetJson, resetResponse));
 
             case DotnetServerMetricsAction.Get:
             default:
@@ -67,6 +62,20 @@ public sealed partial class DotNetCliTools
                 return Task.FromResult(StructuredContentHelper.ToCallToolResult(json, metricsResponse));
         }
     }
+}
+
+/// <summary>
+/// JSON response for the dotnet_server_metrics Reset action.
+/// </summary>
+public sealed class ServerMetricsResetResponse
+{
+    /// <summary>Indicates whether the reset was successful.</summary>
+    [JsonPropertyName("success")]
+    public bool Success { get; init; }
+
+    /// <summary>Human-readable confirmation message.</summary>
+    [JsonPropertyName("message")]
+    public string Message { get; init; } = string.Empty;
 }
 
 /// <summary>
