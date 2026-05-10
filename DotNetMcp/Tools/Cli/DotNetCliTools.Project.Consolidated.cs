@@ -64,7 +64,7 @@ public sealed partial class DotNetCliTools
     /// <param name="configFile">NuGet.config file to use for restore action</param>
     /// <param name="itemType">Item type for AddItem/RemoveItem/ListItems actions (e.g., 'Using', 'Content', 'None')</param>
     /// <param name="include">The Include attribute value for AddItem/RemoveItem actions</param>
-    [McpServerTool(Title = ".NET Project", Destructive = true, UseStructuredContent = true, OutputSchemaType = typeof(BuildResult), TaskSupport = ToolTaskSupport.Optional, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/File%20Folder/Flat/file_folder_flat.svg")]
+    [McpServerTool(Title = ".NET Project", Destructive = true, UseStructuredContent = true, OutputSchemaType = typeof(ProjectActionResult), TaskSupport = ToolTaskSupport.Optional, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/File%20Folder/Flat/file_folder_flat.svg")]
     [McpMeta("category", "project")]
     [McpMeta("priority", 10.0)]
     [McpMeta("commonlyUsed", true)]
@@ -180,18 +180,30 @@ public sealed partial class DotNetCliTools
             var lockInfo = BuildLockInfo("build", GetOperationTarget(effectiveProject, workingDirectory),
                 isContended: IsConcurrencyConflictText(textResult));
             var buildResult = ErrorResultFactory.ParseBuildOutput(textResult, effectiveProject, configuration, lockInfo);
-            return StructuredContentHelper.ToCallToolResult(textResult, buildResult);
+            var projectActionResult = new ProjectActionResult
+            {
+                Success = buildResult.Success,
+                Project = buildResult.Project,
+                Configuration = buildResult.Configuration,
+                ErrorCount = buildResult.ErrorCount,
+                WarningCount = buildResult.WarningCount,
+                Summary = buildResult.Summary,
+                Errors = buildResult.Errors,
+                Warnings = buildResult.Warnings,
+                LockInfo = buildResult.LockInfo
+            };
+            return StructuredContentHelper.ToCallToolResult(textResult, projectActionResult);
         }
 
         // For other concurrency-gated actions (Run, Test, Publish), include lock metadata
-        // in a lightweight ConcurrencyAwareResult so consumers can confirm lock granularity
+        // in a ProjectActionResult so consumers can confirm lock granularity
         // without parsing plain-text output.
         var concurrencyOpType = GetConcurrencyOperationType(action);
         if (concurrencyOpType is not null)
         {
             var lockInfo = BuildLockInfo(concurrencyOpType, GetOperationTarget(effectiveProject, workingDirectory),
                 isContended: IsConcurrencyConflictText(textResult));
-            return StructuredContentHelper.ToCallToolResult(textResult, new ConcurrencyAwareResult { LockInfo = lockInfo });
+            return StructuredContentHelper.ToCallToolResult(textResult, new ProjectActionResult { LockInfo = lockInfo });
         }
 
         return StructuredContentHelper.ToCallToolResult(textResult);

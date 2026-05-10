@@ -38,8 +38,18 @@ public sealed partial class DotNetCliTools
         {
             case DotnetServerMetricsAction.Reset:
                 _metricsAccumulator.Reset();
-                var resetResponse = new MetricsResetResponse { Success = true, Message = "All metrics have been reset." };
-                return Task.FromResult(StructuredContentHelper.ToCallToolResult(ErrorResultFactory.ToJson(resetResponse)));
+                var resetSnapshot = _metricsAccumulator.GetSnapshot();
+                var metricsAfterReset = new ServerMetricsResponse
+                {
+                    ToolMetrics = resetSnapshot
+                        .OrderBy(kv => kv.Key, StringComparer.Ordinal)
+                        .ToDictionary(kv => kv.Key, kv => kv.Value),
+                    TotalInvocations = resetSnapshot.Values.Sum(m => m.InvocationCount),
+                    TotalSuccesses = resetSnapshot.Values.Sum(m => m.SuccessCount),
+                    TotalFailures = resetSnapshot.Values.Sum(m => m.FailureCount)
+                };
+                var resetJson = ErrorResultFactory.ToJson(metricsAfterReset);
+                return Task.FromResult(StructuredContentHelper.ToCallToolResult(resetJson, metricsAfterReset));
 
             case DotnetServerMetricsAction.Get:
             default:
@@ -79,18 +89,4 @@ public sealed class ServerMetricsResponse
     /// <summary>Total failed invocations across all tools since last reset.</summary>
     [JsonPropertyName("totalFailures")]
     public long TotalFailures { get; init; }
-}
-
-/// <summary>
-/// JSON response for the dotnet_server_metrics Reset action.
-/// </summary>
-public sealed class MetricsResetResponse
-{
-    /// <summary>Whether the reset succeeded.</summary>
-    [JsonPropertyName("success")]
-    public bool Success { get; init; }
-
-    /// <summary>Human-readable confirmation message.</summary>
-    [JsonPropertyName("message")]
-    public string Message { get; init; } = string.Empty;
 }

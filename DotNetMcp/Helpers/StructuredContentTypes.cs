@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace DotNetMcp;
@@ -127,4 +128,49 @@ public sealed class PackageListResult
     /// <summary>NuGet packages referenced by the project.</summary>
     [JsonPropertyName("packages")]
     public PackageInfo[] Packages { get; init; } = [];
+}
+
+/// <summary>
+/// Union output schema for the dotnet_project tool.
+/// Covers both build-specific results (Build, Clean, Restore, etc.) and
+/// concurrency-lock-only results (Run, Test, Publish).
+/// All fields are optional; only the fields relevant to the executed action are populated.
+/// </summary>
+public sealed class ProjectActionResult
+{
+    /// <summary>Whether the build succeeded. Present for Build action.</summary>
+    [JsonPropertyName("success")]
+    public bool? Success { get; init; }
+
+    /// <summary>The project or solution file that was built. Present for Build action.</summary>
+    [JsonPropertyName("project")]
+    public string? Project { get; init; }
+
+    /// <summary>Build configuration used (e.g., "Debug", "Release"). Present for Build action.</summary>
+    [JsonPropertyName("configuration")]
+    public string? Configuration { get; init; }
+
+    /// <summary>Number of compiler/MSBuild errors. Present for Build action.</summary>
+    [JsonPropertyName("errorCount")]
+    public int? ErrorCount { get; init; }
+
+    /// <summary>Number of compiler/MSBuild warnings. Present for Build action.</summary>
+    [JsonPropertyName("warningCount")]
+    public int? WarningCount { get; init; }
+
+    /// <summary>Short build summary line. Present for Build action.</summary>
+    [JsonPropertyName("summary")]
+    public string? Summary { get; init; }
+
+    /// <summary>Individual error diagnostics. Present when build errors occurred.</summary>
+    [JsonPropertyName("errors")]
+    public List<BuildDiagnostic>? Errors { get; init; }
+
+    /// <summary>Individual warning diagnostics. Present when build warnings occurred.</summary>
+    [JsonPropertyName("warnings")]
+    public List<BuildDiagnostic>? Warnings { get; init; }
+
+    /// <summary>Concurrency lock metadata. Present for concurrency-gated actions (Build, Run, Test, Publish).</summary>
+    [JsonPropertyName("lockInfo")]
+    public LockInfo? LockInfo { get; init; }
 }
