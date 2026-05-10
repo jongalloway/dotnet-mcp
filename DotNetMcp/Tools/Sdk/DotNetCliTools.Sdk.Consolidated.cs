@@ -33,7 +33,7 @@ public sealed partial class DotNetCliTools
     /// <param name="rollForward">SDK roll-forward policy for global.json (e.g., 'latestMinor', 'latestMajor', 'disable') for ConfigureGlobalJson action</param>
     /// <param name="testRunner">Test runner to configure in global.json (e.g., 'Microsoft.Testing.Platform', 'VSTest') for ConfigureGlobalJson action</param>
     /// <param name="globalJsonPath">Path to global.json file; defaults to 'global.json' in the working directory for ConfigureGlobalJson action</param>
-    [McpServerTool(Title = ".NET SDK & Templates", Destructive = true, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Gear/Flat/gear_flat.svg")]
+    [McpServerTool(Title = ".NET SDK & Templates", Destructive = true, UseStructuredContent = true, OutputSchemaType = typeof(SdkActionResult), IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Gear/Flat/gear_flat.svg")]
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]
@@ -94,7 +94,7 @@ public sealed partial class DotNetCliTools
         // For ListSdks, also fetch runtimes so the dashboard UI can render both
         // from a single tool-result notification (tools/call from MCP App iframes
         // is not reliably supported by all hosts).
-        object? structured = action switch
+        SdkActionResult? structured = action switch
         {
             DotnetSdkAction.Version => BuildVersionStructuredContent(textResult),
             DotnetSdkAction.ListSdks => await BuildListSdksWithRuntimesStructuredContentAsync(textResult),
@@ -536,7 +536,7 @@ public sealed partial class DotNetCliTools
     internal async Task<string> DotnetRuntimeList()
         => await ExecuteDotNetCommand("--list-runtimes");
 
-    private static object? BuildVersionStructuredContent(string textResult)
+    private static SdkActionResult? BuildVersionStructuredContent(string textResult)
     {
         // Extract version from output like "10.0.100\nExit Code: 0"
         var lines = textResult.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -545,10 +545,10 @@ public sealed partial class DotNetCliTools
             && !l.StartsWith("Command:", StringComparison.OrdinalIgnoreCase));
         if (string.IsNullOrWhiteSpace(versionLine)) return null;
         var version = versionLine.Trim();
-        return new { version };
+        return new SdkActionResult { Version = version };
     }
 
-    private static object? BuildListSdksStructuredContent(string textResult)
+    private static SdkListResult? BuildListSdksStructuredContent(string textResult)
     {
         var lines = textResult.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         var sdks = lines
@@ -560,17 +560,17 @@ public sealed partial class DotNetCliTools
                 var parts = l.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
                 var ver = parts.Length > 0 ? parts[0] : l.Trim();
                 var path = parts.Length > 1 ? parts[1].Trim('[', ']', ' ') : null;
-                return new { version = ver, path };
+                return new InstalledSdkInfo { Version = ver, Path = path };
             })
             .ToArray();
-        return new { sdks };
+        return new SdkListResult { Sdks = sdks };
     }
 
     /// <summary>
     /// Build structured content for ListSdks that also includes runtime data.
     /// The SDK dashboard UI needs both to render fully from a single tool-result notification.
     /// </summary>
-    private async Task<object?> BuildListSdksWithRuntimesStructuredContentAsync(string sdkTextResult)
+    private async Task<SdkActionResult?> BuildListSdksWithRuntimesStructuredContentAsync(string sdkTextResult)
     {
         var sdkContent = BuildListSdksStructuredContent(sdkTextResult);
 
@@ -590,7 +590,7 @@ public sealed partial class DotNetCliTools
                     var parts = l.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
                     var ver = parts.Length > 0 ? parts[0] : l.Trim();
                     var path = parts.Length > 1 ? parts[1].Trim('[', ']', ' ') : null;
-                    return new { version = ver, path };
+                    return new InstalledSdkInfo { Version = ver, Path = path };
                 })
                 .ToArray();
 
@@ -606,20 +606,20 @@ public sealed partial class DotNetCliTools
                     var name = parts.Length > 0 ? parts[0] : string.Empty;
                     var ver = parts.Length > 1 ? parts[1] : string.Empty;
                     var path = parts.Length > 2 ? parts[2].Trim('[', ']', ' ') : null;
-                    return new { name, version = ver, path };
+                    return new InstalledRuntimeInfo { Name = name, Version = ver, Path = path };
                 })
                 .ToArray();
 
-            return new { sdks, runtimes };
+            return new SdkActionResult { Sdks = sdks, Runtimes = runtimes };
         }
         catch (Exception)
         {
             // If runtime fetch fails, return SDKs only — dashboard will show what it can
-            return sdkContent;
+            return sdkContent != null ? new SdkActionResult { Sdks = sdkContent.Sdks } : null;
         }
     }
 
-    private static object? BuildListRuntimesStructuredContent(string textResult)
+    private static SdkActionResult? BuildListRuntimesStructuredContent(string textResult)
     {
         var lines = textResult.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         var runtimes = lines
@@ -633,9 +633,9 @@ public sealed partial class DotNetCliTools
                 var name = parts.Length > 0 ? parts[0] : string.Empty;
                 var ver = parts.Length > 1 ? parts[1] : string.Empty;
                 var path = parts.Length > 2 ? parts[2].Trim('[', ']', ' ') : null;
-                return new { name, version = ver, path };
+                return new InstalledRuntimeInfo { Name = name, Version = ver, Path = path };
             })
             .ToArray();
-        return new { runtimes };
+        return new SdkActionResult { Runtimes = runtimes };
     }
 }

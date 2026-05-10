@@ -33,7 +33,7 @@ public sealed partial class DotNetCliTools
     /// <param name="referencePath">Path to referenced project for add/remove reference operations</param>
     /// <param name="cacheType">Cache location to clear: all, http-cache, global-packages, temp, plugins-cache</param>
     /// <param name="workingDirectory">Working directory for command execution</param>
-    [McpServerTool(Title = "NuGet Package Manager", Destructive = true, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Package/Flat/package_flat.svg")]
+    [McpServerTool(Title = "NuGet Package Manager", Destructive = true, UseStructuredContent = true, OutputSchemaType = typeof(PackageListResult), IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Package/Flat/package_flat.svg")]
     [McpMeta("category", "package")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]
@@ -287,7 +287,7 @@ public sealed partial class DotNetCliTools
             clear: true);
     }
 
-    private static object? BuildPackageListStructuredContent(string textResult)
+    private static PackageListResult? BuildPackageListStructuredContent(string textResult)
     {
         // Parse package list from 'dotnet list package' output
         var lines = textResult.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -298,16 +298,17 @@ public sealed partial class DotNetCliTools
                 var parts = l.Trim().TrimStart('>').Trim()
                     .Split(new char[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length >= 3)
-                    return new { name = parts[0], requestedVersion = (string?)parts[1], resolvedVersion = (string?)parts[2] };
+                    return new PackageInfo { Name = parts[0], RequestedVersion = parts[1], ResolvedVersion = parts[2] };
                 if (parts.Length == 2)
-                    return new { name = parts[0], requestedVersion = (string?)parts[1], resolvedVersion = (string?)null };
+                    return new PackageInfo { Name = parts[0], RequestedVersion = parts[1] };
                 return parts.Length == 1
-                    ? new { name = parts[0], requestedVersion = (string?)null, resolvedVersion = (string?)null }
+                    ? new PackageInfo { Name = parts[0] }
                     : null;
             })
             .Where(p => p != null)
+            .Cast<PackageInfo>()
             .ToArray();
-        return new { packages };
+        return new PackageListResult { Packages = packages };
     }
 
     // ===== Reference helper methods (moved from DotNetCliTools.Reference.cs) =====

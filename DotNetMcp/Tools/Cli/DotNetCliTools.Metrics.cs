@@ -18,7 +18,7 @@ public sealed partial class DotNetCliTools
     /// No PII is stored; only tool names and timing data are tracked.
     /// </summary>
     /// <param name="action">The metrics operation to perform: Get (return current snapshot) or Reset (clear all counters)</param>
-    [McpServerTool(Title = "Server Metrics", ReadOnly = false, Idempotent = false, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Bar%20Chart/Flat/bar_chart_flat.svg")]
+    [McpServerTool(Title = "Server Metrics", ReadOnly = false, Idempotent = false, UseStructuredContent = true, OutputSchemaType = typeof(ServerMetricsResponse), IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Bar%20Chart/Flat/bar_chart_flat.svg")]
     [McpMeta("category", "telemetry")]
     [McpMeta("priority", 5.0)]
     [McpMeta("consolidatedTool", true)]
@@ -38,8 +38,13 @@ public sealed partial class DotNetCliTools
         {
             case DotnetServerMetricsAction.Reset:
                 _metricsAccumulator.Reset();
-                var resetResponse = new MetricsResetResponse { Success = true, Message = "All metrics have been reset." };
-                return Task.FromResult(StructuredContentHelper.ToCallToolResult(ErrorResultFactory.ToJson(resetResponse)));
+                var resetResponse = new ServerMetricsResetResponse
+                {
+                    Success = true,
+                    Message = "Server metrics have been reset."
+                };
+                var resetJson = ErrorResultFactory.ToJson(resetResponse);
+                return Task.FromResult(StructuredContentHelper.ToCallToolResult(resetJson, resetResponse));
 
             case DotnetServerMetricsAction.Get:
             default:
@@ -57,6 +62,20 @@ public sealed partial class DotNetCliTools
                 return Task.FromResult(StructuredContentHelper.ToCallToolResult(json, metricsResponse));
         }
     }
+}
+
+/// <summary>
+/// JSON response for the dotnet_server_metrics Reset action.
+/// </summary>
+public sealed class ServerMetricsResetResponse
+{
+    /// <summary>Indicates whether the reset was successful.</summary>
+    [JsonPropertyName("success")]
+    public bool Success { get; init; }
+
+    /// <summary>Human-readable confirmation message.</summary>
+    [JsonPropertyName("message")]
+    public string Message { get; init; } = string.Empty;
 }
 
 /// <summary>
@@ -79,18 +98,4 @@ public sealed class ServerMetricsResponse
     /// <summary>Total failed invocations across all tools since last reset.</summary>
     [JsonPropertyName("totalFailures")]
     public long TotalFailures { get; init; }
-}
-
-/// <summary>
-/// JSON response for the dotnet_server_metrics Reset action.
-/// </summary>
-public sealed class MetricsResetResponse
-{
-    /// <summary>Whether the reset succeeded.</summary>
-    [JsonPropertyName("success")]
-    public bool Success { get; init; }
-
-    /// <summary>Human-readable confirmation message.</summary>
-    [JsonPropertyName("message")]
-    public string Message { get; init; } = string.Empty;
 }

@@ -24,7 +24,7 @@ public sealed partial class DotNetCliTools
     /// <summary>
     /// Get a machine-readable JSON snapshot of server capabilities, versions, and supported features for agent orchestration and discovery.
     /// </summary>
-    [McpServerTool(Title = "Server Capabilities", ReadOnly = true, Idempotent = true, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Bar%20Chart/Flat/bar_chart_flat.svg")]
+    [McpServerTool(Title = "Server Capabilities", ReadOnly = true, Idempotent = true, UseStructuredContent = true, OutputSchemaType = typeof(ServerCapabilities), IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Bar%20Chart/Flat/bar_chart_flat.svg")]
     [McpMeta("category", "help")]
     [McpMeta("priority", 8.0)]
     [McpMeta("commonlyUsed", true)]
