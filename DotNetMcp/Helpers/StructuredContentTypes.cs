@@ -3,18 +3,6 @@ using System.Text.Json.Serialization;
 namespace DotNetMcp;
 
 /// <summary>
-/// Structured result for the dotnet_sdk Version action.
-/// Declared as OutputSchemaType on the dotnet_sdk tool so AI clients know the response shape
-/// at discovery time.
-/// </summary>
-public sealed class SdkVersionResult
-{
-    /// <summary>The installed .NET SDK version string (e.g. "10.0.100").</summary>
-    [JsonPropertyName("version")]
-    public string Version { get; init; } = string.Empty;
-}
-
-/// <summary>
 /// Represents a single installed .NET SDK entry (version + installation path).
 /// </summary>
 public sealed class InstalledSdkInfo
