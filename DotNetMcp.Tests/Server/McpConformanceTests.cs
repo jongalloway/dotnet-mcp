@@ -777,6 +777,174 @@ public class McpConformanceTests : IAsyncLifetime
 
     #endregion
 
+    #region OutputSchema Declaration Tests
+
+    [Fact]
+    public async Task Server_ToolList_StructuredTools_HaveOutputSchema()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // These tools declare UseStructuredContent = true + OutputSchemaType so clients
+        // know the JSON response shape at discovery time without calling the tool first.
+        var toolsWithOutputSchema = new[]
+        {
+            "dotnet_server_capabilities",
+            "dotnet_server_metrics",
+            "dotnet_solution",
+            "dotnet_package",
+            "dotnet_project",
+            "dotnet_sdk",
+        };
+
+        // Act
+        var tools = await _client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        foreach (var toolName in toolsWithOutputSchema)
+        {
+            var tool = tools.FirstOrDefault(t => t.Name == toolName);
+            Assert.NotNull(tool);
+            Assert.True(
+                tool.ProtocolTool.OutputSchema.HasValue,
+                $"{toolName} should have OutputSchema declared for AI orchestration");
+
+            // The schema should be a non-empty JSON object
+            var schemaJson = tool.ProtocolTool.OutputSchema!.Value.ToString();
+            Assert.NotEmpty(schemaJson);
+            Assert.Contains("properties", schemaJson);
+        }
+    }
+
+    [Fact]
+    public async Task Server_ToolList_NonStructuredTools_DoNotHaveOutputSchema()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // These tools do not produce structured content so they should not declare OutputSchema
+        var toolsWithoutOutputSchema = new[]
+        {
+            "dotnet_ef",
+            "dotnet_workload",
+            "dotnet_tool",
+            "dotnet_dev_certs",
+            "dotnet_help",
+            "dotnet_server_info",
+        };
+
+        // Act
+        var tools = await _client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        foreach (var toolName in toolsWithoutOutputSchema)
+        {
+            var tool = tools.FirstOrDefault(t => t.Name == toolName);
+            Assert.NotNull(tool);
+            Assert.False(
+                tool.ProtocolTool.OutputSchema.HasValue,
+                $"{toolName} should not have OutputSchema (it does not produce structured content)");
+        }
+    }
+
+    [Fact]
+    public async Task Server_ServerCapabilities_OutputSchema_ContainsExpectedFields()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act
+        var tools = await _client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+        var tool = tools.FirstOrDefault(t => t.Name == "dotnet_server_capabilities");
+
+        // Assert
+        Assert.NotNull(tool);
+        Assert.True(tool.ProtocolTool.OutputSchema.HasValue);
+
+        var schemaJson = tool.ProtocolTool.OutputSchema!.Value.ToString();
+        Assert.Contains("serverVersion", schemaJson);
+        Assert.Contains("protocolVersion", schemaJson);
+        Assert.Contains("sdkVersions", schemaJson);
+    }
+
+    [Fact]
+    public async Task Server_DotnetProject_OutputSchema_ContainsBuildResultFields()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act
+        var tools = await _client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+        var tool = tools.FirstOrDefault(t => t.Name == "dotnet_project");
+
+        // Assert
+        Assert.NotNull(tool);
+        Assert.True(tool.ProtocolTool.OutputSchema.HasValue);
+
+        var schemaJson = tool.ProtocolTool.OutputSchema!.Value.ToString();
+        Assert.Contains("success", schemaJson);
+        Assert.Contains("summary", schemaJson);
+        Assert.Contains("errorCount", schemaJson);
+    }
+
+    [Fact]
+    public async Task Server_DotnetSdk_OutputSchema_ContainsSdkFields()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act
+        var tools = await _client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+        var tool = tools.FirstOrDefault(t => t.Name == "dotnet_sdk");
+
+        // Assert
+        Assert.NotNull(tool);
+        Assert.True(tool.ProtocolTool.OutputSchema.HasValue);
+
+        var schemaJson = tool.ProtocolTool.OutputSchema!.Value.ToString();
+        Assert.Contains("version", schemaJson);
+        Assert.Contains("sdks", schemaJson);
+        Assert.Contains("runtimes", schemaJson);
+    }
+
+    [Fact]
+    public async Task Server_DotnetSolution_OutputSchema_ContainsProjectsField()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act
+        var tools = await _client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+        var tool = tools.FirstOrDefault(t => t.Name == "dotnet_solution");
+
+        // Assert
+        Assert.NotNull(tool);
+        Assert.True(tool.ProtocolTool.OutputSchema.HasValue);
+
+        var schemaJson = tool.ProtocolTool.OutputSchema!.Value.ToString();
+        Assert.Contains("projects", schemaJson);
+    }
+
+    [Fact]
+    public async Task Server_DotnetPackage_OutputSchema_ContainsPackagesField()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act
+        var tools = await _client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+        var tool = tools.FirstOrDefault(t => t.Name == "dotnet_package");
+
+        // Assert
+        Assert.NotNull(tool);
+        Assert.True(tool.ProtocolTool.OutputSchema.HasValue);
+
+        var schemaJson = tool.ProtocolTool.OutputSchema!.Value.ToString();
+        Assert.Contains("packages", schemaJson);
+    }
+
+    #endregion
+
     #region MCP Logging Notification Tests
 
     [Fact]

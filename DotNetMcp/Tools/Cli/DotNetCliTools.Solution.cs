@@ -99,7 +99,7 @@ public sealed partial class DotNetCliTools
     /// <param name="output">Output directory for solution file (optional, used with 'create' action)</param>
     /// <param name="format">Solution file format: 'sln' (classic) or 'slnx' (XML-based). Default is 'sln'. (optional, used with 'create' action)</param>
     /// <param name="projects">Array of project file paths (required for 'add' and 'remove' actions)</param>
-    [McpServerTool(Title = ".NET Solution Manager", Destructive = true, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Card%20File%20Box/Flat/card_file_box_flat.svg")]
+    [McpServerTool(Title = ".NET Solution Manager", Destructive = true, UseStructuredContent = true, OutputSchemaType = typeof(SolutionListResult), IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Card%20File%20Box/Flat/card_file_box_flat.svg")]
     [McpMeta("category", "solution")]
     [McpMeta("priority", 10.0)]
     [McpMeta("commonlyUsed", true)]
@@ -265,7 +265,7 @@ public sealed partial class DotNetCliTools
         return await SolutionAnalysisHelper.ValidateSolutionAsync(solution!, args => ExecuteDotNetCommand(args), _logger);
     }
 
-    private static object? BuildSolutionListStructuredContent(string textResult)
+    private static SolutionListResult? BuildSolutionListStructuredContent(string textResult)
     {
         // Parse project paths from dotnet solution list output
         // Output format: lines with .csproj/.fsproj/.vbproj paths
@@ -280,6 +280,6 @@ public sealed partial class DotNetCliTools
                     || l.Trim().EndsWith(".vbproj", StringComparison.OrdinalIgnoreCase)))
             .Select(l => l.Trim())
             .ToArray();
-        return new { projects };
+        return new SolutionListResult { Projects = projects };
     }
 }
