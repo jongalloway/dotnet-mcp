@@ -177,6 +177,25 @@ The MCP server uses official .NET SDK APIs and CLI commands, ensuring:
   - Opt-out available with `unsafeOutput=true` for advanced debugging
   - Patterns include: database credentials, cloud provider keys, tokens, certificates, and more
   - Performance impact is minimal and tested to complete within 500ms for 10,000 lines
+- **Optional MCP governance controls** (preview)
+  - Uses `Microsoft.AgentGovernance.Extensions.ModelContextProtocol` when enabled via configuration
+  - Disabled by default to preserve existing behavior and compatibility
+  - Does not ship with a default enforced policy; provide your own policy file(s) when needed
+  - See `doc/mcp-governance.md` for a sample `mcp.yaml` policy template
+  - Sources:
+    - Agent Governance Toolkit repository: https://github.com/microsoft/agent-governance-toolkit
+    - Agent Governance Toolkit for .NET: https://github.com/microsoft/agent-governance-toolkit/tree/main/agent-governance-dotnet
+    - Announcement: https://devblogs.microsoft.com/dotnet/announcing-agent-governance-toolkit-mcp-extensions-for-dotnet/
+  - Startup scanning, policy-based tool authorization, and response sanitization can be enabled with:
+
+```json
+"McpGovernance": {
+  "Enabled": true,
+  "DefaultAgentId": "did:mcp:anonymous",
+  "ServerName": "dotnet-mcp",
+  "PolicyPaths": ["/path/to/your/policies/mcp.yaml"]
+}
+```
 
 ## How It Works
 

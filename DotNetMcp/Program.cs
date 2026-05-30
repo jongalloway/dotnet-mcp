@@ -1,4 +1,5 @@
 using DotNetMcp;
+using AgentGovernance.Extensions.ModelContextProtocol;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -9,6 +10,7 @@ using ModelContextProtocol.Server;
 using System.Diagnostics;
 
 var builder = Host.CreateApplicationBuilder(args);
+var governanceConfiguration = McpGovernanceConfiguration.Load(builder.Configuration);
 
 builder.Logging.AddConsole(options =>
 {
@@ -70,7 +72,23 @@ mcpServerBuilder
     .WithTools<DotNetCliTools>()
     .WithResources<DotNetResources>()
     .WithResources<McpAppsResources>()
-    .WithPrompts<DotNetPrompts>()
+    .WithPrompts<DotNetPrompts>();
+
+if (governanceConfiguration.Enabled)
+{
+    mcpServerBuilder.WithGovernance(options =>
+    {
+        options.DefaultAgentId = governanceConfiguration.DefaultAgentId;
+        options.ServerName = governanceConfiguration.ServerName;
+
+        foreach (var policyPath in governanceConfiguration.PolicyPaths)
+        {
+            options.PolicyPaths.Add(policyPath);
+        }
+    });
+}
+
+mcpServerBuilder
     .WithSubscribeToResourcesHandler((context, ct) =>
     {
         var uri = context.Params?.Uri;
