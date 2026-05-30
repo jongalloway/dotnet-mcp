@@ -13,6 +13,91 @@ namespace DotNetMcp;
 public sealed class DotNetPrompts
 {
     /// <summary>
+    /// Guide for creating a new .NET console application.
+    /// </summary>
+    /// <param name="projectName">Name for the new console project</param>
+    /// <param name="outputDirectory">Output directory for the new project (optional)</param>
+    [McpServerPrompt(Name = "new_console_app", Title = "New Console App")]
+    [Description("Guide for creating a new .NET console application")]
+    public static IList<ChatMessage> NewConsoleApp(
+        [Description("Name for the new console project")] string projectName,
+        [Description("Output directory for the new project (optional, defaults to current directory)")] string? outputDirectory = null)
+    {
+        var outputArg = outputDirectory != null ? $"\n- output: {outputDirectory}" : string.Empty;
+        var outputNote = outputDirectory != null ? $" in '{outputDirectory}'" : string.Empty;
+        var buildProjectArg = outputDirectory != null
+            ? $", project: {Path.Join(outputDirectory, projectName, $"{projectName}.csproj")}"
+            : string.Empty;
+
+        return
+        [
+            new ChatMessage(ChatRole.User,
+                $"""
+                Please create a new .NET console application called '{projectName}'{outputNote}.
+
+                Steps:
+                1. Use dotnet_project (action: New, template: console, name: {projectName}{outputArg}) to scaffold the project
+                2. Use dotnet_project (action: Build{buildProjectArg}) to verify the project compiles successfully
+
+                The console template creates a minimal top-level statements program. If you need a traditional Program class with a Main method, add additionalOptions: "--use-program-main" to the New action.
+                """)
+        ];
+    }
+
+    /// <summary>
+    /// Guide for creating a new ASP.NET Core Web API project with Entity Framework Core.
+    /// </summary>
+    /// <param name="projectName">Name for the new Web API project</param>
+    /// <param name="dbProvider">Database provider to use (SqlServer, SQLite, PostgreSQL, or InMemory)</param>
+    /// <param name="outputDirectory">Output directory for the new project (optional)</param>
+    [McpServerPrompt(Name = "new_webapi_with_ef", Title = "New Web API with Entity Framework")]
+    [Description("Guide for creating a new ASP.NET Core Web API project with Entity Framework Core and database migrations")]
+    public static IList<ChatMessage> NewWebApiWithEf(
+        [Description("Name for the new Web API project")] string projectName,
+        [Description("Database provider: SqlServer, SQLite, PostgreSQL, or InMemory")] string dbProvider = "SqlServer",
+        [Description("Output directory for the new project (optional, defaults to current directory)")] string? outputDirectory = null)
+    {
+        var outputArg = outputDirectory != null ? $"\n- output: {outputDirectory}" : string.Empty;
+        var outputNote = outputDirectory != null ? $" in '{outputDirectory}'" : string.Empty;
+        var projectPath = outputDirectory != null
+            ? Path.Join(outputDirectory, projectName, $"{projectName}.csproj")
+            : Path.Join(projectName, $"{projectName}.csproj");
+        var projectArg = $"\n- project: {projectPath}";
+
+        var providerPackage = dbProvider.ToUpperInvariant() switch
+        {
+            "SQLITE" => "Microsoft.EntityFrameworkCore.Sqlite",
+            "POSTGRESQL" or "POSTGRES" or "NPGSQL" => "Npgsql.EntityFrameworkCore.PostgreSQL",
+            "INMEMORY" or "IN-MEMORY" => "Microsoft.EntityFrameworkCore.InMemory",
+            _ => "Microsoft.EntityFrameworkCore.SqlServer"
+        };
+
+        return
+        [
+            new ChatMessage(ChatRole.User,
+                $"""
+                Please create a new ASP.NET Core Web API project called '{projectName}'{outputNote} with Entity Framework Core and {dbProvider} support.
+
+                Steps:
+                1. Use dotnet_project (action: New, template: webapi, name: {projectName}{outputArg}) to scaffold the project
+                2. Use dotnet_package (action: Add, packageId: Microsoft.EntityFrameworkCore{projectArg}) to add EF Core
+                3. Use dotnet_package (action: Add, packageId: {providerPackage}{projectArg}) to add the {dbProvider} provider
+                4. Use dotnet_package (action: Add, packageId: Microsoft.EntityFrameworkCore.Design{projectArg}) to add EF design tools
+                5. Use dotnet_project (action: Build{projectArg}) to verify the project compiles
+                6. Use dotnet_ef (action: MigrationsAdd, name: InitialCreate{projectArg}) to create the initial migration
+                7. Use dotnet_ef (action: DatabaseUpdate{projectArg}) to apply migrations and create the database
+
+                After setup, remind the user to:
+                - Configure the connection string in appsettings.json or user secrets
+                - Create a DbContext class and register it in Program.cs
+                - Add entity classes as needed
+
+                If the dotnet-ef tool is not installed, use dotnet_tool (action: Install, packageId: dotnet-ef) first.
+                """)
+        ];
+    }
+
+    /// <summary>
     /// Guide for creating a new ASP.NET Core Web API project with recommended setup steps.
     /// </summary>
     /// <param name="projectName">Name for the new Web API project</param>

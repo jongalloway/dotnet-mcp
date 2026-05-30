@@ -464,4 +464,166 @@ public class TemplateEngineHelperTests
     }
 
     #endregion
+
+    #region ApplyTemplateFilter Tests
+
+    // Helpers to build TemplateDisplayInfo without touching the Template Engine
+    private static TemplateDisplayInfo MakeTemplate(
+        string shortName,
+        string name,
+        string type = "project",
+        string language = "C#",
+        IReadOnlyList<string>? shortNames = null) =>
+        new(
+            ShortName: shortName,
+            ShortNames: shortNames ?? new[] { shortName },
+            Language: language,
+            Type: type,
+            Description: $"Description for {shortName}",
+            Name: name,
+            Author: "Test",
+            Parameters: Array.Empty<TemplateParameterDisplayInfo>());
+
+    [Fact]
+    public void ApplyTemplateFilter_NoFilterNoMaxResults_ReturnsAll()
+    {
+        var templates = new[]
+        {
+            MakeTemplate("console", "Console App"),
+            MakeTemplate("classlib", "Class Library"),
+            MakeTemplate("webapi", "ASP.NET Core Web API"),
+        };
+
+        var result = TemplateEngineHelper.ApplyTemplateFilter(templates, null, null).ToList();
+
+        Assert.Equal(3, result.Count);
+    }
+
+    [Fact]
+    public void ApplyTemplateFilter_WithFilter_MatchesShortNameCaseInsensitive()
+    {
+        var templates = new[]
+        {
+            MakeTemplate("console", "Console App"),
+            MakeTemplate("classlib", "Class Library"),
+        };
+
+        var result = TemplateEngineHelper.ApplyTemplateFilter(templates, "CONSOLE", null).ToList();
+
+        Assert.Single(result);
+        Assert.Equal("console", result[0].ShortName);
+    }
+
+    [Fact]
+    public void ApplyTemplateFilter_WithFilter_MatchesNameCaseInsensitive()
+    {
+        var templates = new[]
+        {
+            MakeTemplate("console", "Console App"),
+            MakeTemplate("classlib", "Class Library"),
+        };
+
+        var result = TemplateEngineHelper.ApplyTemplateFilter(templates, "class", null).ToList();
+
+        Assert.Single(result);
+        Assert.Equal("classlib", result[0].ShortName);
+    }
+
+    [Fact]
+    public void ApplyTemplateFilter_WithFilter_MatchesTypeCaseInsensitive()
+    {
+        var templates = new[]
+        {
+            MakeTemplate("console", "Console App", type: "project"),
+            MakeTemplate("sln", "Solution File", type: "solution"),
+        };
+
+        var result = TemplateEngineHelper.ApplyTemplateFilter(templates, "solution", null).ToList();
+
+        Assert.Single(result);
+        Assert.Equal("sln", result[0].ShortName);
+    }
+
+    [Fact]
+    public void ApplyTemplateFilter_WithFilter_MatchesMultipleShortNames()
+    {
+        var templates = new[]
+        {
+            MakeTemplate("console", "Console App", shortNames: new[] { "console", "con" }),
+            MakeTemplate("classlib", "Class Library"),
+        };
+
+        var result = TemplateEngineHelper.ApplyTemplateFilter(templates, "con", null).ToList();
+
+        // "con" matches the short name "con" in console's aliases
+        Assert.Single(result);
+        Assert.Equal("console", result[0].ShortName);
+    }
+
+    [Fact]
+    public void ApplyTemplateFilter_WithNonMatchingFilter_ReturnsEmpty()
+    {
+        var templates = new[]
+        {
+            MakeTemplate("console", "Console App"),
+            MakeTemplate("classlib", "Class Library"),
+        };
+
+        var result = TemplateEngineHelper.ApplyTemplateFilter(templates, "xyznonexistent", null).ToList();
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void ApplyTemplateFilter_WithMaxResults_LimitsCount()
+    {
+        var templates = new[]
+        {
+            MakeTemplate("console", "Console App"),
+            MakeTemplate("classlib", "Class Library"),
+            MakeTemplate("webapi", "ASP.NET Core Web API"),
+        };
+
+        var result = TemplateEngineHelper.ApplyTemplateFilter(templates, null, 2).ToList();
+
+        Assert.Equal(2, result.Count);
+    }
+
+    [Fact]
+    public void ApplyTemplateFilter_WithMaxResultsLargerThanCount_ReturnsAll()
+    {
+        var templates = new[]
+        {
+            MakeTemplate("console", "Console App"),
+            MakeTemplate("classlib", "Class Library"),
+        };
+
+        var result = TemplateEngineHelper.ApplyTemplateFilter(templates, null, 100).ToList();
+
+        Assert.Equal(2, result.Count);
+    }
+
+    [Fact]
+    public void ApplyTemplateFilter_WithFilterAndMaxResults_FiltersFirstThenLimits()
+    {
+        var templates = new[]
+        {
+            MakeTemplate("console", "Console App"),
+            MakeTemplate("consolex", "Console Extended"),
+            MakeTemplate("classlib", "Class Library"),
+            MakeTemplate("webapiConsole", "Web API Console"),
+        };
+
+        // filter matches 3 templates; maxResults=2 should return only first 2 of those
+        var result = TemplateEngineHelper.ApplyTemplateFilter(templates, "console", 2).ToList();
+
+        Assert.Equal(2, result.Count);
+        Assert.All(result, t =>
+            Assert.True(
+                t.ShortNames.Any(sn => sn.Contains("console", StringComparison.OrdinalIgnoreCase)) ||
+                (t.Name?.Contains("console", StringComparison.OrdinalIgnoreCase) ?? false),
+                $"Template '{t.ShortName}' should match filter 'console'"));
+    }
+
+    #endregion
 }

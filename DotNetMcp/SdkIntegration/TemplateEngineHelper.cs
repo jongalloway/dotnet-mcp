@@ -254,7 +254,9 @@ public class TemplateEngineHelper
     /// </summary>
     /// <param name="forceReload">If true, bypasses cache and reloads from disk.</param>
     /// <param name="logger">Optional logger instance.</param>
-    public static async Task<string> GetInstalledTemplatesAsync(bool forceReload = false, ILogger? logger = null)
+    /// <param name="filter">Optional filter string; matches short name, name, or type (case-insensitive).</param>
+    /// <param name="maxResults">Optional maximum number of templates to return after filtering.</param>
+    public static async Task<string> GetInstalledTemplatesAsync(bool forceReload = false, ILogger? logger = null, string? filter = null, int? maxResults = null)
     {
         try
         {
@@ -279,7 +281,8 @@ public class TemplateEngineHelper
                 return message;
             }
 
-            var displayInfos = templates.Select(TemplateDisplayInfo.FromTemplateInfo);
+            IEnumerable<TemplateDisplayInfo> displayInfos = templates.Select(TemplateDisplayInfo.FromTemplateInfo);
+            displayInfos = ApplyTemplateFilter(displayInfos, filter, maxResults);
             return TemplateFormatter.FormatInstalledTemplates(displayInfos);
         }
         catch (Exception ex)
@@ -287,6 +290,36 @@ public class TemplateEngineHelper
             var message = $"Error accessing template engine: {ex.Message}\n\nYou may try running 'dotnet new --list' from the command line for more information.";
             return message;
         }
+    }
+
+    /// <summary>
+    /// Applies optional filter and maxResults to a sequence of template display infos.
+    /// Templates are matched by short name, name, or type (case-insensitive).
+    /// </summary>
+    /// <param name="templates">Source template display infos.</param>
+    /// <param name="filter">Optional filter string; matches short name, name, or type.</param>
+    /// <param name="maxResults">Optional maximum number of templates to return.</param>
+    internal static IEnumerable<TemplateDisplayInfo> ApplyTemplateFilter(
+        IEnumerable<TemplateDisplayInfo> templates,
+        string? filter,
+        int? maxResults)
+    {
+        IEnumerable<TemplateDisplayInfo> result = templates;
+
+        if (!string.IsNullOrEmpty(filter))
+        {
+            result = result.Where(t =>
+                t.ShortNames.Any(sn => sn.Contains(filter, StringComparison.OrdinalIgnoreCase)) ||
+                (t.Name?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                t.Type.Contains(filter, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (maxResults.HasValue)
+        {
+            result = result.Take(maxResults.Value);
+        }
+
+        return result;
     }
 
     /// <summary>
