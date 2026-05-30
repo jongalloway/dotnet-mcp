@@ -11,6 +11,10 @@ on:
         description: "Run MCP scenario (integration) tests"
         required: false
         default: "true"
+      runFullValidation:
+        description: "Run full tests with coverage and performance smoke"
+        required: false
+        default: "true"
 
 # Cancel in-progress runs for the same branch to save CI resources
 concurrency:
@@ -31,45 +35,79 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Detect changed paths
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            docs:
+              - '**/*.md'
+              - 'doc/**'
+              - '.github/ISSUE_TEMPLATE/**'
+              - '.github/pull_request_template.md'
+            non_docs:
+              - 'DotNetMcp/**'
+              - 'DotNetMcp.Tests/**'
+              - 'scripts/**'
+              - '.github/workflows/**'
+              - '*.slnx'
+              - '*.json'
+              - '*.props'
+              - '*.targets'
+              - '*.csproj'
+            scenario_related:
+              - 'DotNetMcp.Tests/Scenarios/**'
+              - 'DotNetMcp/Prompts/**'
+              - 'DotNetMcp/Resources/**'
+
       - name: Setup .NET
+        if: ${{ github.event_name != 'pull_request' || steps.changes.outputs.non_docs == 'true' }}
         id: setup_dotnet
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "10.0.x"
 
       - name: Display .NET info
+        if: ${{ github.event_name != 'pull_request' || steps.changes.outputs.non_docs == 'true' }}
         id: dotnet_info
         run: dotnet --info
 
       - name: Restore dependencies
+        if: ${{ github.event_name != 'pull_request' || steps.changes.outputs.non_docs == 'true' }}
         id: restore
         run: dotnet restore DotNetMcp.slnx
 
       - name: Build
+        if: ${{ github.event_name != 'pull_request' || steps.changes.outputs.non_docs == 'true' }}
         id: build
         run: dotnet build DotNetMcp.slnx --no-restore --configuration Release
 
       - name: Validate server.json
+        if: ${{ github.event_name != 'pull_request' || steps.changes.outputs.non_docs == 'true' }}
         id: validate_server_json
         run: pwsh -File scripts/validate-server-json.ps1
 
       - name: Run MCP Conformance Tests
+        if: ${{ github.event_name != 'pull_request' || steps.changes.outputs.non_docs == 'true' }}
         id: conformance_tests
         run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-class "*McpConformanceTests"
 
       - name: Run MCP Scenario Tests
         id: scenario_tests
-        # Run on all CI builds by default. Allow manual workflow runs to skip if desired.
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.runScenarioTests == 'true' }}
+        # For PRs, run scenario tests only when scenario-related/core files changed.
+        # For push/manual runs, preserve existing behavior.
+        if: ${{ (github.event_name == 'pull_request' && steps.changes.outputs.non_docs == 'true' && steps.changes.outputs.scenario_related == 'true') || (github.event_name == 'workflow_dispatch' && inputs.runScenarioTests == 'true') || github.event_name == 'push' }}
         env:
           DOTNET_MCP_SCENARIO_TESTS: "1"
         run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
 
       - name: Test
+        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.runFullValidation == 'true') }}
         id: test
         run: dotnet test --solution DotNetMcp.slnx --no-build --configuration Release --verbosity normal -- --coverage --coverage-output-format cobertura
 
       - name: Collect coverage artifact
+        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.runFullValidation == 'true') }}
         id: collect_coverage
         shell: bash
         run: |
@@ -85,7 +123,7 @@ jobs:
       - name: Upload coverage to Codecov
         id: upload_codecov
         # Only upload from pushes (PR workflows from forks don't have secrets).
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        if: ${{ (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.runFullValidation == 'true')) && github.ref == 'refs/heads/main' }}
         uses: codecov/codecov-action@v6
         with:
           files: coverage.cobertura.xml
@@ -93,6 +131,7 @@ jobs:
           fail_ci_if_error: false
 
       - name: Upload coverage artifact
+        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.runFullValidation == 'true') }}
         id: upload_coverage_artifact
         uses: actions/upload-artifact@v7
         with:
@@ -103,6 +142,7 @@ jobs:
         id: performance_smoke
         # Performance tests are informational only and should not block CI
         # Results are uploaded as artifacts for review
+        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.runFullValidation == 'true') }}
         continue-on-error: true
         shell: bash
         run: |
@@ -116,6 +156,7 @@ jobs:
           cat performance-results.txt
 
       - name: Upload performance results artifact
+        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.runFullValidation == 'true') }}
         id: upload_performance_artifact
         uses: actions/upload-artifact@v7
         with:
