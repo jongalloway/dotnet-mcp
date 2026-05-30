@@ -50,15 +50,11 @@ jobs:
               - '.github/ISSUE_TEMPLATE/**'
               - '.github/pull_request_template.md'
             non_docs:
-              - 'DotNetMcp/**'
-              - 'DotNetMcp.Tests/**'
-              - 'scripts/**'
-              - '.github/workflows/**'
-              - '*.slnx'
-              - '*.json'
-              - '*.props'
-              - '*.targets'
-              - '*.csproj'
+              - '**'
+              - '!**/*.md'
+              - '!doc/**'
+              - '!.github/ISSUE_TEMPLATE/**'
+              - '!.github/pull_request_template.md'
             scenario_related:
               - 'DotNetMcp.Tests/Scenarios/**'
               - 'DotNetMcp/Prompts/**'
@@ -97,6 +93,7 @@ jobs:
         run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-class "*McpConformanceTests"
 
   pr_scenario:
+    # Runs only when scenario-specific files (Scenarios/Prompts/Resources) change in a non-docs PR.
     needs: detect_changes
     if: ${{ github.event_name == 'pull_request' && needs.detect_changes.outputs.non_docs == 'true' && needs.detect_changes.outputs.scenario_related == 'true' }}
     runs-on: ubuntu-latest
@@ -233,7 +230,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         id: upload_codecov
-        # Only upload from pushes to main (workflow_dispatch runs on the selected ref).
+        # Upload from any full_validation run (push or workflow_dispatch) targeting the main branch.
         if: ${{ github.ref == 'refs/heads/main' }}
         uses: codecov/codecov-action@v6
         with:
