@@ -859,7 +859,7 @@ public static partial class ErrorResultFactory
             .FirstOrDefault(l => l.StartsWith("Exit Code:", StringComparison.OrdinalIgnoreCase));
         if (exitCodeLine != null)
         {
-            var codeStr = exitCodeLine.Substring("Exit Code:".Length).Trim();
+            var codeStr = exitCodeLine["Exit Code:".Length..].Trim();
             if (int.TryParse(codeStr, out var parsed))
                 exitCode = parsed;
         }
@@ -868,16 +868,28 @@ public static partial class ErrorResultFactory
         var failed = 0;
         var skipped = 0;
         long durationMs = 0;
+        var sawPassed = false;
+        var sawSucceeded = false;
 
         foreach (var line in lines)
         {
             var passedMatch = PassedCountRegex().Match(line);
             if (passedMatch.Success && int.TryParse(passedMatch.Groups[1].Value, out var parsedPassed))
+            {
                 passed = parsedPassed;
+                sawPassed = true;
+            }
 
-            var succeededMatch = SucceededCountRegex().Match(line);
-            if (succeededMatch.Success && int.TryParse(succeededMatch.Groups[1].Value, out var parsedSucceeded))
-                passed = parsedSucceeded;
+            if (!sawPassed || !sawSucceeded)
+            {
+                var succeededMatch = SucceededCountRegex().Match(line);
+                if (succeededMatch.Success && int.TryParse(succeededMatch.Groups[1].Value, out var parsedSucceeded))
+                {
+                    if (!sawPassed)
+                        passed = parsedSucceeded;
+                    sawSucceeded = true;
+                }
+            }
 
             var failedMatch = FailedCountRegex().Match(line);
             if (failedMatch.Success && int.TryParse(failedMatch.Groups[1].Value, out var parsedFailed))
@@ -955,8 +967,7 @@ public static partial class ErrorResultFactory
         for (var i = 0; i < lines.Length && failures.Count < 5; i++)
         {
             var line = lines[i].Trim();
-            if (!line.StartsWith("Failed ", StringComparison.OrdinalIgnoreCase) ||
-                line.StartsWith("Failed!", StringComparison.OrdinalIgnoreCase))
+            if (!line.StartsWith("Failed ", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
@@ -1003,7 +1014,7 @@ public static partial class ErrorResultFactory
                 if (next.StartsWith("Stack Trace:", StringComparison.OrdinalIgnoreCase))
                     break;
 
-                if (!next.StartsWith("at ", StringComparison.OrdinalIgnoreCase))
+                if (IsFailureMessageCandidate(next))
                 {
                     message = next;
                     break;
@@ -1018,6 +1029,21 @@ public static partial class ErrorResultFactory
         }
 
         return failures;
+    }
+
+    private static bool IsFailureMessageCandidate(string line)
+    {
+        if (string.IsNullOrWhiteSpace(line))
+            return false;
+
+        if (line.StartsWith("at ", StringComparison.OrdinalIgnoreCase) ||
+            line.StartsWith("---", StringComparison.OrdinalIgnoreCase) ||
+            line.StartsWith("Inner Stack Trace", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return line.Length <= 500;
     }
 
     /// <summary>
