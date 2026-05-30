@@ -1,4 +1,5 @@
 using System.Text;
+using System.Linq;
 using DotNetMcp.Actions;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
@@ -249,9 +250,8 @@ public sealed partial class DotNetCliTools
         var packageCount = 0;
         var limit = maxResults ?? int.MaxValue;
 
-        foreach (var rawLine in lines)
+        foreach (var line in lines.Select(rawLine => rawLine.TrimEnd('\r')))
         {
-            var line = rawLine.TrimEnd('\r');
             var trimmed = line.TrimStart();
             if (trimmed.StartsWith(">", StringComparison.Ordinal))
             {
