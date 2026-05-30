@@ -704,6 +704,7 @@ public static partial class ErrorResultFactory
     [GeneratedRegex(@"(?<value>\d+(?:\.\d+)?)\s*(?<unit>ms|millisecond(?:s)?|s|sec(?:ond)?s?|m|min(?:ute)?s?|h|hr|hour(?:s)?)\b", RegexOptions.IgnoreCase)]
     private static partial Regex DurationTokenRegex();
 
+    // Guardrail for captured failure messages to avoid storing long stack or dump output.
     private const int MaxFailureMessageLength = 500;
 
     /// <summary>
@@ -945,11 +946,13 @@ public static partial class ErrorResultFactory
             return null;
 
         double totalMs = 0;
-        foreach (Match match in matches.Cast<Match>()
-                     .Where(static match => double.TryParse(match.Groups["value"].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out _)))
+        foreach (var (match, _, value) in matches.Cast<Match>()
+                     .Select(static match => (
+                         match,
+                         parsed: double.TryParse(match.Groups["value"].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var value),
+                         value))
+                     .Where(static parsed => parsed.parsed))
         {
-            var value = double.Parse(match.Groups["value"].Value, NumberStyles.Float, CultureInfo.InvariantCulture);
-
             var unit = match.Groups["unit"].Value.ToLowerInvariant();
             totalMs += unit switch
             {
