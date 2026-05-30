@@ -11,6 +11,10 @@ on:
         description: "Run MCP scenario (integration) tests"
         required: false
         default: "true"
+      runFullValidation:
+        description: "Run full tests with coverage and performance smoke"
+        required: false
+        default: "true"
 
 # Cancel in-progress runs for the same branch to save CI resources
 concurrency:
@@ -18,7 +22,149 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  detect_changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    outputs:
+      non_docs: ${{ steps.changes.outputs.non_docs }}
+      scenario_related: ${{ steps.changes.outputs.scenario_related }}
+
+    env:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Detect changed paths
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            docs:
+              - '**/*.md'
+              - 'doc/**'
+              - '.github/ISSUE_TEMPLATE/**'
+              - '.github/pull_request_template.md'
+            non_docs:
+              - '**'
+              - '!**/*.md'
+              - '!doc/**'
+              - '!.github/ISSUE_TEMPLATE/**'
+              - '!.github/pull_request_template.md'
+            scenario_related:
+              - 'DotNetMcp.Tests/Scenarios/**'
+              - 'DotNetMcp/Prompts/**'
+              - 'DotNetMcp/Resources/**'
+
+  pr_conformance:
+    needs: detect_changes
+    if: ${{ github.event_name == 'pull_request' && needs.detect_changes.outputs.non_docs == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    env:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore dependencies
+        run: dotnet restore DotNetMcp.slnx
+
+      - name: Build
+        run: dotnet build DotNetMcp.slnx --no-restore --configuration Release
+
+      - name: Validate server.json
+        run: pwsh -File scripts/validate-server-json.ps1
+
+      - name: Run MCP Conformance Tests
+        run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-class "*McpConformanceTests"
+
+  pr_scenario:
+    # Runs only when scenario-specific files (Scenarios/Prompts/Resources) change in a non-docs PR.
+    needs: detect_changes
+    if: ${{ github.event_name == 'pull_request' && needs.detect_changes.outputs.non_docs == 'true' && needs.detect_changes.outputs.scenario_related == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    env:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore dependencies
+        run: dotnet restore DotNetMcp.slnx
+
+      - name: Build
+        run: dotnet build DotNetMcp.slnx --no-restore --configuration Release
+
+      - name: Run MCP Scenario Tests
+        env:
+          DOTNET_MCP_SCENARIO_TESTS: "1"
+        run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
+
+  manual_quick_checks:
+    needs: detect_changes
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.runFullValidation != 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    env:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore dependencies
+        run: dotnet restore DotNetMcp.slnx
+
+      - name: Build
+        run: dotnet build DotNetMcp.slnx --no-restore --configuration Release
+
+      - name: Validate server.json
+        run: pwsh -File scripts/validate-server-json.ps1
+
+      - name: Run MCP Conformance Tests
+        run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-class "*McpConformanceTests"
+
+      - name: Run MCP Scenario Tests
+        if: ${{ inputs.runScenarioTests == 'true' }}
+        env:
+          DOTNET_MCP_SCENARIO_TESTS: "1"
+        run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
+
+  full_validation:
+    needs: detect_changes
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.runFullValidation == 'true') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -59,8 +205,8 @@ jobs:
 
       - name: Run MCP Scenario Tests
         id: scenario_tests
-        # Run on all CI builds by default. Allow manual workflow runs to skip if desired.
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.runScenarioTests == 'true' }}
+        # For push runs, always run. For manual full runs, allow skipping with input.
+        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.runScenarioTests == 'true') }}
         env:
           DOTNET_MCP_SCENARIO_TESTS: "1"
         run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
@@ -84,8 +230,8 @@ jobs:
 
       - name: Upload coverage to Codecov
         id: upload_codecov
-        # Only upload from pushes (PR workflows from forks don't have secrets).
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        # Upload from any full_validation run (push or workflow_dispatch) targeting the main branch.
+        if: ${{ github.ref == 'refs/heads/main' }}
         uses: codecov/codecov-action@v6
         with:
           files: coverage.cobertura.xml
