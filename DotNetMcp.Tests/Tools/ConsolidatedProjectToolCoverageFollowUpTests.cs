@@ -95,4 +95,55 @@ public class ConsolidatedProjectToolCoverageFollowUpTests
         Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("framework", result, StringComparison.OrdinalIgnoreCase);
     }
+
+    #region Logs Action Tests
+
+    [Fact]
+    public async Task DotnetProject_Logs_WithMissingSessionId_ReturnsValidationError()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Logs)).GetText();
+
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("sessionId", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_Logs_WithNonExistentSessionId_ReturnsNotFoundError()
+    {
+        var nonExistentSessionId = Guid.NewGuid().ToString("N");
+
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Logs,
+            sessionId: nonExistentSessionId)).GetText();
+
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(nonExistentSessionId, result);
+    }
+
+    [Fact]
+    public async Task DotnetProject_Logs_WithInvalidSinceTimestamp_ReturnsError()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Logs,
+            sessionId: "some-session",
+            since: "not-a-timestamp")).GetText();
+
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("since", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DotnetProject_Logs_WithNegativeTailLines_ReturnsError()
+    {
+        var result = (await _tools.DotnetProject(
+            action: DotnetProjectAction.Logs,
+            sessionId: "some-session",
+            tailLines: 0)).GetText();
+
+        Assert.Contains("Error", result, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("tailLines", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    #endregion
 }
