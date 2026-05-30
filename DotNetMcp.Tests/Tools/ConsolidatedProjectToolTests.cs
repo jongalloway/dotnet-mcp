@@ -1898,6 +1898,32 @@ public class ConsolidatedProjectToolTests
     }
 
     [Fact]
+    public async Task DotnetProject_Test_ReturnsStructuredContent()
+    {
+        var callResult = await _tools.DotnetProject(
+            action: DotnetProjectAction.Test,
+            project: "MyTests.csproj");
+
+        var text = callResult.GetText();
+        Assert.NotNull(text);
+
+        Assert.True(callResult.StructuredContent.HasValue, "Test action should always return structured content");
+        var structuredJson = callResult.StructuredContent!.Value.GetRawText();
+        Assert.False(string.IsNullOrWhiteSpace(structuredJson));
+
+        using var doc = System.Text.Json.JsonDocument.Parse(structuredJson);
+        var root = doc.RootElement;
+        Assert.True(root.TryGetProperty("success", out _), "TestResult should have 'success' field");
+        Assert.True(root.TryGetProperty("passed", out _), "TestResult should have 'passed' field");
+        Assert.True(root.TryGetProperty("failed", out _), "TestResult should have 'failed' field");
+        Assert.True(root.TryGetProperty("skipped", out _), "TestResult should have 'skipped' field");
+        Assert.True(root.TryGetProperty("durationMs", out _), "TestResult should have 'durationMs' field");
+        Assert.True(root.TryGetProperty("summary", out _), "TestResult should have 'summary' field");
+        Assert.True(root.TryGetProperty("firstFailures", out _), "TestResult should have 'firstFailures' field");
+        Assert.True(root.TryGetProperty("lockInfo", out _), "TestResult should include 'lockInfo'");
+    }
+
+    [Fact]
     public async Task DotnetProject_Restore_WithVerbosity_WiresFlag()
     {
         var result = (await _tools.DotnetProject(

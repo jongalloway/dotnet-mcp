@@ -28,7 +28,7 @@ The following tools return `CallToolResult` with a `structuredContent` field:
 | Tool | Action(s) | Base Contract | Domain-Specific Fields |
 |------|-----------|---------------|------------------------|
 | `dotnet_project` | `Build` | `MinimalMutatingResult` | `project`, `configuration`, `errorCount`, `warningCount` |
-| `dotnet_project` | `Test` | `MinimalMutatingResult` | `testsRun`, `testsPassed`, `testsFailed`, `duration` |
+| `dotnet_project` | `Test` | `MinimalMutatingResult` | `passed`, `failed`, `skipped`, `durationMs`, `firstFailures` |
 | `dotnet_project` | `Run` | `MinimalMutatingResult` | _(none)_ |
 | `dotnet_project` | `Publish` | `MinimalMutatingResult` | `framework`, `runtime`, `outputPath` |
 | `dotnet_project` | `Pack` | `MinimalMutatingResult` | `packagePath`, `version` |
@@ -265,11 +265,12 @@ interface MinimalMutatingResult {
   "content": [{ "type": "text", "text": "Test run passed.\nTest results..." }],
   "structuredContent": {
     "success": true,
-    "summary": "5 tests passed in 1.2s",
-    "testsRun": 5,
-    "testsPassed": 5,
-    "testsFailed": 0,
-    "duration": "1.2s",
+    "summary": "Test run succeeded.",
+    "passed": 5,
+    "failed": 0,
+    "skipped": 0,
+    "durationMs": 1200,
+    "firstFailures": [],
     "lockInfo": {
       "lockScope": "workingDirectory",
       "lockKey": "/home/user/projects/myapp"
@@ -285,11 +286,14 @@ interface MinimalMutatingResult {
   "content": [{ "type": "text", "text": "Test run failed.\nFailed tests:\n  MyTests.TestExample (FAILED)..." }],
   "structuredContent": {
     "success": false,
-    "summary": "4 tests passed, 1 failed in 2.1s",
-    "testsRun": 5,
-    "testsPassed": 4,
-    "testsFailed": 1,
-    "duration": "2.1s",
+    "summary": "Test run failed.",
+    "passed": 4,
+    "failed": 1,
+    "skipped": 0,
+    "durationMs": 2100,
+    "firstFailures": [
+      { "testName": "MyTests.TestExample", "message": "Assert.Equal() Failure" }
+    ],
     "lockInfo": {
       "lockScope": "workingDirectory",
       "lockKey": "/home/user/projects/myapp"
@@ -352,7 +356,7 @@ Each mutating action may add domain-specific fields while maintaining the base `
 | Action | Additional Fields |
 |--------|-------------------|
 | Build | `project`, `configuration`, `errorCount`, `warningCount` |
-| Test | `testsRun`, `testsPassed`, `testsFailed`, `duration` |
+| Test | `passed`, `failed`, `skipped`, `durationMs`, `firstFailures` |
 | Publish | `framework`, `runtime`, `outputPath` |
 | Run | _(none; minimal contract)_ |
 | Package Add/Remove | `packageName`, `version`, `previousVersion` (for Remove) |

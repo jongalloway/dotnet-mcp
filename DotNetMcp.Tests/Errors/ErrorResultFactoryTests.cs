@@ -1487,6 +1487,74 @@ Program.cs(15,10): error CS1001: Identifier expected";
         Assert.Equal("src/MyApp.csproj", result.Project);
     }
 
+    [Fact]
+    public void ParseTestOutput_WithSucceededSummary_ReturnsStructuredCounts()
+    {
+        var rawOutput = """
+            Command: dotnet test
+            Test run summary: Passed!
+              total: 45
+              failed: 0
+              succeeded: 42
+              skipped: 3
+              duration: 4s 210ms
+            Exit Code: 0
+            """;
+
+        var result = ErrorResultFactory.ParseTestOutput(rawOutput);
+
+        Assert.True(result.Success);
+        Assert.Equal(42, result.Passed);
+        Assert.Equal(0, result.Failed);
+        Assert.Equal(3, result.Skipped);
+        Assert.Equal(4210, result.DurationMs);
+        Assert.Equal("Test run succeeded.", result.Summary);
+        Assert.Empty(result.FirstFailures);
+    }
+
+    [Fact]
+    public void ParseTestOutput_WithFailureSummaryAndDetails_ParsesFirstFailures()
+    {
+        var rawOutput = """
+            Command: dotnet test
+            Failed MyTests.CalculatorTests.Add_ShouldReturnSum [8 ms]
+            Error Message:
+             Assert.Equal() Failure
+            Failed MyTests.CalculatorTests.Subtract_ShouldReturnDifference [4 ms]
+            Message: Expected: 2 Actual: 1
+            Failed!  - Failed:     2, Passed:    40, Skipped:     1, Total:    43, Duration: 4210 ms - MyTests.dll (net10.0)
+            Exit Code: 1
+            """;
+
+        var result = ErrorResultFactory.ParseTestOutput(rawOutput);
+
+        Assert.False(result.Success);
+        Assert.Equal(40, result.Passed);
+        Assert.Equal(2, result.Failed);
+        Assert.Equal(1, result.Skipped);
+        Assert.Equal(4210, result.DurationMs);
+        Assert.Equal("Test run failed.", result.Summary);
+        Assert.Equal(2, result.FirstFailures.Count);
+        Assert.Equal("MyTests.CalculatorTests.Add_ShouldReturnSum", result.FirstFailures[0].TestName);
+        Assert.Contains("Assert.Equal() Failure", result.FirstFailures[0].Message);
+        Assert.Equal("MyTests.CalculatorTests.Subtract_ShouldReturnDifference", result.FirstFailures[1].TestName);
+        Assert.Equal("Expected: 2 Actual: 1", result.FirstFailures[1].Message);
+    }
+
+    [Fact]
+    public void ParseTestOutput_WithNoSummary_ReturnsDefaultsFromExitCode()
+    {
+        var result = ErrorResultFactory.ParseTestOutput("Command: dotnet test\nExit Code: 0");
+
+        Assert.True(result.Success);
+        Assert.Equal(0, result.Passed);
+        Assert.Equal(0, result.Failed);
+        Assert.Equal(0, result.Skipped);
+        Assert.Equal(0, result.DurationMs);
+        Assert.Equal("Test run succeeded.", result.Summary);
+        Assert.Empty(result.FirstFailures);
+    }
+
     #endregion
 
     #region ErrorResult File/Line/Column Tests
@@ -1513,4 +1581,3 @@ Program.cs(15,10): error CS1001: Identifier expected";
 
     #endregion
 }
-

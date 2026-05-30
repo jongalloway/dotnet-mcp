@@ -868,7 +868,7 @@ public class McpConformanceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Server_DotnetProject_OutputSchema_ContainsBuildResultFields()
+    public async Task Server_DotnetProject_OutputSchema_ContainsBuildAndTestResultFields()
     {
         // Arrange
         Assert.NotNull(_client);
@@ -885,6 +885,9 @@ public class McpConformanceTests : IAsyncLifetime
         Assert.Contains("success", schemaJson);
         Assert.Contains("summary", schemaJson);
         Assert.Contains("errorCount", schemaJson);
+        Assert.Contains("passed", schemaJson);
+        Assert.Contains("failed", schemaJson);
+        Assert.Contains("firstFailures", schemaJson);
     }
 
     [Fact]
