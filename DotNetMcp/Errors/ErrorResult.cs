@@ -366,6 +366,78 @@ public sealed class BuildResult
 }
 
 /// <summary>
+/// Represents a single failed test entry for quick triage.
+/// </summary>
+public sealed class TestFailure
+{
+    /// <summary>
+    /// Fully qualified or display test name.
+    /// </summary>
+    [JsonPropertyName("testName")]
+    public string TestName { get; init; } = string.Empty;
+
+    /// <summary>
+    /// First failure message captured for the test.
+    /// </summary>
+    [JsonPropertyName("message")]
+    public string Message { get; init; } = string.Empty;
+}
+
+/// <summary>
+/// Structured result of a <c>dotnet test</c> invocation.
+/// </summary>
+public sealed class TestResult
+{
+    /// <summary>
+    /// <c>true</c> when test command exited successfully (exit code 0).
+    /// </summary>
+    [JsonPropertyName("success")]
+    public bool Success { get; init; }
+
+    /// <summary>
+    /// Number of passed tests.
+    /// </summary>
+    [JsonPropertyName("passed")]
+    public int Passed { get; init; }
+
+    /// <summary>
+    /// Number of failed tests.
+    /// </summary>
+    [JsonPropertyName("failed")]
+    public int Failed { get; init; }
+
+    /// <summary>
+    /// Number of skipped tests.
+    /// </summary>
+    [JsonPropertyName("skipped")]
+    public int Skipped { get; init; }
+
+    /// <summary>
+    /// Total test run duration in milliseconds.
+    /// </summary>
+    [JsonPropertyName("durationMs")]
+    public long DurationMs { get; init; }
+
+    /// <summary>
+    /// Human-readable single-line summary.
+    /// </summary>
+    [JsonPropertyName("summary")]
+    public string Summary { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Up to first 5 test failures for quick triage.
+    /// </summary>
+    [JsonPropertyName("firstFailures")]
+    public List<TestFailure> FirstFailures { get; init; } = [];
+
+    /// <summary>
+    /// Concurrency lock metadata — which resource was locked and at what scope.
+    /// </summary>
+    [JsonPropertyName("lockInfo")]
+    public LockInfo? LockInfo { get; init; }
+}
+
+/// <summary>
 /// Represents a structured error response from a .NET CLI command execution.
 /// </summary>
 public sealed class ErrorResponse

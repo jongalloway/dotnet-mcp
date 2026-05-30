@@ -1833,6 +1833,96 @@ public class ConsolidatedProjectToolTests
         Assert.True(root.TryGetProperty("summary", out _), "BuildResult should have 'summary' field");
     }
 
+    [Theory]
+    [InlineData(0, 0, "Build succeeded. 0 error(s), 0 warning(s).")]
+    [InlineData(0, 2, "Build succeeded. 0 error(s), 2 warning(s).")]
+    public void GetBuildTextForStructuredResponse_WhenBuildSucceeds_ReturnsCompactSummary(int errorCount, int warningCount, string expected)
+    {
+        var rawText = """
+            Command: dotnet build "MyProject.csproj"
+            Build succeeded.
+                2 Warning(s)
+                0 Error(s)
+            Exit Code: 0
+            """;
+        var buildResult = new BuildResult
+        {
+            Success = true,
+            ErrorCount = errorCount,
+            WarningCount = warningCount,
+            Summary = "Build succeeded"
+        };
+
+        var text = DotNetCliTools.GetBuildTextForStructuredResponse(rawText, buildResult);
+
+        Assert.Equal(expected, text);
+    }
+
+    [Fact]
+    public void GetBuildTextForStructuredResponse_WhenBuildFails_ReturnsRawText()
+    {
+        var rawText = """
+            Command: dotnet build "MyProject.csproj"
+            /tmp/Program.cs(1,1): error CS1002: ; expected
+            Build FAILED.
+            Exit Code: 1
+            """;
+        var buildResult = new BuildResult
+        {
+            Success = false,
+            ErrorCount = 1,
+            WarningCount = 0,
+            Summary = "Build FAILED (1 error(s), 0 warning(s))"
+        };
+
+        var text = DotNetCliTools.GetBuildTextForStructuredResponse(rawText, buildResult);
+
+        Assert.Equal(rawText, text);
+    }
+
+    [Fact]
+    public void GetBuildTextForStructuredResponse_WhenNoSuccessfulExitCodeLine_ReturnsRawText()
+    {
+        var rawText = "Error: Invalid verbosity value. Must be one of: quiet, minimal, normal, detailed, diagnostic.";
+        var buildResult = new BuildResult
+        {
+            Success = true,
+            ErrorCount = 0,
+            WarningCount = 0,
+            Summary = "Build succeeded"
+        };
+
+        var text = DotNetCliTools.GetBuildTextForStructuredResponse(rawText, buildResult);
+
+        Assert.Equal(rawText, text);
+    }
+
+    [Fact]
+    public async Task DotnetProject_Test_ReturnsStructuredContent()
+    {
+        var callResult = await _tools.DotnetProject(
+            action: DotnetProjectAction.Test,
+            project: "MyTests.csproj");
+
+        var text = callResult.GetText();
+        Assert.NotNull(text);
+
+        Assert.True(callResult.StructuredContent.HasValue, "Test action should always return structured content");
+        var structuredJson = callResult.StructuredContent!.Value.GetRawText();
+        Assert.False(string.IsNullOrWhiteSpace(structuredJson));
+
+        using var doc = System.Text.Json.JsonDocument.Parse(structuredJson);
+        var root = doc.RootElement;
+        Assert.True(root.TryGetProperty("success", out _), "TestResult should have 'success' field");
+        Assert.True(root.TryGetProperty("passed", out _), "TestResult should have 'passed' field");
+        Assert.True(root.TryGetProperty("failed", out _), "TestResult should have 'failed' field");
+        Assert.True(root.TryGetProperty("skipped", out _), "TestResult should have 'skipped' field");
+        Assert.True(root.TryGetProperty("durationMs", out _), "TestResult should have 'durationMs' field");
+        Assert.True(root.TryGetProperty("summary", out _), "TestResult should have 'summary' field");
+        Assert.True(root.TryGetProperty("firstFailures", out _), "TestResult should have 'firstFailures' field");
+        Assert.True(root.TryGetProperty("lockInfo", out _), "TestResult should include 'lockInfo'");
+    }
+
     [Fact]
     public async Task DotnetProject_Restore_WithVerbosity_WiresFlag()
     {
@@ -2100,4 +2190,3 @@ public class ConsolidatedProjectToolTests
 
     #endregion
 }
-
