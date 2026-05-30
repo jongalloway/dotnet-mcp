@@ -11,16 +11,31 @@ The .NET MCP Server provides two complementary mechanisms for machine-readable t
 
 The following tools return `CallToolResult` with a `structuredContent` field:
 
+### Query Operations (Read-Only)
+
 | Tool | Action(s) | Structured Fields |
 |------|-----------|-------------------|
 | `dotnet_sdk` | `Version` | `{ "version": "10.0.100" }` |
 | `dotnet_sdk` | `ListSdks` | `{ "sdks": [{ "version": "...", "path": "..." }] }` |
 | `dotnet_sdk` | `ListRuntimes` | `{ "runtimes": [{ "name": "...", "version": "...", "path": "..." }] }` |
+| `dotnet_sdk` | `ListTemplates` | `{ "templates": [{ "shortName": "console", ... }] }` |
 | `dotnet_solution` | `List` | `{ "projects": ["path/to/project.csproj", ...] }` |
 | `dotnet_package` | `List` | `{ "packages": [{ "name": "...", "requestedVersion": "...", "resolvedVersion": "..." }] }` |
-| `dotnet_server_capabilities` | _(all)_ | Full `ServerCapabilities` object (see below) |
-| `dotnet_project` | `Build` | `BuildResult` with compiler diagnostics **and `lockInfo`** (see below) |
-| `dotnet_project` | `Run`, `Test`, `Publish` | `ConcurrencyAwareResult` containing **`lockInfo`** (see below) |
+| `dotnet_server_capabilities` | _(all)_ | Full `ServerCapabilities` object (see examples below) |
+
+### Mutating Operations (Write/Modify)
+
+| Tool | Action(s) | Base Contract | Domain-Specific Fields |
+|------|-----------|---------------|------------------------|
+| `dotnet_project` | `Build` | `MinimalMutatingResult` | `project`, `configuration`, `errorCount`, `warningCount` |
+| `dotnet_project` | `Test` | `MinimalMutatingResult` | `testsRun`, `testsPassed`, `testsFailed`, `duration` |
+| `dotnet_project` | `Run` | `MinimalMutatingResult` | _(none)_ |
+| `dotnet_project` | `Publish` | `MinimalMutatingResult` | `framework`, `runtime`, `outputPath` |
+| `dotnet_project` | `Pack` | `MinimalMutatingResult` | `packagePath`, `version` |
+| `dotnet_package` | `Add`, `Remove` | `MinimalMutatingResult` | `packageName`, `version`, `previousVersion` |
+| `dotnet_ef` | `Migrations Add`, `Migrations Remove`, `Database Update` | `MinimalMutatingResult` | `migrationName`, `migrationsApplied` |
+
+All operations return `success` (boolean) and `summary` (string) at minimum. Locking operations include `lockInfo`. See [Minimal Mutating Result Contract](#minimal-mutating-result-contract) for details.
 
 All other actions for these tools return only text content (no `structuredContent`).
 
@@ -29,6 +44,8 @@ All other actions for these tools return only text content (no `structuredConten
 ## Concurrency Lock Metadata (`lockInfo`)
 
 All `dotnet_project` actions that acquire a concurrency lock — **Build**, **Run**, **Test**, and **Publish** — include a `lockInfo` object in their `structuredContent`. This allows consumers to confirm lock granularity, diagnose contention, and implement higher-level orchestration policies.
+
+**Note:** `lockInfo` is part of the `MinimalMutatingResult` base contract (see [Minimal Mutating Result Contract](#minimal-mutating-result-contract) below) and is only included when the operation acquires a lock.
 
 ### `lockInfo` Fields
 
@@ -165,6 +182,187 @@ When a conflicting operation is already in progress, the text content contains t
   }
 }
 ```
+
+---
+
+## Minimal Mutating Result Contract
+
+All mutating actions — operations that modify the file system, build state, or project configuration — return `CallToolResult` with a standardized minimal base contract. This enables AI assistants to efficiently parse outcomes without scanning verbose logs.
+
+### Rationale
+
+Mutating operations (Build, Test, Publish, Run, Package operations, EF Migrations, etc.) generate large volumes of diagnostic output. The minimal base contract distills this to:
+
+- **`success` (boolean)**: Whether the operation completed without errors (exit code 0)
+- **`summary` (string)**: A 1–2 sentence human-readable outcome (e.g., "5 tests passed", "Build failed: 3 errors")
+- **`lockInfo` (optional)**: For locking operations, concurrency context (see [Concurrency Lock Metadata](#concurrency-lock-metadata-lockinfo) above)
+
+### Base Contract Schema
+
+```typescript
+interface MinimalMutatingResult {
+  success: boolean;           // Always present: true iff exit code 0
+  summary: string;            // Always present: 1–2 sentence outcome summary
+  
+  lockInfo?: {
+    lockScope: "project" | "solution" | "workingDirectory" | "global";
+    lockKey: string;
+    lockContended?: boolean;
+    lockWaitedMs?: number;
+  };
+  
+  // Domain-specific fields (action-dependent, optional)
+  // See examples below for per-action schemas
+}
+```
+
+### Examples
+
+#### Build Success
+
+```json
+{
+  "content": [{ "type": "text", "text": "Build succeeded.\nBuild output..." }],
+  "structuredContent": {
+    "success": true,
+    "summary": "Build succeeded: 0 errors, 2 warnings",
+    "project": "MyApp.csproj",
+    "configuration": "Release",
+    "errorCount": 0,
+    "warningCount": 2,
+    "lockInfo": {
+      "lockScope": "project",
+      "lockKey": "/home/user/projects/myapp/MyApp.csproj"
+    }
+  }
+}
+```
+
+#### Build Failure
+
+```json
+{
+  "content": [{ "type": "text", "text": "Build failed.\nCS0103: The name 'Console' does not exist..." }],
+  "structuredContent": {
+    "success": false,
+    "summary": "Build failed: 3 errors",
+    "project": "MyApp.csproj",
+    "configuration": "Debug",
+    "errorCount": 3,
+    "warningCount": 0,
+    "lockInfo": {
+      "lockScope": "project",
+      "lockKey": "/home/user/projects/myapp/MyApp.csproj"
+    }
+  }
+}
+```
+
+#### Test Success
+
+```json
+{
+  "content": [{ "type": "text", "text": "Test run passed.\nTest results..." }],
+  "structuredContent": {
+    "success": true,
+    "summary": "5 tests passed in 1.2s",
+    "testsRun": 5,
+    "testsPassed": 5,
+    "testsFailed": 0,
+    "duration": "1.2s",
+    "lockInfo": {
+      "lockScope": "workingDirectory",
+      "lockKey": "/home/user/projects/myapp"
+    }
+  }
+}
+```
+
+#### Test Failure
+
+```json
+{
+  "content": [{ "type": "text", "text": "Test run failed.\nFailed tests:\n  MyTests.TestExample (FAILED)..." }],
+  "structuredContent": {
+    "success": false,
+    "summary": "4 tests passed, 1 failed in 2.1s",
+    "testsRun": 5,
+    "testsPassed": 4,
+    "testsFailed": 1,
+    "duration": "2.1s",
+    "lockInfo": {
+      "lockScope": "workingDirectory",
+      "lockKey": "/home/user/projects/myapp"
+    }
+  }
+}
+```
+
+#### Publish Success
+
+```json
+{
+  "content": [{ "type": "text", "text": "Publish succeeded.\nOutput: /home/user/publish..." }],
+  "structuredContent": {
+    "success": true,
+    "summary": "Published to /home/user/publish (net10.0, linux-x64, 45.2 MB)",
+    "framework": "net10.0",
+    "runtime": "linux-x64",
+    "outputPath": "/home/user/publish",
+    "lockInfo": {
+      "lockScope": "project",
+      "lockKey": "/home/user/projects/myapp/MyApp.csproj"
+    }
+  }
+}
+```
+
+#### Package Add Success
+
+```json
+{
+  "content": [{ "type": "text", "text": "Added 'Newtonsoft.Json 13.0.3' to MyApp.csproj..." }],
+  "structuredContent": {
+    "success": true,
+    "summary": "Newtonsoft.Json 13.0.3 added to MyApp.csproj"
+  }
+}
+```
+
+#### Run Success (with minimal lock info)
+
+```json
+{
+  "content": [{ "type": "text", "text": "Application output...\nApplication exited with code 0" }],
+  "structuredContent": {
+    "success": true,
+    "summary": "Application ran successfully",
+    "lockInfo": {
+      "lockScope": "workingDirectory",
+      "lockKey": "/home/user/projects/myapp"
+    }
+  }
+}
+```
+
+### Domain-Specific Extensions
+
+Each mutating action may add domain-specific fields while maintaining the base `{ success, summary }` contract:
+
+| Action | Additional Fields |
+|--------|-------------------|
+| Build | `project`, `configuration`, `errorCount`, `warningCount` |
+| Test | `testsRun`, `testsPassed`, `testsFailed`, `duration` |
+| Publish | `framework`, `runtime`, `outputPath` |
+| Run | _(none; minimal contract)_ |
+| Package Add/Remove | `packageName`, `version`, `previousVersion` (for Remove) |
+| EF Migrations | `migrationName`, `migrationsApplied` |
+
+Domain-specific fields are **optional** but recommended for actions that naturally produce structured data.
+
+### Human-Readable Text Behavior
+
+The `content` array continues to show verbose output (build logs, test details, error diagnostics) unchanged. See [issue #447](https://github.com/jongalloway/dotnet-mcp/issues/447) for how clients can opt into suppressing verbose text when structured content is available.
 
 ---
 
