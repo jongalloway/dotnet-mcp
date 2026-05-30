@@ -945,10 +945,17 @@ public static partial class ErrorResultFactory
             return null;
 
         double totalMs = 0;
-        foreach (Match match in matches)
+        foreach (var parsedMatch in matches.Cast<Match>()
+                     .Select(static match => new
+                     {
+                         Match = match,
+                         Parsed = double.TryParse(match.Groups["value"].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var value),
+                         Value = value
+                     })
+                     .Where(static m => m.Parsed))
         {
-            if (!double.TryParse(match.Groups["value"].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var value))
-                continue;
+            var match = parsedMatch.Match;
+            var value = parsedMatch.Value;
 
             var unit = match.Groups["unit"].Value.ToLowerInvariant();
             totalMs += unit switch
@@ -991,8 +998,11 @@ public static partial class ErrorResultFactory
                     continue;
 
                 if (next.StartsWith("Failed ", StringComparison.OrdinalIgnoreCase) ||
+                    next.StartsWith("Failed!", StringComparison.OrdinalIgnoreCase) ||
                     next.StartsWith("Passed ", StringComparison.OrdinalIgnoreCase) ||
+                    next.StartsWith("Passed!", StringComparison.OrdinalIgnoreCase) ||
                     next.StartsWith("Skipped ", StringComparison.OrdinalIgnoreCase) ||
+                    next.StartsWith("Skipped!", StringComparison.OrdinalIgnoreCase) ||
                     next.StartsWith("Total tests:", StringComparison.OrdinalIgnoreCase))
                 {
                     break;

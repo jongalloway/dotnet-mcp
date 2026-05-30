@@ -1537,6 +1537,8 @@ Program.cs(15,10): error CS1001: Identifier expected";
         Assert.Equal(2, result.FirstFailures.Count);
         Assert.Equal("MyTests.CalculatorTests.Add_ShouldReturnSum", result.FirstFailures[0].TestName);
         Assert.Contains("Assert.Equal() Failure", result.FirstFailures[0].Message);
+        Assert.Equal("MyTests.CalculatorTests.Subtract_ShouldReturnDifference", result.FirstFailures[1].TestName);
+        Assert.Equal("Expected: 2 Actual: 1", result.FirstFailures[1].Message);
     }
 
     [Fact]
