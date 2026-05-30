@@ -699,8 +699,12 @@ public static partial class ErrorResultFactory
     [GeneratedRegex(@"\bDuration:\s*(?<duration>.+?)(?:\s+-\s+|$)", RegexOptions.IgnoreCase)]
     private static partial Regex TestDurationRegex();
 
+    // Matches duration tokens with optional decimals and common time units:
+    // e.g. "4210 ms", "4.2s", "5 min", "1 hour".
     [GeneratedRegex(@"(?<value>\d+(?:\.\d+)?)\s*(?<unit>ms|millisecond(?:s)?|s|sec(?:ond)?s?|m|min(?:ute)?s?|h|hr|hour(?:s)?)\b", RegexOptions.IgnoreCase)]
     private static partial Regex DurationTokenRegex();
+
+    private const int MaxFailureMessageLength = 500;
 
     /// <summary>
     /// Parse the raw text output produced by <c>DotNetCommandExecutor.ExecuteCommandAsync</c> for a
@@ -869,7 +873,6 @@ public static partial class ErrorResultFactory
         var skipped = 0;
         long durationMs = 0;
         var sawPassed = false;
-        var sawSucceeded = false;
 
         foreach (var line in lines)
         {
@@ -880,14 +883,14 @@ public static partial class ErrorResultFactory
                 sawPassed = true;
             }
 
-            if (!sawPassed || !sawSucceeded)
+            // Some test outputs report "Succeeded" instead of "Passed".
+            // Prefer "Passed" when present; otherwise use "Succeeded" as the passed count.
+            if (!sawPassed)
             {
                 var succeededMatch = SucceededCountRegex().Match(line);
                 if (succeededMatch.Success && int.TryParse(succeededMatch.Groups[1].Value, out var parsedSucceeded))
                 {
-                    if (!sawPassed)
-                        passed = parsedSucceeded;
-                    sawSucceeded = true;
+                    passed = parsedSucceeded;
                 }
             }
 
@@ -1043,7 +1046,7 @@ public static partial class ErrorResultFactory
             return false;
         }
 
-        return line.Length <= 500;
+        return line.Length <= MaxFailureMessageLength;
     }
 
     /// <summary>
