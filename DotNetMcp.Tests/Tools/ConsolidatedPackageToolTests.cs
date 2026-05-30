@@ -346,6 +346,64 @@ public class ConsolidatedPackageToolTests
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet list package --deprecated");
     }
 
+    [Fact]
+    public void ApplyPackageListFilter_NoFilterNoMaxResults_ReturnsOriginal()
+    {
+        var output = "Project has packages\n   [net8.0]:\n   > Newtonsoft.Json 13.0.3\n   > Serilog 3.1.1";
+        var result = DotNetCliTools.ApplyPackageListFilter(output, null, null);
+        Assert.Equal(output, result);
+    }
+
+    [Fact]
+    public void ApplyPackageListFilter_WithFilter_IncludesMatchingPackages()
+    {
+        var output = "Project has packages\n   [net8.0]:\n   > Newtonsoft.Json 13.0.3\n   > Serilog 3.1.1";
+        var result = DotNetCliTools.ApplyPackageListFilter(output, "Newtonsoft", null);
+        Assert.Contains("Newtonsoft.Json", result);
+        Assert.DoesNotContain("Serilog", result);
+    }
+
+    [Fact]
+    public void ApplyPackageListFilter_WithFilter_IsCaseInsensitive()
+    {
+        var output = "Project has packages\n   [net8.0]:\n   > Newtonsoft.Json 13.0.3\n   > Serilog 3.1.1";
+        var result = DotNetCliTools.ApplyPackageListFilter(output, "newtonsoft", null);
+        Assert.Contains("Newtonsoft.Json", result);
+        Assert.DoesNotContain("Serilog", result);
+    }
+
+    [Fact]
+    public void ApplyPackageListFilter_WithMaxResults_LimitsPackageLines()
+    {
+        var output = "Project has packages\n   [net8.0]:\n   > Newtonsoft.Json 13.0.3\n   > Serilog 3.1.1\n   > Microsoft.Extensions.Logging 8.0.0";
+        var result = DotNetCliTools.ApplyPackageListFilter(output, null, 2);
+        // Should include Newtonsoft.Json and Serilog but not Microsoft.Extensions.Logging
+        Assert.Contains("Newtonsoft.Json", result);
+        Assert.Contains("Serilog", result);
+        Assert.DoesNotContain("Microsoft.Extensions.Logging", result);
+    }
+
+    [Fact]
+    public void ApplyPackageListFilter_WithFilterAndMaxResults_AppliesFilterThenLimit()
+    {
+        var output = "Project has packages\n   [net8.0]:\n   > Microsoft.Extensions.Logging 8.0.0\n   > Microsoft.Extensions.DependencyInjection 8.0.0\n   > Newtonsoft.Json 13.0.3";
+        var result = DotNetCliTools.ApplyPackageListFilter(output, "Microsoft", 1);
+        Assert.Contains("Microsoft.Extensions.Logging", result);
+        Assert.DoesNotContain("Microsoft.Extensions.DependencyInjection", result);
+        Assert.DoesNotContain("Newtonsoft.Json", result);
+    }
+
+    [Fact]
+    public void ApplyPackageListFilter_PreservesHeaderLines()
+    {
+        var output = "Project 'MyProject' has the following package references\n   [net8.0]:\n   Top-level Package     Requested   Resolved\n   > Newtonsoft.Json 13.0.3";
+        var result = DotNetCliTools.ApplyPackageListFilter(output, "Newtonsoft", null);
+        Assert.Contains("Project 'MyProject'", result);
+        Assert.Contains("[net8.0]", result);
+        Assert.Contains("Top-level Package", result);
+        Assert.Contains("Newtonsoft.Json", result);
+    }
+
     #endregion
 
     #region AddReference Action Tests

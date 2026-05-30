@@ -1,4 +1,5 @@
 using System.Text;
+using System.Linq;
 using DotNetMcp.Actions;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
@@ -30,6 +31,8 @@ public sealed partial class DotNetCliTools
     /// <param name="exactMatch">Show exact matches only in search results</param>
     /// <param name="outdated">Show only outdated packages in list</param>
     /// <param name="deprecated">Show only deprecated packages in list</param>
+    /// <param name="filter">Filter package names by substring match (case-insensitive) for List action</param>
+    /// <param name="maxResults">Maximum number of packages to return for List action; applied after filtering</param>
     /// <param name="referencePath">Path to referenced project for add/remove reference operations</param>
     /// <param name="cacheType">Cache location to clear: all, http-cache, global-packages, temp, plugins-cache</param>
     /// <param name="workingDirectory">Working directory for command execution</param>
@@ -53,6 +56,8 @@ public sealed partial class DotNetCliTools
         bool? exactMatch = null,
         bool? outdated = null,
         bool? deprecated = null,
+        string? filter = null,
+        int? maxResults = null,
         string? referencePath = null,
         string? cacheType = null,
         string? workingDirectory = null,
@@ -85,7 +90,7 @@ public sealed partial class DotNetCliTools
                 DotnetPackageAction.Remove => await HandleRemoveAction(packageId, effectiveProject),
                 DotnetPackageAction.Search => await HandleSearchAction(searchTerm, take, skip, prerelease ?? false, exactMatch ?? false),
                 DotnetPackageAction.Update => await ExecuteWithProgress(progress, "Updating packages...", "Update complete", () => HandleUpdateAction(packageId, effectiveProject, version, prerelease ?? false, server)),
-                DotnetPackageAction.List => await HandleListAction(effectiveProject, outdated ?? false, deprecated ?? false),
+                DotnetPackageAction.List => await HandleListAction(effectiveProject, outdated ?? false, deprecated ?? false, filter, maxResults),
                 DotnetPackageAction.AddReference => await HandleAddReferenceAction(effectiveProject, referencePath),
                 DotnetPackageAction.RemoveReference => await HandleRemoveReferenceAction(effectiveProject, referencePath),
                 DotnetPackageAction.ListReferences => await HandleListReferencesAction(effectiveProject),
@@ -221,13 +226,59 @@ public sealed partial class DotNetCliTools
             prerelease: prerelease);
     }
 
-    private async Task<string> HandleListAction(string? project, bool outdated, bool deprecated)
+    private async Task<string> HandleListAction(string? project, bool outdated, bool deprecated, string? filter, int? maxResults)
     {
-        // Route to existing DotnetPackageList method
-        return await DotnetPackageList(
+        var rawOutput = await DotnetPackageList(
             project: project,
             outdated: outdated,
             deprecated: deprecated);
+
+        return ApplyPackageListFilter(rawOutput, filter, maxResults);
+    }
+
+    /// <summary>
+    /// Applies optional filter and maxResults to 'dotnet list package' text output.
+    /// Package lines (starting with '>') are filtered/counted; header and framework lines are preserved.
+    /// </summary>
+    internal static string ApplyPackageListFilter(string output, string? filter, int? maxResults)
+    {
+        if (string.IsNullOrEmpty(filter) && !maxResults.HasValue)
+            return output;
+
+        var lines = output.Split('\n');
+        var result = new StringBuilder();
+        var packageCount = 0;
+        var limit = maxResults ?? int.MaxValue;
+
+        foreach (var line in lines.Select(rawLine => rawLine.TrimEnd('\r')))
+        {
+            var trimmed = line.TrimStart();
+            if (trimmed.StartsWith(">", StringComparison.Ordinal))
+            {
+                // Package line: apply filter and maxResults
+                if (packageCount >= limit)
+                    continue;
+
+                if (!string.IsNullOrEmpty(filter))
+                {
+                    // Extract package name (first token after '>')
+                    var packagePart = trimmed.TrimStart('>').TrimStart();
+                    var nameEnd = packagePart.IndexOfAny([' ', '\t']);
+                    var packageName = nameEnd >= 0 ? packagePart[..nameEnd] : packagePart;
+                    if (!packageName.Contains(filter, StringComparison.OrdinalIgnoreCase))
+                        continue;
+                }
+
+                packageCount++;
+                result.AppendLine(line);
+            }
+            else
+            {
+                result.AppendLine(line);
+            }
+        }
+
+        return result.ToString().TrimEnd();
     }
 
     private async Task<string> HandleAddReferenceAction(string? project, string? referencePath)
