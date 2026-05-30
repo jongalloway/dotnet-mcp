@@ -254,7 +254,7 @@ public class TemplateEngineHelper
     /// </summary>
     /// <param name="forceReload">If true, bypasses cache and reloads from disk.</param>
     /// <param name="logger">Optional logger instance.</param>
-    /// <param name="filter">Optional filter string; matches short name, name, or tags (case-insensitive).</param>
+    /// <param name="filter">Optional filter string; matches short name, name, or type (case-insensitive).</param>
     /// <param name="maxResults">Optional maximum number of templates to return after filtering.</param>
     public static async Task<string> GetInstalledTemplatesAsync(bool forceReload = false, ILogger? logger = null, string? filter = null, int? maxResults = null)
     {

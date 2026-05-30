@@ -28,7 +28,7 @@ public sealed partial class DotNetCliTools
     /// <param name="force">Allows installing template packages from specified sources even if they override an existing template package</param>
     /// <param name="framework">Specific framework to query for framework info (e.g., 'net10.0', 'net8.0')</param>
     /// <param name="forceReload">If true, bypasses cache and reloads from disk (applies to template operations)</param>
-    /// <param name="filter">Filter templates by short name or tag substring match (case-insensitive) for ListTemplates action</param>
+    /// <param name="filter">Filter templates by short name, name, or type substring match (case-insensitive) for ListTemplates action</param>
     /// <param name="maxResults">Maximum number of templates to return for ListTemplates action; applied after filtering</param>
     /// <param name="workingDirectory">Working directory for command execution</param>
     /// <param name="sdkVersion">SDK version to pin in global.json (e.g., '10.0.100') for ConfigureGlobalJson action</param>
@@ -292,7 +292,7 @@ public sealed partial class DotNetCliTools
     /// Provides structured information about available project templates.
     /// </summary>
     /// <param name="forceReload">If true, bypasses cache and reloads templates from disk</param>
-    /// <param name="filter">Filter templates by short name or tag substring match (case-insensitive)</param>
+    /// <param name="filter">Filter templates by short name, name, or type substring match (case-insensitive)</param>
     /// <param name="maxResults">Maximum number of templates to return; applied after filtering</param>
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
