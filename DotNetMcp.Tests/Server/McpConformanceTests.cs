@@ -585,6 +585,8 @@ public class McpConformanceTests : IAsyncLifetime
         var promptNames = prompts.Select(p => p.Name).ToHashSet();
 
         // Assert - check that all predefined prompts are registered
+        Assert.Contains("new_console_app", promptNames);
+        Assert.Contains("new_webapi_with_ef", promptNames);
         Assert.Contains("create_new_webapi", promptNames);
         Assert.Contains("add_package_and_restore", promptNames);
         Assert.Contains("run_tests_with_coverage", promptNames);
@@ -647,6 +649,72 @@ public class McpConformanceTests : IAsyncLifetime
         var promptResult = await _client.GetPromptAsync(
             "add_package_and_restore",
             new Dictionary<string, object?> { ["packageId"] = "Newtonsoft.Json" },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(promptResult);
+        Assert.NotNull(promptResult.Messages);
+        Assert.NotEmpty(promptResult.Messages);
+    }
+
+    [Fact]
+    public async Task Server_GetPrompt_NewConsoleApp_ReturnsValidMessages()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act
+        var promptResult = await _client.GetPromptAsync(
+            "new_console_app",
+            new Dictionary<string, object?> { ["projectName"] = "HelloWorld" },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(promptResult);
+        Assert.NotNull(promptResult.Messages);
+        Assert.NotEmpty(promptResult.Messages);
+
+        // Should have at least one user message referencing the project name
+        var userMessages = promptResult.Messages
+            .Where(m => m.Role == ModelContextProtocol.Protocol.Role.User)
+            .ToList();
+        Assert.NotEmpty(userMessages);
+    }
+
+    [Fact]
+    public async Task Server_GetPrompt_NewWebApiWithEf_ReturnsValidMessages()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act
+        var promptResult = await _client.GetPromptAsync(
+            "new_webapi_with_ef",
+            new Dictionary<string, object?> { ["projectName"] = "ProductApi", ["dbProvider"] = "SqlServer" },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(promptResult);
+        Assert.NotNull(promptResult.Messages);
+        Assert.NotEmpty(promptResult.Messages);
+
+        // Should have at least one user message
+        var userMessages = promptResult.Messages
+            .Where(m => m.Role == ModelContextProtocol.Protocol.Role.User)
+            .ToList();
+        Assert.NotEmpty(userMessages);
+    }
+
+    [Fact]
+    public async Task Server_GetPrompt_NewWebApiWithEf_SqliteProvider_ReturnsValidMessages()
+    {
+        // Arrange
+        Assert.NotNull(_client);
+
+        // Act
+        var promptResult = await _client.GetPromptAsync(
+            "new_webapi_with_ef",
+            new Dictionary<string, object?> { ["projectName"] = "TodoApi", ["dbProvider"] = "SQLite" },
             cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
