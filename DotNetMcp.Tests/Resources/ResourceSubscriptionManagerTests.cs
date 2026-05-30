@@ -111,6 +111,7 @@ public class ResourceSubscriptionManagerTests
         Assert.Contains("dotnet://runtime-info", ResourceSubscriptionManager.KnownResourceUris);
         Assert.Contains("dotnet://templates", ResourceSubscriptionManager.KnownResourceUris);
         Assert.Contains("dotnet://frameworks", ResourceSubscriptionManager.KnownResourceUris);
+        Assert.Contains("dotnet://workspace", ResourceSubscriptionManager.KnownResourceUris);
         Assert.Contains("dotnet://telemetry-data", ResourceSubscriptionManager.KnownResourceUris);
     }
 

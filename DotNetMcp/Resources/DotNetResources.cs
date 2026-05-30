@@ -1,4 +1,6 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 
@@ -15,6 +17,24 @@ internal record SdkInfo(string Version, string Path);
 internal record RuntimeInfo(string Name, string Version, string Path);
 
 /// <summary>
+/// Represents a project in the workspace snapshot.
+/// </summary>
+internal record WorkspaceProjectInfo(
+    string Name,
+    string Path,
+    IReadOnlyList<string> TargetFrameworks,
+    int PackageCount,
+    bool IsTestProject);
+
+/// <summary>
+/// Represents a workspace snapshot for the dotnet://workspace resource.
+/// </summary>
+internal record WorkspaceSnapshot(
+    string? Solution,
+    IReadOnlyList<WorkspaceProjectInfo> Projects,
+    string GeneratedAt);
+
+/// <summary>
 /// MCP Resources for .NET environment information.
 /// Provides read-only access to .NET SDK, runtime, template, and framework metadata.
 /// Implements caching with configurable TTL and metrics for performance.
@@ -29,6 +49,11 @@ public sealed class DotNetResources
         new("SDK", defaultTtlSeconds: 300);
     private static readonly CachedResourceManager<List<RuntimeInfo>> _runtimeCacheManager =
         new("Runtime", defaultTtlSeconds: 300);
+    private static readonly CachedResourceManager<WorkspaceSnapshot> _workspaceCacheManager =
+        new("Workspace", defaultTtlSeconds: 60);
+
+    private static readonly Regex SlnProjectPathRegex =
+        new("\"(?<path>[^\"\\r\\n]+\\.csproj)\"", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     internal static List<SdkInfo> ParseSdkListOutput(string sdkListOutput)
     {
@@ -139,10 +164,12 @@ public sealed class DotNetResources
     {
         await _sdkCacheManager.ClearAsync();
         await _runtimeCacheManager.ClearAsync();
+        await _workspaceCacheManager.ClearAsync();
         await TemplateEngineHelper.ClearCacheAsync();
 
         _sdkCacheManager.ResetMetrics();
         _runtimeCacheManager.ResetMetrics();
+        _workspaceCacheManager.ResetMetrics();
     }
 
     /// <summary>
@@ -154,6 +181,11 @@ public sealed class DotNetResources
     /// Gets Runtime cache metrics.
     /// </summary>
     public static CacheMetrics GetRuntimeMetrics() => _runtimeCacheManager.Metrics;
+
+    /// <summary>
+    /// Gets workspace cache metrics.
+    /// </summary>
+    public static CacheMetrics GetWorkspaceMetrics() => _workspaceCacheManager.Metrics;
 
     [McpServerResource(
         UriTemplate = "dotnet://sdk-info",
@@ -323,6 +355,204 @@ public sealed class DotNetResources
             return JsonSerializer.Serialize(new { error = ex.Message });
         }
     }
+
+    [McpServerResource(
+        UriTemplate = "dotnet://workspace",
+        Name = "Workspace Snapshot",
+        Title = "Compact workspace-level snapshot of solution and projects",
+        MimeType = "application/json")]
+    [McpMeta("category", "workspace")]
+    [McpMeta("dataFormat", "json")]
+    [McpMeta("refreshable", true)]
+    [McpMeta("cached", true)]
+    public async Task<string> GetWorkspaceSnapshot()
+    {
+        _logger.LogDebug("Reading workspace snapshot");
+        try
+        {
+            var entry = await _workspaceCacheManager.GetOrLoadAsync(async () =>
+            {
+                var snapshot = BuildWorkspaceSnapshot(Directory.GetCurrentDirectory());
+                return await Task.FromResult(snapshot);
+            });
+
+            return _workspaceCacheManager.GetJsonResponse(entry, entry.Data, DateTime.UtcNow);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting workspace snapshot");
+            return JsonSerializer.Serialize(new { error = ex.Message });
+        }
+    }
+
+    internal static WorkspaceSnapshot BuildWorkspaceSnapshot(string workspaceRoot)
+    {
+        var root = string.IsNullOrWhiteSpace(workspaceRoot)
+            ? Directory.GetCurrentDirectory()
+            : workspaceRoot;
+
+        var solutionPath = FindPrimarySolution(root);
+        var projectPaths = solutionPath != null
+            ? GetProjectsFromSolution(solutionPath)
+            : DiscoverProjectsRecursively(root);
+
+        if (projectPaths.Count == 0)
+        {
+            // Fallback: if solution parsing produced no projects, do recursive discovery.
+            projectPaths = DiscoverProjectsRecursively(root);
+        }
+
+        var projects = projectPaths
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Where(File.Exists)
+            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+            .Select(path => BuildWorkspaceProjectInfo(root, path))
+            .ToArray();
+
+        var solutionRelative = solutionPath == null
+            ? null
+            : ToRepoRelativePath(root, solutionPath);
+
+        return new WorkspaceSnapshot(
+            solutionRelative,
+            projects,
+            DateTime.UtcNow.ToString("O"));
+    }
+
+    private static WorkspaceProjectInfo BuildWorkspaceProjectInfo(string root, string projectPath)
+    {
+        var targetFrameworks = GetTargetFrameworks(projectPath);
+        var packageCount = GetPackageReferenceCount(projectPath);
+        var projectName = Path.GetFileNameWithoutExtension(projectPath);
+
+        var isTestProject = projectName.EndsWith(".Tests", StringComparison.OrdinalIgnoreCase)
+            || IsTestProjectFlagEnabled(projectPath);
+
+        return new WorkspaceProjectInfo(
+            projectName,
+            ToRepoRelativePath(root, projectPath),
+            targetFrameworks,
+            packageCount,
+            isTestProject);
+    }
+
+    private static string? FindPrimarySolution(string root)
+    {
+        var slnx = Directory.GetFiles(root, "*.slnx", SearchOption.TopDirectoryOnly)
+            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault();
+
+        if (!string.IsNullOrWhiteSpace(slnx))
+            return slnx;
+
+        return Directory.GetFiles(root, "*.sln", SearchOption.TopDirectoryOnly)
+            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault();
+    }
+
+    private static List<string> GetProjectsFromSolution(string solutionPath)
+    {
+        var projectPaths = new List<string>();
+        var solutionDir = Path.GetDirectoryName(solutionPath) ?? Directory.GetCurrentDirectory();
+
+        string solutionContent;
+        try
+        {
+            solutionContent = File.ReadAllText(solutionPath);
+        }
+        catch
+        {
+            return projectPaths;
+        }
+
+        var matches = SlnProjectPathRegex.Matches(solutionContent);
+        foreach (Match match in matches)
+        {
+            var relativePath = match.Groups["path"].Value;
+            if (string.IsNullOrWhiteSpace(relativePath))
+                continue;
+
+            var normalizedRelativePath = relativePath.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
+            var absolutePath = Path.GetFullPath(Path.Join(solutionDir, normalizedRelativePath));
+
+            if (absolutePath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+            {
+                projectPaths.Add(absolutePath);
+            }
+        }
+
+        return projectPaths;
+    }
+
+    private static List<string> DiscoverProjectsRecursively(string root)
+    {
+        return Directory
+            .GetFiles(root, "*.csproj", SearchOption.AllDirectories)
+            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)
+                && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    private static IReadOnlyList<string> GetTargetFrameworks(string projectPath)
+    {
+        try
+        {
+            var document = XDocument.Load(projectPath);
+            var frameworks = new List<string>();
+
+            frameworks.AddRange(document.Descendants()
+                .Where(e => e.Name.LocalName == "TargetFramework")
+                .Select(e => e.Value?.Trim())
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .OfType<string>());
+
+            frameworks.AddRange(document.Descendants()
+                .Where(e => e.Name.LocalName == "TargetFrameworks")
+                .SelectMany(e => (e.Value ?? string.Empty)
+                    .Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)));
+
+            return frameworks
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    private static int GetPackageReferenceCount(string projectPath)
+    {
+        try
+        {
+            var document = XDocument.Load(projectPath);
+            return document.Descendants()
+                .Count(e => e.Name.LocalName == "PackageReference" && e.Attribute("Include") != null);
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    private static bool IsTestProjectFlagEnabled(string projectPath)
+    {
+        try
+        {
+            var document = XDocument.Load(projectPath);
+            return document.Descendants()
+                .Any(e => e.Name.LocalName == "IsTestProject"
+                    && string.Equals(e.Value?.Trim(), "true", StringComparison.OrdinalIgnoreCase));
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static string ToRepoRelativePath(string root, string absolutePath)
+        => Path.GetRelativePath(root, absolutePath).Replace('\\', '/');
 
     /// <summary>
     /// Example resource demonstrating CAPABILITY_NOT_AVAILABLE usage when a resource is conditionally disabled.
