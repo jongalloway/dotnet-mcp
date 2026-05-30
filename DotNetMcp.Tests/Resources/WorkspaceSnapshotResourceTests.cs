@@ -146,6 +146,44 @@ EndGlobal
         }
     }
 
+    [Fact]
+    public void BuildWorkspaceSnapshot_WithAbsoluteSolutionProjectPath_IncludesProject()
+    {
+        var tempDir = CreateTempDirectory();
+        try
+        {
+            var projectPath = Path.Join(tempDir, "src", "AbsolutePathProject", "AbsolutePathProject.csproj");
+            Directory.CreateDirectory(Path.GetDirectoryName(projectPath)!);
+            File.WriteAllText(projectPath, """
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+</Project>
+""");
+
+            var solutionPath = Path.Join(tempDir, "AbsolutePathProject.sln");
+            var slnProjectPath = projectPath.Replace('\\', '/');
+            File.WriteAllText(solutionPath, $$"""
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AbsolutePathProject", "{{slnProjectPath}}", "{33333333-3333-3333-3333-333333333333}"
+EndProject
+Global
+EndGlobal
+""");
+
+            var snapshot = DotNetResources.BuildWorkspaceSnapshot(tempDir);
+
+            Assert.Single(snapshot.Projects);
+            Assert.Equal("src/AbsolutePathProject/AbsolutePathProject.csproj", snapshot.Projects[0].Path);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
     private static string CreateTempDirectory()
     {
         var tempDir = Path.Join(Path.GetTempPath(), "dotnet-mcp-tests", Guid.NewGuid().ToString("N"));

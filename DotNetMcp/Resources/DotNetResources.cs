@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Xml;
 using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
@@ -376,14 +377,48 @@ public sealed class DotNetResources
                 return await Task.FromResult(snapshot);
             });
 
-            return _workspaceCacheManager.GetJsonResponse(entry, entry.Data, DateTime.UtcNow);
+            return _workspaceCacheManager.GetJsonResponse(entry, ToWorkspaceSnapshotResourceData(entry.Data), DateTime.UtcNow);
         }
-        catch (Exception ex)
+        catch (IOException ex)
+        {
+            _logger.LogError(ex, "Error getting workspace snapshot");
+            return JsonSerializer.Serialize(new { error = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogError(ex, "Error getting workspace snapshot");
+            return JsonSerializer.Serialize(new { error = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogError(ex, "Error getting workspace snapshot");
+            return JsonSerializer.Serialize(new { error = ex.Message });
+        }
+        catch (NotSupportedException ex)
+        {
+            _logger.LogError(ex, "Error getting workspace snapshot");
+            return JsonSerializer.Serialize(new { error = ex.Message });
+        }
+        catch (XmlException ex)
         {
             _logger.LogError(ex, "Error getting workspace snapshot");
             return JsonSerializer.Serialize(new { error = ex.Message });
         }
     }
+
+    private static object ToWorkspaceSnapshotResourceData(WorkspaceSnapshot snapshot) => new
+    {
+        solution = snapshot.Solution,
+        projects = snapshot.Projects.Select(project => new
+        {
+            name = project.Name,
+            path = project.Path,
+            targetFrameworks = project.TargetFrameworks,
+            packageCount = project.PackageCount,
+            isTestProject = project.IsTestProject
+        }),
+        generatedAt = snapshot.GeneratedAt
+    };
 
     internal static WorkspaceSnapshot BuildWorkspaceSnapshot(string workspaceRoot)
     {
@@ -460,28 +495,52 @@ public sealed class DotNetResources
         {
             solutionContent = File.ReadAllText(solutionPath);
         }
-        catch
+        catch (IOException)
+        {
+            return projectPaths;
+        }
+        catch (UnauthorizedAccessException)
         {
             return projectPaths;
         }
 
-        var matches = SlnProjectPathRegex.Matches(solutionContent);
-        foreach (Match match in matches)
-        {
-            var relativePath = match.Groups["path"].Value;
-            if (string.IsNullOrWhiteSpace(relativePath))
-                continue;
-
-            var normalizedRelativePath = relativePath.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
-            var absolutePath = Path.GetFullPath(Path.Join(solutionDir, normalizedRelativePath));
-
-            if (absolutePath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
-            {
-                projectPaths.Add(absolutePath);
-            }
-        }
+        projectPaths.AddRange(
+            SlnProjectPathRegex
+                .Matches(solutionContent)
+                .Select(match => match.Groups["path"].Value)
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .Select(path => path.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar))
+                .Select(path => TryGetFullProjectPath(solutionDir, path, out var fullPath) ? fullPath : null)
+                .Where(path => path != null && path.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+                .Cast<string>());
 
         return projectPaths;
+    }
+
+    private static bool TryGetFullProjectPath(string solutionDir, string projectPath, out string fullPath)
+    {
+        fullPath = string.Empty;
+        try
+        {
+            var candidatePath = Path.IsPathRooted(projectPath)
+                ? projectPath
+                : Path.Join(solutionDir, projectPath);
+
+            fullPath = Path.GetFullPath(candidatePath);
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+        catch (NotSupportedException)
+        {
+            return false;
+        }
+        catch (PathTooLongException)
+        {
+            return false;
+        }
     }
 
     private static List<string> DiscoverProjectsRecursively(string root)
@@ -516,7 +575,19 @@ public sealed class DotNetResources
                 .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
                 .ToArray();
         }
-        catch
+        catch (IOException)
+        {
+            return [];
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return [];
+        }
+        catch (XmlException)
+        {
+            return [];
+        }
+        catch (InvalidOperationException)
         {
             return [];
         }
@@ -530,7 +601,19 @@ public sealed class DotNetResources
             return document.Descendants()
                 .Count(e => e.Name.LocalName == "PackageReference" && e.Attribute("Include") != null);
         }
-        catch
+        catch (IOException)
+        {
+            return 0;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return 0;
+        }
+        catch (XmlException)
+        {
+            return 0;
+        }
+        catch (InvalidOperationException)
         {
             return 0;
         }
@@ -545,7 +628,19 @@ public sealed class DotNetResources
                 .Any(e => e.Name.LocalName == "IsTestProject"
                     && string.Equals(e.Value?.Trim(), "true", StringComparison.OrdinalIgnoreCase));
         }
-        catch
+        catch (IOException)
+        {
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return false;
+        }
+        catch (XmlException)
+        {
+            return false;
+        }
+        catch (InvalidOperationException)
         {
             return false;
         }

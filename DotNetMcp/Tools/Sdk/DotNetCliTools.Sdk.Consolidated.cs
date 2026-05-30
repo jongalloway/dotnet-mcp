@@ -343,7 +343,7 @@ public sealed partial class DotNetCliTools
             await _subscriptions.SendResourceUpdatedAsync(server, "dotnet://workspace");
         }
 
-        return "All caches (templates, SDK, runtime) and metrics cleared successfully. Next query will reload from disk.";
+        return "All caches (templates, SDK, runtime, workspace) and metrics cleared successfully. Next query will reload from disk.";
     }
 
     /// <summary>
