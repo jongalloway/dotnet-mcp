@@ -192,7 +192,8 @@ public sealed partial class DotNetCliTools
                 Warnings = buildResult.Warnings,
                 LockInfo = buildResult.LockInfo
             };
-            return StructuredContentHelper.ToCallToolResult(textResult, projectActionResult);
+            var textContent = GetBuildTextForStructuredResponse(textResult, buildResult);
+            return StructuredContentHelper.ToCallToolResult(textContent, projectActionResult);
         }
 
         // For other concurrency-gated actions (Run, Test, Publish), include lock metadata
@@ -207,6 +208,17 @@ public sealed partial class DotNetCliTools
         }
 
         return StructuredContentHelper.ToCallToolResult(textResult);
+    }
+
+    internal static string GetBuildTextForStructuredResponse(string rawText, BuildResult buildResult)
+    {
+        if (buildResult.Success &&
+            rawText.Contains("Exit Code: 0", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"Build succeeded. {buildResult.ErrorCount} error(s), {buildResult.WarningCount} warning(s).";
+        }
+
+        return rawText;
     }
 
     private async Task<string> HandleNewAction(string? template, string? name, string? output, string? framework, string? additionalOptions)
