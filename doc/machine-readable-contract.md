@@ -362,7 +362,7 @@ Domain-specific fields are **optional** but recommended for actions that natural
 
 ### Human-Readable Text Behavior
 
-The `content` array continues to show verbose output (build logs, test details, error diagnostics) unchanged. Section [#447: Suppress verbose build text when structured content available](#) describes how clients can opt into suppressing verbose text when structured content is available.
+The `content` array continues to show verbose output (build logs, test details, error diagnostics) unchanged. See [issue #447](https://github.com/jongalloway/dotnet-mcp/issues/447) for how clients can opt into suppressing verbose text when structured content is available.
 
 ---
 
