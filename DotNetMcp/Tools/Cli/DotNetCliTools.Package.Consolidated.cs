@@ -246,7 +246,7 @@ public sealed partial class DotNetCliTools
             return output;
 
         var lines = output.Split('\n');
-        var result = new System.Text.StringBuilder();
+        var result = new StringBuilder();
         var packageCount = 0;
         var limit = maxResults ?? int.MaxValue;
 
