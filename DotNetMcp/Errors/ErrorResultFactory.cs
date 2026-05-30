@@ -945,17 +945,10 @@ public static partial class ErrorResultFactory
             return null;
 
         double totalMs = 0;
-        foreach (var parsedMatch in matches.Cast<Match>()
-                     .Select(static match => new
-                     {
-                         Match = match,
-                         Parsed = double.TryParse(match.Groups["value"].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var value),
-                         Value = value
-                     })
-                     .Where(static m => m.Parsed))
+        foreach (Match match in matches.Cast<Match>()
+                     .Where(static match => double.TryParse(match.Groups["value"].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out _)))
         {
-            var match = parsedMatch.Match;
-            var value = parsedMatch.Value;
+            var value = double.Parse(match.Groups["value"].Value, NumberStyles.Float, CultureInfo.InvariantCulture);
 
             var unit = match.Groups["unit"].Value.ToLowerInvariant();
             totalMs += unit switch
