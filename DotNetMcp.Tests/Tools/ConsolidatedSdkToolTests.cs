@@ -163,6 +163,32 @@ public class ConsolidatedSdkToolTests
         Assert.NotEmpty(result.Content);
     }
 
+    [Fact]
+    public async Task DotnetSdk_ListTemplates_WithFilter_ReturnsFilteredResults()
+    {
+        // Test list templates with filter - should not error
+        var result = (await _tools.DotnetSdk(
+            action: DotnetSdkAction.ListTemplates,
+            filter: "console"));
+
+        Assert.NotNull(result);
+        Assert.NotEmpty(result.Content);
+        Assert.DoesNotContain("Error:", result.GetText());
+    }
+
+    [Fact]
+    public async Task DotnetSdk_ListTemplates_WithMaxResults_LimitsResults()
+    {
+        // Test list templates with maxResults - result should not be an error
+        var result = (await _tools.DotnetSdk(
+            action: DotnetSdkAction.ListTemplates,
+            maxResults: 3));
+
+        Assert.NotNull(result);
+        Assert.NotEmpty(result.Content);
+        Assert.DoesNotContain("Error:", result.GetText());
+    }
+
     #endregion
 
     #region SearchTemplates Action Tests

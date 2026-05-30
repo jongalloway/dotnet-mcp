@@ -254,7 +254,9 @@ public class TemplateEngineHelper
     /// </summary>
     /// <param name="forceReload">If true, bypasses cache and reloads from disk.</param>
     /// <param name="logger">Optional logger instance.</param>
-    public static async Task<string> GetInstalledTemplatesAsync(bool forceReload = false, ILogger? logger = null)
+    /// <param name="filter">Optional filter string; matches short name, name, or tags (case-insensitive).</param>
+    /// <param name="maxResults">Optional maximum number of templates to return after filtering.</param>
+    public static async Task<string> GetInstalledTemplatesAsync(bool forceReload = false, ILogger? logger = null, string? filter = null, int? maxResults = null)
     {
         try
         {
@@ -279,7 +281,22 @@ public class TemplateEngineHelper
                 return message;
             }
 
-            var displayInfos = templates.Select(TemplateDisplayInfo.FromTemplateInfo);
+            IEnumerable<TemplateDisplayInfo> displayInfos = templates.Select(TemplateDisplayInfo.FromTemplateInfo);
+
+            if (!string.IsNullOrEmpty(filter))
+            {
+                displayInfos = displayInfos.Where(t =>
+                    t.ShortName.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
+                    t.ShortNames.Any(sn => sn.Contains(filter, StringComparison.OrdinalIgnoreCase)) ||
+                    (t.Name?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    t.Type.Contains(filter, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (maxResults.HasValue)
+            {
+                displayInfos = displayInfos.Take(maxResults.Value);
+            }
+
             return TemplateFormatter.FormatInstalledTemplates(displayInfos);
         }
         catch (Exception ex)
