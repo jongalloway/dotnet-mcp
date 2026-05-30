@@ -237,7 +237,7 @@ public sealed partial class DotNetCliTools
 
     /// <summary>
     /// Applies optional filter and maxResults to 'dotnet list package' text output.
-    /// Package lines (starting with '&gt;') are filtered/counted; header and framework lines are preserved.
+    /// Package lines (starting with '>') are filtered/counted; header and framework lines are preserved.
     /// </summary>
     internal static string ApplyPackageListFilter(string output, string? filter, int? maxResults)
     {
@@ -249,8 +249,9 @@ public sealed partial class DotNetCliTools
         var packageCount = 0;
         var limit = maxResults ?? int.MaxValue;
 
-        foreach (var line in lines)
+        foreach (var rawLine in lines)
         {
+            var line = rawLine.TrimEnd('\r');
             var trimmed = line.TrimStart();
             if (trimmed.StartsWith(">", StringComparison.Ordinal))
             {
@@ -269,11 +270,11 @@ public sealed partial class DotNetCliTools
                 }
 
                 packageCount++;
-                result.AppendLine(line.TrimEnd('\r'));
+                result.AppendLine(line);
             }
             else
             {
-                result.AppendLine(line.TrimEnd('\r'));
+                result.AppendLine(line);
             }
         }
 

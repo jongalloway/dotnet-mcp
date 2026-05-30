@@ -286,7 +286,6 @@ public class TemplateEngineHelper
             if (!string.IsNullOrEmpty(filter))
             {
                 displayInfos = displayInfos.Where(t =>
-                    t.ShortName.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
                     t.ShortNames.Any(sn => sn.Contains(filter, StringComparison.OrdinalIgnoreCase)) ||
                     (t.Name?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false) ||
                     t.Type.Contains(filter, StringComparison.OrdinalIgnoreCase));
