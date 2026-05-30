@@ -195,7 +195,26 @@ public sealed partial class DotNetCliTools
             return StructuredContentHelper.ToCallToolResult(textResult, projectActionResult);
         }
 
-        // For other concurrency-gated actions (Run, Test, Publish), include lock metadata
+        if (action == DotnetProjectAction.Test)
+        {
+            var lockInfo = BuildLockInfo("test", GetOperationTarget(effectiveProject, workingDirectory),
+                isContended: IsConcurrencyConflictText(textResult));
+            var testResult = ErrorResultFactory.ParseTestOutput(textResult, lockInfo);
+            var projectActionResult = new ProjectActionResult
+            {
+                Success = testResult.Success,
+                Passed = testResult.Passed,
+                Failed = testResult.Failed,
+                Skipped = testResult.Skipped,
+                DurationMs = testResult.DurationMs,
+                Summary = testResult.Summary,
+                FirstFailures = testResult.FirstFailures,
+                LockInfo = testResult.LockInfo
+            };
+            return StructuredContentHelper.ToCallToolResult(textResult, projectActionResult);
+        }
+
+        // For other concurrency-gated actions (Run, Publish), include lock metadata
         // in a ProjectActionResult so consumers can confirm lock granularity
         // without parsing plain-text output.
         var concurrencyOpType = GetConcurrencyOperationType(action);

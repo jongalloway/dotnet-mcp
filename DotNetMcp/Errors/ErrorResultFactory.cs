@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Globalization;
 
 namespace DotNetMcp;
 
@@ -683,6 +684,24 @@ public static partial class ErrorResultFactory
     [GeneratedRegex(@"(\d+)\s+Warning\(s\)", RegexOptions.IgnoreCase)]
     private static partial Regex WarningCountRegex();
 
+    [GeneratedRegex(@"\bPassed:\s*(\d+)\b", RegexOptions.IgnoreCase)]
+    private static partial Regex PassedCountRegex();
+
+    [GeneratedRegex(@"\bSucceeded:\s*(\d+)\b", RegexOptions.IgnoreCase)]
+    private static partial Regex SucceededCountRegex();
+
+    [GeneratedRegex(@"\bFailed:\s*(\d+)\b", RegexOptions.IgnoreCase)]
+    private static partial Regex FailedCountRegex();
+
+    [GeneratedRegex(@"\bSkipped:\s*(\d+)\b", RegexOptions.IgnoreCase)]
+    private static partial Regex SkippedCountRegex();
+
+    [GeneratedRegex(@"\bDuration:\s*(?<duration>.+?)(?:\s+-\s+|$)", RegexOptions.IgnoreCase)]
+    private static partial Regex TestDurationRegex();
+
+    [GeneratedRegex(@"(?<value>\d+(?:\.\d+)?)\s*(?<unit>ms|millisecond(?:s)?|s|sec(?:ond)?s?|m|min(?:ute)?s?|h|hr|hour(?:s)?)\b", RegexOptions.IgnoreCase)]
+    private static partial Regex DurationTokenRegex();
+
     /// <summary>
     /// Parse the raw text output produced by <c>DotNetCommandExecutor.ExecuteCommandAsync</c> for a
     /// <c>dotnet build</c> invocation and return a <see cref="BuildResult"/> with structured diagnostics.
@@ -808,6 +827,197 @@ public static partial class ErrorResultFactory
             Warnings = warnings.Count > 0 ? warnings : null,
             LockInfo = lockInfo
         };
+    }
+
+    /// <summary>
+    /// Parse the raw text output produced by <c>dotnet test</c> and return a structured <see cref="TestResult"/>.
+    /// </summary>
+    /// <param name="rawOutput">The raw command output including the trailing <c>Exit Code: N</c> line.</param>
+    /// <param name="lockInfo">Optional concurrency lock metadata to embed in the result.</param>
+    /// <returns>A <see cref="TestResult"/> populated from parsed summary data.</returns>
+    public static TestResult ParseTestOutput(string rawOutput, LockInfo? lockInfo = null)
+    {
+        if (string.IsNullOrWhiteSpace(rawOutput))
+        {
+            return new TestResult
+            {
+                Success = true,
+                Passed = 0,
+                Failed = 0,
+                Skipped = 0,
+                DurationMs = 0,
+                Summary = "Test run succeeded.",
+                FirstFailures = [],
+                LockInfo = lockInfo
+            };
+        }
+
+        var lines = rawOutput.Split(["\r\n", "\n"], StringSplitOptions.None);
+        var exitCode = 0;
+        var exitCodeLine = lines
+            .Select(l => l.TrimStart())
+            .FirstOrDefault(l => l.StartsWith("Exit Code:", StringComparison.OrdinalIgnoreCase));
+        if (exitCodeLine != null)
+        {
+            var codeStr = exitCodeLine.Substring("Exit Code:".Length).Trim();
+            if (int.TryParse(codeStr, out var parsed))
+                exitCode = parsed;
+        }
+
+        var passed = 0;
+        var failed = 0;
+        var skipped = 0;
+        long durationMs = 0;
+
+        foreach (var line in lines)
+        {
+            var passedMatch = PassedCountRegex().Match(line);
+            if (passedMatch.Success && int.TryParse(passedMatch.Groups[1].Value, out var parsedPassed))
+                passed = parsedPassed;
+
+            var succeededMatch = SucceededCountRegex().Match(line);
+            if (succeededMatch.Success && int.TryParse(succeededMatch.Groups[1].Value, out var parsedSucceeded))
+                passed = parsedSucceeded;
+
+            var failedMatch = FailedCountRegex().Match(line);
+            if (failedMatch.Success && int.TryParse(failedMatch.Groups[1].Value, out var parsedFailed))
+                failed = parsedFailed;
+
+            var skippedMatch = SkippedCountRegex().Match(line);
+            if (skippedMatch.Success && int.TryParse(skippedMatch.Groups[1].Value, out var parsedSkipped))
+                skipped = parsedSkipped;
+
+            var durationMatch = TestDurationRegex().Match(line);
+            if (durationMatch.Success)
+            {
+                var parsedDurationMs = ParseDurationMs(durationMatch.Groups["duration"].Value.Trim());
+                if (parsedDurationMs.HasValue)
+                    durationMs = parsedDurationMs.Value;
+            }
+        }
+
+        var firstFailures = ParseFirstFailures(lines);
+        var success = exitCode == 0;
+
+        return new TestResult
+        {
+            Success = success,
+            Passed = passed,
+            Failed = failed,
+            Skipped = skipped,
+            DurationMs = durationMs,
+            Summary = success ? "Test run succeeded." : "Test run failed.",
+            FirstFailures = firstFailures,
+            LockInfo = lockInfo
+        };
+    }
+
+    private static long? ParseDurationMs(string durationText)
+    {
+        if (string.IsNullOrWhiteSpace(durationText))
+            return null;
+
+        var text = durationText.Trim();
+
+        if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var msOnly))
+            return msOnly;
+
+        if (TimeSpan.TryParse(text, CultureInfo.InvariantCulture, out var timeSpan))
+            return (long)Math.Round(timeSpan.TotalMilliseconds);
+
+        var matches = DurationTokenRegex().Matches(text);
+        if (matches.Count == 0)
+            return null;
+
+        double totalMs = 0;
+        foreach (Match match in matches)
+        {
+            if (!double.TryParse(match.Groups["value"].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var value))
+                continue;
+
+            var unit = match.Groups["unit"].Value.ToLowerInvariant();
+            totalMs += unit switch
+            {
+                "h" or "hr" or "hour" or "hours" => value * 60 * 60 * 1000,
+                "m" or "min" or "mins" or "minute" or "minutes" => value * 60 * 1000,
+                "s" or "sec" or "secs" or "second" or "seconds" => value * 1000,
+                _ => value // ms / millisecond(s)
+            };
+        }
+
+        return (long)Math.Round(totalMs);
+    }
+
+    private static List<TestFailure> ParseFirstFailures(string[] lines)
+    {
+        var failures = new List<TestFailure>(capacity: 5);
+
+        for (var i = 0; i < lines.Length && failures.Count < 5; i++)
+        {
+            var line = lines[i].Trim();
+            if (!line.StartsWith("Failed ", StringComparison.OrdinalIgnoreCase) ||
+                line.StartsWith("Failed!", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var testName = line["Failed ".Length..].Trim();
+            var bracketIndex = testName.IndexOf(" [", StringComparison.Ordinal);
+            if (bracketIndex >= 0)
+                testName = testName[..bracketIndex].Trim();
+
+            if (string.IsNullOrWhiteSpace(testName))
+                continue;
+
+            var message = "Test failed";
+            for (var j = i + 1; j < lines.Length; j++)
+            {
+                var next = lines[j].Trim();
+                if (string.IsNullOrWhiteSpace(next))
+                    continue;
+
+                if (next.StartsWith("Failed ", StringComparison.OrdinalIgnoreCase) ||
+                    next.StartsWith("Passed ", StringComparison.OrdinalIgnoreCase) ||
+                    next.StartsWith("Skipped ", StringComparison.OrdinalIgnoreCase) ||
+                    next.StartsWith("Total tests:", StringComparison.OrdinalIgnoreCase))
+                {
+                    break;
+                }
+
+                if (next.StartsWith("Error Message:", StringComparison.OrdinalIgnoreCase))
+                {
+                    var parsed = next["Error Message:".Length..].Trim();
+                    if (!string.IsNullOrWhiteSpace(parsed))
+                        message = parsed;
+                    continue;
+                }
+
+                if (next.StartsWith("Message:", StringComparison.OrdinalIgnoreCase))
+                {
+                    var parsed = next["Message:".Length..].Trim();
+                    if (!string.IsNullOrWhiteSpace(parsed))
+                        message = parsed;
+                    continue;
+                }
+
+                if (next.StartsWith("Stack Trace:", StringComparison.OrdinalIgnoreCase))
+                    break;
+
+                if (!next.StartsWith("at ", StringComparison.OrdinalIgnoreCase))
+                {
+                    message = next;
+                    break;
+                }
+            }
+
+            failures.Add(new TestFailure
+            {
+                TestName = SanitizeOutput(testName),
+                Message = SanitizeOutput(message)
+            });
+        }
+
+        return failures;
     }
 
     /// <summary>

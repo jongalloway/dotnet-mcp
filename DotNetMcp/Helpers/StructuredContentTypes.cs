@@ -162,6 +162,26 @@ public sealed class ProjectActionResult
     [JsonPropertyName("summary")]
     public string? Summary { get; init; }
 
+    /// <summary>Number of passed tests. Present for Test action.</summary>
+    [JsonPropertyName("passed")]
+    public int? Passed { get; init; }
+
+    /// <summary>Number of failed tests. Present for Test action.</summary>
+    [JsonPropertyName("failed")]
+    public int? Failed { get; init; }
+
+    /// <summary>Number of skipped tests. Present for Test action.</summary>
+    [JsonPropertyName("skipped")]
+    public int? Skipped { get; init; }
+
+    /// <summary>Total test run duration in milliseconds. Present for Test action when parsed.</summary>
+    [JsonPropertyName("durationMs")]
+    public long? DurationMs { get; init; }
+
+    /// <summary>Up to first 5 failures for quick triage. Present for Test action.</summary>
+    [JsonPropertyName("firstFailures")]
+    public List<TestFailure>? FirstFailures { get; init; }
+
     /// <summary>Individual error diagnostics. Present when build errors occurred.</summary>
     [JsonPropertyName("errors")]
     public List<BuildDiagnostic>? Errors { get; init; }
