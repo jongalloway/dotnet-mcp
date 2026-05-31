@@ -299,6 +299,12 @@ Framework metadata is also provided via `dotnet_sdk`:
 - Returns JSON with framework information (not cached)
 - Provides static metadata about .NET TFMs
 
+**`dotnet://workspace`**
+
+- Returns JSON snapshot of the current workspace topology
+- Includes solution path (if present), project list, target frameworks, package counts, and test-project hints
+- Cached for 60 seconds to reduce repeated discovery round-trips while keeping project metadata fresh
+
 ### Cache Response Format
 
 All cached resources include metadata:

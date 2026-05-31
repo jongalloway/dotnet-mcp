@@ -116,6 +116,7 @@ MCP Resources provide read-only access to structured metadata about your .NET en
 - **dotnet://runtime-info** - Information about installed .NET runtimes (versions and types)
 - **dotnet://templates** - Complete catalog of installed .NET templates with metadata
 - **dotnet://frameworks** - Information about supported .NET frameworks (TFMs) including LTS status
+- **dotnet://workspace** - Workspace snapshot with solution, projects, target frameworks, and package counts
 
 This enables AI assistants to:
 
@@ -227,7 +228,7 @@ dotnet-mcp uses the official [MCP C# SDK](https://csharp.sdk.modelcontextprotoco
 
 | Feature | How dotnet-mcp uses it | Why |
 | ------- | ---------------------- | --- |
-| [Resources](https://modelcontextprotocol.io/specification/latest/server/resources) | Exposes `dotnet://sdk-info`, `dotnet://runtime-info`, `dotnet://templates`, and `dotnet://frameworks` as read-only MCP resources. | Lets clients answer environment questions quickly without shelling out, and reduces token churn from repeated CLI discovery. |
+| [Resources](https://modelcontextprotocol.io/specification/latest/server/resources) | Exposes `dotnet://sdk-info`, `dotnet://runtime-info`, `dotnet://templates`, `dotnet://frameworks`, and `dotnet://workspace` as read-only MCP resources. | Lets clients answer environment and workspace topology questions quickly without shelling out, and reduces token churn from repeated CLI discovery. |
 | [Prompts](https://modelcontextprotocol.io/specification/latest/server/prompts) | Publishes reusable prompts such as `create_new_webapi`, `add_package_and_restore`, and `run_tests_with_coverage`. | Gives MCP clients guided, discoverable workflows instead of rebuilding common prompt scaffolding from scratch. |
 | [Roots](https://modelcontextprotocol.io/specification/latest/client/roots) | Uses client workspace roots to auto-detect a single project or solution when the user omits an explicit path. | Improves out-of-box behavior in IDE clients and reduces the number of parameters users need to supply. |
 | [Sampling](https://modelcontextprotocol.io/specification/latest/client/sampling) | Requests client-mediated LLM summaries for build and test failures when the client supports sampling. | Keeps intelligent diagnostics inside the MCP flow without requiring separate server-side model credentials. |
@@ -740,6 +741,7 @@ The server exposes read-only resources that provide efficient access to .NET env
 - **dotnet://runtime-info** - Information about installed .NET runtimes (versions and types)
 - **dotnet://templates** - Complete catalog of installed .NET templates with metadata
 - **dotnet://frameworks** - Information about supported .NET frameworks (TFMs) including LTS status
+- **dotnet://workspace** - Workspace snapshot with solution, projects, target frameworks, and package counts
 
 Resources provide structured JSON data and are more efficient than tool calls for frequently accessed read-only information.
 
