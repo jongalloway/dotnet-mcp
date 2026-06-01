@@ -180,7 +180,11 @@ public sealed class TokenSavingsAssumptionsProfile
                     return loaded;
             }
         }
-        catch (Exception)
+        catch (IOException)
+        {
+            // Fall through to hard-coded defaults
+        }
+        catch (JsonException)
         {
             // Fall through to hard-coded defaults
         }
