@@ -159,6 +159,19 @@ public class ServerCapabilitiesTests
     }
 
     [Fact]
+    public async Task DotnetServerCapabilities_Supports_TokenSavings_IsTrue()
+    {
+        var result = (await _tools.DotnetServerCapabilities()).GetText();
+        var jsonDoc = JsonDocument.Parse(result);
+        var tokenSavings = jsonDoc.RootElement
+            .GetProperty("supports")
+            .GetProperty("tokenSavings")
+            .GetBoolean();
+
+        Assert.True(tokenSavings);
+    }
+
+    [Fact]
     public async Task DotnetServerCapabilities_SdkVersions_ContainsInstalledSdks()
     {
         // Act

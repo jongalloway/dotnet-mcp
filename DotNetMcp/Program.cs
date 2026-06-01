@@ -31,6 +31,12 @@ builder.Services.AddSingleton<IMcpTaskStore, InMemoryMcpTaskStore>();
 var metricsAccumulator = new ToolMetricsAccumulator();
 builder.Services.AddSingleton(metricsAccumulator);
 
+// Register token savings estimation services.
+var tokenSavingsAccumulator = new TokenSavingsAccumulator();
+var tokenSavingsEstimator = new TokenSavingsEstimator();
+builder.Services.AddSingleton(tokenSavingsAccumulator);
+builder.Services.AddSingleton(tokenSavingsEstimator);
+
 // Register ResourceSubscriptionManager for tracking client resource subscriptions.
 builder.Services.AddSingleton<ResourceSubscriptionManager>();
 

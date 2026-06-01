@@ -132,6 +132,7 @@ public class ServerMetricsToolTests
         Assert.Equal(0, root.GetProperty("totalInvocations").GetInt64());
         Assert.Equal(0, root.GetProperty("totalSuccesses").GetInt64());
         Assert.Equal(0, root.GetProperty("totalFailures").GetInt64());
+        Assert.False(root.GetProperty("tokenSavingsEnabled").GetBoolean());
     }
 
     [Fact]

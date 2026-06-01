@@ -218,6 +218,53 @@ interface MinimalMutatingResult {
 
 ### Examples
 
+---
+
+## Token Savings Estimation Contract
+
+The `dotnet_server_metrics` tool can also return workflow-level token savings estimates. These estimates are intended for observability and comparative analysis only.
+
+### Output Shape
+
+Token savings responses include:
+
+- `workflowId`
+- `mcpEstimatedTokens`
+- `baselineEstimatedTokens`
+- `estimatedSavingsTokens`
+- `estimatedSavingsPercent`
+- `confidence`
+- `assumptionsProfile`
+- `steps[]`
+
+### Estimation Formula
+
+MCP token usage is approximated from payload size:
+
+$$
+	ext{mcpEstimatedTokens} \approx \lceil \frac{\text{chars}}{4} \rceil
+$$
+
+Savings are then computed as:
+
+$$
+	ext{estimatedSavingsTokens} = \text{baselineEstimatedTokens} - \text{mcpEstimatedTokens}
+$$
+
+$$
+	ext{estimatedSavingsPercent} = \frac{\text{estimatedSavingsTokens}}{\text{baselineEstimatedTokens}} \times 100
+$$
+
+### Confidence
+
+- `high`: measured MCP and baseline values are available
+- `medium`: measured and heuristic inputs are mixed
+- `low`: heuristic-only estimate
+
+### Versioning
+
+Assumptions are versioned. The initial profile is `v1` and includes workflow heuristics for project creation, test-failure summarization, and web API + EF setup workflows.
+
 #### Build Success
 
 ```json

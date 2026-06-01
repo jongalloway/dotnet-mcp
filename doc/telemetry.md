@@ -260,6 +260,32 @@ Failed requests are automatically logged with:
 - Tool/resource name
 - Stack trace (in debug mode)
 
+## Token Savings Estimation
+
+dotnet-mcp also exposes an opt-in workflow-level token savings estimator through the server metrics surface. This feature does not report exact billable token counts. Instead, it provides a transparent estimate that compares:
+
+- MCP-side payload size using a documented approximation of `chars / 4`
+- A baseline non-MCP workflow built from versioned heuristics
+
+The initial assumptions profile is versioned as `v1` and is designed to be easy to inspect and tune. It includes workflow heuristics for:
+
+- `create-project-package-build`
+- `run-tests-summarize-failures`
+- `scaffold-webapi-ef-setup`
+
+### Confidence Levels
+
+- `high` when measured MCP and baseline values are available
+- `medium` when measured and heuristic values are mixed
+- `low` when the estimate is heuristic-only
+
+### Caveats
+
+- Estimates are intentionally lightweight and reproducible, not billing-accurate.
+- Baseline heuristics are transparent and may evolve as more workflow data is collected.
+- Workflow summaries are keyed by explicit `workflowId` values to keep rollups deterministic.
+- The `tokenSavings` capability flag and `dotnet_server_metrics (TokenSavingsGet)` surface are available once `TokenSavingsAccumulator` and `TokenSavingsEstimator` are registered in DI. The accumulator is populated only when callers explicitly invoke `RecordWorkflow`; no automatic recording at the tool-call boundary is performed in this release.
+
 ## Monitoring Best Practices
 
 ### 1. Enable Appropriate Log Levels
