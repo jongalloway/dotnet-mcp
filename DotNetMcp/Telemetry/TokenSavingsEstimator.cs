@@ -8,6 +8,9 @@ public sealed class TokenSavingsEstimator
     private readonly TokenSavingsAssumptionsProfile _defaultProfile;
     private readonly ModelFamily _defaultModelFamily;
 
+    /// <summary>
+    /// Initialises a new <see cref="TokenSavingsEstimator"/> with an optional assumptions profile and default model family.
+    /// </summary>
     /// <param name="defaultProfile">Heuristic assumptions profile. Defaults to the v1 built-in profile.</param>
     /// <param name="defaultModelFamily">
     /// Default model family used for tokenizer approximation when not supplied per-step.
@@ -21,6 +24,9 @@ public sealed class TokenSavingsEstimator
         _defaultModelFamily = defaultModelFamily;
     }
 
+    /// <summary>
+    /// Estimates token savings for a complete workflow by aggregating per-step estimates.
+    /// </summary>
     /// <param name="modelFamily">
     /// Optional model family override for this workflow. Falls back to the constructor default.
     /// Can be further overridden per-step via <see cref="TokenSavingsStepInput.ModelFamily"/>.
@@ -130,16 +136,15 @@ public sealed class TokenSavingsEstimator
     internal static long EstimateTokens(TokenizerApproximation tokenizer, params string?[] parts)
     {
         long total = 0;
-        foreach (var part in parts)
+        foreach (var part in parts.Where(p => !string.IsNullOrEmpty(p)))
         {
-            if (string.IsNullOrEmpty(part)) continue;
             var charsPerToken = DetectContentKind(part) switch
             {
                 ContentKind.Json => tokenizer.JsonCharsPerToken,
                 ContentKind.Code => tokenizer.CodeCharsPerToken,
                 _                => tokenizer.ProseCharsPerToken
             };
-            total += (long)Math.Ceiling(part.Length / charsPerToken);
+            total += (long)Math.Ceiling(part!.Length / charsPerToken);
         }
         return total;
     }

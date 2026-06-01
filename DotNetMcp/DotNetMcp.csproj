@@ -43,6 +43,8 @@
     <None Include="$(IntermediateOutputPath)mcp/server.json" Pack="true" PackagePath="/.mcp/" Visible="false" />
     <!-- Include ErrorCodes.json as embedded resource -->
     <EmbeddedResource Include="Errors/ErrorCodes.json" />
+    <!-- Include token savings default assumptions profile as embedded resource -->
+    <EmbeddedResource Include="Telemetry/Profiles/TokenSavingsProfile.Default.v1.json" />
   </ItemGroup>
 
   <ItemGroup>

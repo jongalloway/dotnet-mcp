@@ -79,7 +79,7 @@ public sealed partial class DotNetCliTools
                 Completions = true,  // Argument autocomplete: template names, framework TFMs, configurations, runtime identifiers
                 Sampling = true,     // Sampling for AI-assisted build/test error interpretation (when client supports it)
                 ProgressNotifications = true, // Real-time progress updates for build, test, publish, and other long-running operations
-                TokenSavings = true // Workflow-level token savings reporting is available
+                TokenSavings = _tokenSavingsAccumulator is not null && _tokenSavingsEstimator is not null // Derived from DI: true when TokenSavingsAccumulator and TokenSavingsEstimator are registered
             },
             SdkVersions = new SdkVersionInfo
             {

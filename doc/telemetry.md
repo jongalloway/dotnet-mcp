@@ -258,6 +258,7 @@ Failed requests are automatically logged with:
 - Error type and message
 - Request duration
 - Tool/resource name
+- Stack trace (in debug mode)
 
 ## Token Savings Estimation
 
@@ -283,7 +284,7 @@ The initial assumptions profile is versioned as `v1` and is designed to be easy 
 - Estimates are intentionally lightweight and reproducible, not billing-accurate.
 - Baseline heuristics are transparent and may evolve as more workflow data is collected.
 - Workflow summaries are keyed by explicit `workflowId` values to keep rollups deterministic.
-- Stack trace (in debug mode)
+- The `tokenSavings` capability flag and `dotnet_server_metrics (TokenSavingsGet)` surface are available once `TokenSavingsAccumulator` and `TokenSavingsEstimator` are registered in DI. The accumulator is populated only when callers explicitly invoke `RecordWorkflow`; no automatic recording at the tool-call boundary is performed in this release.
 
 ## Monitoring Best Practices
 

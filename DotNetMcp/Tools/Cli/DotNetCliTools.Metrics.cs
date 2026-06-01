@@ -18,7 +18,7 @@ public sealed partial class DotNetCliTools
     /// No PII is stored; only tool names and timing data are tracked.
     /// </summary>
     /// <param name="action">The metrics operation to perform: Get (return current snapshot) or Reset (clear all counters)</param>
-    [McpServerTool(Title = "Server Metrics", ReadOnly = false, Idempotent = false, UseStructuredContent = true, OutputSchemaType = typeof(ServerMetricsResponse), IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Bar%20Chart/Flat/bar_chart_flat.svg")]
+    [McpServerTool(Title = "Server Metrics", ReadOnly = false, Idempotent = false, UseStructuredContent = true, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Bar%20Chart/Flat/bar_chart_flat.svg")]
     [McpMeta("category", "telemetry")]
     [McpMeta("priority", 5.0)]
     [McpMeta("consolidatedTool", true)]

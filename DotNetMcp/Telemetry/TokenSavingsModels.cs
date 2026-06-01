@@ -1,3 +1,5 @@
+using System.Reflection;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace DotNetMcp;
@@ -6,6 +8,7 @@ namespace DotNetMcp;
 /// The broad family of LLM a caller is using. Controls which tokenizer approximation
 /// and baseline scale factor are applied during token savings estimation.
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ModelFamily
 {
     /// <summary>No model specified; uses the universal 4 chars/token fallback.</summary>
@@ -35,6 +38,7 @@ public enum ModelFamily
 /// <summary>
 /// Detected content kind used to pick the right chars-per-token ratio.
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ContentKind
 {
     /// <summary>Plain English prose.</summary>
@@ -155,9 +159,35 @@ public sealed class TokenSavingsAssumptionsProfile
     public Dictionary<string, TokenSavingsWorkflowHeuristics> Workflows { get; init; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Creates the default v1 assumptions profile used by the estimator.
+    /// Creates the default v1 assumptions profile, loading it from the embedded JSON resource.
+    /// Falls back to hard-coded defaults if the resource cannot be read.
     /// </summary>
-    public static TokenSavingsAssumptionsProfile CreateDefault() => new()
+    public static TokenSavingsAssumptionsProfile CreateDefault()
+    {
+        try
+        {
+            var assembly = typeof(TokenSavingsAssumptionsProfile).Assembly;
+            const string resourceName = "DotNetMcp.Telemetry.Profiles.TokenSavingsProfile.Default.v1.json";
+            using var stream = assembly.GetManifestResourceStream(resourceName);
+            if (stream != null)
+            {
+                using var reader = new System.IO.StreamReader(stream);
+                var json = reader.ReadToEnd();
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var loaded = JsonSerializer.Deserialize<TokenSavingsAssumptionsProfile>(json, options);
+                if (loaded is not null)
+                    return loaded;
+            }
+        }
+        catch (Exception)
+        {
+            // Fall through to hard-coded defaults
+        }
+
+        return CreateHardCodedDefault();
+    }
+
+    private static TokenSavingsAssumptionsProfile CreateHardCodedDefault() => new()
     {
         AssumptionsVersion = "v1",
         AssumptionsNotes = "Heuristic baseline profiles with a 4-char-per-token approximation for MCP payloads.",
