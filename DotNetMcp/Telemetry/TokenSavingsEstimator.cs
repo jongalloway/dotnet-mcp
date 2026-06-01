@@ -136,7 +136,7 @@ public sealed class TokenSavingsEstimator
     internal static long EstimateTokens(TokenizerApproximation tokenizer, params string?[] parts)
     {
         long total = 0;
-        foreach (var part in parts.Where(p => !string.IsNullOrEmpty(p)))
+        foreach (var part in parts.OfType<string>().Where(p => p.Length > 0))
         {
             var charsPerToken = DetectContentKind(part) switch
             {
@@ -144,7 +144,7 @@ public sealed class TokenSavingsEstimator
                 ContentKind.Code => tokenizer.CodeCharsPerToken,
                 _                => tokenizer.ProseCharsPerToken
             };
-            total += (long)Math.Ceiling(part!.Length / charsPerToken);
+            total += (long)Math.Ceiling(part.Length / charsPerToken);
         }
         return total;
     }

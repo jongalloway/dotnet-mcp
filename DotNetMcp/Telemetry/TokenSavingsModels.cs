@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.IO;
 
 namespace DotNetMcp;
 
@@ -171,7 +172,7 @@ public sealed class TokenSavingsAssumptionsProfile
             using var stream = assembly.GetManifestResourceStream(resourceName);
             if (stream != null)
             {
-                using var reader = new System.IO.StreamReader(stream);
+                using var reader = new StreamReader(stream);
                 var json = reader.ReadToEnd();
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                 var loaded = JsonSerializer.Deserialize<TokenSavingsAssumptionsProfile>(json, options);
