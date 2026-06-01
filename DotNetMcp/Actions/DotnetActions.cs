@@ -313,6 +313,12 @@ public enum DotnetServerMetricsAction
     /// <summary>Return a JSON snapshot of per-tool invocation counts, average durations, and success/failure counts</summary>
     Get,
 
+    /// <summary>Return workflow-level token savings estimates</summary>
+    TokenSavingsGet,
+
+    /// <summary>Reset accumulated token savings estimates</summary>
+    TokenSavingsReset,
+
     /// <summary>Reset all accumulated metrics to zero</summary>
     Reset
 }

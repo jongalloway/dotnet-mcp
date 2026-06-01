@@ -20,6 +20,8 @@ public sealed partial class DotNetCliTools
     private readonly ConcurrencyManager _concurrencyManager;
     private readonly ProcessSessionManager _processSessionManager;
     private readonly ToolMetricsAccumulator? _metricsAccumulator;
+    private readonly TokenSavingsAccumulator? _tokenSavingsAccumulator;
+    private readonly TokenSavingsEstimator? _tokenSavingsEstimator;
     private readonly ResourceSubscriptionManager? _subscriptions;
     private readonly IMcpTaskStore? _taskStore;
 
@@ -31,13 +33,23 @@ public sealed partial class DotNetCliTools
     private const int MaxSamplingPromptLength = 4000;
     private const int MaxSamplingResponseTokens = 256;
 
-    public DotNetCliTools(ILogger<DotNetCliTools> logger, ConcurrencyManager concurrencyManager, ProcessSessionManager processSessionManager, ToolMetricsAccumulator? metricsAccumulator = null, ResourceSubscriptionManager? subscriptions = null, IMcpTaskStore? taskStore = null)
+    public DotNetCliTools(
+        ILogger<DotNetCliTools> logger,
+        ConcurrencyManager concurrencyManager,
+        ProcessSessionManager processSessionManager,
+        ToolMetricsAccumulator? metricsAccumulator = null,
+        TokenSavingsAccumulator? tokenSavingsAccumulator = null,
+        TokenSavingsEstimator? tokenSavingsEstimator = null,
+        ResourceSubscriptionManager? subscriptions = null,
+        IMcpTaskStore? taskStore = null)
     {
         // DI guarantees logger is never null
         _logger = logger!;
         _concurrencyManager = concurrencyManager!;
         _processSessionManager = processSessionManager!;
         _metricsAccumulator = metricsAccumulator;
+        _tokenSavingsAccumulator = tokenSavingsAccumulator;
+        _tokenSavingsEstimator = tokenSavingsEstimator;
         _subscriptions = subscriptions;
         _taskStore = taskStore;
     }

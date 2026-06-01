@@ -1,0 +1,30 @@
+{
+  "assumptionsVersion": "v1",
+  "assumptionsNotes": "Heuristic baseline profiles with a 4-char-per-token approximation for MCP payloads.",
+  "workflows": {
+    "create-project-package-build": {
+      "discoveryTurns": 2,
+      "retryTurns": 1,
+      "outputParsingTurns": 1,
+      "manualDiscoveryTurns": 1,
+      "tokensPerTurn": 350,
+      "notes": "Project creation + package add + build typically requires a small amount of discovery and one retry when package or template parameters are missing."
+    },
+    "run-tests-summarize-failures": {
+      "discoveryTurns": 1,
+      "retryTurns": 1,
+      "outputParsingTurns": 2,
+      "manualDiscoveryTurns": 1,
+      "tokensPerTurn": 300,
+      "notes": "Test failure workflows pay more parsing cost because raw output is verbose and failure triage is iterative."
+    },
+    "scaffold-webapi-ef-setup": {
+      "discoveryTurns": 2,
+      "retryTurns": 1,
+      "outputParsingTurns": 1,
+      "manualDiscoveryTurns": 2,
+      "tokensPerTurn": 375,
+      "notes": "Web API plus EF setup often includes template discovery, package selection, and user-secrets guidance."
+    }
+  }
+}

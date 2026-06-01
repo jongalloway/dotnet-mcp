@@ -134,6 +134,12 @@ public sealed class ServerFeatureSupport
     /// </summary>
     [JsonPropertyName("progressNotifications")]
     public bool ProgressNotifications { get; init; }
+
+    /// <summary>
+    /// Whether the server exposes workflow-level token savings estimation and reporting.
+    /// </summary>
+    [JsonPropertyName("tokenSavings")]
+    public bool TokenSavings { get; init; }
 }
 
 /// <summary>
