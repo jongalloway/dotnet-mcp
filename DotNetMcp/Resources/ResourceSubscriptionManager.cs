@@ -22,6 +22,7 @@ public class ResourceSubscriptionManager
         "dotnet://runtime-info",
         "dotnet://templates",
         "dotnet://frameworks",
+        "dotnet://workspace",
         "dotnet://telemetry-data",
     };
 

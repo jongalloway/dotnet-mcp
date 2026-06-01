@@ -340,9 +340,10 @@ public sealed partial class DotNetCliTools
             await _subscriptions.SendResourceUpdatedAsync(server, "dotnet://templates");
             // dotnet://frameworks derives its framework list from the SDK cache, so notify it too.
             await _subscriptions.SendResourceUpdatedAsync(server, "dotnet://frameworks");
+            await _subscriptions.SendResourceUpdatedAsync(server, "dotnet://workspace");
         }
 
-        return "All caches (templates, SDK, runtime) and metrics cleared successfully. Next query will reload from disk.";
+        return "All caches (templates, SDK, runtime, workspace) and metrics cleared successfully. Next query will reload from disk.";
     }
 
     /// <summary>
@@ -441,6 +442,7 @@ public sealed partial class DotNetCliTools
         result.AppendLine($"Templates: {TemplateEngineHelper.Metrics}");
         result.AppendLine($"SDK Info: {DotNetResources.GetSdkMetrics()}");
         result.AppendLine($"Runtime Info: {DotNetResources.GetRuntimeMetrics()}");
+        result.AppendLine($"Workspace: {DotNetResources.GetWorkspaceMetrics()}");
         return Task.FromResult(result.ToString());
     }
 

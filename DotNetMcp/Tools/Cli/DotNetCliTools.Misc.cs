@@ -58,6 +58,7 @@ public sealed partial class DotNetCliTools
                 "sdk",
                 "security",
                 "framework",
+                "workspace",
                 "format",
                 "nuget",
                 "help",
@@ -111,7 +112,7 @@ public sealed partial class DotNetCliTools
 
         result.AppendLine("FEATURES:");
         result.AppendLine("  • 12 Consolidated MCP Tools (8 functional + 4 utility)");
-        result.AppendLine("  • 4 MCP Resources (SDK, Runtime, Templates, Frameworks)");
+        result.AppendLine("  • 5 MCP Resources (SDK, Runtime, Templates, Frameworks, Workspace)");
         result.AppendLine("  • 3 Predefined Prompts (create_new_webapi, add_package_and_restore, run_tests_with_coverage)");
         result.AppendLine("  • Completion handler: argument autocomplete for templates, frameworks, configurations, and runtime identifiers");
         result.AppendLine("  • Elicitation support: confirmation dialogs for destructive operations (Clean, solution Remove)");
@@ -168,6 +169,7 @@ public sealed partial class DotNetCliTools
         result.AppendLine("  • dotnet://runtime-info - Installed runtimes with metadata");
         result.AppendLine("  • dotnet://templates - Complete template catalog");
         result.AppendLine("  • dotnet://frameworks - Framework information with LTS status");
+        result.AppendLine("  • dotnet://workspace - Workspace solution/project snapshot with TFMs and package counts");
         result.AppendLine();
 
         result.AppendLine("PROMPTS (Predefined Workflow Guides):");
