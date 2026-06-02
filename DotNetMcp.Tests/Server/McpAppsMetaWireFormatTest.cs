@@ -62,6 +62,32 @@ public class McpAppsMetaWireFormatTest : IAsyncLifetime
         Assert.Equal("ui://dotnet-mcp/sdk-dashboard", legacyUri.GetString());
     }
 
+    [Fact]
+    public async Task DotnetServerMetrics_Meta_Ui_HasModernNestedFormat()
+    {
+        Assert.NotNull(_client);
+
+        var meta = await GetServerMetricsToolMeta();
+
+        Assert.True(meta.TryGetProperty("ui", out var ui), "_meta should contain 'ui' key");
+        Assert.Equal(JsonValueKind.Object, ui.ValueKind);
+        Assert.True(ui.TryGetProperty("resourceUri", out var resourceUri),
+            "_meta.ui should contain 'resourceUri'");
+        Assert.Equal("ui://dotnet-mcp/server-metrics", resourceUri.GetString());
+    }
+
+    [Fact]
+    public async Task DotnetServerMetrics_Meta_Ui_HasLegacyFlatKey()
+    {
+        Assert.NotNull(_client);
+
+        var meta = await GetServerMetricsToolMeta();
+
+        Assert.True(meta.TryGetProperty("ui/resourceUri", out var legacyUri),
+            "_meta should contain legacy 'ui/resourceUri' flat key (required for VS Code)");
+        Assert.Equal("ui://dotnet-mcp/server-metrics", legacyUri.GetString());
+    }
+
     private async Task<JsonElement> GetSdkToolMeta()
     {
         var tools = await _client!.ListToolsAsync(
@@ -75,6 +101,22 @@ public class McpAppsMetaWireFormatTest : IAsyncLifetime
 
         Assert.True(root.TryGetProperty("_meta", out var meta),
             "dotnet_sdk tool should have _meta field");
+        return meta.Clone();
+    }
+
+    private async Task<JsonElement> GetServerMetricsToolMeta()
+    {
+        var tools = await _client!.ListToolsAsync(
+            cancellationToken: TestContext.Current.CancellationToken);
+        var metricsTool = tools.FirstOrDefault(t => t.Name == "dotnet_server_metrics");
+        Assert.NotNull(metricsTool);
+
+        var json = JsonSerializer.Serialize(metricsTool.ProtocolTool);
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        Assert.True(root.TryGetProperty("_meta", out var meta),
+            "dotnet_server_metrics tool should have _meta field");
         return meta.Clone();
     }
 

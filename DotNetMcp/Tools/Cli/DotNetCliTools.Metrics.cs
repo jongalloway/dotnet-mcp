@@ -23,6 +23,8 @@ public sealed partial class DotNetCliTools
     [McpMeta("priority", 5.0)]
     [McpMeta("consolidatedTool", true)]
     [McpMeta("actions", JsonValue = """["Get","TokenSavingsGet","TokenSavingsReset","Reset"]""")]
+    [McpMeta("ui", JsonValue = """{"resourceUri": "ui://dotnet-mcp/server-metrics"}""")]
+    [McpMeta("ui/resourceUri", "ui://dotnet-mcp/server-metrics")]
     public partial Task<CallToolResult> DotnetServerMetrics(DotnetServerMetricsAction action)
     {
         if ((_metricsAccumulator is null) && action is DotnetServerMetricsAction.Get or DotnetServerMetricsAction.Reset)
