@@ -3,8 +3,18 @@ name: Build and Test
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "doc/**"
+      - ".github/ISSUE_TEMPLATE/**"
+      - ".github/pull_request_template.md"
   pull_request:
     branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "doc/**"
+      - ".github/ISSUE_TEMPLATE/**"
+      - ".github/pull_request_template.md"
   workflow_dispatch:
     inputs:
       runScenarioTests:
@@ -23,12 +33,12 @@ concurrency:
 
 jobs:
   detect_changes:
+    if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     outputs:
-      non_docs: ${{ steps.changes.outputs.non_docs }}
       scenario_related: ${{ steps.changes.outputs.scenario_related }}
 
     env:
@@ -38,31 +48,27 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Detect changed paths
         id: changes
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            docs:
-              - '**/*.md'
-              - 'doc/**'
-              - '.github/ISSUE_TEMPLATE/**'
-              - '.github/pull_request_template.md'
-            non_docs:
-              - '**'
-              - '!**/*.md'
-              - '!doc/**'
-              - '!.github/ISSUE_TEMPLATE/**'
-              - '!.github/pull_request_template.md'
-            scenario_related:
-              - 'DotNetMcp.Tests/Scenarios/**'
-              - 'DotNetMcp/Prompts/**'
-              - 'DotNetMcp/Resources/**'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          files="$(git diff --name-only "$base" "$head" || true)"
+
+          if echo "$files" | grep -qE '^(DotNetMcp.Tests/Scenarios/|DotNetMcp/Prompts/|DotNetMcp/Resources/)'; then
+            echo "scenario_related=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "scenario_related=false" >> "$GITHUB_OUTPUT"
+          fi
 
   pr_conformance:
-    needs: detect_changes
-    if: ${{ github.event_name == 'pull_request' && needs.detect_changes.outputs.non_docs == 'true' }}
+    if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -93,9 +99,9 @@ jobs:
         run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-class "*McpConformanceTests"
 
   pr_scenario:
-    # Runs only when scenario-specific files (Scenarios/Prompts/Resources) change in a non-docs PR.
+    # Runs only when scenario-specific files (Scenarios/Prompts/Resources) change.
     needs: detect_changes
-    if: ${{ github.event_name == 'pull_request' && needs.detect_changes.outputs.non_docs == 'true' && needs.detect_changes.outputs.scenario_related == 'true' }}
+    if: ${{ github.event_name == 'pull_request' && needs.detect_changes.outputs.scenario_related == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -125,7 +131,6 @@ jobs:
         run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
 
   manual_quick_checks:
-    needs: detect_changes
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.runFullValidation != 'true' }}
     runs-on: ubuntu-latest
     permissions:
@@ -163,7 +168,6 @@ jobs:
         run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
 
   full_validation:
-    needs: detect_changes
     if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.runFullValidation == 'true') }}
     runs-on: ubuntu-latest
     permissions:
