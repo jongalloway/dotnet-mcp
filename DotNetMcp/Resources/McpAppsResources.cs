@@ -718,6 +718,7 @@ let autoTimer = null;
 let lastMetrics = null;
 let lastCache = null;
 let lastTokens = null;
+let refreshInFlight = false;
 
 function sendRequest(method, params) {
   const id = nextId++;
@@ -746,7 +747,7 @@ window.addEventListener('message', (e) => {
     return;
   }
   if (msg.method === 'ui/notifications/host-context-changed') {
-    Object.assign(hostContext || {}, msg.params);
+    hostContext = Object.assign(hostContext || {}, msg.params || {});
     applyTheme();
   }
 });
@@ -778,6 +779,8 @@ function applyTheme() {
 }
 
 async function refreshAll() {
+  if (refreshInFlight) return;
+  refreshInFlight = true;
   const btn = document.getElementById('btnRefresh');
   btn.disabled = true;
   btn.innerHTML = '<span class="refresh-spin">&#x21bb;</span> Refreshing';
@@ -807,6 +810,7 @@ async function refreshAll() {
   } finally {
     btn.disabled = false;
     btn.innerHTML = '&#x21bb; Refresh';
+    refreshInFlight = false;
   }
 }
 
