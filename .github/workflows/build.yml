@@ -59,7 +59,8 @@ jobs:
 
           base="${{ github.event.pull_request.base.sha }}"
           head="${{ github.event.pull_request.head.sha }}"
-          files="$(git diff --name-only "$base" "$head" || true)"
+          merge_base="$(git merge-base "$base" "$head")"
+          files="$(git diff --name-only "$merge_base" "$head")"
 
           if echo "$files" | grep -qE '^(DotNetMcp.Tests/Scenarios/|DotNetMcp/Prompts/|DotNetMcp/Resources/)'; then
             echo "scenario_related=true" >> "$GITHUB_OUTPUT"
