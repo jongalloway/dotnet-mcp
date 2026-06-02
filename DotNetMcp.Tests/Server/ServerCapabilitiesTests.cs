@@ -17,7 +17,13 @@ public class ServerCapabilitiesTests
     {
         _logger = NullLogger<DotNetCliTools>.Instance;
         _concurrencyManager = new ConcurrencyManager();
-        _tools = new DotNetCliTools(_logger, _concurrencyManager, new ProcessSessionManager(), taskStore: new InMemoryMcpTaskStore());
+        _tools = new DotNetCliTools(
+            _logger,
+            _concurrencyManager,
+            new ProcessSessionManager(),
+            tokenSavingsAccumulator: new TokenSavingsAccumulator(),
+            tokenSavingsEstimator: new TokenSavingsEstimator(),
+            taskStore: new InMemoryMcpTaskStore());
     }
 
     [Fact]
