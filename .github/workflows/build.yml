@@ -237,7 +237,7 @@ jobs:
         id: upload_codecov
         # Upload from any full_validation run (push or workflow_dispatch) targeting the main branch.
         if: ${{ github.ref == 'refs/heads/main' }}
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           files: coverage.cobertura.xml
           token: ${{ secrets.CODECOV_TOKEN }}
