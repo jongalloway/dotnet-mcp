@@ -1,90 +1,90 @@
 name: Release Scenario Tests (Manual)
 
 on:
-    workflow_dispatch:
-        inputs:
-            os:
-                description: "Runner OS (ubuntu-latest, windows-latest, or all)"
-                type: choice
-                options:
-                    - ubuntu-latest
-                    - windows-latest
-                    - all
-                required: false
-                default: "ubuntu-latest"
+  workflow_dispatch:
+    inputs:
+      os:
+        description: "Runner OS (ubuntu-latest, windows-latest, or all)"
+        type: choice
+        options:
+          - ubuntu-latest
+          - windows-latest
+          - all
+        required: false
+        default: "ubuntu-latest"
 
 jobs:
-    release-scenarios:
-        name: Release scenarios (${{ matrix.os }})
-        runs-on: ${{ matrix.os }}
-        timeout-minutes: 60
-        permissions:
-            contents: read
+  release-scenarios:
+    name: Release scenarios (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    permissions:
+      contents: read
 
-        strategy:
-            fail-fast: false
-            matrix:
-                os: ${{ inputs.os == 'all' && fromJSON('["ubuntu-latest", "windows-latest"]') || fromJSON(format('["{0}"]', inputs.os)) }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ inputs.os == 'all' && fromJSON('["ubuntu-latest", "windows-latest"]') || fromJSON(format('["{0}"]', inputs.os)) }}
 
-        env:
-            DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
-            DOTNET_CLI_TELEMETRY_OPTOUT: "1"
-            DOTNET_NOLOGO: "1"
-            DOTNET_MCP_SCENARIO_TESTS: "1"
-            DOTNET_MCP_RELEASE_SCENARIO_TESTS: "1"
+    env:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+      DOTNET_MCP_SCENARIO_TESTS: "1"
+      DOTNET_MCP_RELEASE_SCENARIO_TESTS: "1"
 
-        steps:
-            - uses: actions/checkout@v6
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # pin@v6
 
-            - name: Setup .NET
-              id: setup_dotnet
-              uses: actions/setup-dotnet@v5
-              with:
-                  dotnet-version: "10.0.x"
+      - name: Setup .NET
+        id: setup_dotnet
+        uses: actions/setup-dotnet@9a946fdbd5fb07b82b2f5a4466058b876ab72bb2 # pin@v5
+        with:
+          dotnet-version: "10.0.x"
 
-            - name: Display .NET info
-              id: dotnet_info
-              run: dotnet --info
+      - name: Display .NET info
+        id: dotnet_info
+        run: dotnet --info
 
-            - name: Restore dependencies
-              id: restore
-              run: dotnet restore DotNetMcp.slnx
+      - name: Restore dependencies
+        id: restore
+        run: dotnet restore DotNetMcp.slnx
 
-            - name: Build
-              id: build
-              run: dotnet build DotNetMcp.slnx --no-restore --configuration Release
+      - name: Build
+        id: build
+        run: dotnet build DotNetMcp.slnx --no-restore --configuration Release
 
-            - name: Validate server.json
-              id: validate_server_json
-              run: pwsh -File scripts/validate-server-json.ps1
+      - name: Validate server.json
+        id: validate_server_json
+        run: pwsh -File scripts/validate-server-json.ps1
 
-            - name: Run Scenario + Release Scenario Tests
-              id: release_scenarios
-              run: |
-                  dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
-                  dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.ReleaseScenarios*"
+      - name: Run Scenario + Release Scenario Tests
+        id: release_scenarios
+        run: |
+          dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
+          dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.ReleaseScenarios*"
 
-            - name: Write workflow summary
-              if: always()
-              shell: pwsh
-              run: |
-                  $summary = @'
-                  ## dotnet-mcp release scenarios summary
+      - name: Write workflow summary
+        if: always()
+        shell: pwsh
+        run: |
+          $summary = @'
+          ## dotnet-mcp release scenarios summary
 
-                  - OS: `${{ matrix.os }}`
-                  - Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-                  - Ref: `${{ github.ref }}`
-                  - SHA: `${{ github.sha }}`
+          - OS: `${{ matrix.os }}`
+          - Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          - Ref: `${{ github.ref }}`
+          - SHA: `${{ github.sha }}`
 
-                  ### Step outcomes
-                  | Step | Outcome |
-                  | --- | --- |
-                  | Setup .NET | ${{ steps.setup_dotnet.outcome }} |
-                  | dotnet --info | ${{ steps.dotnet_info.outcome }} |
-                  | Restore | ${{ steps.restore.outcome }} |
-                  | Build | ${{ steps.build.outcome }} |
-                  | Validate server.json | ${{ steps.validate_server_json.outcome }} |
-                  | Scenario + Release scenarios | ${{ steps.release_scenarios.outcome }} |
-                  '@
+          ### Step outcomes
+          | Step | Outcome |
+          | --- | --- |
+          | Setup .NET | ${{ steps.setup_dotnet.outcome }} |
+          | dotnet --info | ${{ steps.dotnet_info.outcome }} |
+          | Restore | ${{ steps.restore.outcome }} |
+          | Build | ${{ steps.build.outcome }} |
+          | Validate server.json | ${{ steps.validate_server_json.outcome }} |
+          | Scenario + Release scenarios | ${{ steps.release_scenarios.outcome }} |
+          '@
 
-                  $summary | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          $summary | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8

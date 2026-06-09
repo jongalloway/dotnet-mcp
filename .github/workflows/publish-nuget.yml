@@ -7,7 +7,8 @@ on:
   push:
     tags:
       - "v*" # Only runs on version tags like v1.0.0, v0.1.0-alpha.1
-  workflow_dispatch: # Allows manual triggering from GitHub Actions UI
+  workflow_dispatch:
+    # Allows manual triggering from GitHub Actions UI
 
 jobs:
   publish:
@@ -20,7 +21,7 @@ jobs:
       id-token: write # Required for OIDC token issuance (Trusted Publishing)
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # pin@v6
         id: checkout
         with:
           fetch-depth: 0 # Required for MinVer to access Git history and tags
@@ -42,7 +43,7 @@ jobs:
 
       - name: Setup .NET
         id: setup_dotnet
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@9a946fdbd5fb07b82b2f5a4466058b876ab72bb2 # pin@v5
         with:
           dotnet-version: "10.0.x"
           cache: true
@@ -146,7 +147,7 @@ jobs:
 
       - name: NuGet login (OIDC ? temp API key)
         id: nuget_login
-        uses: NuGet/login@v1
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # pin@v1
         with:
           user: ${{ secrets.NUGET_USER }}
 
@@ -230,7 +231,7 @@ jobs:
 
       - name: Upload package artifact (for registry publish)
         id: upload_nupkg_artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # pin@v7
         with:
           name: dotnet-mcp-nupkg
           path: ./artifacts/*.nupkg
@@ -278,13 +279,13 @@ jobs:
     steps:
       - name: Checkout repository
         id: checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # pin@v6
         with:
           fetch-depth: 0
 
       - name: Download package artifact
         id: download_nupkg
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # pin@v8
         with:
           name: dotnet-mcp-nupkg
           path: ./artifacts
