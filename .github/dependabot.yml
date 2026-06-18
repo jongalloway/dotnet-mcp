@@ -3,12 +3,24 @@
 
 version: 2
 updates:
-  # Monitor NuGet dependencies in the DotNetMcp project
+  # Monitor NuGet dependencies in the main and test projects
   - package-ecosystem: "nuget"
-    directory: "/DotNetMcp"
+    directories:
+      - "/DotNetMcp"
+      - "/DotNetMcp.Tests"
     schedule:
       interval: "weekly"
       day: "monday"
+    groups:
+      microsoft-dotnet-dependencies:
+        patterns:
+          - "Microsoft.*"
+      mcp-sdk-dependencies:
+        patterns:
+          - "ModelContextProtocol"
+      test-dependencies:
+        patterns:
+          - "xunit.*"
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
@@ -16,13 +28,17 @@ updates:
     commit-message:
       prefix: "deps"
       include: "scope"
-    
+
   # Monitor GitHub Actions dependencies
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
