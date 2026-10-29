@@ -4,6 +4,10 @@
 
 The `CAPABILITY_NOT_AVAILABLE` error code provides a standardized way to communicate that a feature exists in the API but cannot be executed in the current environment or configuration.
 
+This is an **application error inside a tool result**, not a JSON-RPC error envelope. Existing factory overloads annotate it with `mcpErrorCode` `-32001` or `-32603`; both remain stable across protocol revisions. The SDK's `MissingRequiredCapability` protocol error (`-32021`) is a separate wire-level condition and must not be substituted into these application payloads.
+
+Use `dotnet_server_capabilities` to discover availability for the active request. On MCP 2026-07-28, Tasks require per-request extension opt-in, Logging requires a per-request log level, and Elicitation/Sampling reflect the client's current capability metadata. Legacy tool calls remain inline.
+
 ## Purpose
 
 This error strategy disambiguates between:

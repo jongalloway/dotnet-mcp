@@ -1,9 +1,11 @@
 using DotNetMcp;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
 using ModelContextProtocol.Client;
+using ModelContextProtocol.Extensions.Tasks;
 using ModelContextProtocol.Protocol;
 using Xunit;
 
@@ -60,7 +62,7 @@ public class McpConformanceTests : IAsyncLifetime
         
         // Connect to the server and perform handshake
         _client = await McpClient.CreateAsync(
-            transport,
+            new PerRequestLoggingTransport(transport),
             loggerFactory: _loggerFactory,
             cancellationToken: TestContext.Current.CancellationToken);
 
@@ -116,15 +118,15 @@ public class McpConformanceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Server_ShouldRespondToPing()
+    public async Task Server_CurrentProtocol_ShouldRejectRemovedPing()
     {
         // Arrange
         Assert.NotNull(_client);
 
         // Act
-        await _client.PingAsync(cancellationToken: TestContext.Current.CancellationToken);
-
-        // Assert - if no exception, ping succeeded
+        var error = await Assert.ThrowsAsync<McpProtocolException>(
+            async () => await _client.PingAsync(cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(McpErrorCode.MethodNotFound, error.ErrorCode);
     }
 
     #endregion
@@ -538,22 +540,67 @@ public class McpConformanceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Server_SubscribeToResource_ShouldSucceed()
+    public async Task Server_CurrentProtocol_ShouldRejectLegacyResourceSubscription()
     {
         // Arrange
         Assert.NotNull(_client);
 
         // Act — subscribe to a known resource URI; the server must accept the request
-        var registration = await _client.SubscribeToResourceAsync(
-            "dotnet://templates",
-            (_, _) => ValueTask.CompletedTask,
-            cancellationToken: TestContext.Current.CancellationToken);
+        var error = await Assert.ThrowsAsync<McpProtocolException>(
+            async () => await _client.SubscribeToResourceAsync(
+                "dotnet://templates",
+                (_, _) => ValueTask.CompletedTask,
+                cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(McpErrorCode.MethodNotFound, error.ErrorCode);
+        Assert.Contains("subscriptions/listen", error.Message);
+    }
 
-        // Assert — no exception means the server accepted the subscription
-        Assert.NotNull(registration);
-
-        // Cleanup
-        await registration.DisposeAsync();
+    [Fact]
+    public async Task Server_CurrentResourceSubscription_DeliversUpdatesAfterAcknowledgement()
+    {
+        Assert.NotNull(_client);
+        var acknowledged = new TaskCompletionSource<JsonNode?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var updated = new TaskCompletionSource<JsonNode?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using var updateHandler = _client.RegisterNotificationHandler(
+            NotificationMethods.ResourceUpdatedNotification,
+            (notification, _) =>
+            {
+                updated.TrySetResult(notification.Params?.DeepClone());
+                return ValueTask.CompletedTask;
+            });
+        await using var handler = _client.RegisterNotificationHandler(
+            NotificationMethods.SubscriptionsAcknowledgedNotification,
+            (notification, _) =>
+            {
+                acknowledged.TrySetResult(notification.Params?.DeepClone());
+                return ValueTask.CompletedTask;
+            });
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        var listening = _client.SendRequestAsync(new()
+        {
+            Id = new RequestId("resource-subscription"),
+            Method = RequestMethods.SubscriptionsListen,
+            Params = JsonSerializer.SerializeToNode(new SubscriptionsListenRequestParams
+            {
+                Notifications = new() { ResourceSubscriptions = ["dotnet://templates"] }
+            }, McpJsonUtilities.DefaultOptions)
+        }, cancellation.Token);
+        try
+        {
+            var result = await acknowledged.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+            Assert.Equal("dotnet://templates", result!["notifications"]!["resourceSubscriptions"]![0]!.GetValue<string>());
+            await _client.CallToolAsync("dotnet_sdk",
+                new Dictionary<string, object?> { ["action"] = "ClearTemplateCache" },
+                cancellationToken: TestContext.Current.CancellationToken);
+            var update = await updated.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+            Assert.Equal("dotnet://templates", update!["uri"]!.GetValue<string>());
+            Assert.Equal("resource-subscription", update["_meta"]![MetaKeys.SubscriptionId]!.GetValue<string>());
+        }
+        finally
+        {
+            await cancellation.CancelAsync();
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => listening);
+        }
     }
 
     #endregion
@@ -789,10 +836,6 @@ public class McpConformanceTests : IAsyncLifetime
 
     #region MCP Task Support Tests
 
-    // Task support is enabled: MCP SDK v1.2.0 fixed the DI scope lifetime bug (#1430).
-    // InMemoryMcpTaskStore is registered, so tool calls with TaskSupport = Optional
-    // can run as background tasks.
-
     [Fact]
     public void Server_ShouldAdvertiseTasksCapability_WhenTaskStoreRegistered()
     {
@@ -801,11 +844,12 @@ public class McpConformanceTests : IAsyncLifetime
 
         // Assert - task store is registered so tasks capability is advertised
         Assert.NotNull(_client.ServerCapabilities);
-        Assert.NotNull(_client.ServerCapabilities.Tasks);
+        Assert.NotNull(_client.ServerCapabilities.Extensions);
+        Assert.Contains(TasksProtocol.ExtensionId, _client.ServerCapabilities.Extensions.Keys);
     }
 
     [Fact]
-    public async Task Server_DotnetProject_ShouldDeclareTaskSupportOptional()
+    public async Task Server_DotnetProject_ShouldNotAdvertiseLegacyTaskMetadata()
     {
         // Arrange
         Assert.NotNull(_client);
@@ -814,11 +858,9 @@ public class McpConformanceTests : IAsyncLifetime
         var tools = await _client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
         var projectTool = tools.FirstOrDefault(t => t.Name == "dotnet_project");
 
-        // Assert - the tool attribute declares TaskSupport = Optional
         Assert.NotNull(projectTool);
-        var execution = projectTool.ProtocolTool.Execution;
-        Assert.NotNull(execution);
-        Assert.Equal(ModelContextProtocol.Protocol.ToolTaskSupport.Optional, execution.TaskSupport);
+        using var json = JsonDocument.Parse(JsonSerializer.Serialize(projectTool.ProtocolTool));
+        Assert.False(json.RootElement.TryGetProperty("execution", out _));
     }
 
     [Fact]
@@ -1018,6 +1060,44 @@ public class McpConformanceTests : IAsyncLifetime
 
     #region MCP Logging Notification Tests
 
+    [Theory]
+    [InlineData("2026-07-28")]
+    [InlineData("2025-11-25")]
+    public async Task Server_ConfirmationControlFlow_ReachesSdk(string protocol)
+    {
+        var executable = GetServerExecutablePath();
+        var confirmations = 0;
+        await using var client = await McpClient.CreateAsync(
+            new StdioClientTransport(new()
+            {
+                Command = executable.command,
+                Arguments = executable.arguments,
+                Name = "dotnet-mcp-confirmation-test"
+            }),
+            new()
+            {
+                ProtocolVersion = protocol,
+                Handlers = new()
+                {
+                    ElicitationHandler = (_, _) =>
+                    {
+                        Interlocked.Increment(ref confirmations);
+                        return ValueTask.FromResult(new ElicitResult { Action = "decline" });
+                    }
+                }
+            },
+            cancellationToken: TestContext.Current.CancellationToken);
+        Assert.NotEmpty(await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken));
+        var result = await client.CallToolAsync("dotnet_project",
+            new Dictionary<string, object?> { ["action"] = "Clean", ["project"] = "missing.csproj" },
+            cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal(1, confirmations);
+        Assert.Contains("Clean operation cancelled.", result.GetText());
+        Assert.DoesNotContain("Internal error", result.GetText());
+    }
+
+    // Logging is retained for stdio; current-protocol calls must opt in per request.
+#pragma warning disable MCP9005
     [Fact]
     public async Task Server_BuildAction_SendsMcpLoggingNotification()
     {
@@ -1036,14 +1116,17 @@ public class McpConformanceTests : IAsyncLifetime
         // Act - invoke Build with "nonexistent.csproj".
         // ValidateProjectPath accepts any path with a valid extension, so validation passes,
         // the logging notification fires, and then dotnet build fails at runtime.
-        await _client.CallToolAsync(
-            "dotnet_project",
-            new Dictionary<string, object?>
+        await _client.SendRequestAsync(new()
+        {
+            Id = new RequestId("build-with-logging"),
+            Method = RequestMethods.ToolsCall,
+            Params = new JsonObject
             {
-                ["action"] = "Build",
-                ["project"] = "nonexistent.csproj"
+                ["name"] = "dotnet_project",
+                ["arguments"] = new JsonObject { ["action"] = "Build", ["project"] = "nonexistent.csproj" }
             },
-            cancellationToken: TestContext.Current.CancellationToken);
+            Context = new() { LogLevel = LoggingLevel.Info }
+        }, TestContext.Current.CancellationToken);
 
         // Give async notification delivery a short grace period
         var notifyTask = notificationReceived.Task;
@@ -1074,14 +1157,17 @@ public class McpConformanceTests : IAsyncLifetime
         // Act - invoke Restore with "nonexistent.csproj".
         // ValidateProjectPath accepts any path with a valid extension, so validation passes,
         // the logging notification fires, and then dotnet restore fails at runtime.
-        await _client.CallToolAsync(
-            "dotnet_project",
-            new Dictionary<string, object?>
+        await _client.SendRequestAsync(new()
+        {
+            Id = new RequestId("restore-with-logging"),
+            Method = RequestMethods.ToolsCall,
+            Params = new JsonObject
             {
-                ["action"] = "Restore",
-                ["project"] = "nonexistent.csproj"
+                ["name"] = "dotnet_project",
+                ["arguments"] = new JsonObject { ["action"] = "Restore", ["project"] = "nonexistent.csproj" }
             },
-            cancellationToken: TestContext.Current.CancellationToken);
+            Context = new() { LogLevel = LoggingLevel.Info }
+        }, TestContext.Current.CancellationToken);
 
         var notifyTask = notificationReceived.Task;
         var delayTask = Task.Delay(2000, TestContext.Current.CancellationToken);
@@ -1091,6 +1177,7 @@ public class McpConformanceTests : IAsyncLifetime
             "Expected at least one MCP logging notification (notifications/message) " +
             "to be delivered when invoking dotnet_project Restore.");
     }
+#pragma warning restore MCP9005
 
     #endregion
 

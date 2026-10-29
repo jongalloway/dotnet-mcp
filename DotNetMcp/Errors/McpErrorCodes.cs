@@ -1,8 +1,9 @@
 namespace DotNetMcp;
 
 /// <summary>
-/// MCP (Model Context Protocol) error codes following JSON-RPC 2.0 specification.
-/// These codes align with MCP v0.5.0 protocol error semantics.
+/// Error annotations in structured tool results, using JSON-RPC and legacy MCP conventions.
+/// These application metadata values are not JSON-RPC errors; the SDK selects actual
+/// protocol error codes according to the negotiated revision.
 /// </summary>
 public static class McpErrorCodes
 {
@@ -32,13 +33,14 @@ public static class McpErrorCodes
     public const int InternalError = -32603;
 
     /// <summary>
-    /// Resource not found - The requested resource does not exist (MCP-specific: -32002)
-    /// Used when a resource URI cannot be resolved or a file/project/package is not found.
+    /// Legacy resource-not-found annotation (-32002) for missing files/projects/packages.
+    /// Actual resources/read failures use SDK mapping: InvalidParams on 2026-07-28,
+    /// ResourceNotFound on legacy protocol revisions.
     /// </summary>
     public const int ResourceNotFound = -32002;
 
     /// <summary>
-    /// Capability not available - The tool/feature exists but is unavailable in the current environment (MCP-specific: -32001)
+    /// Application capability-not-available annotation (-32001).
     /// Used when a feature is not yet implemented, disabled, or unsupported due to environment limitations.
     /// </summary>
     public const int CapabilityNotAvailable = -32001;

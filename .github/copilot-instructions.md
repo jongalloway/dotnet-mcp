@@ -9,13 +9,15 @@ This project is an **MCP (Model Context Protocol) server** that integrates with 
 ## Key Technologies
 
 - **.NET 10.0**: The latest version of .NET (LTS - Long Term Support)
-- **Model Context Protocol SDK**: Version 1.0.0
+- **Model Context Protocol SDK**: Version 2.0.0, with matching `ModelContextProtocol.Extensions.Tasks`
 - **Stdio Transport**: Communication via standard input/output
 - **Microsoft.Extensions.Hosting**: For application lifecycle management
 - **Microsoft.TemplateEngine.\***: Direct integration with .NET Template Engine (v10.0.101)
 - **Microsoft.Build.\***: MSBuild integration for framework validation (v18.0.2)
 
 ## Architecture
+
+The stdio server supports MCP 2026-07-28 and legacy initialization. Register Tasks through `WithTasks` using the extension's shared store; do not restore obsolete `ToolTaskSupport` attributes or advertise legacy experimental Tasks. Preserve `InputRequiredException` and cancellation through tool filters. Current-protocol logging requires a per-request log level, and client-dependent capability flags must use request-scoped context. Governance must remain fail-closed; see `doc/mcp-governance.md` for the existing full-catalog scanner restriction.
 
 The server uses a **hybrid architecture**:
 1. **SDK Integration** - For metadata, discovery, and validation (Template Engine, MSBuild)
