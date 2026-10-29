@@ -175,7 +175,7 @@ When a conflicting operation is already in progress, the text content contains t
   "content": [{ "type": "text", "text": "{ \"serverVersion\": \"1.0.0\", ... }" }],
   "structuredContent": {
     "serverVersion": "1.0.0",
-    "protocolVersion": "2025-11-25",
+    "protocolVersion": "2026-07-28",
     "supportedCategories": ["template", "project", ...],
     "supports": { "structuredErrors": true, "machineReadable": true, ... },
     "sdkVersions": { "installed": ["10.0.100"], "recommended": "net10.0", "lts": "net8.0" }
@@ -184,6 +184,12 @@ When a conflicting operation is already in progress, the text content contains t
 ```
 
 ---
+
+## Connection-Dependent Capabilities and Tasks
+
+`dotnet_server_capabilities.protocolVersion` reports the active connection's revision, not a hard-coded maximum. In a no-connection snapshot it reports the maximum supported revision, `2026-07-28`. Feature field names and types remain unchanged: `asyncTasks` requires both a registered store and an opted-in current-protocol request; `elicitation` and `sampling` reflect that request's client capabilities; `mcpLogging` requires a current request log level (and messages respect its threshold). Without a connection these flags describe implementation support, subject to client negotiation.
+
+The Tasks extension preserves the normal `CallToolResult` inside a completed task. `IsError: true` remains an application error result, not a failed task. Protocol failures use the failed task state. Legacy clients receive normal inline results.
 
 ## Minimal Mutating Result Contract
 
@@ -490,7 +496,7 @@ interface ErrorResult {
   suggestedFixes?: string[];   // Suggested fix commands (optional)
   alternatives?: string[];     // Alternative actions (optional)
   rawOutput: string;           // Original output, redacted (required)
-  mcpErrorCode?: number;       // MCP error code per JSON-RPC 2.0 (optional)
+  mcpErrorCode?: number;       // Application error annotation (optional), not the wire error envelope
   data?: ErrorData;            // Structured error data (optional)
 }
 
@@ -513,7 +519,7 @@ interface ErrorData {
 
 - `metadata` - Tool-specific metadata (e.g., for dotnet_project Test action, includes test runner selection)
 - `hint`, `explanation`, `documentationUrl`, `suggestedFixes`, `alternatives`
-- `mcpErrorCode` - Maps to JSON-RPC 2.0 error codes
+- `mcpErrorCode` - Application error annotation using JSON-RPC-style codes; does not determine the wire error envelope
 - `data` - Structured data for programmatic error handling
 
 ## Error Categories
@@ -973,7 +979,7 @@ Cancellation errors occur when a user cancels a long-running operation.
 
 ## MCP Error Code Mapping
 
-Machine-readable responses map to JSON-RPC 2.0 error codes for MCP compatibility:
+The optional `mcpErrorCode` inside a tool result is stable application metadata using JSON-RPC-style codes. It does not turn a successful JSON-RPC response containing `CallToolResult.IsError` into a protocol error, and the SDK does not rewrite it when the negotiated revision changes:
 
 | Error Category | MCP Error Code(s) | Description |
 |----------------|-------------------|-------------|
@@ -989,6 +995,8 @@ Machine-readable responses map to JSON-RPC 2.0 error codes for MCP compatibility
 - `CAPABILITY_NOT_AVAILABLE` may surface as either `-32001` (when using the factory overload that accepts feature, alternatives, command, and details) or `-32603` (when using the overload with feature, reason, and alternatives). Clients should treat both codes as representing the same high-level capability-not-available condition.
 - Resource-not-found errors (NU1101, NU1102, MSB1003, NETSDK1004, MSB4236) use `-32002` (ResourceNotFound).
 - Compilation and build errors that are not resource-related (e.g., CS0103, MSB3644) typically have no MCP error code (`null`).
+
+Actual protocol errors are selected by the SDK. For example, a missing `resources/read` URI produces `InvalidParams` (`-32602`) on 2026-07-28 and the legacy resource-not-found code (`-32002`) on 2025-11-25. This does not renumber the existing application annotations above. SDK protocol codes such as `MissingRequiredCapability` (`-32021`) are distinct from the application's `CAPABILITY_NOT_AVAILABLE`.
 
 ## Security and Redaction
 

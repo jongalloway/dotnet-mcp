@@ -13,6 +13,18 @@ This approach provides rich metadata access, type-safe operations, and validatio
 
 ## SDK Packages
 
+### MCP hosting and protocol
+
+- **ModelContextProtocol** (v2.0.0): stdio hosting, tool discovery, MRTR, resources, prompts, and legacy-client compatibility.
+- **ModelContextProtocol.Extensions.Tasks** (v2.0.0): `WithTasks`, `IMcpTaskStore`, and `InMemoryMcpTaskStore` in the extension namespace. The store is shared between hosting and capability reporting.
+- **Microsoft.AgentGovernance.Extensions.ModelContextProtocol** (v4.0.0): retained policy enforcement and response sanitization. See [governance configuration](mcp-governance.md) for its fail-closed startup restriction on the current catalog.
+
+Tasks require MCP 2026-07-28 and `io.modelcontextprotocol/tasks` opt-in on each request. Earlier clients use ordinary inline calls, not the removed experimental Tasks API. Task cancellation flows through the tool filter to command execution and pending confirmation. The matching MCP dependency graph also requires `Microsoft.Extensions.Logging.Abstractions` 10.0.10.
+
+Cancellable commands disable shared MSBuild workers and node reuse in their child-process environment. This keeps build work in the command's owned process tree so cancelling a task does not leave a reused worker running or interfere with another session's worker.
+
+See [SDK compatibility](sdk-v1.1-compatibility.md) for confirmation, deprecated stdio capabilities, and wire-protocol differences. The .NET SDK integration packages below are unchanged.
+
 ### Template Engine
 
 - **Microsoft.TemplateEngine.Abstractions** (v10.0.101)

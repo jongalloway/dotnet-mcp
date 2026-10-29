@@ -3,6 +3,8 @@ using ModelContextProtocol.Server;
 
 namespace DotNetMcp;
 
+// Roots are retained for stateful stdio clients that still advertise them.
+#pragma warning disable MCP9005
 /// <summary>
 /// Provides workspace discovery helpers using the MCP roots capability.
 /// When a client provides workspace roots, these helpers scan them to auto-detect
@@ -97,6 +99,7 @@ internal static class WorkspaceDiscovery
             return null;
         }
     }
+#pragma warning restore MCP9005
 
     internal static string? GetLocalPath(string? uri)
     {

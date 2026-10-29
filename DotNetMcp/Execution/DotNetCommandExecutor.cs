@@ -15,6 +15,21 @@ public static class DotNetCommandExecutor
     private static readonly int NewLineLength = Environment.NewLine.Length;
 
     internal static readonly AsyncLocal<string?> WorkingDirectoryOverride = new();
+    internal static readonly AsyncLocal<CancellationToken> RequestCancellationToken = new();
+
+    internal static async ValueTask<T> WithRequestCancellationAsync<T>(CancellationToken cancellationToken, Func<ValueTask<T>> action)
+    {
+        var previous = RequestCancellationToken.Value;
+        RequestCancellationToken.Value = cancellationToken;
+        try
+        {
+            return await action();
+        }
+        finally
+        {
+            RequestCancellationToken.Value = previous;
+        }
+    }
 
     /// <summary>
     /// Execute a dotnet command with full output handling, logging, and truncation support.
@@ -27,6 +42,11 @@ public static class DotNetCommandExecutor
     /// <returns>Combined output, error, and exit code information</returns>
     public static async Task<string> ExecuteCommandAsync(string arguments, ILogger? logger = null, bool unsafeOutput = false, CancellationToken cancellationToken = default, string? workingDirectory = null)
     {
+        var requiresCancellation = cancellationToken.CanBeCanceled || RequestCancellationToken.Value.CanBeCanceled;
+        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, RequestCancellationToken.Value);
+        cancellationToken = linkedCancellation.Token;
+        cancellationToken.ThrowIfCancellationRequested();
+
         logger?.LogDebug("Executing: dotnet {Arguments}", arguments);
 
         workingDirectory ??= WorkingDirectoryOverride.Value;
@@ -60,6 +80,14 @@ public static class DotNetCommandExecutor
             UseShellExecute = false,
             CreateNoWindow = true
         };
+
+        if (requiresCancellation)
+        {
+            // Shared MSBuild workers are not owned by this process tree.
+            psi.Environment["MSBUILDDISABLENODEREUSE"] = "1";
+            psi.Environment["MSBUILDNOINPROCNODE"] = "0";
+            psi.Environment["DOTNET_CLI_USE_MSBUILDNOINPROCNODE"] = "0";
+        }
 
         if (!string.IsNullOrWhiteSpace(normalizedWorkingDirectory))
         {
@@ -120,31 +148,24 @@ public static class DotNetCommandExecutor
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
 
-        // Register cancellation callback to kill the process
-        using var registration = cancellationToken.Register(() =>
-        {
-            try
-            {
-                if (!process.HasExited)
-                {
-                    logger?.LogWarning("Cancellation requested - terminating process");
-                    process.Kill(entireProcessTree: true);
-                }
-            }
-            catch (InvalidOperationException)
-            {
-                // Process already exited - expected race condition
-                logger?.LogDebug("Process already exited during cancellation");
-            }
-        });
-
         try
         {
             await process.WaitForExitAsync(cancellationToken);
         }
         catch (OperationCanceledException)
         {
-            logger?.LogWarning("Command was cancelled");
+            logger?.LogWarning("Command was cancelled - terminating process");
+            try
+            {
+                if (!process.HasExited)
+                    process.Kill(entireProcessTree: true);
+            }
+            catch (InvalidOperationException)
+            {
+                logger?.LogDebug("Process already exited during cancellation");
+            }
+            // Finish terminating the command before disposing its process.
+            await process.WaitForExitAsync(CancellationToken.None);
 
             // Apply security redaction to partial output unless unsafeOutput is enabled
             var partialOutput = output.ToString().TrimEnd();

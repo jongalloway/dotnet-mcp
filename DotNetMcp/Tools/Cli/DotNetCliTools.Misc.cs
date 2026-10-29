@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text;
+using ModelContextProtocol.Extensions.Tasks;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -24,12 +25,13 @@ public sealed partial class DotNetCliTools
     /// <summary>
     /// Get a machine-readable JSON snapshot of server capabilities, versions, and supported features for agent orchestration and discovery.
     /// </summary>
+    /// <param name="context">Injected MCP request context for request-dependent capability reporting</param>
     [McpServerTool(Title = "Server Capabilities", ReadOnly = true, Idempotent = true, UseStructuredContent = true, OutputSchemaType = typeof(ServerCapabilities), IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Bar%20Chart/Flat/bar_chart_flat.svg")]
     [McpMeta("category", "help")]
     [McpMeta("priority", 8.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("tags", JsonValue = """["capabilities","version","discovery","orchestration","metadata"]""")]
-    public async partial Task<CallToolResult> DotnetServerCapabilities()
+    public async partial Task<CallToolResult> DotnetServerCapabilities(McpServer? server = null, RequestContext<CallToolRequestParams>? context = null)
     {
         // Get the assembly version
         var assembly = typeof(DotNetCliTools).Assembly;
@@ -45,7 +47,7 @@ public sealed partial class DotNetCliTools
         var capabilities = new ServerCapabilities
         {
             ServerVersion = version,
-            ProtocolVersion = ProtocolVersion,
+            ProtocolVersion = server?.NegotiatedProtocolVersion ?? ProtocolVersion,
             SupportedCategories = new[]
             {
                 "template",
@@ -72,12 +74,14 @@ public sealed partial class DotNetCliTools
                 Cancellation = true,
                 Telemetry = true,  // SDK v0.6+ supports request duration logging and OpenTelemetry semantic conventions
                 Metrics = true,    // In-memory per-tool metrics via MCP message filter (dotnet_server_metrics tool)
-                AsyncTasks = _taskStore != null, // Derived from DI: true when IMcpTaskStore is registered
+                AsyncTasks = _taskStore is not null && (server is null ||
+                    (server.NegotiatedProtocolVersion == ProtocolVersion &&
+                     server.ClientCapabilities?.Extensions?.ContainsKey(TasksProtocol.ExtensionId) == true)),
                 Prompts = true,     // Predefined prompt catalog: create_new_webapi, add_package_and_restore, run_tests_with_coverage
-                Elicitation = true,  // Elicitation for confirmation before destructive ops (Clean, solution Remove)
-                McpLogging = true,   // MCP log notifications sent to client during key operations (build, test, publish, restore, package add/update)
+                Elicitation = server is null || server.ClientCapabilities?.Elicitation is not null,
+                McpLogging = SupportsMcpLogging(server, context),
                 Completions = true,  // Argument autocomplete: template names, framework TFMs, configurations, runtime identifiers
-                Sampling = true,     // Sampling for AI-assisted build/test error interpretation (when client supports it)
+                Sampling = SupportsSampling(server),
                 ProgressNotifications = true, // Real-time progress updates for build, test, publish, and other long-running operations
                 TokenSavings = _tokenSavingsAccumulator is not null && _tokenSavingsEstimator is not null // Derived from DI: true when TokenSavingsAccumulator and TokenSavingsEstimator are registered
             },
@@ -92,6 +96,12 @@ public sealed partial class DotNetCliTools
         var json = ErrorResultFactory.ToJson(capabilities);
         return StructuredContentHelper.ToCallToolResult(json, capabilities);
     }
+
+    // Sampling remains available to stdio peers that explicitly advertise it.
+#pragma warning disable MCP9005
+    private static bool SupportsSampling(McpServer? server)
+        => server is null || server.ClientCapabilities?.Sampling is not null;
+#pragma warning restore MCP9005
 
     /// <summary>
     /// Get detailed human-readable information about .NET MCP Server capabilities, including supported features, concurrency safety, and available resources.

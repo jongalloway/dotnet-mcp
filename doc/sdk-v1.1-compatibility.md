@@ -1,110 +1,48 @@
-# SDK v1.1 Compatibility Audit
+# MCP SDK Compatibility
 
-## Summary
+This page retains its historical filename for existing links. The current server uses **ModelContextProtocol 2.0.0** and **ModelContextProtocol.Extensions.Tasks 2.0.0**, targeting .NET 10 and stdio transport.
 
-This document summarizes the compatibility audit for the ModelContextProtocol C# SDK v1.1.0 integration in dotnet-mcp.
+## Protocol revisions
 
-**Conclusion**: dotnet-mcp is compatible with SDK v1.1.0. The core server setup from the v1.0 line remains valid, and the project now also adopts task-related SDK features for long-running operations.
+The maximum supported revision is **2026-07-28**. The SDK also accepts legacy initialization, including **2025-11-25**; no protocol pin removes older clients. Tools, resources, prompts, completions, structured results, icons, and existing MCP Apps resource metadata are preserved.
 
-## Changes Adopted in This Upgrade
+On the current revision, clients use discovery and per-request metadata. The removed `ping`, `resources/subscribe`, and `resources/unsubscribe` methods are not available. Resource subscriptions use `subscriptions/listen` with `resourceSubscriptions`; legacy clients retain the original methods.
 
-### Package Update
+`dotnet_server_capabilities` reports the connection's negotiated revision and request-dependent feature availability. A direct, no-connection snapshot reports maximum implementation support rather than promising every client can use each feature.
 
-- Updated the `ModelContextProtocol` package reference to `1.1.0`.
+## Tasks extension
 
-### Task Support Adoption
+`WithTasks` uses a shared `InMemoryMcpTaskStore` from the separate Tasks package. There are no `ToolTaskSupport` attributes or legacy experimental task capability objects.
 
-dotnet-mcp now uses task-related SDK APIs for long-running tool execution:
+Async execution requires protocol 2026-07-28 and per-request opt-in to `io.modelcontextprotocol/tasks`. The extension supplies task creation, `tasks/get`, `tasks/update`, and `tasks/cancel`. Ordinary calls, including legacy-client calls, remain inline. The new extension is not wire-compatible with the old experimental Tasks implementation.
 
-- Registers `IMcpTaskStore` with `InMemoryMcpTaskStore` in `Program.cs`
-- Declares `TaskSupport = ToolTaskSupport.Optional` on `dotnet_project`
-- Continues to pair task-aware flows with MCP progress notifications for build, test, publish, and related long-running operations
+An application error (`CallToolResult.IsError = true`) is retained inside a completed task. Protocol failures produce failed tasks. Cancellation reaches pending elicitation and CLI process execution, while progress reporting, concurrency locks, and tool filters remain active.
 
-This enables capable clients to run long-running requests using the MCP task lifecycle instead of forcing all such operations to block a single foreground request.
+## Destructive-operation confirmation
 
-### Existing v1.0-era Features Preserved
+Clean and solution Remove request a required boolean confirmation before side effects. On native ordinary calls, MRTR returns an input request and validates the continuation against the operation and arguments. Only an accepted response with `confirmed: true` proceeds; decline, cancel, and false confirmation do not.
 
-The upgrade preserves the MCP features already in use across the server:
+Legacy clients retain elicitation, and the SDK's legacy MRTR resolver remains available. Tasks use task-aware elicitation and `input_required`/`tasks/update`, because SDK 2.0 does not compose explicit `InputRequiredException` with task handlers. Clients without elicitation retain the existing unprompted behavior; confirmation is not an authorization boundary.
 
-- Tools with rich metadata and icons
-- Resources for SDK, runtime, template, and framework discovery
-- Prompts for guided .NET workflows
-- Roots-based workspace discovery
-- Sampling for AI-assisted failure interpretation
-- Elicitation for destructive-operation confirmation
-- Progress notifications for long-running operations
-- Completion handlers for prompt and parameter entry
+## Retained deprecated stdio features
 
-## dotnet-mcp SDK Usage in v1.1
+Roots, Sampling, and Logging have MCP9005 deprecations. Their stateful stdio paths remain in place with narrow, explained diagnostic suppressions. Roots-based workspace discovery and Sampling-assisted failure interpretation remain conditional on client support.
 
-### Server-Side APIs Used
+Current-protocol logging requires `_meta["io.modelcontextprotocol/logLevel"]` on each request; omitting it emits no MCP log messages. Legacy session log levels remain supported, and ordinary host logging continues to stderr. SDK 2.0's client currently strips the log-level metadata during request injection; the logging tests supply it at the transport boundary to verify the server's actual wire behavior.
 
-dotnet-mcp uses these MCP C# SDK registration and hosting features:
+## Governance
 
-1. `AddMcpServer()` for DI-based server registration
-2. `WithStdioServerTransport()` for stdio transport
-3. `WithTools<DotNetCliTools>()` for the consolidated tool surface
-4. `WithResources<DotNetResources>()` for read-only SDK metadata resources
-5. `WithPrompts<DotNetPrompts>()` for reusable workflow prompts
-6. `WithSubscribeToResourcesHandler(...)` and `WithUnsubscribeFromResourcesHandler(...)` for resource subscription support
-7. `WithCompleteHandler(...)` for completion/autocomplete support
+Governance **4.0.0** remains a required dependency. Policy enforcement, authentication requirements, schema scanning, fail-closed startup, and response sanitization are not disabled for SDK compatibility.
 
-### SDK Features Actively Used
+The full catalog still encounters an upstream scanner restriction on the certificate tool's `password` schema field, also reproduced with SDK 1.4.0. Safe-subset integration tests establish allow/deny and MRTR/Tasks compatibility; a separate test verifies the pre-existing full-catalog fail-closed behavior is preserved. This is **not** a successful full-catalog governance startup. See [governance configuration](mcp-governance.md).
 
-The project exercises the following MCP capabilities through the C# SDK:
+## Error semantics
 
-- **Tools**: consolidated tool methods with XML-doc-generated descriptions and rich metadata
-- **Resources**: cached JSON resources for installed SDKs, runtimes, templates, and frameworks
-- **Prompts**: reusable prompt templates for common .NET workflows
-- **Roots**: automatic project/solution discovery from client workspace roots
-- **Sampling**: client-mediated LLM calls for concise error interpretation
-- **Elicitation**: explicit confirmation for destructive operations
-- **Progress**: progress notifications for long-running operations
-- **Tasks**: optional task support for long-running project operations
-- **Completion**: prompt argument completion support
-- **Icons and metadata**: tool and server presentation data for MCP-aware clients
-
-## Protocol Version
-
-The server continues to advertise the MCP protocol version string `2025-11-25`, which remains appropriate for the current SDK line.
-
-## Compatibility Notes
-
-### No Breaking Server Registration Changes Required
-
-The existing DI-based host setup remains valid under v1.1. The upgrade did not require architectural changes to:
-
-- server registration
-- stdio transport configuration
-- source-generator-based tool/resource/prompt discovery
-- structured `CallToolResult` handling
-
-### User-Facing Impact
-
-The most meaningful user-facing outcome of the v1.1 adoption is improved support for long-running MCP-native workflows:
-
-- clients can treat `dotnet_project` operations as optional MCP tasks
-- progress reporting continues to work for long-running operations
-- destructive actions still use elicitation for safety
-- resource, prompt, and roots-based discovery remain first-class MCP flows
-
-## Documentation Updates
-
-As part of the v1.1 audit, the following documentation was refreshed:
-
-- `README.md`
-- `doc/telemetry.md`
-- `doc/icons.md`
-- this compatibility audit
+Application error annotations such as `mcpErrorCode` remain stable inside tool results. The SDK selects actual JSON-RPC wire errors according to the active revision: for example, missing resource reads use `-32602` on 2026-07-28 and `-32002` on 2025-11-25. See the [machine-readable contract](machine-readable-contract.md#mcp-error-code-mapping).
 
 ## References
 
-- [MCP C# SDK documentation](https://csharp.sdk.modelcontextprotocol.io/)
-- [MCP C# SDK v1.1.0 release](https://github.com/modelcontextprotocol/csharp-sdk/releases/tag/v1.1.0)
-- [Model Context Protocol specification](https://modelcontextprotocol.io/specification/latest)
-
-## Audit Date
-
-**Date**: 2026-03-14  
-**SDK Version**: ModelContextProtocol 1.1.0  
-**Result**: Compatible - existing integration preserved, task support adoption documented
+- [MCP C# SDK 2.0.0 release](https://github.com/modelcontextprotocol/csharp-sdk/releases/tag/v2.0.0)
+- [Tasks extension](https://github.com/modelcontextprotocol/csharp-sdk/blob/v2.0.0/docs/concepts/tasks/tasks.md)
+- [MRTR](https://github.com/modelcontextprotocol/csharp-sdk/blob/v2.0.0/docs/concepts/mrtr/mrtr.md)
+- [Testing](testing.md#mcp-sdk-compatibility-checks)

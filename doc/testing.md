@@ -8,7 +8,7 @@ This repository uses an xUnit test project to validate the MCP server's behavior
 - **Tool Coverage**: Consolidated MCP tools have comprehensive unit tests
 - **Code Coverage**: Tracked in CI and uploaded to Codecov
 - **Test Organization**: Tests are organized by category (Templates, Packages, Projects, Solutions, References, etc.)
-- **MCP Conformance**: 19 conformance tests validate MCP protocol compliance (including consolidated tool schema validation)
+- **MCP Conformance**: Real stdio and in-process compatibility tests validate protocol behavior and consolidated tool schemas
 
 ## Test Strategy: Consolidated Tools
 
@@ -122,6 +122,20 @@ Run tests from the solution:
 ```bash
 dotnet test --solution DotNetMcp.slnx -c Release
 ```
+
+## MCP SDK compatibility checks
+
+Run the focused protocol matrix:
+
+```powershell
+dotnet test --project .\DotNetMcp.Tests\DotNetMcp.Tests.csproj -c Release -- --filter-class '*Sdk20CompatibilityTests' --filter-class '*ServerCapabilitiesTests'
+```
+
+`Sdk20CompatibilityTests` covers 2026-07-28 and 2025-11-25 discovery, required tool input schemas, negotiated capabilities, resource error-code mapping, confirmation outcomes and continuation validation, execution after confirmation, Tasks polling/update/cancellation, and governance policy composition. The full-catalog governance test intentionally verifies fail-closed rejection of the existing certificate password schema; it is not evidence that governance-enabled full-catalog startup succeeds.
+
+`McpConformanceTests` starts the actual stdio server and checks discovery, resources/prompts, legacy and native confirmation, `subscriptions/listen`, removed-method rejection, and opted-in logging. SDK 2.0's client drops the request log level during metadata injection, so the test-only logging transport writes it at the wire boundary. Production hosting is unchanged.
+
+MTP selectors of the same kind can be repeated to match multiple classes or methods. Combining `--filter-class` with `--filter-method` narrows to their intersection, not their union.
 
 ## Scenario Tests (Opt-in)
 
