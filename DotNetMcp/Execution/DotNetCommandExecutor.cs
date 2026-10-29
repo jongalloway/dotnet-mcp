@@ -166,6 +166,7 @@ public static class DotNetCommandExecutor
             }
             // Finish terminating the command before disposing its process.
             await process.WaitForExitAsync(CancellationToken.None);
+            RequestCancellationToken.Value.ThrowIfCancellationRequested();
 
             // Apply security redaction to partial output unless unsafeOutput is enabled
             var partialOutput = output.ToString().TrimEnd();

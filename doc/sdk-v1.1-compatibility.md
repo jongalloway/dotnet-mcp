@@ -8,6 +8,8 @@ The maximum supported revision is **2026-07-28**. The SDK also accepts legacy in
 
 On the current revision, clients use discovery and per-request metadata. The removed `ping`, `resources/subscribe`, and `resources/unsubscribe` methods are not available. Resource subscriptions use `subscriptions/listen` with `resourceSubscriptions`; legacy clients retain the original methods.
 
+Resource updates are routed to each active native listener with its subscription ID in `_meta`, and cancelled listeners are removed. Legacy subscribers continue to receive session notifications without a subscription ID.
+
 `dotnet_server_capabilities` reports the connection's negotiated revision and request-dependent feature availability. A direct, no-connection snapshot reports maximum implementation support rather than promising every client can use each feature.
 
 ## Tasks extension

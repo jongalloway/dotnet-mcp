@@ -40,6 +40,8 @@ builder.Services.AddSingleton(tokenSavingsEstimator);
 
 // Register ResourceSubscriptionManager for tracking client resource subscriptions.
 builder.Services.AddSingleton<ResourceSubscriptionManager>();
+builder.Services.AddOptions<McpServerOptions>()
+    .Configure<ResourceSubscriptionManager>((options, subscriptions) => subscriptions.Configure(options));
 
 var mcpServerBuilder = builder.Services.AddMcpServer(options =>
 {

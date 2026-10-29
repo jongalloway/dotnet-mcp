@@ -74,7 +74,7 @@ public sealed partial class DotNetCliTools
             DotnetPackageAction.List or DotnetPackageAction.AddReference or
             DotnetPackageAction.RemoveReference or DotnetPackageAction.ListReferences)
         {
-            effectiveProject = await WorkspaceDiscovery.TryFindProjectInRootsAsync(server);
+            effectiveProject = await WorkspaceDiscovery.TryFindProjectInRootsAsync(server, DotNetCommandExecutor.RequestCancellationToken.Value);
         }
 
         var textResult = await WithWorkingDirectoryAsync(workingDirectory, async () =>

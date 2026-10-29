@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Diagnostics;
 using System.Xml.Linq;
+using System.Threading.Channels;
 using AgentGovernance.Extensions.ModelContextProtocol;
 using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol;
@@ -42,6 +43,94 @@ public class Sdk20CompatibilityTests
 #pragma warning disable MCP9005 // Assert the SDK's legacy resource error compatibility.
         Assert.Equal(protocol == "2026-07-28" ? McpErrorCode.InvalidParams : McpErrorCode.ResourceNotFound, error.ErrorCode);
 #pragma warning restore MCP9005
+    }
+
+    [Fact]
+    public async Task NativeResourceSubscriptions_RouteUpdatesAndStopOnCancellation()
+    {
+        await using var host = await TestServer.CreateAsync("2026-07-28");
+        var acknowledgements = Channel.CreateUnbounded<JsonNode>();
+        var updates = Channel.CreateUnbounded<JsonNode>();
+        await using var acknowledgementHandler = host.Client.RegisterNotificationHandler(
+            NotificationMethods.SubscriptionsAcknowledgedNotification, (notification, _) =>
+            {
+                acknowledgements.Writer.TryWrite(notification.Params!.DeepClone());
+                return ValueTask.CompletedTask;
+            });
+        await using var updateHandler = host.Client.RegisterNotificationHandler(
+            NotificationMethods.ResourceUpdatedNotification, (notification, _) =>
+            {
+                updates.Writer.TryWrite(notification.Params!.DeepClone());
+                return ValueTask.CompletedTask;
+            });
+        using var firstCancellation = CancellationTokenSource.CreateLinkedTokenSource(host.Token);
+        using var secondCancellation = CancellationTokenSource.CreateLinkedTokenSource(host.Token);
+        var first = Listen("templates", "dotnet://templates", firstCancellation.Token);
+        var second = Listen("sdk", "dotnet://sdk-info", secondCancellation.Token);
+        try
+        {
+            await acknowledgements.Reader.ReadAsync(host.Token);
+            await acknowledgements.Reader.ReadAsync(host.Token);
+            await ClearCache();
+            var received = new Dictionary<string, string>();
+            for (var i = 0; i < 2; i++)
+            {
+                var update = await updates.Reader.ReadAsync(host.Token);
+                received.Add(update["_meta"]![MetaKeys.SubscriptionId]!.GetValue<string>(), update["uri"]!.GetValue<string>());
+            }
+            Assert.Equal("dotnet://templates", received["templates"]);
+            Assert.Equal("dotnet://sdk-info", received["sdk"]);
+            Assert.False(updates.Reader.TryRead(out _));
+
+            await host.Client.SendNotificationAsync(NotificationMethods.CancelledNotification,
+                new CancelledNotificationParams { RequestId = new RequestId("templates") },
+                cancellationToken: host.Token);
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => first);
+            while (host.Subscriptions.IsSubscribed("dotnet://templates"))
+                await Task.Delay(TimeSpan.FromMilliseconds(20), host.Token);
+            await ClearCache();
+            var remaining = await updates.Reader.ReadAsync(host.Token);
+            Assert.Equal("sdk", remaining["_meta"]![MetaKeys.SubscriptionId]!.GetValue<string>());
+            Assert.False(updates.Reader.TryRead(out _));
+        }
+        finally
+        {
+            await firstCancellation.CancelAsync();
+            await secondCancellation.CancelAsync();
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => first);
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => second);
+        }
+
+        Task<JsonRpcResponse> Listen(string id, string uri, CancellationToken ct) => host.Client.SendRequestAsync(new()
+        {
+            Id = new RequestId(id),
+            Method = RequestMethods.SubscriptionsListen,
+            Params = JsonSerializer.SerializeToNode(new SubscriptionsListenRequestParams
+            {
+                Notifications = new() { ResourceSubscriptions = [uri] }
+            }, McpJsonUtilities.DefaultOptions)
+        }, ct);
+
+        async Task ClearCache() => Assert.NotEqual(true, (await host.Client.CallToolAsync("dotnet_sdk",
+            new Dictionary<string, object?> { ["action"] = "ClearTemplateCache" }, cancellationToken: host.Token)).IsError);
+    }
+
+    [Fact]
+    public async Task LegacyResourceSubscription_ReceivesUpdatesWithoutSubscriptionId()
+    {
+        await using var host = await TestServer.CreateAsync("2025-11-25");
+        var updated = new TaskCompletionSource<ResourceUpdatedNotificationParams>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using var subscription = await host.Client.SubscribeToResourceAsync("dotnet://templates",
+            (notification, _) =>
+            {
+                updated.TrySetResult(notification);
+                return ValueTask.CompletedTask;
+            }, cancellationToken: host.Token);
+        await host.Client.CallToolAsync("dotnet_sdk",
+            new Dictionary<string, object?> { ["action"] = "ClearTemplateCache" }, cancellationToken: host.Token);
+        var result = await updated.Task.WaitAsync(host.Token);
+        Assert.Equal("dotnet://templates", result.Uri);
+        Assert.False(result.Meta?.ContainsKey(MetaKeys.SubscriptionId) == true);
     }
 
     [Fact]
@@ -224,10 +313,73 @@ public class Sdk20CompatibilityTests
         await host.Exited.Task.WaitAsync(host.Token);
     }
 
+#pragma warning disable MCP9005 // Exercise cancellation of the retained Roots and Sampling input paths.
+    [Theory]
+    [InlineData("dotnet_project", "Build")]
+    [InlineData("dotnet_package", "List")]
+    [InlineData("dotnet_solution", "List")]
+    public async Task TaskCancellation_StopsPendingRootsDiscovery(string tool, string action)
+    {
+        await using var host = await TestServer.CreateAsync("2026-07-28", handlers: new()
+        {
+            RootsHandler = (_, _) => throw new InvalidOperationException("Task input must be handled through tasks/update.")
+        });
+        var task = await host.Client.CallToolAsTaskAsync(new()
+        {
+            Name = tool,
+            Arguments = new Dictionary<string, JsonElement> { ["action"] = JsonSerializer.SerializeToElement(action) }
+        }, host.Token);
+        Assert.True(task.IsTask);
+        var input = Assert.IsType<InputRequiredTaskResult>(
+            await PollAsync(host, task.TaskCreated!.TaskId, r => r is not WorkingTaskResult));
+        Assert.Equal("roots/list", Assert.Single(input.InputRequests!).Value.Method);
+
+        await host.Client.CancelTaskAsync(task.TaskCreated.TaskId, host.Token);
+        await host.InvocationExited.Task.WaitAsync(TimeSpan.FromSeconds(10), host.Token);
+        Assert.True(host.InvocationCancelled.Task.IsCompletedSuccessfully);
+        Assert.IsType<CancelledTaskResult>(await host.Client.GetTaskAsync(task.TaskCreated.TaskId, host.Token));
+    }
+
+    [Theory]
+    [InlineData("Build")]
+    [InlineData("Test")]
+    public async Task TaskCancellation_StopsPendingSampling(string action)
+    {
+        await using var host = await TestServer.CreateAsync("2026-07-28", handlers: new()
+        {
+            SamplingHandler = (_, _, _) => throw new InvalidOperationException("Task input must be handled through tasks/update.")
+        });
+        var task = await host.Client.CallToolAsTaskAsync(new()
+        {
+            Name = "dotnet_project",
+            Arguments = new Dictionary<string, JsonElement>
+            {
+                ["action"] = JsonSerializer.SerializeToElement(action),
+                ["project"] = JsonSerializer.SerializeToElement(Path.Join(host.DirectoryPath, "missing.csproj")),
+                ["noRestore"] = JsonSerializer.SerializeToElement(true)
+            }
+        }, host.Token);
+        Assert.True(task.IsTask);
+        var input = Assert.IsType<InputRequiredTaskResult>(
+            await PollAsync(host, task.TaskCreated!.TaskId, r => r is not WorkingTaskResult));
+        Assert.Equal("sampling/createMessage", Assert.Single(input.InputRequests!).Value.Method);
+
+        await host.Client.CancelTaskAsync(task.TaskCreated.TaskId, host.Token);
+        await host.InvocationExited.Task.WaitAsync(TimeSpan.FromSeconds(10), host.Token);
+        Assert.True(host.InvocationCancelled.Task.IsCompletedSuccessfully);
+        Assert.IsType<CancelledTaskResult>(await host.Client.GetTaskAsync(task.TaskCreated.TaskId, host.Token));
+    }
+#pragma warning restore MCP9005
+
     [Fact]
     public async Task TaskCancellation_TerminatesTheCliProcessTree()
     {
-        await using var host = await TestServer.CreateAsync("2026-07-28");
+        await using var host = await TestServer.CreateAsync("2026-07-28", handlers: new()
+        {
+#pragma warning disable MCP9005 // A cancelled build must not enter the retained Sampling path.
+            SamplingHandler = (_, _, _) => throw new InvalidOperationException("A cancelled build must not request analysis.")
+#pragma warning restore MCP9005
+        });
         var marker = Path.Join(host.DirectoryPath, "child.pid");
         var command = OperatingSystem.IsWindows()
             ? $"powershell.exe -NoProfile -NonInteractive -Command \"[IO.File]::WriteAllText('{marker.Replace("'", "''")}.tmp', [string]$PID); [IO.File]::Move('{marker.Replace("'", "''")}.tmp', '{marker.Replace("'", "''")}'); Start-Sleep -Seconds 60\""
@@ -261,6 +413,8 @@ public class Sdk20CompatibilityTests
             child = Process.GetProcessById(int.Parse(pidText.Trim(), System.Globalization.CultureInfo.InvariantCulture));
             await host.Client.CancelTaskAsync(taskId, host.Token);
             await child.WaitForExitAsync(host.Token).WaitAsync(TimeSpan.FromSeconds(10), host.Token);
+            await host.InvocationExited.Task.WaitAsync(TimeSpan.FromSeconds(10), host.Token);
+            Assert.True(host.InvocationCancelled.Task.IsCompletedSuccessfully);
             Assert.True(child.HasExited);
             Assert.IsType<CancelledTaskResult>(await host.Client.GetTaskAsync(taskId, host.Token));
         }
@@ -415,14 +569,18 @@ public class Sdk20CompatibilityTests
         public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource Exited { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource InvocationExited { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource InvocationCancelled { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public int Invocations;
         public CancellationToken Token => _timeout.Token;
+        public ResourceSubscriptionManager Subscriptions => _provider!.GetRequiredService<ResourceSubscriptionManager>();
 
         public static async Task<TestServer> CreateAsync(
             string protocol,
             Func<ElicitRequestParams?, CancellationToken, ValueTask<ElicitResult>>? elicit = null,
             string? governance = null,
-            bool fullCatalog = false)
+            bool fullCatalog = false,
+            McpClientHandlers? handlers = null)
         {
             var host = new TestServer();
             host._timeout.CancelAfter(TimeSpan.FromSeconds(60));
@@ -434,6 +592,9 @@ public class Sdk20CompatibilityTests
                 services.AddLogging();
                 services.AddSingleton<ConcurrencyManager>();
                 services.AddSingleton<ProcessSessionManager>();
+                services.AddSingleton<ResourceSubscriptionManager>();
+                services.AddOptions<McpServerOptions>()
+                    .Configure<ResourceSubscriptionManager>((options, subscriptions) => subscriptions.Configure(options));
                 services.AddTransient<DotNetCliTools>();
                 var store = new InMemoryMcpTaskStore();
                 services.AddSingleton<IMcpTaskStore>(store);
@@ -446,9 +607,15 @@ public class Sdk20CompatibilityTests
                         {
                             return await DotNetCommandExecutor.WithRequestCancellationAsync(ct, () => next(context, ct));
                         }
+                        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                        {
+                            host.InvocationCancelled.TrySetResult();
+                            throw;
+                        }
                         finally
                         {
                             DotNetCommandExecutor.WorkingDirectoryOverride.Value = previous;
+                            host.InvocationExited.TrySetResult();
                         }
                     }))
                     .WithStreamServerTransport(requests.Reader.AsStream(), responses.Writer.AsStream())
@@ -467,8 +634,16 @@ public class Sdk20CompatibilityTests
                     }, new() { Name = "controlled" })])
                     .WithResources<DotNetResources>()
                     .WithResources<McpAppsResources>()
-                    .WithSubscribeToResourcesHandler((_, _) => ValueTask.FromResult(new EmptyResult()))
-                    .WithUnsubscribeFromResourcesHandler((_, _) => ValueTask.FromResult(new EmptyResult()))
+                    .WithSubscribeToResourcesHandler((context, _) =>
+                    {
+                        host.Subscriptions.Subscribe(context.Params!.Uri);
+                        return ValueTask.FromResult(new EmptyResult());
+                    })
+                    .WithUnsubscribeFromResourcesHandler((context, _) =>
+                    {
+                        host.Subscriptions.Unsubscribe(context.Params!.Uri);
+                        return ValueTask.FromResult(new EmptyResult());
+                    })
                     .WithPrompts<DotNetPrompts>();
                 if (governance is null || fullCatalog)
                 {
@@ -502,7 +677,7 @@ public class Sdk20CompatibilityTests
                         ProtocolVersion = protocol,
                         // Use the fixture timeout rather than misclassifying a busy modern server as legacy.
                         DiscoverProbeTimeout = Timeout.InfiniteTimeSpan,
-                        Handlers = new() { ElicitationHandler = elicit }
+                        Handlers = handlers ?? new() { ElicitationHandler = elicit }
                     },
                     cancellationToken: host.Token);
                 return host;

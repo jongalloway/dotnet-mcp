@@ -94,6 +94,10 @@ internal static class WorkspaceDiscovery
             var result = await server.RequestRootsAsync(new ListRootsRequestParams(), cancellationToken);
             return result?.Roots is { Count: > 0 } roots ? roots : null;
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch
         {
             return null;

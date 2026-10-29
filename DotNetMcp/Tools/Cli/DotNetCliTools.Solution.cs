@@ -131,7 +131,7 @@ public sealed partial class DotNetCliTools
             DotnetSolutionAction.Add or DotnetSolutionAction.List or DotnetSolutionAction.Remove
             or DotnetSolutionAction.Analyze or DotnetSolutionAction.Dependencies or DotnetSolutionAction.Validate)
         {
-            effectiveSolution = await WorkspaceDiscovery.TryFindSolutionInRootsAsync(server);
+            effectiveSolution = await WorkspaceDiscovery.TryFindSolutionInRootsAsync(server, DotNetCommandExecutor.RequestCancellationToken.Value);
         }
 
         // Route to appropriate method based on action

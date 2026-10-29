@@ -134,7 +134,7 @@ public sealed partial class DotNetCliTools
             DotnetProjectAction.RemoveProperty or DotnetProjectAction.AddItem or
             DotnetProjectAction.RemoveItem or DotnetProjectAction.ListItems)
         {
-            effectiveProject = await WorkspaceDiscovery.TryFindProjectInRootsAsync(server);
+            effectiveProject = await WorkspaceDiscovery.TryFindProjectInRootsAsync(server, DotNetCommandExecutor.RequestCancellationToken.Value);
         }
 
         var textResult = await WithWorkingDirectoryAsync(workingDirectory, async () =>
@@ -1432,9 +1432,14 @@ public sealed partial class DotNetCliTools
             var prompt = result.Length > MaxSamplingPromptLength ? result[^MaxSamplingPromptLength..] : result;
             var suggestion = await chatClient.GetResponseAsync(
                 [new ChatMessage(ChatRole.User, $"{promptPrefix}\n\n{prompt}")],
-                new ChatOptions { MaxOutputTokens = MaxSamplingResponseTokens });
+                new ChatOptions { MaxOutputTokens = MaxSamplingResponseTokens },
+                DotNetCommandExecutor.RequestCancellationToken.Value);
             if (!string.IsNullOrWhiteSpace(suggestion.Text))
                 result += $"\n\nAI Analysis:\n{suggestion.Text}";
+        }
+        catch (OperationCanceledException) when (DotNetCommandExecutor.RequestCancellationToken.Value.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception)
         {

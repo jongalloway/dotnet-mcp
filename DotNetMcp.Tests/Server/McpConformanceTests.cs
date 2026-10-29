@@ -556,10 +556,18 @@ public class McpConformanceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Server_CurrentResourceSubscription_AcknowledgesOptIn()
+    public async Task Server_CurrentResourceSubscription_DeliversUpdatesAfterAcknowledgement()
     {
         Assert.NotNull(_client);
         var acknowledged = new TaskCompletionSource<JsonNode?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var updated = new TaskCompletionSource<JsonNode?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using var updateHandler = _client.RegisterNotificationHandler(
+            NotificationMethods.ResourceUpdatedNotification,
+            (notification, _) =>
+            {
+                updated.TrySetResult(notification.Params?.DeepClone());
+                return ValueTask.CompletedTask;
+            });
         await using var handler = _client.RegisterNotificationHandler(
             NotificationMethods.SubscriptionsAcknowledgedNotification,
             (notification, _) =>
@@ -581,6 +589,12 @@ public class McpConformanceTests : IAsyncLifetime
         {
             var result = await acknowledged.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
             Assert.Equal("dotnet://templates", result!["notifications"]!["resourceSubscriptions"]![0]!.GetValue<string>());
+            await _client.CallToolAsync("dotnet_sdk",
+                new Dictionary<string, object?> { ["action"] = "ClearTemplateCache" },
+                cancellationToken: TestContext.Current.CancellationToken);
+            var update = await updated.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+            Assert.Equal("dotnet://templates", update!["uri"]!.GetValue<string>());
+            Assert.Equal("resource-subscription", update["_meta"]![MetaKeys.SubscriptionId]!.GetValue<string>());
         }
         finally
         {
