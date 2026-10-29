@@ -3,7 +3,7 @@
 
 version: 2
 updates:
-  # Monitor NuGet dependencies in the main and test projects
+  # Group all NuGet updates across the main and test projects, including majors.
   - package-ecosystem: "nuget"
     directories:
       - "/DotNetMcp"
@@ -12,15 +12,13 @@ updates:
       interval: "weekly"
       day: "monday"
     groups:
-      microsoft-dotnet-dependencies:
+      nuget-dependencies:
         patterns:
-          - "Microsoft.*"
-      mcp-sdk-dependencies:
+          - "*"
+      nuget-security:
+        applies-to: "security-updates"
         patterns:
-          - "ModelContextProtocol"
-      test-dependencies:
-        patterns:
-          - "xunit.*"
+          - "*"
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
@@ -29,7 +27,7 @@ updates:
       prefix: "deps"
       include: "scope"
 
-  # Monitor GitHub Actions dependencies
+  # Group all GitHub Actions updates, including majors.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -37,6 +35,10 @@ updates:
       day: "monday"
     groups:
       github-actions:
+        patterns:
+          - "*"
+      github-actions-security:
+        applies-to: "security-updates"
         patterns:
           - "*"
     open-pull-requests-limit: 5
