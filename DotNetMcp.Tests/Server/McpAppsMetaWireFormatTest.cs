@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using ModelContextProtocol.Client;
+using ModelContextProtocol.Extensions.Apps;
 using ModelContextProtocol.Protocol;
 using Xunit;
 
@@ -87,6 +88,69 @@ public class McpAppsMetaWireFormatTest : IAsyncLifetime
             "_meta should contain legacy 'ui/resourceUri' flat key (required for VS Code)");
         Assert.Equal("ui://dotnet-mcp/server-metrics", legacyUri.GetString());
     }
+
+#pragma warning disable MCPEXP003 // Verify the experimental Apps contract against the real stdio server.
+    [Fact]
+    public void ServerCapabilities_AdvertiseMcpApps()
+    {
+        Assert.NotNull(_client);
+        Assert.True(_client.ServerCapabilities.Extensions?.ContainsKey(McpApps.ExtensionId));
+    }
+
+    [Theory]
+    [InlineData("dotnet_sdk", "ui://dotnet-mcp/sdk-dashboard", "sdk")]
+    [InlineData("dotnet_server_metrics", "ui://dotnet-mcp/server-metrics", "telemetry")]
+    public async Task ToolMetadata_RoundTripsTypedLinkageWithoutChangingVisibility(
+        string toolName, string uri, string category)
+    {
+        Assert.NotNull(_client);
+        var tools = await _client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+        var tool = Assert.Single(tools, tool => tool.Name == toolName).ProtocolTool;
+        Assert.NotNull(tool.Meta);
+        var ui = Assert.IsType<System.Text.Json.Nodes.JsonObject>(tool.Meta["ui"]);
+        Assert.Single(ui);
+        var typed = ui.Deserialize<McpUiToolMeta>(McpApps.SerializerOptions);
+        Assert.NotNull(typed);
+        Assert.Equal(uri, typed.ResourceUri);
+        Assert.Null(typed.Visibility);
+        Assert.Equal(uri, tool.Meta["ui/resourceUri"]!.GetValue<string>());
+        Assert.Equal(category, tool.Meta["category"]!.GetValue<string>());
+        Assert.True(tool.Meta["consolidatedTool"]!.GetValue<bool>());
+        var plainTool = Assert.Single(tools, tool => tool.Name == "dotnet_server_info").ProtocolTool;
+        Assert.False(plainTool.Meta?.ContainsKey("ui") == true);
+        Assert.False(plainTool.Meta?.ContainsKey("ui/resourceUri") == true);
+    }
+
+    [Theory]
+    [InlineData("ui://dotnet-mcp/sdk-dashboard", "sdk_dashboard_ui")]
+    [InlineData("ui://dotnet-mcp/server-metrics", "server_metrics_ui")]
+    public async Task DashboardResource_RoundTripsDiscoveryAndTypedContents(string uri, string name)
+    {
+        Assert.NotNull(_client);
+        var resources = await _client.ListResourcesAsync(cancellationToken: TestContext.Current.CancellationToken);
+        var resource = Assert.Single(resources, resource => resource.Uri == uri).ProtocolResource;
+        Assert.Equal(name, resource.Name);
+        Assert.Equal(McpApps.HtmlMimeType, resource.MimeType);
+        Assert.NotNull(resource.Meta);
+        Assert.True(resource.Meta["ui"]!["prefersBorder"]!.GetValue<bool>());
+
+        var result = await _client.ReadResourceAsync(uri, cancellationToken: TestContext.Current.CancellationToken);
+        var content = Assert.IsType<TextResourceContents>(Assert.Single(result.Contents));
+        Assert.Equal(uri, content.Uri);
+        Assert.Equal(McpApps.HtmlMimeType, content.MimeType);
+        Assert.StartsWith("<!DOCTYPE html>", content.Text);
+        Assert.NotNull(content.Meta);
+        var ui = Assert.IsType<System.Text.Json.Nodes.JsonObject>(content.Meta["ui"]);
+        Assert.Single(ui);
+        Assert.True(ui["prefersBorder"]!.GetValue<bool>());
+        var typed = ui.Deserialize<McpUiResourceMeta>(McpApps.SerializerOptions);
+        Assert.NotNull(typed);
+        Assert.True(typed.PrefersBorder);
+        Assert.Null(typed.Csp);
+        Assert.Null(typed.Permissions);
+        Assert.Null(typed.Domain);
+    }
+#pragma warning restore MCPEXP003
 
     private async Task<JsonElement> GetSdkToolMeta()
     {

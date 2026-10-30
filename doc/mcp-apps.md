@@ -6,6 +6,8 @@
 
 This document covers how to implement MCP Apps in a **C# / .NET MCP server** using the `ModelContextProtocol` NuGet SDK, with VS Code as the host.
 
+The server uses `ModelContextProtocol.Extensions.Apps`, pinned to the same version as `ModelContextProtocol` (currently 2.3.0). Its typed APIs remain **experimental** under diagnostic `MCPEXP003` and may change before the specification finalizes. Suppress that diagnostic only around deliberate Apps API use, not project-wide.
+
 ## Architecture
 
 ```
@@ -38,6 +40,8 @@ Create a resource class that returns HTML with the `text/html;profile=mcp-app` M
 
 ```csharp
 using System.Text.Json.Nodes;
+using System.Text.Json;
+using ModelContextProtocol.Extensions.Apps;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -46,20 +50,24 @@ namespace DotNetMcp;
 [McpServerResourceType]
 public sealed class McpAppsResources
 {
+#pragma warning disable MCPEXP003 // Deliberate use of the experimental Apps contract.
     [McpServerResource(
         UriTemplate = "ui://dotnet-mcp/sdk-dashboard",
         Name = "sdk_dashboard_ui",
-        MimeType = "text/html;profile=mcp-app")]
+        MimeType = McpApps.HtmlMimeType)]
+    [McpMeta("ui", JsonValue = """{"prefersBorder": true}""")]
     public static ResourceContents GetSdkDashboardUI() => new TextResourceContents
     {
         Uri = "ui://dotnet-mcp/sdk-dashboard",
-        MimeType = "text/html;profile=mcp-app",
+        MimeType = McpApps.HtmlMimeType,
         Text = "<html>...</html>",
         Meta = new JsonObject
         {
-            ["ui"] = new JsonObject { ["prefersBorder"] = true }
+            ["ui"] = JsonSerializer.SerializeToNode(
+                new McpUiResourceMeta { PrefersBorder = true }, McpApps.SerializerOptions)
         }
     };
+#pragma warning restore MCPEXP003
 }
 ```
 
@@ -69,27 +77,42 @@ Requirements:
 - **Return type**: `TextResourceContents` (not `string`) with `Uri`, `MimeType`, `Text`, and optional `Meta`
 - **`Meta.ui`**: Optional rendering hints like `prefersBorder`
 
+Use `McpUiResourceMeta` and `McpApps.SerializerOptions` for typed metadata in `resources/read`. The resource's `[McpMeta("ui", ...)]` attribute separately preserves the border hint in discovery metadata; the SDK has no resource equivalent of `[McpAppUi]`, and `WithMcpApps()` does not configure resources.
+
 ### 2. Tool Metadata Linking
 
-Link a tool to the UI resource using `[McpMeta]` attributes:
+Link a tool to the UI resource using the typed `[McpAppUi]` attribute, retaining the legacy `[McpMeta]` linkage for host compatibility:
 
 ```csharp
+#pragma warning disable MCPEXP003 // Deliberate use of the experimental Apps contract.
 [McpServerTool(Title = ".NET SDK & Templates")]
-[McpMeta("ui", JsonValue = """{"resourceUri": "ui://dotnet-mcp/sdk-dashboard"}""")]
+[McpAppUi(ResourceUri = "ui://dotnet-mcp/sdk-dashboard")]
 [McpMeta("ui/resourceUri", "ui://dotnet-mcp/sdk-dashboard")]
 public async partial Task<CallToolResult> DotnetSdk(...)
+#pragma warning restore MCPEXP003
 ```
 
 > **Critical**: You must include **both** metadata keys. See [Common Pitfalls](#the-legacy-flat-key-is-required) below.
 
+`[McpAppUi]` is processed into `McpUiToolMeta` by `WithMcpApps()`. Remove any old nested `[McpMeta("ui", ...)]` declaration on the tool: an existing `Meta.ui` takes precedence over the typed attribute. Leave `Visibility` unset to preserve default model and app visibility.
+
 ### 3. Register in Program.cs
 
 ```csharp
+using ModelContextProtocol.Extensions.Apps;
+
+#pragma warning disable MCPEXP003 // Deliberate use of the experimental Apps contract.
 builder.Services
     .AddMcpServer()
+    .WithTools<DotNetCliTools>()
+    .WithMcpApps()
     .WithResources<McpAppsResources>()
     // ... other registrations
+    ;
+#pragma warning restore MCPEXP003
 ```
+
+Call `WithMcpApps()` after registering tools. It applies their typed UI attributes and advertises server support using `McpApps.ExtensionId` (`io.modelcontextprotocol/ui`), so do not duplicate the identifier in capability configuration. It does **not** add the legacy flat key. Tools and resources remain available to clients that do not advertise Apps support; their ordinary tool output is unchanged.
 
 ### 4. HTML App Structure
 
@@ -193,11 +216,13 @@ The ext-apps spec defines two ways to link a tool to a UI resource:
 
 The spec says hosts "must check both formats." In practice, **VS Code currently only checks the legacy flat key**. The TypeScript `registerAppTool` helper from `@modelcontextprotocol/ext-apps` automatically emits both, which is why TypeScript servers work out of the box.
 
-In C#, you must add both explicitly:
+In C#, the typed attribute and `WithMcpApps()` provide the modern key; retain the flat compatibility attribute explicitly:
 
 ```csharp
+#pragma warning disable MCPEXP003 // Deliberate use of the experimental Apps contract.
 // Modern nested format (for spec compliance and future hosts)
-[McpMeta("ui", JsonValue = """{"resourceUri": "ui://dotnet-mcp/sdk-dashboard"}""")]
+[McpAppUi(ResourceUri = "ui://dotnet-mcp/sdk-dashboard")]
+#pragma warning restore MCPEXP003
 // Legacy flat key (required for VS Code to detect the UI)
 [McpMeta("ui/resourceUri", "ui://dotnet-mcp/sdk-dashboard")]
 ```
@@ -216,13 +241,17 @@ The resource handler must return `TextResourceContents` with explicit properties
 public static ResourceContents GetUI() => new TextResourceContents
 {
     Uri = "ui://dotnet-mcp/sdk-dashboard",
-    MimeType = "text/html;profile=mcp-app",
+    MimeType = McpApps.HtmlMimeType,
     Text = htmlString,
-    Meta = new JsonObject { ["ui"] = new JsonObject { ["prefersBorder"] = true } }
+    Meta = new JsonObject
+    {
+        ["ui"] = JsonSerializer.SerializeToNode(
+            new McpUiResourceMeta { PrefersBorder = true }, McpApps.SerializerOptions)
+    }
 };
 ```
 
-Returning a plain `string` from the resource handler will not include the required MIME type in the wire format.
+The example uses experimental Apps APIs; wrap it in a scoped `MCPEXP003` suppression as above. Returning a plain `string` from the resource handler will not include the required MIME type in the wire format.
 
 ### VS Code Setting Must Be Enabled
 
@@ -309,6 +338,8 @@ public async Task DotnetSdk_Meta_Ui_ShouldHaveBothFormats()
 }
 ```
 
+`McpAppsMetaWireFormatTest` checks both linkage formats for both dashboards, the advertised `McpApps.ExtensionId`, and discovery/read metadata with the typed `McpUiToolMeta` and `McpUiResourceMeta` contracts. `Sdk20CompatibilityTests` also exercises dashboard linkage and reads on current and legacy protocol revisions without requiring Apps capabilities from the client.
+
 ### Manual Testing
 
 1. Build the project
@@ -319,6 +350,7 @@ public async Task DotnetSdk_Meta_Ui_ShouldHaveBothFormats()
 ## References
 
 - [MCP Apps (ext-apps) repository](https://github.com/modelcontextprotocol/ext-apps)
+- [C# SDK MCP Apps extension source](https://github.com/modelcontextprotocol/csharp-sdk/tree/v2.3.0/src/ModelContextProtocol.Extensions.Apps)
 - [SEP-1865 specification](https://github.com/anthropics/anthropic-cookbook/blob/main/misc/sep-1865-mcp-apps.md)
 - [VS Code MCP Apps docs](https://code.visualstudio.com/docs/copilot/chat/mcp-servers#_mcp-server-apps)
 - [basic-vue reference server](https://www.npmjs.com/package/@anthropic-ai/mcp-server-basic-vue) — minimal working TypeScript example

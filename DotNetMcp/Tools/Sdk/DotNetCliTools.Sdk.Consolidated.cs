@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol.Extensions.Apps;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -41,7 +42,9 @@ public sealed partial class DotNetCliTools
     [McpMeta("commonlyUsed", true)]
     [McpMeta("consolidatedTool", true)]
     [McpMeta("actions", JsonValue = """["Version","Info","ListSdks","ListRuntimes","ListTemplates","SearchTemplates","TemplateInfo","ClearTemplateCache","ListTemplatePacks","InstallTemplatePack","UninstallTemplatePack","FrameworkInfo","CacheMetrics","ConfigureGlobalJson"]""")]
-    [McpMeta("ui", JsonValue = """{"resourceUri": "ui://dotnet-mcp/sdk-dashboard"}""")]
+#pragma warning disable MCPEXP003 // Typed MCP Apps linkage is experimental; preserve the legacy key below.
+    [McpAppUi(ResourceUri = "ui://dotnet-mcp/sdk-dashboard")]
+#pragma warning restore MCPEXP003
     [McpMeta("ui/resourceUri", "ui://dotnet-mcp/sdk-dashboard")]
     public async partial Task<CallToolResult> DotnetSdk(
         DotnetSdkAction action,

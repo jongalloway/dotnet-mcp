@@ -1,4 +1,6 @@
+using System.Text.Json;
 using System.Text.Json.Nodes;
+using ModelContextProtocol.Extensions.Apps;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -7,42 +9,46 @@ namespace DotNetMcp;
 /// <summary>
 /// MCP Apps UI resources (SEP-1865).
 /// Provides interactive HTML views rendered inline in hosts that support
-/// the <c>io.modelcontextprotocol/ui</c> extension.
+/// the <see cref="McpApps.ExtensionId"/> extension.
 /// </summary>
 [McpServerResourceType]
 public sealed class McpAppsResources
 {
+#pragma warning disable MCPEXP003 // Use the experimental SDK Apps constants and resource metadata contract.
     [McpServerResource(
         UriTemplate = "ui://dotnet-mcp/sdk-dashboard",
         Name = "sdk_dashboard_ui",
-        MimeType = "text/html;profile=mcp-app")]
+        MimeType = McpApps.HtmlMimeType)]
     [McpMeta("ui", JsonValue = """{"prefersBorder": true}""")]
     public static ResourceContents GetSdkDashboardUI() => new TextResourceContents
     {
         Uri = "ui://dotnet-mcp/sdk-dashboard",
-        MimeType = "text/html;profile=mcp-app",
+        MimeType = McpApps.HtmlMimeType,
         Text = SdkDashboardHtml,
         Meta = new JsonObject
         {
-            ["ui"] = new JsonObject { ["prefersBorder"] = true }
+            ["ui"] = JsonSerializer.SerializeToNode(
+                new McpUiResourceMeta { PrefersBorder = true }, McpApps.SerializerOptions)
         }
     };
 
     [McpServerResource(
         UriTemplate = "ui://dotnet-mcp/server-metrics",
         Name = "server_metrics_ui",
-        MimeType = "text/html;profile=mcp-app")]
+        MimeType = McpApps.HtmlMimeType)]
     [McpMeta("ui", JsonValue = """{"prefersBorder": true}""")]
     public static ResourceContents GetServerMetricsUI() => new TextResourceContents
     {
         Uri = "ui://dotnet-mcp/server-metrics",
-        MimeType = "text/html;profile=mcp-app",
+        MimeType = McpApps.HtmlMimeType,
         Text = ServerMetricsDashboardHtml,
         Meta = new JsonObject
         {
-            ["ui"] = new JsonObject { ["prefersBorder"] = true }
+            ["ui"] = JsonSerializer.SerializeToNode(
+                new McpUiResourceMeta { PrefersBorder = true }, McpApps.SerializerOptions)
         }
     };
+#pragma warning restore MCPEXP003
 
     /// <summary>
     /// Interactive HTML dashboard for .NET SDK information.

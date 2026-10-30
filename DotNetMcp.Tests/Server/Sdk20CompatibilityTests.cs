@@ -8,6 +8,7 @@ using AgentGovernance.Extensions.ModelContextProtocol;
 using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol;
 using ModelContextProtocol.Client;
+using ModelContextProtocol.Extensions.Apps;
 using ModelContextProtocol.Extensions.Tasks;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
@@ -37,6 +38,33 @@ public class Sdk20CompatibilityTests
         Assert.Contains("stdio", result.GetText());
         Assert.NotEmpty(await host.Client.ListResourcesAsync(cancellationToken: host.Token));
         Assert.NotEmpty(await host.Client.ListPromptsAsync(cancellationToken: host.Token));
+
+#pragma warning disable MCPEXP003 // Apps discovery remains available to non-Apps clients on both protocol revisions.
+        Assert.True(host.Client.ServerCapabilities.Extensions?.ContainsKey(McpApps.ExtensionId));
+        foreach (var (toolName, uri) in new[]
+        {
+            ("dotnet_sdk", "ui://dotnet-mcp/sdk-dashboard"),
+            ("dotnet_server_metrics", "ui://dotnet-mcp/server-metrics")
+        })
+        {
+            var tool = Assert.Single(tools, tool => tool.Name == toolName).ProtocolTool;
+            Assert.NotNull(tool.Meta);
+            var ui = tool.Meta["ui"]!.Deserialize<McpUiToolMeta>(McpApps.SerializerOptions);
+            Assert.NotNull(ui);
+            Assert.Equal(uri, ui.ResourceUri);
+            Assert.Null(ui.Visibility);
+            Assert.Equal(uri, tool.Meta["ui/resourceUri"]!.GetValue<string>());
+            var contents = await host.Client.ReadResourceAsync(uri, cancellationToken: host.Token);
+            var content = Assert.IsType<TextResourceContents>(Assert.Single(contents.Contents));
+            Assert.Equal(uri, content.Uri);
+            Assert.Equal(McpApps.HtmlMimeType, content.MimeType);
+            Assert.StartsWith("<!DOCTYPE html>", content.Text);
+            Assert.NotNull(content.Meta);
+            var resourceUi = content.Meta["ui"]!.Deserialize<McpUiResourceMeta>(McpApps.SerializerOptions);
+            Assert.NotNull(resourceUi);
+            Assert.True(resourceUi.PrefersBorder);
+        }
+#pragma warning restore MCPEXP003
 
         var error = await Assert.ThrowsAsync<McpProtocolException>(
             async () => await host.Client.ReadResourceAsync("dotnet://missing", cancellationToken: host.Token));
@@ -658,6 +686,9 @@ public class Sdk20CompatibilityTests
                             typeof(DotNetCliTools).GetMethod(name)!,
                             context => context.Services!.GetRequiredService<DotNetCliTools>())));
                 }
+#pragma warning disable MCPEXP003 // Match production's experimental MCP Apps registration.
+                builder.WithMcpApps();
+#pragma warning restore MCPEXP003
                 if (governance is not null)
                 {
                     var policy = Path.Join(host.DirectoryPath, "policy.yaml");

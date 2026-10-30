@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using ModelContextProtocol.Extensions.Apps;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Xunit;
@@ -137,9 +138,12 @@ public class ToolMetadataSerializationTests
         services.AddLogging();
 
         // Act - This should not throw and should register all tools
+#pragma warning disable MCPEXP003 // Match production's experimental MCP Apps registration.
         services.AddMcpServer()
             .WithStdioServerTransport()
-            .WithTools<DotNetCliTools>();
+            .WithTools<DotNetCliTools>()
+            .WithMcpApps();
+#pragma warning restore MCPEXP003
 
         var serviceProvider = services.BuildServiceProvider();
 
