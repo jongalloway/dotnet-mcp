@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol;
+using ModelContextProtocol.Extensions.Tasks;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using System.Diagnostics;
@@ -23,8 +24,8 @@ builder.Services.AddSingleton<ConcurrencyManager>();
 // Register ProcessSessionManager as a singleton
 builder.Services.AddSingleton<ProcessSessionManager>();
 
-// Register InMemoryMcpTaskStore for async task support (MCP SDK v1.2.0 fixed #1430).
-builder.Services.AddSingleton<IMcpTaskStore, InMemoryMcpTaskStore>();
+var taskStore = new InMemoryMcpTaskStore();
+builder.Services.AddSingleton<IMcpTaskStore>(taskStore);
 
 // Register ToolMetricsAccumulator for in-memory telemetry collection.
 // The accumulator is also captured by the telemetry filter added below.
@@ -39,6 +40,8 @@ builder.Services.AddSingleton(tokenSavingsEstimator);
 
 // Register ResourceSubscriptionManager for tracking client resource subscriptions.
 builder.Services.AddSingleton<ResourceSubscriptionManager>();
+builder.Services.AddOptions<McpServerOptions>()
+    .Configure<ResourceSubscriptionManager>((options, subscriptions) => subscriptions.Configure(options));
 
 var mcpServerBuilder = builder.Services.AddMcpServer(options =>
 {
@@ -75,6 +78,7 @@ var mcpServerBuilder = builder.Services.AddMcpServer(options =>
 
 mcpServerBuilder
     .WithStdioServerTransport()
+    .WithTasks(taskStore)
     .WithTools<DotNetCliTools>()
     .WithResources<DotNetResources>()
     .WithResources<McpAppsResources>()
@@ -142,13 +146,18 @@ builder.Services.Configure<McpServerOptions>(options =>
         bool success = false;
         try
         {
-            var result = await next(context, ct);
+            var result = await DotNetCommandExecutor.WithRequestCancellationAsync(ct, () => next(context, ct));
             success = true;
             return result;
         }
         catch (OperationCanceledException)
         {
             // Let cancellations propagate normally — the SDK handles these for task cancellation.
+            throw;
+        }
+        catch (InputRequiredException)
+        {
+            // MRTR suspends the tool call; it is not an application failure.
             throw;
         }
         catch (McpException)

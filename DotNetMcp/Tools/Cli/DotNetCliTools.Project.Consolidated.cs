@@ -64,7 +64,8 @@ public sealed partial class DotNetCliTools
     /// <param name="configFile">NuGet.config file to use for restore action</param>
     /// <param name="itemType">Item type for AddItem/RemoveItem/ListItems actions (e.g., 'Using', 'Content', 'None')</param>
     /// <param name="include">The Include attribute value for AddItem/RemoveItem actions</param>
-    [McpServerTool(Title = ".NET Project", Destructive = true, UseStructuredContent = true, OutputSchemaType = typeof(ProjectActionResult), TaskSupport = ToolTaskSupport.Optional, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/File%20Folder/Flat/file_folder_flat.svg")]
+    /// <param name="context">Injected MCP request context for confirmation and per-request logging</param>
+    [McpServerTool(Title = ".NET Project", Destructive = true, UseStructuredContent = true, OutputSchemaType = typeof(ProjectActionResult), IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/File%20Folder/Flat/file_folder_flat.svg")]
     [McpMeta("category", "project")]
     [McpMeta("priority", 10.0)]
     [McpMeta("commonlyUsed", true)]
@@ -117,7 +118,8 @@ public sealed partial class DotNetCliTools
         string? itemType = null,
         string? include = null,
         IProgress<ProgressNotificationValue>? progress = null,
-        McpServer? server = null)
+        McpServer? server = null,
+        RequestContext<CallToolRequestParams>? context = null)
     {
         // Auto-detect project from workspace roots when not explicitly specified.
         // Only attempt discovery for actions that use the project parameter; skip New,
@@ -132,7 +134,7 @@ public sealed partial class DotNetCliTools
             DotnetProjectAction.RemoveProperty or DotnetProjectAction.AddItem or
             DotnetProjectAction.RemoveItem or DotnetProjectAction.ListItems)
         {
-            effectiveProject = await WorkspaceDiscovery.TryFindProjectInRootsAsync(server);
+            effectiveProject = await WorkspaceDiscovery.TryFindProjectInRootsAsync(server, DotNetCommandExecutor.RequestCancellationToken.Value);
         }
 
         var textResult = await WithWorkingDirectoryAsync(workingDirectory, async () =>
@@ -147,12 +149,12 @@ public sealed partial class DotNetCliTools
             return action switch
             {
                 DotnetProjectAction.New => await HandleNewAction(template, name, output, framework, additionalOptions),
-                DotnetProjectAction.Restore => await ExecuteWithProgress(progress, "Restoring packages...", "Restore complete", () => HandleRestoreAction(effectiveProject, verbosity, source, lockedMode, configFile, server)),
-                DotnetProjectAction.Build => await ExecuteWithProgress(progress, "Building project...", "Build complete", () => HandleBuildAction(effectiveProject, configuration, framework, noRestore, verbosity, output, server)),
+                DotnetProjectAction.Restore => await ExecuteWithProgress(progress, "Restoring packages...", "Restore complete", () => HandleRestoreAction(effectiveProject, verbosity, source, lockedMode, configFile, server, context)),
+                DotnetProjectAction.Build => await ExecuteWithProgress(progress, "Building project...", "Build complete", () => HandleBuildAction(effectiveProject, configuration, framework, noRestore, verbosity, output, server, context)),
                 DotnetProjectAction.Run => await ExecuteWithProgress(progress, "Building and starting application...", "Run complete", () => HandleRunAction(effectiveProject, configuration, appArgs, noBuild, startMode)),
-                DotnetProjectAction.Test => await ExecuteWithProgress(progress, "Running tests...", "Tests complete", () => HandleTestAction(effectiveProject, configuration, filter, collect, resultsDirectory, logger, noBuild, noRestore, verbosity, framework, blame, listTests, testRunner, useLegacyProjectArgument, server)),
-                DotnetProjectAction.Publish => await ExecuteWithProgress(progress, "Publishing project...", "Publish complete", () => HandlePublishAction(effectiveProject, configuration, output, runtime, framework, noRestore, noBuild, selfContained, arch, os, verbosity, server)),
-                DotnetProjectAction.Clean => await ExecuteWithProgress(progress, "Cleaning output directories...", "Clean complete", () => HandleCleanAction(effectiveProject, configuration, framework, verbosity, server)),
+                DotnetProjectAction.Test => await ExecuteWithProgress(progress, "Running tests...", "Tests complete", () => HandleTestAction(effectiveProject, configuration, filter, collect, resultsDirectory, logger, noBuild, noRestore, verbosity, framework, blame, listTests, testRunner, useLegacyProjectArgument, server, context)),
+                DotnetProjectAction.Publish => await ExecuteWithProgress(progress, "Publishing project...", "Publish complete", () => HandlePublishAction(effectiveProject, configuration, output, runtime, framework, noRestore, noBuild, selfContained, arch, os, verbosity, server, context)),
+                DotnetProjectAction.Clean => await ExecuteWithProgress(progress, "Cleaning output directories...", "Clean complete", () => HandleCleanAction(effectiveProject, configuration, framework, verbosity, server, context)),
                 DotnetProjectAction.Analyze => await HandleAnalyzeAction(projectPath),
                 DotnetProjectAction.Dependencies => await HandleDependenciesAction(projectPath),
                 DotnetProjectAction.Validate => await HandleValidateAction(projectPath),
@@ -251,7 +253,7 @@ public sealed partial class DotNetCliTools
             additionalOptions: additionalOptions);
     }
 
-    private async Task<string> HandleRestoreAction(string? project, string? verbosity, string? source, bool? lockedMode, string? configFile, McpServer? server = null)
+    private async Task<string> HandleRestoreAction(string? project, string? verbosity, string? source, bool? lockedMode, string? configFile, McpServer? server = null, RequestContext<CallToolRequestParams>? context = null)
     {
         // Validate before sending the notification so clients don't see misleading messages
         if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
@@ -260,7 +262,7 @@ public sealed partial class DotNetCliTools
             return $"Error: {verbosityError}";
 
         var target = string.IsNullOrEmpty(project) ? "project" : $"\"{Path.GetFileName(project)}\"";
-        await SendMcpLogAsync(server, $"Restoring NuGet packages for {target}...");
+        await SendMcpLogAsync(server, $"Restoring NuGet packages for {target}...", context);
         return await DotnetProjectRestore(
             project: project,
             verbosity: verbosity,
@@ -269,7 +271,7 @@ public sealed partial class DotNetCliTools
             configFile: configFile);
     }
 
-    private async Task<string> HandleBuildAction(string? project, string? configuration, string? framework, bool? noRestore, string? verbosity, string? output, McpServer? server = null)
+    private async Task<string> HandleBuildAction(string? project, string? configuration, string? framework, bool? noRestore, string? verbosity, string? output, McpServer? server = null, RequestContext<CallToolRequestParams>? context = null)
     {
         // Validate before sending the notification so clients don't see misleading messages
         if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
@@ -283,7 +285,7 @@ public sealed partial class DotNetCliTools
 
         var target = string.IsNullOrEmpty(project) ? "project" : $"\"{Path.GetFileName(project)}\"";
         var config = string.IsNullOrEmpty(configuration) ? "" : $" ({configuration})";
-        await SendMcpLogAsync(server, $"Building {target}{config}...");
+        await SendMcpLogAsync(server, $"Building {target}{config}...", context);
         var result = await DotnetProjectBuild(
             project: project,
             configuration: configuration,
@@ -433,7 +435,7 @@ public sealed partial class DotNetCliTools
         }
     }
 
-    private async Task<string> HandleTestAction(string? project, string? configuration, string? filter, string? collect, string? resultsDirectory, string? logger, bool? noBuild, bool? noRestore, string? verbosity, string? framework, bool? blame, bool? listTests, TestRunner? testRunner, bool? useLegacyProjectArgument, McpServer? server = null)
+    private async Task<string> HandleTestAction(string? project, string? configuration, string? filter, string? collect, string? resultsDirectory, string? logger, bool? noBuild, bool? noRestore, string? verbosity, string? framework, bool? blame, bool? listTests, TestRunner? testRunner, bool? useLegacyProjectArgument, McpServer? server = null, RequestContext<CallToolRequestParams>? context = null)
     {
         // Validate before sending the notification so clients don't see misleading messages
         if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
@@ -448,7 +450,7 @@ public sealed partial class DotNetCliTools
         // Route to existing DotnetProjectTest method
         var target = string.IsNullOrEmpty(project) ? "project" : $"\"{Path.GetFileName(project)}\"";
         var filterInfo = string.IsNullOrEmpty(filter) ? "" : $" (filter: {filter})";
-        await SendMcpLogAsync(server, $"Running tests for {target}{filterInfo}...");
+        await SendMcpLogAsync(server, $"Running tests for {target}{filterInfo}...", context);
         var result = await DotnetProjectTest(
             project: project,
             configuration: configuration,
@@ -471,7 +473,7 @@ public sealed partial class DotNetCliTools
             "Summarize these .NET test results and suggest which tests need attention (be concise):");
     }
 
-    private async Task<string> HandlePublishAction(string? project, string? configuration, string? output, string? runtime, string? framework, bool? noRestore, bool? noBuild, bool? selfContained, string? arch, string? os, string? verbosity, McpServer? server = null)
+    private async Task<string> HandlePublishAction(string? project, string? configuration, string? output, string? runtime, string? framework, bool? noRestore, bool? noBuild, bool? selfContained, string? arch, string? os, string? verbosity, McpServer? server = null, RequestContext<CallToolRequestParams>? context = null)
     {
         // Validate before sending the notification so clients don't see misleading messages
         if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
@@ -488,7 +490,7 @@ public sealed partial class DotNetCliTools
         // Route to existing DotnetProjectPublish method
         var target = string.IsNullOrEmpty(project) ? "project" : $"\"{Path.GetFileName(project)}\"";
         var runtimeInfo = string.IsNullOrEmpty(runtime) ? "" : $" for {runtime}";
-        await SendMcpLogAsync(server, $"Publishing {target}{runtimeInfo}...");
+        await SendMcpLogAsync(server, $"Publishing {target}{runtimeInfo}...", context);
         return await DotnetProjectPublish(
             project: project,
             configuration: configuration,
@@ -503,7 +505,7 @@ public sealed partial class DotNetCliTools
             verbosity: verbosity);
     }
 
-    private async Task<string> HandleCleanAction(string? project, string? configuration, string? framework, string? verbosity, McpServer? server = null)
+    private async Task<string> HandleCleanAction(string? project, string? configuration, string? framework, string? verbosity, McpServer? server = null, RequestContext<CallToolRequestParams>? context = null)
     {
         // Validate before sending the notification so clients don't see misleading messages
         if (!ParameterValidator.ValidateFramework(framework, out var frameworkError))
@@ -511,30 +513,15 @@ public sealed partial class DotNetCliTools
         if (!ParameterValidator.ValidateVerbosity(verbosity, out var verbosityError))
             return $"Error: {verbosityError}";
 
-        // Request confirmation via elicitation when client supports it
-        if (server != null && server.ClientCapabilities?.Elicitation != null)
+        var target = project ?? "the current project/solution";
+        if (!await DestructiveOperationConfirmation.ConfirmAsync(
+            server, context,
+            $"This will delete all build output artifacts for {target}. Do you want to proceed?",
+            "Confirm clean",
+            "I understand this will delete build artifacts",
+            DotNetCommandExecutor.RequestCancellationToken.Value))
         {
-            var target = project ?? "the current project/solution";
-            var elicitResult = await server.ElicitAsync(new ElicitRequestParams
-            {
-                Message = $"This will delete all build output artifacts for {target}. Do you want to proceed?",
-                RequestedSchema = new ElicitRequestParams.RequestSchema
-                {
-                    Properties = new Dictionary<string, ElicitRequestParams.PrimitiveSchemaDefinition>
-                    {
-                        ["confirmed"] = new ElicitRequestParams.BooleanSchema
-                        {
-                            Title = "Confirm clean",
-                            Description = "I understand this will delete build artifacts"
-                        }
-                    }
-                }
-            }, default);
-
-            if (!elicitResult.IsAccepted)
-            {
-                return "Clean operation cancelled.";
-            }
+            return "Clean operation cancelled.";
         }
 
         // Route to existing DotnetProjectClean method
@@ -1432,6 +1419,8 @@ public sealed partial class DotNetCliTools
     /// Appends an AI-generated analysis section to a command result when the command failed
     /// and the MCP client supports sampling. Falls back gracefully when sampling is unavailable.
     /// </summary>
+    // Retained for clients that advertise Sampling on stateful stdio connections.
+#pragma warning disable MCP9005
     private static async Task<string> AppendAiAnalysisOnFailureAsync(string result, McpServer? server, string promptPrefix)
     {
         if (server?.ClientCapabilities?.Sampling == null || !IsCommandFailure(result))
@@ -1443,9 +1432,14 @@ public sealed partial class DotNetCliTools
             var prompt = result.Length > MaxSamplingPromptLength ? result[^MaxSamplingPromptLength..] : result;
             var suggestion = await chatClient.GetResponseAsync(
                 [new ChatMessage(ChatRole.User, $"{promptPrefix}\n\n{prompt}")],
-                new ChatOptions { MaxOutputTokens = MaxSamplingResponseTokens });
+                new ChatOptions { MaxOutputTokens = MaxSamplingResponseTokens },
+                DotNetCommandExecutor.RequestCancellationToken.Value);
             if (!string.IsNullOrWhiteSpace(suggestion.Text))
                 result += $"\n\nAI Analysis:\n{suggestion.Text}";
+        }
+        catch (OperationCanceledException) when (DotNetCommandExecutor.RequestCancellationToken.Value.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception)
         {
@@ -1454,6 +1448,7 @@ public sealed partial class DotNetCliTools
 
         return result;
     }
+#pragma warning restore MCP9005
 
     /// <summary>
     /// Detects whether a dotnet command output string represents a non-zero (failure) exit code.

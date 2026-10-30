@@ -3,6 +3,7 @@ using DotNetMcp;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using ModelContextProtocol;
+using ModelContextProtocol.Extensions.Tasks;
 using Xunit;
 
 namespace DotNetMcp.Tests;
@@ -79,7 +80,7 @@ public class ServerCapabilitiesTests
         var protocolVersion = jsonDoc.RootElement.GetProperty("protocolVersion").GetString();
 
         // Assert
-        Assert.Equal("2025-11-25", protocolVersion);
+        Assert.Equal("2026-07-28", protocolVersion);
     }
 
     [Fact]
@@ -275,7 +276,7 @@ public class ServerCapabilitiesTests
         Assert.NotNull(capabilities);
         Assert.NotNull(capabilities!.ServerVersion);
         Assert.NotEmpty(capabilities.ServerVersion);
-        Assert.Equal("2025-11-25", capabilities.ProtocolVersion);
+        Assert.Equal("2026-07-28", capabilities.ProtocolVersion);
         Assert.NotEmpty(capabilities.SupportedCategories);
         Assert.NotNull(capabilities.Supports);
         Assert.True(capabilities.Supports.StructuredErrors);

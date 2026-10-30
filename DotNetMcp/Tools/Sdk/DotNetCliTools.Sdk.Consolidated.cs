@@ -25,7 +25,7 @@ public sealed partial class DotNetCliTools
     /// <param name="templateVersion">Optional version for template package install (used as &lt;package&gt;@&lt;version&gt;)</param>
     /// <param name="nugetSource">Optional NuGet source to use for template install (e.g., a feed URL)</param>
     /// <param name="interactive">Allows install to prompt for authentication/interaction if required</param>
-    /// <param name="force">Allows installing template packages from specified sources even if they override an existing template package</param>
+    /// <param name="force">Allows installing template packages from specified sources even if they replace an existing template package</param>
     /// <param name="framework">Specific framework to query for framework info (e.g., 'net10.0', 'net8.0')</param>
     /// <param name="forceReload">If true, bypasses cache and reloads from disk (applies to template operations)</param>
     /// <param name="filter">Filter templates by short name, name, or type substring match (case-insensitive) for ListTemplates action</param>

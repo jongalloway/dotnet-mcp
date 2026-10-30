@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
@@ -28,6 +30,7 @@ public class ResourceSubscriptionManager
 
     private readonly ConcurrentDictionary<string, byte> _subscriptions =
         new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<RequestId, IReadOnlySet<string>> _nativeSubscriptions = new();
     private readonly ILogger<ResourceSubscriptionManager>? _logger;
 
     /// <summary>
@@ -37,6 +40,42 @@ public class ResourceSubscriptionManager
     public ResourceSubscriptionManager(ILogger<ResourceSubscriptionManager>? logger = null)
     {
         _logger = logger;
+    }
+
+    internal void Configure(McpServerOptions options)
+    {
+        // The SDK owns listen lifetimes and list-change routing, but not resource updates.
+        options.Filters.Message.OutgoingFilters.Add(next => async (context, ct) =>
+        {
+            if (context.JsonRpcMessage is JsonRpcNotification notification &&
+                notification.Method == NotificationMethods.SubscriptionsAcknowledgedNotification &&
+                notification.Params?["_meta"]?[MetaKeys.SubscriptionId] is { } id)
+            {
+                var subscriptionId = id.Deserialize<RequestId>(McpJsonUtilities.DefaultOptions);
+                var acknowledged = notification.Params.Deserialize<SubscriptionsAcknowledgedNotificationParams>(McpJsonUtilities.DefaultOptions);
+                if (acknowledged?.Notifications.ResourceSubscriptions is { Count: > 0 } uris)
+                {
+                    _nativeSubscriptions[subscriptionId] = uris.ToHashSet(StringComparer.Ordinal);
+                    // This token belongs to the SDK's long-lived listen request.
+                    ct.Register(() => _nativeSubscriptions.TryRemove(subscriptionId, out _));
+                }
+                try
+                {
+                    await next(context, ct);
+                }
+                catch
+                {
+                    _nativeSubscriptions.TryRemove(subscriptionId, out _);
+                    throw;
+                }
+                return;
+            }
+            else if (context.JsonRpcMessage is JsonRpcResponse response)
+                _nativeSubscriptions.TryRemove(response.Id, out _);
+            else if (context.JsonRpcMessage is JsonRpcError error)
+                _nativeSubscriptions.TryRemove(error.Id, out _);
+            await next(context, ct);
+        });
     }
 
     /// <summary>
@@ -71,12 +110,14 @@ public class ResourceSubscriptionManager
     /// Returns whether the given URI has an active subscription.
     /// </summary>
     /// <param name="uri">The resource URI to check.</param>
-    public bool IsSubscribed(string uri) => _subscriptions.ContainsKey(uri);
+    public bool IsSubscribed(string uri) =>
+        _subscriptions.ContainsKey(uri) || _nativeSubscriptions.Values.Any(uris => uris.Contains(uri));
 
     /// <summary>
     /// Gets the collection of currently subscribed resource URIs.
     /// </summary>
-    public IEnumerable<string> SubscribedUris => _subscriptions.Keys;
+    public IEnumerable<string> SubscribedUris =>
+        _subscriptions.Keys.Concat(_nativeSubscriptions.Values.SelectMany(uris => uris)).Distinct(StringComparer.Ordinal);
 
     /// <summary>
     /// Sends a <see cref="NotificationMethods.ResourceUpdatedNotification"/> for the given
@@ -94,19 +135,37 @@ public class ResourceSubscriptionManager
         if (server == null || !IsSubscribed(uri))
             return;
 
-        try
+        var notifications = new List<ResourceUpdatedNotificationParams>();
+        if (_subscriptions.ContainsKey(uri))
+            notifications.Add(new() { Uri = uri });
+        foreach (var subscription in _nativeSubscriptions)
         {
-            await server.SendNotificationAsync(
-                NotificationMethods.ResourceUpdatedNotification,
-                new ResourceUpdatedNotificationParams { Uri = uri },
-                serializerOptions: null, // use MCP default serializer options
-                cancellationToken);
-
-            _logger?.LogDebug("Sent resource updated notification for: {Uri}", uri);
+            if (subscription.Value.Contains(uri))
+                notifications.Add(new()
+                {
+                    Uri = uri,
+                    Meta = new JsonObject
+                    {
+                        [MetaKeys.SubscriptionId] = JsonSerializer.SerializeToNode(subscription.Key, McpJsonUtilities.DefaultOptions)
+                    }
+                });
         }
-        catch (Exception ex)
+        foreach (var notification in notifications)
         {
-            _logger?.LogWarning(ex, "Failed to send resource updated notification for {Uri}", uri);
+            try
+            {
+                await server.SendNotificationAsync(
+                    NotificationMethods.ResourceUpdatedNotification,
+                    notification,
+                    serializerOptions: null,
+                    cancellationToken);
+
+                _logger?.LogDebug("Sent resource updated notification for: {Uri}", uri);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to send resource updated notification for {Uri}", uri);
+            }
         }
     }
 }

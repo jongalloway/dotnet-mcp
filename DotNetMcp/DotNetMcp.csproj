@@ -9,9 +9,8 @@
     <!-- Suppress CS1591 for missing XML comments on non-tool classes -->
     <!-- The source generator creates [Description] attributes from XML documentation for MCP tool methods -->
     <!-- CS1066 is now automatically suppressed by the SDK for MCP server methods -->
-    <!-- MCPEXP001: IMcpTaskStore and related task APIs are experimental in the MCP SDK -->
     <!-- CS1573: Parameter has no matching param tag - intentionally undocumented for framework-injected params (McpServer) -->
-    <NoWarn>$(NoWarn);CS1591;MCPEXP001;CS1573</NoWarn>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
 
     <!-- NuGet Package Metadata -->
     <PackageId>Community.Mcp.DotNet</PackageId>
@@ -55,6 +54,7 @@
     <PackageReference Include="Microsoft.TemplateEngine.Abstractions" Version="10.0.403" />
     <PackageReference Include="Microsoft.TemplateEngine.Edge" Version="10.0.403" />
     <PackageReference Include="ModelContextProtocol" Version="2.3.0" />
+    <PackageReference Include="ModelContextProtocol.Extensions.Tasks" Version="2.3.0" />
     <PackageReference Include="MinVer" Version="8.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

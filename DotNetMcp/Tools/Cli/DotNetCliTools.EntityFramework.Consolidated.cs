@@ -353,7 +353,7 @@ public sealed partial class DotNetCliTools
     /// <param name="startupProject">Startup project file (if different from DbContext project)</param>
     /// <param name="context">The DbContext class to use (if multiple contexts exist)</param>
     /// <param name="framework">Target framework for the project</param>
-    /// <param name="connection">Connection string (overrides configured connection)</param>
+    /// <param name="connection">Connection string to use instead of the configured connection</param>
     /// <param name="noBuild">Do not build the project before updating</param>
     [McpMeta("category", "ef")]
     [McpMeta("priority", 9.0)]

@@ -99,6 +99,7 @@ public sealed partial class DotNetCliTools
     /// <param name="output">Output directory for solution file (optional, used with 'create' action)</param>
     /// <param name="format">Solution file format: 'sln' (classic) or 'slnx' (XML-based). Default is 'sln'. (optional, used with 'create' action)</param>
     /// <param name="projects">Array of project file paths (required for 'add' and 'remove' actions)</param>
+    /// <param name="context">Injected MCP request context for destructive-operation confirmation</param>
     [McpServerTool(Title = ".NET Solution Manager", Destructive = true, UseStructuredContent = true, OutputSchemaType = typeof(SolutionListResult), IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Card%20File%20Box/Flat/card_file_box_flat.svg")]
     [McpMeta("category", "solution")]
     [McpMeta("priority", 10.0)]
@@ -113,7 +114,8 @@ public sealed partial class DotNetCliTools
         string? output = null,
         string? format = null,
         string[]? projects = null,
-        McpServer? server = null)
+        McpServer? server = null,
+        RequestContext<CallToolRequestParams>? context = null)
     {
         // Validate action parameter
         if (!ParameterValidator.ValidateAction<DotnetSolutionAction>(action, out var actionError))
@@ -129,7 +131,7 @@ public sealed partial class DotNetCliTools
             DotnetSolutionAction.Add or DotnetSolutionAction.List or DotnetSolutionAction.Remove
             or DotnetSolutionAction.Analyze or DotnetSolutionAction.Dependencies or DotnetSolutionAction.Validate)
         {
-            effectiveSolution = await WorkspaceDiscovery.TryFindSolutionInRootsAsync(server);
+            effectiveSolution = await WorkspaceDiscovery.TryFindSolutionInRootsAsync(server, DotNetCommandExecutor.RequestCancellationToken.Value);
         }
 
         // Route to appropriate method based on action
@@ -138,7 +140,7 @@ public sealed partial class DotNetCliTools
             DotnetSolutionAction.Create => await HandleCreateAction(name, output, format),
             DotnetSolutionAction.Add => await HandleAddAction(effectiveSolution, projects),
             DotnetSolutionAction.List => await HandleListAction(effectiveSolution),
-            DotnetSolutionAction.Remove => await HandleRemoveAction(effectiveSolution, projects, server),
+            DotnetSolutionAction.Remove => await HandleRemoveAction(effectiveSolution, projects, server, context),
             DotnetSolutionAction.Analyze => await HandleSolutionAnalyzeAction(effectiveSolution),
             DotnetSolutionAction.Dependencies => await HandleSolutionDependenciesAction(effectiveSolution),
             DotnetSolutionAction.Validate => await HandleSolutionValidateAction(effectiveSolution),
@@ -191,7 +193,7 @@ public sealed partial class DotNetCliTools
         return await DotnetSolutionList(solution!);
     }
 
-    private async Task<string> HandleRemoveAction(string? solution, string[]? projects, McpServer? server = null)
+    private async Task<string> HandleRemoveAction(string? solution, string[]? projects, McpServer? server = null, RequestContext<CallToolRequestParams>? context = null)
     {
         // Validate required parameters for remove action
         if (!ParameterValidator.ValidateRequiredParameter(solution, "solution", out var solutionError))
@@ -204,32 +206,15 @@ public sealed partial class DotNetCliTools
             return "Error: at least one project path is required for the 'remove' action.";
         }
 
-        // Request confirmation via elicitation when client supports it
-        if (server != null && server.ClientCapabilities?.Elicitation != null)
+        var projectList = string.Join(", ", projects.Select(project => $"'{project}'"));
+        if (!await DestructiveOperationConfirmation.ConfirmAsync(
+            server, context,
+            $"This will remove {projectList} from solution '{solution}'. Do you want to proceed?",
+            "Confirm remove",
+            "I understand this will remove the project(s) from the solution",
+            DotNetCommandExecutor.RequestCancellationToken.Value))
         {
-            var projectList = projects.Length == 1
-                ? $"'{projects[0]}'"
-                : $"{projects.Length} projects";
-            var elicitResult = await server.ElicitAsync(new ElicitRequestParams
-            {
-                Message = $"This will remove {projectList} from solution '{solution}'. Do you want to proceed?",
-                RequestedSchema = new ElicitRequestParams.RequestSchema
-                {
-                    Properties = new Dictionary<string, ElicitRequestParams.PrimitiveSchemaDefinition>
-                    {
-                        ["confirmed"] = new ElicitRequestParams.BooleanSchema
-                        {
-                            Title = "Confirm remove",
-                            Description = "I understand this will remove the project(s) from the solution"
-                        }
-                    }
-                }
-            }, default);
-
-            if (!elicitResult.IsAccepted)
-            {
-                return "Remove operation cancelled.";
-            }
+            return "Remove operation cancelled.";
         }
 
         return await DotnetSolutionRemove(solution!, projects);

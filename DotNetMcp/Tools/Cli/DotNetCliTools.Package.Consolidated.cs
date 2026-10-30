@@ -36,6 +36,7 @@ public sealed partial class DotNetCliTools
     /// <param name="referencePath">Path to referenced project for add/remove reference operations</param>
     /// <param name="cacheType">Cache location to clear: all, http-cache, global-packages, temp, plugins-cache</param>
     /// <param name="workingDirectory">Working directory for command execution</param>
+    /// <param name="context">Injected MCP request context for per-request logging</param>
     [McpServerTool(Title = "NuGet Package Manager", Destructive = true, UseStructuredContent = true, OutputSchemaType = typeof(PackageListResult), IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Package/Flat/package_flat.svg")]
     [McpMeta("category", "package")]
     [McpMeta("priority", 9.0)]
@@ -62,7 +63,8 @@ public sealed partial class DotNetCliTools
         string? cacheType = null,
         string? workingDirectory = null,
         IProgress<ProgressNotificationValue>? progress = null,
-        McpServer? server = null)
+        McpServer? server = null,
+        RequestContext<CallToolRequestParams>? context = null)
     {
         // Auto-detect project from workspace roots when not explicitly specified.
         // Not applicable for Search and ClearCache which do not operate on a project.
@@ -72,7 +74,7 @@ public sealed partial class DotNetCliTools
             DotnetPackageAction.List or DotnetPackageAction.AddReference or
             DotnetPackageAction.RemoveReference or DotnetPackageAction.ListReferences)
         {
-            effectiveProject = await WorkspaceDiscovery.TryFindProjectInRootsAsync(server);
+            effectiveProject = await WorkspaceDiscovery.TryFindProjectInRootsAsync(server, DotNetCommandExecutor.RequestCancellationToken.Value);
         }
 
         var textResult = await WithWorkingDirectoryAsync(workingDirectory, async () =>
@@ -86,10 +88,10 @@ public sealed partial class DotNetCliTools
             // Route to appropriate handler based on action
             return action switch
             {
-                DotnetPackageAction.Add => await ExecuteWithProgress(progress, "Adding package...", "Package added", () => HandleAddAction(packageId, effectiveProject, version, source, framework, prerelease ?? false, server)),
+                DotnetPackageAction.Add => await ExecuteWithProgress(progress, "Adding package...", "Package added", () => HandleAddAction(packageId, effectiveProject, version, source, framework, prerelease ?? false, server, context)),
                 DotnetPackageAction.Remove => await HandleRemoveAction(packageId, effectiveProject),
                 DotnetPackageAction.Search => await HandleSearchAction(searchTerm, take, skip, prerelease ?? false, exactMatch ?? false),
-                DotnetPackageAction.Update => await ExecuteWithProgress(progress, "Updating packages...", "Update complete", () => HandleUpdateAction(packageId, effectiveProject, version, prerelease ?? false, server)),
+                DotnetPackageAction.Update => await ExecuteWithProgress(progress, "Updating packages...", "Update complete", () => HandleUpdateAction(packageId, effectiveProject, version, prerelease ?? false, server, context)),
                 DotnetPackageAction.List => await HandleListAction(effectiveProject, outdated ?? false, deprecated ?? false, filter, maxResults),
                 DotnetPackageAction.AddReference => await HandleAddReferenceAction(effectiveProject, referencePath),
                 DotnetPackageAction.RemoveReference => await HandleRemoveReferenceAction(effectiveProject, referencePath),
@@ -107,7 +109,7 @@ public sealed partial class DotNetCliTools
         return StructuredContentHelper.ToCallToolResult(textResult, structured);
     }
 
-    private async Task<string> HandleAddAction(string? packageId, string? project, string? version, string? source, string? framework, bool prerelease, McpServer? server = null)
+    private async Task<string> HandleAddAction(string? packageId, string? project, string? version, string? source, string? framework, bool prerelease, McpServer? server = null, RequestContext<CallToolRequestParams>? context = null)
     {
         // Validate required parameters
         if (!ParameterValidator.ValidateRequiredParameter(packageId, "packageId", out var errorMessage))
@@ -123,7 +125,7 @@ public sealed partial class DotNetCliTools
 
         var target = string.IsNullOrEmpty(project) ? "" : $" to \"{Path.GetFileName(project)}\"";
         var versionInfo = string.IsNullOrEmpty(version) ? "" : $" {version}";
-        await SendMcpLogAsync(server, $"Adding NuGet package '{packageId}'{versionInfo}{target}...");
+        await SendMcpLogAsync(server, $"Adding NuGet package '{packageId}'{versionInfo}{target}...", context);
 
         // If no source/framework specified, preserve existing behavior by routing to DotnetPackageAdd
         if (string.IsNullOrWhiteSpace(source) && string.IsNullOrWhiteSpace(framework))
@@ -200,7 +202,7 @@ public sealed partial class DotNetCliTools
             exactMatch: exactMatch);
     }
 
-    private async Task<string> HandleUpdateAction(string? packageId, string? project, string? version, bool prerelease, McpServer? server = null)
+    private async Task<string> HandleUpdateAction(string? packageId, string? project, string? version, bool prerelease, McpServer? server = null, RequestContext<CallToolRequestParams>? context = null)
     {
         // Validate required parameters
         if (!ParameterValidator.ValidateRequiredParameter(packageId, "packageId", out var errorMessage))
@@ -216,7 +218,7 @@ public sealed partial class DotNetCliTools
 
         var target = string.IsNullOrEmpty(project) ? "" : $" in \"{Path.GetFileName(project)}\"";
         var versionInfo = string.IsNullOrEmpty(version) ? "" : $" to {version}";
-        await SendMcpLogAsync(server, $"Updating NuGet package '{packageId}'{versionInfo}{target}...");
+        await SendMcpLogAsync(server, $"Updating NuGet package '{packageId}'{versionInfo}{target}...", context);
 
         // Route to existing DotnetPackageUpdate method
         return await DotnetPackageUpdate(
