@@ -21,7 +21,7 @@ namespace DotNetMcp;
 public class TemplateEngineHelper
 {
     private static readonly CachedResourceManager<IEnumerable<ITemplateInfo>> _cacheManager =
-        new("Templates", defaultTtlSeconds: 300);
+        new("Templates");
 
     // Line separators used for splitting dotnet CLI output
     private static readonly string[] LineSeparators = ["\r\n", "\n"];
