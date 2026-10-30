@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
+using ModelContextProtocol.Extensions.Tasks;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -27,7 +28,7 @@ public sealed partial class DotNetCliTools
 
     // Constants for server capability discovery
     private const string DefaultServerVersion = "1.0.0";
-    private const string ProtocolVersion = "2025-11-25";
+    private const string ProtocolVersion = "2026-07-28";
 
     // Constants for sampling (AI-assisted error interpretation)
     private const int MaxSamplingPromptLength = 4000;
@@ -302,29 +303,41 @@ public sealed partial class DotNetCliTools
 
     /// <summary>
     /// Sends an MCP log notification to the client if a server connection is available.
-    /// Failures are silently swallowed so logging never breaks tool execution.
+    /// Applies the legacy session level or the current request's _meta log level.
     /// </summary>
-    private static async Task SendMcpLogAsync(McpServer? server, string message, LoggingLevel level = LoggingLevel.Info)
+    // Logging is deprecated but retained for clients that explicitly request it.
+#pragma warning disable MCP9005
+    private async Task SendMcpLogAsync(McpServer? server, string message, RequestContext<CallToolRequestParams>? context)
     {
-        if (server is null) return;
+        if (server is null || GetMcpLogLevel(server, context) is not { } minimumLevel || minimumLevel > LoggingLevel.Info)
+            return;
+
         try
         {
             await server.SendNotificationAsync(
                 NotificationMethods.LoggingMessageNotification,
                 new LoggingMessageNotificationParams
                 {
-                    Level = level,
+                    Level = LoggingLevel.Info,
                     Logger = "dotnet-mcp",
                     Data = JsonSerializer.SerializeToElement(message)
                 },
-                McpJsonUtilities.DefaultOptions,
-                CancellationToken.None);
+                McpJsonUtilities.DefaultOptions);
         }
-        catch (Exception)
+        catch (Exception ex) when (ex is McpException or IOException or ObjectDisposedException)
         {
-            // Don't let logging failures break tool execution
+            _logger.LogWarning(ex, "Unable to deliver MCP logging notification.");
         }
     }
+
+    private static LoggingLevel? GetMcpLogLevel(McpServer server, RequestContext<CallToolRequestParams>? context)
+        => server.NegotiatedProtocolVersion == ProtocolVersion
+            ? context?.JsonRpcMessage.Context?.LogLevel
+            : server.LoggingLevel ?? LoggingLevel.Info;
+
+    private static bool SupportsMcpLogging(McpServer? server, RequestContext<CallToolRequestParams>? context)
+        => server is null || GetMcpLogLevel(server, context) is not null;
+#pragma warning restore MCP9005
 
     /// <summary>
     /// Executes a long-running operation with progress notifications sent before and after execution.

@@ -15,7 +15,8 @@ public sealed class ServerCapabilities
     public string ServerVersion { get; init; } = string.Empty;
 
     /// <summary>
-    /// The Model Context Protocol version being used
+    /// The negotiated Model Context Protocol version, or the maximum supported version
+    /// when queried without a connection.
     /// </summary>
     [JsonPropertyName("protocolVersion")]
     public string ProtocolVersion { get; init; } = string.Empty;
@@ -27,7 +28,8 @@ public sealed class ServerCapabilities
     public string[] SupportedCategories { get; init; } = Array.Empty<string>();
 
     /// <summary>
-    /// Feature flags indicating what capabilities the server supports
+    /// Feature flags available to the current peer. Without a connection these describe
+    /// server implementation support, subject to client negotiation.
     /// </summary>
     [JsonPropertyName("supports")]
     public ServerFeatureSupport Supports { get; init; } = new();
@@ -81,8 +83,8 @@ public sealed class ServerFeatureSupport
 
     /// <summary>
     /// Whether the server supports MCP Task augmentation for long-running operations such as
-    /// build, test, and publish. When true, AI clients can call supported tools as async tasks
-    /// and poll for completion instead of blocking on the result.
+    /// build, test, and publish through the io.modelcontextprotocol/tasks extension.
+    /// Requires protocol 2026-07-28 and per-request client opt-in; legacy clients call tools inline.
     /// </summary>
     [JsonPropertyName("asyncTasks")]
     public bool AsyncTasks { get; init; }
@@ -105,8 +107,8 @@ public sealed class ServerFeatureSupport
     /// <summary>
     /// Whether the server sends MCP logging notifications to the client during tool execution.
     /// When true, clients receive informational log messages (e.g. "Building project...", "Running tests...")
-    /// via the MCP logging notification (<c>notifications/message</c>,
-    /// i.e. <c>NotificationMethods.LoggingMessageNotification</c>).
+    /// via the MCP logging notification (<c>notifications/message</c>).
+    /// Current-protocol requests must supply a _meta log level.
     /// </summary>
     [JsonPropertyName("mcpLogging")]
     public bool McpLogging { get; init; }
