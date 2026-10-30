@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol;
+using ModelContextProtocol.Extensions.Apps;
 using ModelContextProtocol.Extensions.Tasks;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
@@ -76,13 +77,16 @@ var mcpServerBuilder = builder.Services.AddMcpServer(options =>
     };
 });
 
+#pragma warning disable MCPEXP003 // Deliberate adoption of the experimental MCP Apps extension.
 mcpServerBuilder
     .WithStdioServerTransport()
     .WithTasks(taskStore)
     .WithTools<DotNetCliTools>()
+    .WithMcpApps()
     .WithResources<DotNetResources>()
     .WithResources<McpAppsResources>()
     .WithPrompts<DotNetPrompts>();
+#pragma warning restore MCPEXP003
 
 if (governanceConfiguration.Enabled)
 {

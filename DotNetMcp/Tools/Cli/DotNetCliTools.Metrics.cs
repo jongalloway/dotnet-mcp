@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using ModelContextProtocol.Extensions.Apps;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -23,7 +24,9 @@ public sealed partial class DotNetCliTools
     [McpMeta("priority", 5.0)]
     [McpMeta("consolidatedTool", true)]
     [McpMeta("actions", JsonValue = """["Get","TokenSavingsGet","TokenSavingsReset","Reset"]""")]
-    [McpMeta("ui", JsonValue = """{"resourceUri": "ui://dotnet-mcp/server-metrics"}""")]
+#pragma warning disable MCPEXP003 // Typed MCP Apps linkage is experimental; preserve the legacy key below.
+    [McpAppUi(ResourceUri = "ui://dotnet-mcp/server-metrics")]
+#pragma warning restore MCPEXP003
     [McpMeta("ui/resourceUri", "ui://dotnet-mcp/server-metrics")]
     public partial Task<CallToolResult> DotnetServerMetrics(DotnetServerMetricsAction action)
     {
