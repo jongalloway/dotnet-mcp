@@ -139,6 +139,15 @@ mcpServerBuilder
 // task infrastructure has no CallToolResult to return to the client.
 builder.Services.Configure<McpServerOptions>(options =>
 {
+    options.Filters.Request.ListToolsFilters.Add(
+        CachePolicy.CreateListFilter<ListToolsRequestParams, ListToolsResult>());
+    options.Filters.Request.ListPromptsFilters.Add(
+        CachePolicy.CreateListFilter<ListPromptsRequestParams, ListPromptsResult>());
+    options.Filters.Request.ListResourcesFilters.Add(
+        CachePolicy.CreateListFilter<ListResourcesRequestParams, ListResourcesResult>());
+    options.Filters.Request.ListResourceTemplatesFilters.Add(
+        CachePolicy.CreateListFilter<ListResourceTemplatesRequestParams, ListResourceTemplatesResult>());
+
     options.Filters.Request.CallToolFilters.Add(next => async (context, ct) =>
     {
         var toolName = context.Params?.Name ?? "unknown";

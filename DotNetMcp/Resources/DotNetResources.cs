@@ -47,9 +47,9 @@ public sealed class DotNetResources
 
     // Static cache managers for SDK and Runtime info (300 second TTL by default)
     private static readonly CachedResourceManager<List<SdkInfo>> _sdkCacheManager =
-        new("SDK", defaultTtlSeconds: 300);
+        new("SDK");
     private static readonly CachedResourceManager<List<RuntimeInfo>> _runtimeCacheManager =
-        new("Runtime", defaultTtlSeconds: 300);
+        new("Runtime");
     private static readonly CachedResourceManager<WorkspaceSnapshot> _workspaceCacheManager =
         new("Workspace", defaultTtlSeconds: 60);
 

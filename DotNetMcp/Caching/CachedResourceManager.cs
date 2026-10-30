@@ -45,7 +45,7 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
     /// <param name="defaultTtlSeconds">Default cache TTL in seconds (default: 300).</param>
     /// <param name="logger">Optional logger instance.</param>
     /// <param name="timeProvider">Optional time provider for testability (default: TimeProvider.System).</param>
-    public CachedResourceManager(string resourceName, int defaultTtlSeconds = 300, ILogger? logger = null, TimeProvider? timeProvider = null)
+    public CachedResourceManager(string resourceName, int defaultTtlSeconds = CachePolicy.DefaultTtlSeconds, ILogger? logger = null, TimeProvider? timeProvider = null)
     {
         _resourceName = resourceName;
         _defaultTtl = TimeSpan.FromSeconds(defaultTtlSeconds);

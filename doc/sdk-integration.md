@@ -319,6 +319,25 @@ Framework metadata is also provided via `dotnet_sdk`:
 - Includes solution path (if present), project list, target frameworks, package counts, and test-project hints
 - Cached for 60 seconds to reduce repeated discovery round-trips while keeping project metadata fresh
 
+### Client List Cache Hints
+
+For MCP protocol revision `2026-07-28`, `tools/list`, `prompts/list`,
+`resources/list`, and `resources/templates/list` responses advertise
+`ttlMs: 300000` and `cacheScope: "private"`, including empty lists. The duration
+uses the same 300-second default as the SDK, runtime, and template content caches.
+Private scope permits caching by the requesting user's client, not shared caches
+serving other users. Legacy protocol revisions omit both fields entirely.
+
+These are freshness hints for registered metadata, not resource contents or a
+new server-side list cache. Listing does not load resource data, change content-cache
+metrics, or extend the workspace snapshot's 60-second lifetime. Relevant change
+notifications invalidate client caches even before their TTL expires.
+`resources/read` caching is unchanged.
+
+`server/discover` retains the SDK's safe defaults (`ttlMs: 0`,
+`cacheScope: "private"`). The SDK does not expose a discovery-specific typed
+filter, and the server does not replace discovery handling merely to add hints.
+
 ### Cache Response Format
 
 All cached resources include metadata:
