@@ -110,7 +110,9 @@ public sealed class ServerFeatureSupport
     /// Whether the server sends MCP logging notifications to the client during tool execution.
     /// When true, clients receive informational log messages (e.g. "Building project...", "Running tests...")
     /// via the MCP logging notification (<c>notifications/message</c>).
-    /// Current-protocol requests must supply a _meta log level.
+    /// Current-protocol requests must supply a _meta log level; Info messages are
+    /// sent only when that threshold permits them. Legacy requests use the session level.
+    /// Without a connection this reports implementation support.
     /// </summary>
     [JsonPropertyName("mcpLogging")]
     public bool McpLogging { get; init; }
@@ -126,6 +128,9 @@ public sealed class ServerFeatureSupport
     /// Whether the server uses MCP Sampling to request LLM completions from the client for
     /// intelligent error interpretation. When true, clients that support sampling will receive
     /// AI-assisted analysis of build and test failures.
+    /// Connected snapshots reflect the client's advertised Sampling capability: per-request
+    /// on the current protocol and session-scoped on legacy revisions.
+    /// Without a connection this reports implementation support, not an available client model.
     /// </summary>
     [JsonPropertyName("sampling")]
     public bool Sampling { get; init; }

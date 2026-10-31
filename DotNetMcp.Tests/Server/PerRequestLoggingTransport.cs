@@ -7,8 +7,8 @@ using ModelContextProtocol.Protocol;
 
 namespace DotNetMcp.Tests;
 
-// SDK 2.0's client removes logLevel during metadata injection. Add it at the wire
-// boundary so these tests exercise real per-request logging, not legacy setLevel.
+// Supply logLevel at the wire boundary so these tests exercise per-request
+// logging independently of client metadata injection, not legacy setLevel.
 internal sealed class PerRequestLoggingTransport(IClientTransport inner) : IClientTransport
 {
     public string Name => inner.Name;
