@@ -133,6 +133,8 @@ dotnet test --project .\DotNetMcp.Tests\DotNetMcp.Tests.csproj -c Release -- --f
 
 `Sdk20CompatibilityTests` covers 2026-07-28 and 2025-11-25 discovery, required tool input schemas, negotiated capabilities, resource error-code mapping, native/legacy resource-update delivery, native listener cancellation, confirmation outcomes and continuation validation, execution after confirmation, Tasks polling/update/cancellation, and governance policy composition. Cancellation coverage includes pending Roots/Sampling input and termination of a real CLI child process without subsequent AI analysis. The full-catalog governance test intentionally verifies fail-closed rejection of the existing certificate password schema; it is not evidence that governance-enabled full-catalog startup succeeds.
 
+Confirmation tests also use a transport-only native client to inspect `inputRequests` and send `inputResponses` without the SDK's automatic retry loop. Real Clean and solution Remove fixtures verify that side effects wait for accepted boolean confirmation, while malformed or missing confirmation data do not execute the operation. Legacy tests verify one wire-level tool call; a test-only explicit-MRTR tool separately exercises the SDK's backward-compatibility resolver with one input round and two handler executions. Native SDK-client tests assert two tool calls, keeping the simple flow below the SDK's 10-retry limits.
+
 The Tasks capability matrix includes servers with and without `WithTasks`, legacy inline fallback, and opted-in/ordinary/opted-in calls on one connection. Assertions check task versus ordinary result shapes and request-scoped `asyncTasks`, independently of task-store injection into tools.
 
 Run the focused real-stdio Tasks checks:
@@ -143,7 +145,7 @@ dotnet test --project .\DotNetMcp.Tests\DotNetMcp.Tests.csproj -c Release -- --f
 
 Focused error regressions distinguish SDK wire errors from application annotations: missing resource reads produce `-32602` on the current revision and `-32002` on the legacy revision, while factory-generated tool errors retain their annotations, `IsError`, object envelopes, and equivalent structured/text JSON content on both. Unit tests cover all five missing-resource diagnostic mappings, both capability factory overloads, and separation from the SDK's renumbered `-32020`/`-32021`/`-32022` codes.
 
-`McpConformanceTests` starts the actual stdio server and checks discovery, resources/prompts, legacy and native confirmation, actual resource updates after `subscriptions/listen`, removed-method rejection, and opted-in logging. SDK 2.0's client drops the request log level during metadata injection, so the test-only logging transport writes it at the wire boundary. The logging workaround is test-only.
+`McpConformanceTests` starts the actual stdio server and checks discovery, resources/prompts, legacy and native confirmation for both Clean and solution Remove, actual resource updates after `subscriptions/listen`, removed-method rejection, and opted-in logging. SDK 2.0's client drops the request log level during metadata injection, so the test-only logging transport writes it at the wire boundary. The logging workaround is test-only.
 
 MTP selectors of the same kind can be repeated to match multiple classes or methods. Combining `--filter-class` with `--filter-method` narrows to their intersection, not their union.
 

@@ -1104,9 +1104,11 @@ public class McpConformanceTests : IAsyncLifetime
     #region MCP Logging Notification Tests
 
     [Theory]
-    [InlineData("2026-07-28")]
-    [InlineData("2025-11-25")]
-    public async Task Server_ConfirmationControlFlow_ReachesSdk(string protocol)
+    [InlineData("2026-07-28", "Clean")]
+    [InlineData("2025-11-25", "Clean")]
+    [InlineData("2026-07-28", "Remove")]
+    [InlineData("2025-11-25", "Remove")]
+    public async Task Server_ConfirmationControlFlow_ReachesSdk(string protocol, string action)
     {
         var executable = GetServerExecutablePath();
         var confirmations = 0;
@@ -1131,11 +1133,16 @@ public class McpConformanceTests : IAsyncLifetime
             },
             cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotEmpty(await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken));
-        var result = await client.CallToolAsync("dotnet_project",
-            new Dictionary<string, object?> { ["action"] = "Clean", ["project"] = "missing.csproj" },
+        var result = await client.CallToolAsync(action == "Clean" ? "dotnet_project" : "dotnet_solution",
+            new Dictionary<string, object?>
+            {
+                ["action"] = action,
+                [action == "Clean" ? "project" : "solution"] = action == "Clean" ? "missing.csproj" : "missing.sln",
+                ["projects"] = new[] { "missing.csproj" }
+            },
             cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(1, confirmations);
-        Assert.Contains("Clean operation cancelled.", result.GetText());
+        Assert.Contains($"{action} operation cancelled.", result.GetText());
         Assert.DoesNotContain("Internal error", result.GetText());
     }
 

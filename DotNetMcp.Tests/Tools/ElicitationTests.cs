@@ -10,7 +10,7 @@ namespace DotNetMcp.Tests;
 /// Verifies that:
 /// - Destructive operations proceed normally when McpServer is null (no elicitation supported)
 /// - The server capability flags correctly advertise elicitation support
-/// - Fallback behavior works correctly when clients don't support elicitation
+/// - Direct calls retain the unprompted fallback; live protocol flows are covered by SDK compatibility tests
 /// </summary>
 public class ElicitationTests
 {
@@ -59,17 +59,8 @@ public class ElicitationTests
     }
 
     [Fact]
-    public async Task DotnetProject_CleanAction_CancellationMessage_IsDescriptive()
+    public async Task DotnetProject_CleanAction_WithNullServer_WithoutProject_DoesNotRequestConfirmation()
     {
-        // Verify the cancellation message format is user-friendly
-        // We can test the message format by checking the HandleCleanAction indirectly
-        // through the fact that it returns "Clean operation cancelled." on decline
-
-        // This test verifies the message format doesn't change unexpectedly
-        // The actual elicitation flow requires a live McpServer with elicitation capability
-        // which is tested in conformance/integration tests
-
-        // Since we can't easily mock McpServer (it's a sealed class), we test the fallback path
         var result = (await _tools.DotnetProject(
             action: DotnetProjectAction.Clean,
             server: null)).GetText();

@@ -28,7 +28,11 @@ An application error (`CallToolResult.IsError = true`) is retained inside a comp
 
 Clean and solution Remove request a required boolean confirmation before side effects. On native ordinary calls, MRTR returns an input request and validates the continuation against the operation and arguments. Only an accepted response with `confirmed: true` proceeds; decline, cancel, and false confirmation do not.
 
-Legacy clients retain elicitation, and the SDK's legacy MRTR resolver remains available. Tasks use task-aware elicitation and `input_required`/`tasks/update`, because SDK 2.0 does not compose explicit `InputRequiredException` with task handlers. Clients without elicitation retain the existing unprompted behavior; confirmation is not an authorization boundary.
+Legacy clients use the existing one-shot `ElicitAsync` path: the server sends `elicitation/create` and completes the original tool request after the answer. This does not require a native MRTR retry loop in the legacy client. Separately, SDK 2.3.0's backward-compatibility resolver can bridge an explicit MRTR input request to legacy JSON-RPC and retry the handler with its input responses.
+
+The SDK's legacy resolver allows up to **10 retry rounds**. The SDK client's automatic native MRTR retry loop also has a 10-retry limit. A simple confirmation needs only **one input round**: native ordinary calls make an initial `tools/call` and one continuation; explicit MRTR on legacy connections executes its handler twice within one wire-level tool call. The retained production legacy `ElicitAsync` path needs no handler retry.
+
+Tasks deliberately retain task-aware `ElicitAsync`, suspending the existing execution with `input_required` until `tasks/update` supplies the answer, rather than replaying the tool. Clients without elicitation retain the existing unprompted behavior; confirmation is not an authorization boundary.
 
 ## Retained deprecated stdio features
 
@@ -50,5 +54,5 @@ Application error annotations such as `mcpErrorCode` remain stable inside tool r
 
 - [MCP C# SDK 2.3.0 release](https://github.com/modelcontextprotocol/csharp-sdk/releases/tag/v2.3.0)
 - [Tasks extension](https://github.com/modelcontextprotocol/csharp-sdk/blob/v2.3.0/docs/concepts/tasks/tasks.md)
-- [MRTR](https://github.com/modelcontextprotocol/csharp-sdk/blob/v2.0.0/docs/concepts/mrtr/mrtr.md)
+- [MRTR](https://github.com/modelcontextprotocol/csharp-sdk/blob/v2.3.0/docs/concepts/mrtr/mrtr.md)
 - [Testing](testing.md#mcp-sdk-compatibility-checks)
