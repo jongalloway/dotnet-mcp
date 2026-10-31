@@ -394,6 +394,118 @@ public class Sdk20CompatibilityTests
         Assert.True(enabled.Result!["structuredContent"]!["supports"]!["mcpLogging"]!.GetValue<bool>());
         var disabled = await host.Client.CallToolAsync("dotnet_server_capabilities", cancellationToken: host.Token);
         Assert.False(Assert.IsType<JsonElement>(disabled.StructuredContent).GetProperty("supports").GetProperty("mcpLogging").GetBoolean());
+        var reenabled = await host.Client.SendRequestAsync(new()
+        {
+            Id = new RequestId("logging-opt-in-again"),
+            Method = RequestMethods.ToolsCall,
+            Params = new JsonObject { ["name"] = "dotnet_server_capabilities" },
+            Context = new() { LogLevel = LoggingLevel.Warning }
+        }, host.Token);
+        Assert.True(reenabled.Result!["structuredContent"]!["supports"]!["mcpLogging"]!.GetValue<bool>());
+    }
+
+    [Fact]
+    public async Task CurrentLogging_NotificationsDoNotLeakAcrossRequests()
+    {
+        await using var host = await TestServer.CreateAsync("2026-07-28");
+        var notifications = Channel.CreateUnbounded<JsonNode>();
+        await using var handler = host.Client.RegisterNotificationHandler(
+            NotificationMethods.LoggingMessageNotification, (notification, _) =>
+            {
+                notifications.Writer.TryWrite(notification.Params!.DeepClone());
+                return ValueTask.CompletedTask;
+            });
+
+        var requestNumber = 0;
+        foreach (var level in new LoggingLevel?[] { LoggingLevel.Info, null, LoggingLevel.Info })
+        {
+            var project = $"missing{requestNumber}.csproj";
+            await host.Client.SendRequestAsync(new()
+            {
+                Id = new RequestId($"logging-isolation-{requestNumber++}"),
+                Method = RequestMethods.ToolsCall,
+                Params = new JsonObject
+                {
+                    ["name"] = "dotnet_project",
+                    ["arguments"] = new JsonObject { ["action"] = "Build", ["project"] = project }
+                },
+                Context = new() { LogLevel = level }
+            }, host.Token);
+            if (level is not null)
+            {
+                var notification = await notifications.Reader.ReadAsync(host.Token);
+                Assert.Equal($"Building \"{project}\"...", notification["data"]!.GetValue<string>());
+            }
+            else
+            {
+                using var quietPeriod = CancellationTokenSource.CreateLinkedTokenSource(host.Token);
+                quietPeriod.CancelAfter(TimeSpan.FromMilliseconds(200));
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                    async () => await notifications.Reader.ReadAsync(quietPeriod.Token));
+            }
+        }
+        Assert.False(notifications.Reader.TryRead(out _));
+    }
+
+    [Theory]
+    [InlineData("2026-07-28", null, false)]
+    [InlineData("2026-07-28", LoggingLevel.Debug, true)]
+    [InlineData("2026-07-28", LoggingLevel.Info, true)]
+    [InlineData("2026-07-28", LoggingLevel.Warning, false)]
+    [InlineData("2026-07-28", LoggingLevel.Error, false)]
+    [InlineData("2025-11-25", null, true)]
+    [InlineData("2025-11-25", LoggingLevel.Debug, true)]
+    [InlineData("2025-11-25", LoggingLevel.Info, true)]
+    [InlineData("2025-11-25", LoggingLevel.Warning, false)]
+    [InlineData("2025-11-25", LoggingLevel.Error, false)]
+    public async Task Logging_RespectsNegotiatedThresholdAndNotificationPayload(
+        string protocol, LoggingLevel? level, bool expectedNotification)
+    {
+        await using var host = await TestServer.CreateAsync(protocol);
+        var notifications = Channel.CreateUnbounded<JsonNode>();
+        await using var handler = host.Client.RegisterNotificationHandler(
+            NotificationMethods.LoggingMessageNotification, (notification, _) =>
+            {
+                notifications.Writer.TryWrite(notification.Params!.DeepClone());
+                return ValueTask.CompletedTask;
+            });
+        if (protocol == "2025-11-25" && level is { } sessionLevel)
+        {
+            await host.Client.SendRequestAsync(new()
+            {
+                Id = new RequestId("session-log-level"),
+                Method = RequestMethods.LoggingSetLevel,
+                Params = new JsonObject { ["level"] = sessionLevel.ToString().ToLowerInvariant() }
+            }, host.Token);
+        }
+
+        var response = await host.Client.SendRequestAsync(new()
+        {
+            Id = new RequestId("build-log-threshold"),
+            Method = RequestMethods.ToolsCall,
+            Params = new JsonObject
+            {
+                ["name"] = "dotnet_project",
+                ["arguments"] = new JsonObject { ["action"] = "Build", ["project"] = "missing.csproj" }
+            },
+            Context = new() { LogLevel = protocol == "2026-07-28" ? level : null }
+        }, host.Token);
+        Assert.NotNull(response.Result);
+        if (expectedNotification)
+        {
+            var notification = await notifications.Reader.ReadAsync(host.Token);
+            Assert.Equal("info", notification["level"]!.GetValue<string>());
+            Assert.Equal("dotnet-mcp", notification["logger"]!.GetValue<string>());
+            Assert.Equal("Building \"missing.csproj\"...", notification["data"]!.GetValue<string>());
+        }
+        else
+        {
+            using var quietPeriod = CancellationTokenSource.CreateLinkedTokenSource(host.Token);
+            quietPeriod.CancelAfter(TimeSpan.FromMilliseconds(200));
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                async () => await notifications.Reader.ReadAsync(quietPeriod.Token));
+        }
+        Assert.False(notifications.Reader.TryRead(out _));
     }
 #pragma warning restore MCP9005
 
@@ -742,7 +854,172 @@ public class Sdk20CompatibilityTests
         await host.Exited.Task.WaitAsync(host.Token);
     }
 
-#pragma warning disable MCP9005 // Exercise cancellation of the retained Roots and Sampling input paths.
+#pragma warning disable MCP9005 // Exercise retained Roots/Sampling compatibility and cancellation.
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(0, true)]
+    [InlineData(1, true)]
+    [InlineData(2, true)]
+    public async Task LegacyRoots_DiscoverOnlyUnambiguousProjectAndSolution(int fileCount, bool hasRoot)
+    {
+        var roots = new List<Root>();
+        var requests = 0;
+        await using var host = await TestServer.CreateAsync("2025-11-25", handlers: new()
+        {
+            RootsHandler = (_, _) =>
+            {
+                Interlocked.Increment(ref requests);
+                return ValueTask.FromResult(new ListRootsResult
+                {
+                    Roots = roots
+                });
+            }
+        });
+        if (hasRoot)
+            roots.Add(new Root { Uri = new Uri(host.DirectoryPath + Path.DirectorySeparatorChar).AbsoluteUri });
+        for (var i = 0; i < fileCount; i++)
+        {
+            await File.WriteAllTextAsync(Path.Join(host.DirectoryPath, $"project{i}.csproj"), "<Project />", host.Token);
+            await File.WriteAllTextAsync(Path.Join(host.DirectoryPath, $"solution{i}.slnx"), "<Solution />", host.Token);
+        }
+
+        var project = await WorkspaceDiscovery.TryFindProjectInRootsAsync(host.Server, host.Token);
+        var solution = await WorkspaceDiscovery.TryFindSolutionInRootsAsync(host.Server, host.Token);
+        Assert.Equal(fileCount == 1 ? Path.Join(host.DirectoryPath, "project0.csproj") : null, project);
+        Assert.Equal(fileCount == 1 ? Path.Join(host.DirectoryPath, "solution0.slnx") : null, solution);
+        Assert.Equal(2, requests);
+
+        if (fileCount == 1)
+        {
+            var discoveredSolution = await host.Client.CallToolAsync("dotnet_solution",
+                new Dictionary<string, object?> { ["action"] = "List" }, cancellationToken: host.Token);
+            Assert.NotEqual(true, discoveredSolution.IsError);
+            Assert.Equal(3, requests);
+            var discoveredProject = await host.Client.CallToolAsync("dotnet_project",
+                new Dictionary<string, object?> { ["action"] = "Build" }, cancellationToken: host.Token);
+            MachineReadableCommandAssertions.AssertExecutedDotnetCommand(discoveredProject.GetText(),
+                $"dotnet build \"{project}\"");
+            Assert.Equal(4, requests);
+        }
+        var discoveryRequests = requests;
+        var explicitSolution = Path.Join(host.DirectoryPath, "explicit.slnx");
+        await File.WriteAllTextAsync(explicitSolution, "<Solution />", host.Token);
+        var result = await host.Client.CallToolAsync("dotnet_solution",
+            new Dictionary<string, object?> { ["action"] = "List", ["solution"] = explicitSolution },
+            cancellationToken: host.Token);
+        Assert.NotEqual(true, result.IsError);
+        var explicitProject = await host.Client.CallToolAsync("dotnet_project",
+            new Dictionary<string, object?> { ["action"] = "Build", ["project"] = "explicit.csproj" },
+            cancellationToken: host.Token);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(explicitProject.GetText(),
+            "dotnet build \"explicit.csproj\"");
+        Assert.Equal(discoveryRequests, requests);
+    }
+
+    [Theory]
+    [InlineData("Build", false)]
+    [InlineData("Test", false)]
+    [InlineData("Build", true)]
+    public async Task LegacySampling_AnalyzesOnlyCommandFailures(string action, bool succeeds)
+    {
+        var requests = 0;
+        await using var host = await TestServer.CreateAsync("2025-11-25", handlers: new()
+        {
+            SamplingHandler = (_, _, _) =>
+            {
+                Interlocked.Increment(ref requests);
+                return ValueTask.FromResult(new CreateMessageResult
+                {
+                    Role = Role.Assistant,
+                    Model = "test-model",
+                    Content = [new TextContentBlock { Text = "Check that the project file exists." }]
+                });
+            }
+        });
+        var snapshot = await host.Client.CallToolAsync("dotnet_server_capabilities", cancellationToken: host.Token);
+        Assert.True(Assert.IsType<JsonElement>(snapshot.StructuredContent)
+            .GetProperty("supports").GetProperty("sampling").GetBoolean());
+        if (succeeds)
+        {
+            await File.WriteAllTextAsync(Path.Join(host.DirectoryPath, "project.csproj"),
+                """<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>""",
+                host.Token);
+        }
+        var result = await host.Client.CallToolAsync("dotnet_project",
+            new Dictionary<string, object?>
+            {
+                ["action"] = action, ["project"] = succeeds ? "project.csproj" : "missing.csproj",
+                ["noRestore"] = !succeeds
+            }, cancellationToken: host.Token);
+        if (succeeds)
+        {
+            Assert.Contains("Build succeeded.", result.GetText());
+            Assert.DoesNotContain("AI Analysis:", result.GetText());
+        }
+        else
+        {
+            Assert.Contains("AI Analysis:\nCheck that the project file exists.", result.GetText());
+        }
+        Assert.Equal(succeeds ? 0 : 1, requests);
+    }
+
+    [Theory]
+    [InlineData("2025-11-25", "Build")]
+    [InlineData("2025-11-25", "Test")]
+    [InlineData("2026-07-28", "Build")]
+    [InlineData("2026-07-28", "Test")]
+    public async Task Sampling_WithoutClientSupportPreservesCommandFailure(string protocol, string action)
+    {
+        await using var host = await TestServer.CreateAsync(protocol);
+        var result = await host.Client.CallToolAsync("dotnet_project",
+            new Dictionary<string, object?> { ["action"] = action, ["project"] = "missing.csproj", ["noRestore"] = true },
+            cancellationToken: host.Token);
+        Assert.Contains("Exit Code:", result.GetText());
+        Assert.DoesNotContain("Exit Code: 0", result.GetText());
+        Assert.DoesNotContain("AI Analysis:", result.GetText());
+    }
+
+    [Fact]
+    public async Task CurrentSampling_CapabilityMetadataDoesNotLeakAcrossRequests()
+    {
+        var advertiseSampling = true;
+        var samplingRequests = 0;
+        await using var host = await TestServer.CreateAsync("2026-07-28", handlers: new()
+        {
+            SamplingHandler = (_, _, _) =>
+            {
+                Interlocked.Increment(ref samplingRequests);
+                return ValueTask.FromResult(new CreateMessageResult
+                {
+                    Role = Role.Assistant,
+                    Model = "test-model",
+                    Content = [new TextContentBlock { Text = "Unexpected sampling." }]
+                });
+            }
+        }, transformToolRequest: request =>
+        {
+            if (!advertiseSampling)
+                Assert.IsType<JsonObject>(request.Params!["_meta"])[MetaKeys.ClientCapabilities] = new JsonObject();
+        });
+
+        foreach (var enabled in new[] { true, false, true })
+        {
+            advertiseSampling = enabled;
+            var result = await host.Client.CallToolAsync("dotnet_server_capabilities", cancellationToken: host.Token);
+            Assert.Equal(enabled, Assert.IsType<JsonElement>(result.StructuredContent)
+                .GetProperty("supports").GetProperty("sampling").GetBoolean());
+            if (!enabled)
+            {
+                var failure = await host.Client.CallToolAsync("dotnet_project",
+                    new Dictionary<string, object?> { ["action"] = "Build", ["project"] = "missing.csproj" },
+                    cancellationToken: host.Token);
+                Assert.Contains("Exit Code:", failure.GetText());
+                Assert.DoesNotContain("AI Analysis:", failure.GetText());
+            }
+        }
+        Assert.Equal(0, samplingRequests);
+    }
+
     [Theory]
     [InlineData("dotnet_project", "Build")]
     [InlineData("dotnet_package", "List")]
@@ -1034,6 +1311,7 @@ public class Sdk20CompatibilityTests
         public int MrtrProbeInvocations;
         public CancellationToken Token => _timeout.Token;
         public ResourceSubscriptionManager Subscriptions => _provider!.GetRequiredService<ResourceSubscriptionManager>();
+        public McpServer Server => _provider!.GetRequiredService<McpServer>();
 
         public static async Task<TestServer> CreateAsync(
             string protocol,
