@@ -176,6 +176,8 @@ public class Sdk20CompatibilityTests
         foreach (var tool in tools)
         {
             Assert.Equal(JsonValueKind.Object, tool.ProtocolTool.InputSchema.ValueKind);
+            Assert.NotNull(JsonSerializer.Deserialize<Tool>(
+                JsonSerializer.Serialize(tool.ProtocolTool, McpJsonUtilities.DefaultOptions), McpJsonUtilities.DefaultOptions));
             if (tool.Name is "dotnet_project" or "dotnet_solution" or "dotnet_package" or "dotnet_server_capabilities")
                 Assert.False(tool.ProtocolTool.InputSchema.GetProperty("properties").TryGetProperty("context", out _));
             Assert.False(tool.ProtocolTool.InputSchema.GetProperty("properties").TryGetProperty("cancellationToken", out _));
@@ -825,16 +827,14 @@ public class Sdk20CompatibilityTests
                     .WithPrompts<DotNetPrompts>();
                 if (governance is null || fullCatalog)
                 {
-                    builder.WithTools<DotNetCliTools>();
+                    builder.WithDotNetCliTools();
                 }
                 else
                 {
                     // Keep the scanner enabled. These production tools avoid the catalog's
                     // existing password field, whose fail-closed rejection is tested separately.
                     builder.WithTools(new[] { nameof(DotNetCliTools.DotnetServerInfo), nameof(DotNetCliTools.DotnetProject) }
-                        .Select(name => McpServerTool.Create(
-                            typeof(DotNetCliTools).GetMethod(name)!,
-                            context => context.Services!.GetRequiredService<DotNetCliTools>())));
+                        .Select(name => ToolOutputSchemas.CreateTool(typeof(DotNetCliTools).GetMethod(name)!)));
                 }
 #pragma warning disable MCPEXP003 // Match production's experimental MCP Apps registration.
                 builder.WithMcpApps();

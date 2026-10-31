@@ -141,7 +141,7 @@ public class ToolMetadataSerializationTests
 #pragma warning disable MCPEXP003 // Match production's experimental MCP Apps registration.
         services.AddMcpServer()
             .WithStdioServerTransport()
-            .WithTools<DotNetCliTools>()
+            .WithDotNetCliTools()
             .WithMcpApps();
 #pragma warning restore MCPEXP003
 
