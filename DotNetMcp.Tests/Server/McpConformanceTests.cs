@@ -167,8 +167,7 @@ public class McpConformanceTests : IAsyncLifetime
             Assert.NotNull(tool.Description);
             Assert.NotEmpty(tool.Description);
             
-            // InputSchema should be present - it's a JsonElement value type so just access it
-            _ = tool.ProtocolTool.InputSchema;
+            Assert.Equal(JsonValueKind.Object, tool.ProtocolTool.InputSchema.ValueKind);
         }
     }
 
@@ -895,7 +894,7 @@ public class McpConformanceTests : IAsyncLifetime
         // Arrange
         Assert.NotNull(_client);
 
-        // These tools declare UseStructuredContent = true + OutputSchemaType so clients
+        // These tools declare typed or composed schemas so clients
         // know the JSON response shape at discovery time without calling the tool first.
         var toolsWithOutputSchema = new[]
         {
@@ -923,6 +922,8 @@ public class McpConformanceTests : IAsyncLifetime
             var schemaJson = tool.ProtocolTool.OutputSchema!.Value.ToString();
             Assert.NotEmpty(schemaJson);
             Assert.Contains("properties", schemaJson);
+            if (toolName is "dotnet_sdk" or "dotnet_server_metrics")
+                Assert.True(tool.ProtocolTool.OutputSchema.Value.TryGetProperty("anyOf", out _));
         }
     }
 
@@ -1018,6 +1019,22 @@ public class McpConformanceTests : IAsyncLifetime
         Assert.Contains("version", schemaJson);
         Assert.Contains("sdks", schemaJson);
         Assert.Contains("runtimes", schemaJson);
+    }
+
+    [Fact]
+    public async Task Server_Metrics_OutputSchema_DescribesActionPayloads()
+    {
+        Assert.NotNull(_client);
+        var tools = await _client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+        var schema = tools.Single(tool => tool.Name == "dotnet_server_metrics").ProtocolTool.OutputSchema!.Value;
+        Assert.Equal("object", schema.GetProperty("type").GetString());
+        Assert.Equal(3, schema.GetProperty("anyOf").GetArrayLength());
+        var json = schema.GetRawText();
+        Assert.Contains("toolMetrics", json);
+        Assert.Contains("totalInvocations", json);
+        Assert.Contains("workflowTokenSavings", json);
+        Assert.Contains("success", json);
+        Assert.DoesNotContain("structuredContent", json);
     }
 
     [Fact]

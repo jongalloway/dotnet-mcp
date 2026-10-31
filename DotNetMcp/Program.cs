@@ -81,7 +81,7 @@ var mcpServerBuilder = builder.Services.AddMcpServer(options =>
 mcpServerBuilder
     .WithStdioServerTransport()
     .WithTasks(taskStore)
-    .WithTools<DotNetCliTools>()
+    .WithDotNetCliTools()
     .WithMcpApps()
     .WithResources<DotNetResources>()
     .WithResources<McpAppsResources>()

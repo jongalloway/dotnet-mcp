@@ -65,7 +65,8 @@ public sealed class RuntimeListResult
 }
 
 /// <summary>
-/// Union output schema for the dotnet_sdk tool.
+/// Structured payload model for the dotnet_sdk tool.
+/// The advertised output schema distinguishes the action shapes using JSON Schema alternatives.
 /// Each field corresponds to the structured content returned by a specific action:
 /// <list type="bullet">
 ///   <item><term>version</term><description>Returned by the Version action.</description></item>

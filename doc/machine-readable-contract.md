@@ -16,12 +16,23 @@ The following tools return `CallToolResult` with a `structuredContent` field:
 | Tool | Action(s) | Structured Fields |
 |------|-----------|-------------------|
 | `dotnet_sdk` | `Version` | `{ "version": "10.0.100" }` |
-| `dotnet_sdk` | `ListSdks` | `{ "sdks": [{ "version": "...", "path": "..." }] }` |
+| `dotnet_sdk` | `ListSdks` | `{ "sdks": [{ "version": "...", "path": "..." }], "runtimes": [...] }` (`runtimes` omitted if unavailable) |
 | `dotnet_sdk` | `ListRuntimes` | `{ "runtimes": [{ "name": "...", "version": "...", "path": "..." }] }` |
-| `dotnet_sdk` | `ListTemplates` | `{ "templates": [{ "shortName": "console", ... }] }` |
 | `dotnet_solution` | `List` | `{ "projects": ["path/to/project.csproj", ...] }` |
 | `dotnet_package` | `List` | `{ "packages": [{ "name": "...", "requestedVersion": "...", "resolvedVersion": "..." }] }` |
 | `dotnet_server_capabilities` | _(all)_ | Full `ServerCapabilities` object (see examples below) |
+| `dotnet_server_metrics` | `Get` | `toolMetrics`, `totalInvocations`, `totalSuccesses`, `totalFailures`, `tokenSavingsEnabled` |
+| `dotnet_server_metrics` | `TokenSavingsGet`, `TokenSavingsReset` | `success`, `message`, `workflowTokenSavings`, workflow totals, `assumptionsVersion` |
+
+`dotnet_server_metrics` also returns `{ "success": true, "message": "..." }` for `Reset`. Resetting token savings returns the token-savings response shape with an empty workflow array and zero totals. `dotnet_sdk` template queries, including `ListTemplates`, currently return text content only.
+
+### Output schemas and protocol compatibility
+
+Structured tools advertise an `outputSchema` describing **`structuredContent`**, not the entire `CallToolResult` or JSON embedded in legacy text content. SDK queries and server metrics use JSON Schema 2020-12 `anyOf` alternatives with local `$defs`/`$ref` references to their response models. SDK alternatives require `version`, `sdks`, or `runtimes`; metrics alternatives describe the metrics snapshot, reset confirmation, or token-savings response. Only the populated fields are serialized, and optional runtime metadata may be absent.
+
+These production schemas retain a root `type: "object"` and existing object envelopes on both MCP `2026-07-28` and `2025-11-25`. Clients do not need to unwrap a new `result` property. Project, solution, package, and capabilities outputs retain their typed object schemas.
+
+The MCP SDK also supports natural array/scalar and composed schemas. Where legacy protocol compatibility requires wrapping ordinary marshalled return values, the SDK adapts the advertised schema and preserves local reference resolution. Explicit `CallToolResult` responses retain the application's structured payload rather than automatically wrapping it; this server therefore supplies root object schemas for those responses on legacy connections.
 
 ### Mutating Operations (Write/Modify)
 
