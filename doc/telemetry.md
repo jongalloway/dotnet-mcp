@@ -1,18 +1,21 @@
 # Telemetry and Observability
 
-This document describes the telemetry and observability features available in dotnet-mcp, leveraging the MCP C# SDK v1.1.
+This document describes the telemetry and observability features available in dotnet-mcp, using the MCP C# SDK 2.3.
 
 ## Overview
 
 dotnet-mcp provides comprehensive telemetry and observability through:
 
-1. **Built-in SDK Telemetry** - Request duration logging and OpenTelemetry semantic conventions provided by the MCP C# SDK
+1. **Built-in SDK Telemetry** - Request duration logging, distributed trace-context propagation, and OpenTelemetry semantic conventions provided by the MCP C# SDK
 2. **Structured Logging** - Microsoft.Extensions.Logging with configurable log levels
-3. **OpenTelemetry Integration** - Optional instrumentation for tools, resources, and operations
+3. **In-memory Metrics** - Tool invocation summaries and opt-in token savings estimates, separate from SDK instrumentation
+4. **OpenTelemetry Export** - Optional source-built server customization; not enabled in the shipped tool
 
-## Built-in SDK Telemetry (v1.1)
+## Built-in SDK Telemetry
 
-The MCP C# SDK v1.1 automatically provides telemetry aligned with OpenTelemetry semantic conventions.
+The MCP C# SDK provides an ActivitySource and Meter both named **`Experimental.ModelContextProtocol`**, aligned with OpenTelemetry MCP semantic conventions. Register this exact name when subscribing to traces or metrics; `ModelContextProtocol` and `DotNetMcp` are not substitutes.
+
+When listeners enable instrumentation, SDK request spans identify the MCP method and target (tool name, resource URI, or prompt name). Request-duration histograms such as `mcp.server.operation.duration` use seconds.
 
 ### Request Duration Logging
 
@@ -41,6 +44,44 @@ info: ModelContextProtocol.Server.McpServer[LogRequestHandlerException]
       Request handler failed: tools/call (DotnetProjectBuild) in 3450ms
       Exception: System.InvalidOperationException: Build failed with exit code 1
 ```
+
+## Distributed Trace Context (SEP-414)
+
+The SDK implements W3C Trace Context propagation across JSON-RPC messages, including dotnet-mcp's stdio transport. Trace fields travel as strings in **`params._meta`**, not HTTP headers or top-level JSON-RPC properties:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "dotnet_server_info",
+    "_meta": {
+      "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+      "tracestate": "vendor=example"
+    }
+  }
+}
+```
+
+For an instrumented client/server pair, the span chain is **caller -> SDK client request -> SDK server request**:
+
+- The SDK injects the outgoing request activity's context into `traceparent` and, when present, `tracestate`.
+- The server extracts the incoming context and starts an SDK server activity with that remote parent. Its trace ID and trace state are preserved, while it has its own span ID.
+- `Activity.Current` in the server's tool handler and request filters is the server activity, so additional instrumented operations can join the same trace.
+- Missing or invalid `traceparent` does not fail an otherwise valid tool call. With instrumentation enabled, it starts an unparented server span rather than reusing a previous request's parent.
+
+This behavior is covered for both `2026-07-28` and legacy `2025-11-25` connections. Propagation stays SDK-owned; dotnet-mcp does not add a second extraction/injection layer or duplicate tool spans.
+
+### Sampling and Export
+
+The SDK creates request activities only when its ActivitySource has a listener and sampling permits an activity. Outgoing injection depends on the activity available to the SDK; it can also reuse an outer instrumented `execute_tool ...` activity. A listener that requests propagation data can enable context flow without exporting recorded spans.
+
+The shipped `Community.Mcp.DotNet` server does **not** register an OpenTelemetry provider or exporter. No traces or metrics are sent to a collector by default. Incoming trace metadata alone does not configure tracing, and setting `OTEL_EXPORTER_OTLP_ENDPOINT` alone does not enable export. To record/export SDK spans, both client and server processes need appropriate instrumentation; see the source-built example below.
+
+### Coexistence with Server Metrics
+
+`ToolMetricsAccumulator` and the token savings services in `DotNetMcp/Telemetry` collect in-memory summaries exposed by `dotnet_server_metrics`. They do not define an ActivitySource or Meter and do not compete with `Experimental.ModelContextProtocol`. Their counts, timing summaries, and token estimates remain separate from SDK request-duration histograms; subscribing to the SDK Meter does not export these accumulators automatically.
 
 ## Structured Logging Configuration
 
@@ -94,139 +135,39 @@ Or via `appsettings.json`:
 
 ## OpenTelemetry Integration (Optional)
 
-For production deployments, you can integrate OpenTelemetry for distributed tracing, metrics, and advanced observability.
+The following is an **optional customization of a source-built MCP server**, not a runtime configuration feature of the installed `Community.Mcp.DotNet` tool. The package is supported only as an MCP server, not as a library for other applications.
 
 ### Installation
 
-Add OpenTelemetry packages to your deployment environment (latest stable versions recommended):
+In a source checkout, add the hosting and OTLP exporter packages to the server project (choose compatible stable versions):
 
-```bash
-dotnet add package OpenTelemetry.Extensions.Hosting
-dotnet add package OpenTelemetry.Exporter.Console
-dotnet add package OpenTelemetry.Exporter.OpenTelemetryProtocol
-```
-
-### Configuration Example
-
-Create an `appsettings.OpenTelemetry.json` configuration file:
-
-```json
-{
-  "OpenTelemetry": {
-    "ServiceName": "dotnet-mcp",
-    "ServiceVersion": "1.0.0",
-    "Traces": {
-      "Enabled": true,
-      "ConsoleExporter": false,
-      "OtlpExporter": {
-        "Enabled": true,
-        "Endpoint": "http://localhost:4317"
-      }
-    },
-    "Metrics": {
-      "Enabled": true,
-      "ConsoleExporter": false,
-      "OtlpExporter": {
-        "Enabled": true,
-        "Endpoint": "http://localhost:4317"
-      }
-    }
-  }
-}
+```powershell
+dotnet add DotNetMcp\DotNetMcp.csproj package OpenTelemetry.Extensions.Hosting
+dotnet add DotNetMcp\DotNetMcp.csproj package OpenTelemetry.Exporter.OpenTelemetryProtocol
 ```
 
 ### Integration Code
 
-Modify `Program.cs` to add OpenTelemetry:
+In `DotNetMcp/Program.cs`, after creating `builder` and before building the host, explicitly opt into tracing and metrics export:
 
 ```csharp
-using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Metrics;
 
-var builder = Host.CreateApplicationBuilder(args);
-
-// Add OpenTelemetry configuration
-var openTelemetryConfig = builder.Configuration.GetSection("OpenTelemetry");
-var serviceName = openTelemetryConfig.GetValue<string>("ServiceName") ?? "dotnet-mcp";
-var serviceVersion = openTelemetryConfig.GetValue<string>("ServiceVersion") ?? "1.0.0";
-
-// Configure OpenTelemetry tracing
-var tracesEnabled = openTelemetryConfig.GetSection("Traces").GetValue<bool>("Enabled");
-if (tracesEnabled)
-{
-    builder.Services.AddOpenTelemetry()
-        .ConfigureResource(resource => resource
-            .AddService(serviceName, serviceVersion: serviceVersion))
-        .WithTracing(tracing =>
-        {
-            // NOTE: To capture custom spans from your application, you must first create corresponding
-            // ActivitySource instances (e.g., new ActivitySource("DotNetMcp")) in your code.
-            // The SDK does not currently implement custom ActivitySources (see Future Enhancements).
-            // When implemented, register them here:
-            //
-            // tracing
-            //     .AddSource("DotNetMcp")
-            //     .AddSource("ModelContextProtocol");
-            
-            var tracesSection = openTelemetryConfig.GetSection("Traces");
-            var consoleExporter = tracesSection.GetValue<bool>("ConsoleExporter");
-            if (consoleExporter)
-                tracing.AddConsoleExporter();
-            
-            var otlpSection = tracesSection.GetSection("OtlpExporter");
-            var otlpEnabled = otlpSection.GetValue<bool>("Enabled");
-            if (otlpEnabled)
-            {
-                var endpoint = otlpSection.GetValue<string>("Endpoint");
-                tracing.AddOtlpExporter(options =>
-                {
-                    if (!string.IsNullOrEmpty(endpoint))
-                        options.Endpoint = new Uri(endpoint);
-                });
-            }
-        });
-}
-
-// Configure OpenTelemetry metrics
-var metricsEnabled = openTelemetryConfig.GetSection("Metrics").GetValue<bool>("Enabled");
-if (metricsEnabled)
-{
-    builder.Services.AddOpenTelemetry()
-        .WithMetrics(metrics =>
-        {
-            // NOTE: To collect custom metrics from your application, you must first create corresponding
-            // Meter instances (e.g., new Meter("DotNetMcp")) in your code.
-            // The SDK does not currently implement custom Meters (see Future Enhancements).
-            // When implemented, register them here:
-            //
-            // metrics
-            //     .AddMeter("DotNetMcp")
-            //     .AddMeter("ModelContextProtocol");
-            
-            var metricsSection = openTelemetryConfig.GetSection("Metrics");
-            var consoleExporter = metricsSection.GetValue<bool>("ConsoleExporter");
-            if (consoleExporter)
-                metrics.AddConsoleExporter();
-            
-            var otlpSection = metricsSection.GetSection("OtlpExporter");
-            var otlpEnabled = otlpSection.GetValue<bool>("Enabled");
-            if (otlpEnabled)
-            {
-                var endpoint = otlpSection.GetValue<string>("Endpoint");
-                metrics.AddOtlpExporter(options =>
-                {
-                    if (!string.IsNullOrEmpty(endpoint))
-                        options.Endpoint = new Uri(endpoint);
-                });
-            }
-        });
-}
-
-// Continue with standard MCP server configuration...
-builder.Services.AddMcpServer(options => { /* ... */ });
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService("dotnet-mcp"))
+    .WithTracing(tracing => tracing
+        .AddSource("Experimental.ModelContextProtocol")
+        .AddOtlpExporter())
+    .WithMetrics(metrics => metrics
+        .AddMeter("Experimental.ModelContextProtocol")
+        .AddOtlpExporter());
 ```
+
+Keep the existing server registrations and stderr console logging. Run the customized server with `dotnet run --project DotNetMcp\DotNetMcp.csproj` through an MCP client. Once the provider/exporter has been added, standard OpenTelemetry settings such as `OTEL_EXPORTER_OTLP_ENDPOINT` configure the collector connection. Choose a sampler appropriate for your deployment.
+
+**Do not send telemetry to stdout.** The default OpenTelemetry console exporter writes there and can corrupt the stdio JSON-RPC stream. Use OTLP export to an explicitly configured collector; any console diagnostics must go to stderr.
 
 ## Performance Metrics
 
@@ -331,12 +272,13 @@ For multi-service deployments, use OpenTelemetry OTLP exporters to send traces t
 
 ## Telemetry Data Privacy
 
-dotnet-mcp telemetry respects user privacy:
+The shipped server keeps telemetry local by default:
 
-- **No sensitive data** - Command output containing secrets or credentials is never logged
-- **Sanitized parameters** - Sensitive parameters are redacted in logs
-- **Opt-in only** - OpenTelemetry integration requires explicit configuration
+- **Redaction** - dotnet-mcp redacts sensitive values in its own error/reporting paths; this is not a blanket guarantee for all SDK instrumentation
+- **Opt-in export** - OpenTelemetry export requires explicit source customization
 - **Local by default** - Logs are written to stderr, not sent externally
+
+SDK span attributes can include tool names, resource URIs, and session/request identifiers; error span descriptions can include tool error content or exception messages. Trace state is also forwarded from the caller. Review instrumentation, log levels, collector access, redaction, and retention before enabling export, especially when arguments, paths, or tool output may be sensitive.
 
 ## Troubleshooting
 
@@ -368,7 +310,9 @@ dotnet-mcp 2>&1 | grep "Request handler completed"
 
 ## References
 
-- [MCP C# SDK v1.0 Release Notes](https://github.com/modelcontextprotocol/csharp-sdk/releases/tag/v1.0.0)
+- [MCP C# SDK v2.3.0 Release Notes](https://github.com/modelcontextprotocol/csharp-sdk/releases/tag/v2.3.0)
+- [SDK Trace Context Implementation](https://github.com/modelcontextprotocol/csharp-sdk/blob/v2.3.0/src/ModelContextProtocol.Core/Diagnostics.cs)
+- [W3C Trace Context](https://www.w3.org/TR/trace-context/)
 - [OpenTelemetry .NET Documentation](https://opentelemetry.io/docs/languages/net/)
 - [Performance Baseline Measurements](./performance-baseline.md)
 
@@ -376,7 +320,7 @@ dotnet-mcp 2>&1 | grep "Request handler completed"
 
 Planned telemetry improvements:
 
-- Custom ActivitySource for tool execution spans
+- Additional operation-level instrumentation where SDK request spans are insufficient
 - Metrics for cache hit/miss rates
 - Performance budgets with automated regression detection
 - Integration with Application Insights
