@@ -11,11 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Upgrade MCP hosting and the separate Tasks extension to stable 2.0.0, supporting protocol 2026-07-28 while preserving legacy stdio inline calls.
+- Migrate to MCP SDK 2.x and protocol 2026-07-28, initially adopting stable 2.0.0; current hosting, Tasks, and Apps packages are 2.3.0. Preserve legacy stdio inline calls.
 - Replace experimental task metadata with extension registration and per-request opt-in; preserve task polling, input updates, application error results, and cancellation through CLI execution.
 - Use MRTR for destructive-operation confirmation, retaining legacy elicitation and task-aware input handling. Respect both the elicitation action and the required confirmation boolean.
 - Report negotiated, request-dependent capabilities and honor per-request MCP logging thresholds. Preserve application error annotations separately from SDK-selected wire errors.
-- Retain governance 4.0.0 and its fail-closed controls. Document the existing full-catalog startup blocker: the scanner rejects the certificate tool's `password` field.
+- Update governance from the migration's 4.0.0 package to 5.0.0, retaining opt-in enforcement and fail-closed controls. The existing full-catalog startup blocker remains: the scanner rejects the certificate tool's `password` field.
+- Align SDK integration and compatibility documentation with the current package versions; clarify request-scoped Tasks, Logging, Sampling, and Elicitation availability and capability-error factory annotations.
 
 ## [1.1.2] - 2026-03-17
 
