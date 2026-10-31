@@ -245,7 +245,10 @@ public class OutputSchemaTests
             if (_run is not null)
             {
                 try { await _run; }
-                catch (OperationCanceledException) when (_timeout.IsCancellationRequested) { }
+                catch (OperationCanceledException) when (_timeout.IsCancellationRequested)
+                {
+                    Assert.True(_run.IsCanceled, "Server shutdown should cancel the run task rather than fault it.");
+                }
             }
             if (_services is not null)
                 await _services.DisposeAsync();

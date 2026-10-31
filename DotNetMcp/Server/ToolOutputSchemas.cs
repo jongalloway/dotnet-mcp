@@ -51,11 +51,11 @@ internal static class ToolOutputSchemas
             var properties = schema["properties"]!.AsObject();
             var requiredNames = required.Length == 0 ? properties.Select(property => property.Key).ToArray() : required;
             schema["required"] = new JsonArray(requiredNames.Select(name => (JsonNode?)JsonValue.Create(name)).ToArray());
-            foreach (var name in requiredNames)
+            foreach (var (name, types) in requiredNames.SelectMany(name =>
+                properties[name]?["type"] is JsonArray types ? new[] { (name, types) } : []))
             {
-                if (properties[name]?["type"] is JsonArray types)
-                    properties[name]!["type"] = new JsonArray(types.Where(item => item!.GetValue<string>() != "null")
-                        .Select(item => item!.DeepClone()).ToArray());
+                properties[name]!["type"] = new JsonArray(types.Where(item => item!.GetValue<string>() != "null")
+                    .Select(item => item!.DeepClone()).ToArray());
             }
 
             // Exporter references are rooted in each model; rebase them into the composed document.
@@ -79,15 +79,13 @@ internal static class ToolOutputSchemas
         {
             if (obj["$ref"] is JsonValue reference && reference.TryGetValue<string>(out var value) && value.StartsWith('#'))
                 obj["$ref"] = prefix + value[1..];
-            foreach (var property in obj)
-                if (property.Value is not null)
-                    RebaseReferences(property.Value, prefix);
+            foreach (var valueNode in obj.Select(property => property.Value).OfType<JsonNode>())
+                RebaseReferences(valueNode, prefix);
         }
         else if (node is JsonArray array)
         {
-            foreach (var item in array)
-                if (item is not null)
-                    RebaseReferences(item, prefix);
+            foreach (var item in array.OfType<JsonNode>())
+                RebaseReferences(item, prefix);
         }
     }
 }
