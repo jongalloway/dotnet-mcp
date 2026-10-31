@@ -2,6 +2,7 @@ using System.IO.Pipelines;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using System.Xml.Linq;
 using System.Threading.Channels;
 using AgentGovernance.Extensions.ModelContextProtocol;
@@ -17,6 +18,152 @@ namespace DotNetMcp.Tests;
 
 public class Sdk20CompatibilityTests
 {
+    private const string SdkTelemetryName = "Experimental.ModelContextProtocol";
+
+    [Theory]
+    [InlineData("2026-07-28")]
+    [InlineData("2025-11-25")]
+    public async Task TraceContext_PropagatesAcrossTheWireAndCoexistsWithSdkMetrics(string protocol)
+    {
+        using var listener = ListenToSdkActivities();
+        Activity? clientActivity = null, serverActivity = null;
+        JsonNode? wireRequest = null;
+        var measurement = new TaskCompletionSource<(string Name, string? Unit, double Duration)>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        using var meterListener = new MeterListener
+        {
+            InstrumentPublished = (instrument, owner) =>
+            {
+                if (instrument.Meter.Name == SdkTelemetryName && instrument is Histogram<double>)
+                    owner.EnableMeasurementEvents(instrument);
+            }
+        };
+        meterListener.SetMeasurementEventCallback<double>((instrument, duration, tags, _) =>
+        {
+            if (serverActivity is null || !ReferenceEquals(Activity.Current, serverActivity))
+                return;
+            foreach (var tag in tags)
+            {
+                if (tag.Key == "mcp.method.name" && Equals(tag.Value, RequestMethods.ToolsCall))
+                    measurement.TrySetResult((instrument.Name, instrument.Unit, duration));
+            }
+        });
+        meterListener.Start();
+
+        await using var host = await TestServer.CreateAsync(protocol,
+            observeToolActivity: activity => serverActivity = activity,
+            transformToolRequest: request =>
+            {
+                clientActivity = Activity.Current;
+                wireRequest = JsonSerializer.SerializeToNode(request, McpJsonUtilities.DefaultOptions);
+            });
+        using var caller = new Activity("trace-context-caller").SetIdFormat(ActivityIdFormat.W3C);
+        caller.TraceStateString = "vendor=test";
+        caller.Start();
+
+        var result = await host.Client.CallToolAsync("dotnet_server_info", cancellationToken: host.Token);
+        Assert.NotEqual(true, result.IsError);
+        Assert.Contains("stdio", result.GetText());
+        Assert.NotNull(clientActivity);
+        Assert.NotNull(serverActivity);
+        Assert.Equal(SdkTelemetryName, clientActivity.Source.Name);
+        Assert.Equal(SdkTelemetryName, serverActivity.Source.Name);
+        Assert.Equal(ActivityKind.Client, clientActivity.Kind);
+        Assert.Equal(ActivityKind.Server, serverActivity.Kind);
+        Assert.Equal(caller.TraceId, clientActivity.TraceId);
+        Assert.Equal(caller.SpanId, clientActivity.ParentSpanId);
+        Assert.Equal(clientActivity.TraceId, serverActivity.TraceId);
+        Assert.Equal(clientActivity.SpanId, serverActivity.ParentSpanId);
+        Assert.True(serverActivity.HasRemoteParent);
+        Assert.Equal(caller.TraceStateString, serverActivity.TraceStateString);
+        Assert.Equal(clientActivity.Id, wireRequest!["params"]!["_meta"]!["traceparent"]!.GetValue<string>());
+        Assert.Equal(caller.TraceStateString, wireRequest["params"]!["_meta"]!["tracestate"]!.GetValue<string>());
+        Assert.Same(caller, Activity.Current);
+
+        var recorded = await measurement.Task.WaitAsync(host.Token);
+        Assert.Equal("mcp.server.operation.duration", recorded.Name);
+        Assert.Equal("s", recorded.Unit);
+        Assert.True(recorded.Duration >= 0);
+    }
+
+    [Theory]
+    [InlineData("2026-07-28", null)]
+    [InlineData("2025-11-25", null)]
+    [InlineData("2026-07-28", "invalid")]
+    [InlineData("2025-11-25", "invalid")]
+    [InlineData("2026-07-28", "00-00000000000000000000000000000000-0000000000000000-01")]
+    [InlineData("2025-11-25", "00-00000000000000000000000000000000-0000000000000000-01")]
+    public async Task TraceContext_ExtractsExternalParentAndDoesNotLeakIntoUnparentedRequests(
+        string protocol, string? invalidTraceparent)
+    {
+        using var listener = ListenToSdkActivities();
+        Activity? serverActivity = null;
+        var remote = new ActivityContext(ActivityTraceId.CreateRandom(), ActivitySpanId.CreateRandom(),
+            ActivityTraceFlags.Recorded, "vendor=external", isRemote: true);
+        string? traceparent = $"00-{remote.TraceId}-{remote.SpanId}-01";
+        string? tracestate = remote.TraceState;
+        await using var host = await TestServer.CreateAsync(protocol,
+            observeToolActivity: activity => serverActivity = activity,
+            transformToolRequest: request =>
+            {
+                var meta = Assert.IsType<JsonObject>(request.Params!["_meta"]);
+                meta.Remove("traceparent");
+                meta.Remove("tracestate");
+                if (traceparent is not null)
+                    meta["traceparent"] = traceparent;
+                if (tracestate is not null)
+                    meta["tracestate"] = tracestate;
+            });
+
+        using var caller = new Activity("unrelated-caller").SetIdFormat(ActivityIdFormat.W3C).Start();
+        Assert.NotEqual(true, (await host.Client.CallToolAsync("dotnet_server_info",
+            cancellationToken: host.Token)).IsError);
+        Assert.NotNull(serverActivity);
+        Assert.Equal(remote.TraceId, serverActivity.TraceId);
+        Assert.Equal(remote.SpanId, serverActivity.ParentSpanId);
+        Assert.Equal(remote.TraceState, serverActivity.TraceStateString);
+        Assert.True(serverActivity.HasRemoteParent);
+        Assert.NotEqual(caller.TraceId, serverActivity.TraceId);
+
+        traceparent = invalidTraceparent;
+        tracestate = null;
+        Assert.NotEqual(true, (await host.Client.CallToolAsync("dotnet_server_info",
+            cancellationToken: host.Token)).IsError);
+        Assert.NotNull(serverActivity);
+        Assert.Equal(default, serverActivity.ParentSpanId);
+        Assert.False(serverActivity.HasRemoteParent);
+        Assert.NotEqual(remote.TraceId, serverActivity.TraceId);
+        Assert.NotEqual(caller.TraceId, serverActivity.TraceId);
+        Assert.Null(serverActivity.TraceStateString);
+        var unparentedTraceId = serverActivity.TraceId;
+
+        var nextRemote = new ActivityContext(ActivityTraceId.CreateRandom(), ActivitySpanId.CreateRandom(),
+            ActivityTraceFlags.Recorded, "vendor=next", isRemote: true);
+        traceparent = $"00-{nextRemote.TraceId}-{nextRemote.SpanId}-01";
+        tracestate = nextRemote.TraceState;
+        Assert.NotEqual(true, (await host.Client.CallToolAsync("dotnet_server_info",
+            cancellationToken: host.Token)).IsError);
+        Assert.NotNull(serverActivity);
+        Assert.Equal(nextRemote.TraceId, serverActivity.TraceId);
+        Assert.Equal(nextRemote.SpanId, serverActivity.ParentSpanId);
+        Assert.Equal(nextRemote.TraceState, serverActivity.TraceStateString);
+        Assert.NotEqual(unparentedTraceId, serverActivity.TraceId);
+        Assert.True(serverActivity.HasRemoteParent);
+        Assert.Same(caller, Activity.Current);
+    }
+
+    private static ActivityListener ListenToSdkActivities()
+    {
+        var listener = new ActivityListener
+        {
+            ShouldListenTo = source => source.Name == SdkTelemetryName,
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+            SampleUsingParentId = (ref ActivityCreationOptions<string> _) => ActivitySamplingResult.AllDataAndRecorded
+        };
+        ActivitySource.AddActivityListener(listener);
+        return listener;
+    }
+
     [Theory]
     [InlineData("2026-07-28")]
     [InlineData("2025-11-25")]
@@ -608,7 +755,9 @@ public class Sdk20CompatibilityTests
             Func<ElicitRequestParams?, CancellationToken, ValueTask<ElicitResult>>? elicit = null,
             string? governance = null,
             bool fullCatalog = false,
-            McpClientHandlers? handlers = null)
+            McpClientHandlers? handlers = null,
+            Action<Activity?>? observeToolActivity = null,
+            Action<JsonRpcRequest>? transformToolRequest = null)
         {
             var host = new TestServer();
             host._timeout.CancelAfter(TimeSpan.FromSeconds(60));
@@ -629,6 +778,7 @@ public class Sdk20CompatibilityTests
                 var builder = services.AddMcpServer(options =>
                     options.Filters.Request.CallToolFilters.Add(next => async (context, ct) =>
                     {
+                        observeToolActivity?.Invoke(Activity.Current);
                         var previous = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
                         DotNetCommandExecutor.WorkingDirectoryOverride.Value = host.DirectoryPath;
                         try
@@ -701,8 +851,12 @@ public class Sdk20CompatibilityTests
                 }
                 host._provider = services.BuildServiceProvider();
                 host._serverRun = host._provider.GetRequiredService<McpServer>().RunAsync(host.Token);
+                IClientTransport transport = new PerRequestLoggingTransport(
+                    new StreamClientTransport(requests.Writer.AsStream(), responses.Reader.AsStream()));
+                if (transformToolRequest is not null)
+                    transport = new ToolRequestTransport(transport, transformToolRequest);
                 host.Client = await McpClient.CreateAsync(
-                    new PerRequestLoggingTransport(new StreamClientTransport(requests.Writer.AsStream(), responses.Reader.AsStream())),
+                    transport,
                     new()
                     {
                         ProtocolVersion = protocol,
@@ -735,6 +889,31 @@ public class Sdk20CompatibilityTests
                 await _provider.DisposeAsync();
             _timeout.Dispose();
             Directory.Delete(DirectoryPath, recursive: true);
+        }
+    }
+
+    // Transform after SDK metadata injection, before stream serialization, to test
+    // extraction from the wire independently of the client's ambient activity.
+    private sealed class ToolRequestTransport(IClientTransport inner, Action<JsonRpcRequest> transform) : IClientTransport
+    {
+        public string Name => inner.Name;
+
+        public async Task<ITransport> ConnectAsync(CancellationToken cancellationToken = default)
+            => new ToolTransport(await inner.ConnectAsync(cancellationToken), transform);
+
+        private sealed class ToolTransport(ITransport inner, Action<JsonRpcRequest> transform) : ITransport
+        {
+            public string? SessionId => inner.SessionId;
+            public ChannelReader<JsonRpcMessage> MessageReader => inner.MessageReader;
+
+            public Task SendMessageAsync(JsonRpcMessage message, CancellationToken cancellationToken = default)
+            {
+                if (message is JsonRpcRequest { Method: RequestMethods.ToolsCall } request)
+                    transform(request);
+                return inner.SendMessageAsync(message, cancellationToken);
+            }
+
+            public ValueTask DisposeAsync() => inner.DisposeAsync();
         }
     }
 }
