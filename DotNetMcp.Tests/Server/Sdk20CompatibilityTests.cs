@@ -807,9 +807,19 @@ public class Sdk20CompatibilityTests
     public async Task CurrentSampling_CapabilityMetadataDoesNotLeakAcrossRequests()
     {
         var advertiseSampling = true;
+        var samplingRequests = 0;
         await using var host = await TestServer.CreateAsync("2026-07-28", handlers: new()
         {
-            SamplingHandler = (_, _, _) => throw new InvalidOperationException("Capability discovery must not sample.")
+            SamplingHandler = (_, _, _) =>
+            {
+                Interlocked.Increment(ref samplingRequests);
+                return ValueTask.FromResult(new CreateMessageResult
+                {
+                    Role = Role.Assistant,
+                    Model = "test-model",
+                    Content = [new TextContentBlock { Text = "Unexpected sampling." }]
+                });
+            }
         }, transformToolRequest: request =>
         {
             if (!advertiseSampling)
@@ -831,6 +841,7 @@ public class Sdk20CompatibilityTests
                 Assert.DoesNotContain("AI Analysis:", failure.GetText());
             }
         }
+        Assert.Equal(0, samplingRequests);
     }
 
     [Theory]
