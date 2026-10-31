@@ -1,10 +1,50 @@
 using DotNetMcp;
+using System.Text.Json;
 using Xunit;
 
 namespace DotNetMcp.Tests;
 
 public class ErrorResultFactoryTests
 {
+    [Theory]
+    [InlineData("NU1101", "Package")]
+    [InlineData("NU1102", "Package")]
+    [InlineData("MSB1003", "Build")]
+    [InlineData("NETSDK1004", "SDK")]
+    [InlineData("MSB4236", "Build")]
+    public void CreateResult_MissingResources_PreserveLegacyAnnotationInJson(string code, string category)
+    {
+        var response = Assert.IsType<ErrorResponse>(
+            ErrorResultFactory.CreateResult("", $"error {code}: Resource not found", 1, "dotnet build"));
+        var error = Assert.Single(response.Errors);
+        Assert.Equal(code, error.Code);
+        Assert.Equal(category, error.Category);
+        Assert.Equal(-32002, error.McpErrorCode);
+
+        using var json = JsonDocument.Parse(ErrorResultFactory.ToJson(response));
+        Assert.False(json.RootElement.GetProperty("success").GetBoolean());
+        var serializedError = Assert.Single(json.RootElement.GetProperty("errors").EnumerateArray());
+        Assert.Equal(code, serializedError.GetProperty("code").GetString());
+        Assert.Equal(-32002, serializedError.GetProperty("mcpErrorCode").GetInt32());
+    }
+
+    [Theory]
+    [InlineData(false, -32001)]
+    [InlineData(true, -32603)]
+    public void ReturnCapabilityNotAvailable_OverloadsPreserveTheirAnnotationsInJson(bool withReason, int expectedCode)
+    {
+        var response = withReason
+            ? ErrorResultFactory.ReturnCapabilityNotAvailable("test feature", reason: "Disabled")
+            : ErrorResultFactory.ReturnCapabilityNotAvailable("test feature", details: "Disabled");
+        Assert.Equal(expectedCode, Assert.Single(response.Errors).McpErrorCode);
+
+        using var json = JsonDocument.Parse(ErrorResultFactory.ToJson(response));
+        Assert.False(json.RootElement.GetProperty("success").GetBoolean());
+        var error = Assert.Single(json.RootElement.GetProperty("errors").EnumerateArray());
+        Assert.Equal("CAPABILITY_NOT_AVAILABLE", error.GetProperty("code").GetString());
+        Assert.Equal(expectedCode, error.GetProperty("mcpErrorCode").GetInt32());
+    }
+
     [Fact]
     public void ReturnCapabilityNotAvailable_IncludesAlternativesAndMcpErrorCode()
     {
