@@ -836,12 +836,12 @@ public class McpConformanceTests : IAsyncLifetime
     #region MCP Task Support Tests
 
     [Fact]
-    public void Server_ShouldAdvertiseTasksCapability_WhenTaskStoreRegistered()
+    public void Server_ShouldAdvertiseTasksCapability_WhenTasksExtensionRegistered()
     {
         // Arrange
         Assert.NotNull(_client);
 
-        // Assert - task store is registered so tasks capability is advertised
+        // WithTasks advertises the extension independently of application DI registration.
         Assert.NotNull(_client.ServerCapabilities);
         Assert.NotNull(_client.ServerCapabilities.Extensions);
         Assert.Contains(TasksProtocol.ExtensionId, _client.ServerCapabilities.Extensions.Keys);
@@ -863,12 +863,11 @@ public class McpConformanceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Server_DotnetProject_ShouldWorkWithTaskStore()
+    public async Task Server_DotnetProject_ShouldCallInlineWithTasksEnabled()
     {
-        // Arrange - verify tools work reliably with task store registered
         Assert.NotNull(_client);
 
-        // Act - tool call (task store is present; SDK may run as task or inline)
+        // Ordinary calls never create tasks, even when the extension is registered.
         var result = await _client.CallToolAsync(
             "dotnet_project",
             new Dictionary<string, object?>
@@ -882,6 +881,33 @@ public class McpConformanceTests : IAsyncLifetime
         // the call itself should not throw ObjectDisposedException)
         Assert.NotNull(result);
         Assert.NotEmpty(result.Content);
+        Assert.Equal("complete", result.ResultType);
+    }
+
+    [Fact]
+    public async Task Server_TaskCapability_ShouldCompleteAnOptedInCall()
+    {
+        Assert.NotNull(_client);
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(30));
+        var response = await _client.CallToolAsTaskAsync(new() { Name = "dotnet_server_capabilities" }, timeout.Token);
+        Assert.True(response.IsTask);
+        Assert.Null(response.Result);
+        Assert.Equal("task", response.TaskCreated!.ResultType);
+
+        GetTaskResult state;
+        do
+        {
+            state = await _client.GetTaskAsync(response.TaskCreated.TaskId, timeout.Token);
+            if (state is WorkingTaskResult)
+                await Task.Delay(TimeSpan.FromMilliseconds(20), timeout.Token);
+        } while (state is WorkingTaskResult);
+
+        var completed = Assert.IsType<CompletedTaskResult>(state);
+        var result = completed.Result.Deserialize<CallToolResult>();
+        Assert.NotNull(result);
+        Assert.NotEqual(true, result.IsError);
+        Assert.True(Assert.IsType<JsonElement>(result.StructuredContent).GetProperty("supports").GetProperty("asyncTasks").GetBoolean());
     }
 
     #endregion

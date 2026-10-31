@@ -15,11 +15,15 @@ This approach provides rich metadata access, type-safe operations, and validatio
 
 ### MCP hosting and protocol
 
-- **ModelContextProtocol** (v2.0.0): stdio hosting, tool discovery, MRTR, resources, prompts, and legacy-client compatibility.
-- **ModelContextProtocol.Extensions.Tasks** (v2.0.0): `WithTasks`, `IMcpTaskStore`, and `InMemoryMcpTaskStore` in the extension namespace. The store is shared between hosting and capability reporting.
+- **ModelContextProtocol** (v2.3.0): stdio hosting, tool discovery, MRTR, resources, prompts, and legacy-client compatibility.
+- **ModelContextProtocol.Extensions.Tasks** (v2.3.0): `WithTasks`, `IMcpTaskStore`, and `InMemoryMcpTaskStore` in the extension namespace. Hosting passes one process-local in-memory store to `WithTasks`; tool handlers and capability reporting do not inject the store. Task records do not survive a server restart.
 - **Microsoft.AgentGovernance.Extensions.ModelContextProtocol** (v4.0.0): retained policy enforcement and response sanitization. See [governance configuration](mcp-governance.md) for its fail-closed startup restriction on the current catalog.
 
 Tasks require MCP 2026-07-28 and `io.modelcontextprotocol/tasks` opt-in on each request. Earlier clients use ordinary inline calls, not the removed experimental Tasks API. Task cancellation flows through the tool filter to command execution, workspace Roots discovery, Sampling, and pending confirmation. Cancellation interrupts input waits instead of entering their normal best-effort fallbacks. The matching MCP dependency graph also requires `Microsoft.Extensions.Logging.Abstractions` 10.0.10.
+
+`WithTasks` automatically wraps opted-in tool invocations and wires `tasks/get`, `tasks/update`, and `tasks/cancel`. Status and terminal results are returned by `tasks/get`; there are no separate `tasks/status`, `tasks/list`, or `tasks/result` endpoints. Existing tool handlers keep their ordinary `CallToolResult` signatures. Clients use `CallToolAsTaskAsync` to receive `ResultOrCreatedTask<CallToolResult>` or `CallToolWithPollingAsync` to handle polling and input responses automatically.
+
+Connected `dotnet_server_capabilities` snapshots report `asyncTasks` only when the server has registered the Tasks extension and the current request uses the required protocol and opt-in. An ordinary request reports false even after an opted-in request on the same connection. Direct calls without a connection report maximum implementation support, not negotiated availability.
 
 Cancellable commands disable shared MSBuild workers and node reuse in their child-process environment. This keeps build work in the command's owned process tree so cancelling a task does not leave a reused worker running or interfere with another session's worker.
 

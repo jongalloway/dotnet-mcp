@@ -74,9 +74,10 @@ public sealed partial class DotNetCliTools
                 Cancellation = true,
                 Telemetry = true,  // SDK v0.6+ supports request duration logging and OpenTelemetry semantic conventions
                 Metrics = true,    // In-memory per-tool metrics via MCP message filter (dotnet_server_metrics tool)
-                AsyncTasks = _taskStore is not null && (server is null ||
-                    (server.NegotiatedProtocolVersion == ProtocolVersion &&
-                     server.ClientCapabilities?.Extensions?.ContainsKey(TasksProtocol.ExtensionId) == true)),
+                AsyncTasks = server is null ||
+                    (server.ServerOptions.Capabilities?.Extensions?.ContainsKey(TasksProtocol.ExtensionId) == true &&
+                     server.NegotiatedProtocolVersion == ProtocolVersion &&
+                     server.ClientCapabilities?.Extensions?.ContainsKey(TasksProtocol.ExtensionId) == true),
                 Prompts = true,     // Predefined prompt catalog: create_new_webapi, add_package_and_restore, run_tests_with_coverage
                 Elicitation = server is null || server.ClientCapabilities?.Elicitation is not null,
                 McpLogging = SupportsMcpLogging(server, context),

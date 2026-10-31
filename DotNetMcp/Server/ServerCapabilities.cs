@@ -84,7 +84,9 @@ public sealed class ServerFeatureSupport
     /// <summary>
     /// Whether the server supports MCP Task augmentation for long-running operations such as
     /// build, test, and publish through the io.modelcontextprotocol/tasks extension.
-    /// Requires protocol 2026-07-28 and per-request client opt-in; legacy clients call tools inline.
+    /// Connected snapshots require server registration, protocol 2026-07-28, and per-request
+    /// client opt-in; legacy clients call tools inline. Without a connection this reports
+    /// maximum implementation support.
     /// </summary>
     [JsonPropertyName("asyncTasks")]
     public bool AsyncTasks { get; init; }

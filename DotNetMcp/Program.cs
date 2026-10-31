@@ -26,7 +26,6 @@ builder.Services.AddSingleton<ConcurrencyManager>();
 builder.Services.AddSingleton<ProcessSessionManager>();
 
 var taskStore = new InMemoryMcpTaskStore();
-builder.Services.AddSingleton<IMcpTaskStore>(taskStore);
 
 // Register ToolMetricsAccumulator for in-memory telemetry collection.
 // The accumulator is also captured by the telemetry filter added below.

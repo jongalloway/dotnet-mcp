@@ -4,7 +4,6 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
-using ModelContextProtocol.Extensions.Tasks;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -24,7 +23,6 @@ public sealed partial class DotNetCliTools
     private readonly TokenSavingsAccumulator? _tokenSavingsAccumulator;
     private readonly TokenSavingsEstimator? _tokenSavingsEstimator;
     private readonly ResourceSubscriptionManager? _subscriptions;
-    private readonly IMcpTaskStore? _taskStore;
 
     // Constants for server capability discovery
     private const string DefaultServerVersion = "1.0.0";
@@ -41,8 +39,7 @@ public sealed partial class DotNetCliTools
         ToolMetricsAccumulator? metricsAccumulator = null,
         TokenSavingsAccumulator? tokenSavingsAccumulator = null,
         TokenSavingsEstimator? tokenSavingsEstimator = null,
-        ResourceSubscriptionManager? subscriptions = null,
-        IMcpTaskStore? taskStore = null)
+        ResourceSubscriptionManager? subscriptions = null)
     {
         // DI guarantees logger is never null
         _logger = logger!;
@@ -52,7 +49,6 @@ public sealed partial class DotNetCliTools
         _tokenSavingsAccumulator = tokenSavingsAccumulator;
         _tokenSavingsEstimator = tokenSavingsEstimator;
         _subscriptions = subscriptions;
-        _taskStore = taskStore;
     }
 
     private async Task<string> ExecuteDotNetCommand(string arguments, CancellationToken cancellationToken = default, string? workingDirectory = null)

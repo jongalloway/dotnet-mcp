@@ -226,7 +226,7 @@ The .NET MCP Server acts as an intelligent middleware that:
 
 dotnet-mcp uses the official [MCP C# SDK](https://csharp.sdk.modelcontextprotocol.io/) and exercises a broad set of MCP features beyond basic tool invocation:
 
-The server uses SDK **2.0.0**, supports protocol **2026-07-28**, and retains older stdio clients, including **2025-11-25**. Async execution requires the new Tasks extension and per-request opt-in; legacy clients continue to call tools inline. See [SDK compatibility](doc/sdk-v1.1-compatibility.md) for wire-protocol differences and [governance configuration](doc/mcp-governance.md) for the existing fail-closed catalog limitation.
+The server uses SDK **2.3.0**, supports protocol **2026-07-28**, and retains older stdio clients, including **2025-11-25**. Async execution requires the new Tasks extension and per-request opt-in; legacy clients continue to call tools inline. See [SDK compatibility](doc/sdk-v1.1-compatibility.md) for wire-protocol differences and [governance configuration](doc/mcp-governance.md) for the existing fail-closed catalog limitation.
 
 | Feature | How dotnet-mcp uses it | Why |
 | ------- | ---------------------- | --- |
@@ -236,7 +236,7 @@ The server uses SDK **2.0.0**, supports protocol **2026-07-28**, and retains old
 | [Sampling](https://modelcontextprotocol.io/specification/latest/client/sampling) | Requests client-mediated LLM summaries for build and test failures when the client supports sampling. | Keeps intelligent diagnostics inside the MCP flow without requiring separate server-side model credentials. |
 | [Elicitation](https://modelcontextprotocol.io/specification/latest/client/elicitation) | Uses MRTR confirmation before clean and solution removal, with legacy elicitation and task input handling where appropriate. | Adds a human-in-the-loop safety check before side effects; decline, cancel, and an unchecked confirmation do not proceed. |
 | [Progress notifications](https://modelcontextprotocol.io/specification/latest/basic/utilities/progress) | Reports start/completion progress for long-running restore, build, test, publish, pack, tool, and workload operations. | Gives clients a better UX for slow operations and makes orchestration easier for agents that surface progress. |
-| [Tasks](https://github.com/modelcontextprotocol/csharp-sdk/blob/v2.0.0/docs/concepts/tasks/tasks.md) | Registers `ModelContextProtocol.Extensions.Tasks` with `WithTasks` and a shared in-memory store. | Opted-in 2026-07-28 calls support task creation, polling, input updates, and cancellation; ordinary calls remain inline. |
+| [Tasks](https://github.com/modelcontextprotocol/csharp-sdk/blob/v2.3.0/docs/concepts/tasks/tasks.md) | Uses `WithTasks` with a hosting-owned, process-local in-memory store; tool handlers do not depend on storage. | Opted-in 2026-07-28 calls support task creation, polling via `tasks/get`, input updates via `tasks/update`, and cancellation via `tasks/cancel`; ordinary calls remain inline. |
 | [Tools and tool metadata](https://modelcontextprotocol.io/specification/latest/server/tools) | Uses consolidated tools with rich metadata such as titles, categories, priorities, and action lists. | Improves discoverability, routing, and client-side presentation, especially in MCP-aware IDE integrations. |
 | [Prompt and resource completion](https://modelcontextprotocol.io/specification/latest/server/utilities/completion) | Implements a completion handler so clients can autocomplete prompt and resource argument values. | Makes guided workflows faster and reduces invalid argument entry in clients that support completion UX. |
 | [Icons and server metadata](https://csharp.sdk.modelcontextprotocol.io/) | Configures server-level icons plus per-tool `IconSource`, title, and descriptive metadata across the consolidated surface. | Helps clients present the server and tool catalog more clearly, especially in visual MCP management UIs. |
@@ -1099,7 +1099,7 @@ Key files to start with:
 ## Technology Stack
 
 - **Protocol**: [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)
-- **SDK**: [MCP SDK for .NET](https://github.com/modelcontextprotocol/csharp-sdk) v2.0.0, with the matching Tasks extension
+- **SDK**: [MCP SDK for .NET](https://github.com/modelcontextprotocol/csharp-sdk) v2.3.0, with the matching Tasks extension
 - **Runtime**: .NET 10.0 (target framework)
 - **Transport**: stdio (standard input/output)
 - **NuGet Packages**:

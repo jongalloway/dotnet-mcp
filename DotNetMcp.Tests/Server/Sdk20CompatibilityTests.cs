@@ -481,15 +481,50 @@ public class Sdk20CompatibilityTests
     }
 
     [Fact]
-    public async Task TaskCapability_IsEnabledForAnOptedInRequest()
+    public async Task TaskCapability_IsScopedToEachRequestOnTheSameConnection()
     {
         await using var host = await TestServer.CreateAsync("2026-07-28");
-        var task = await host.Client.CallToolAsTaskAsync(new() { Name = "dotnet_server_capabilities" }, host.Token);
-        Assert.True(task.IsTask);
-        var completed = Assert.IsType<CompletedTaskResult>(
-            await PollAsync(host, task.TaskCreated!.TaskId, r => r is not WorkingTaskResult));
-        var result = completed.Result.Deserialize<CallToolResult>()!;
-        Assert.True(Assert.IsType<JsonElement>(result.StructuredContent).GetProperty("supports").GetProperty("asyncTasks").GetBoolean());
+        Assert.True(host.Client.ServerCapabilities.Extensions?.ContainsKey(TasksProtocol.ExtensionId));
+
+        await AssertTaskSnapshot();
+        var inline = await host.Client.CallToolAsync("dotnet_server_capabilities", cancellationToken: host.Token);
+        Assert.NotEqual(true, inline.IsError);
+        Assert.Equal("complete", inline.ResultType);
+        Assert.False(Assert.IsType<JsonElement>(inline.StructuredContent).GetProperty("supports").GetProperty("asyncTasks").GetBoolean());
+        await AssertTaskSnapshot();
+
+        async Task AssertTaskSnapshot()
+        {
+            var task = await host.Client.CallToolAsTaskAsync(new() { Name = "dotnet_server_capabilities" }, host.Token);
+            Assert.True(task.IsTask);
+            Assert.Null(task.Result);
+            Assert.Equal("task", task.TaskCreated!.ResultType);
+            var completed = Assert.IsType<CompletedTaskResult>(
+                await PollAsync(host, task.TaskCreated.TaskId, r => r is not WorkingTaskResult));
+            var result = completed.Result.Deserialize<CallToolResult>();
+            Assert.NotNull(result);
+            Assert.NotEqual(true, result.IsError);
+            Assert.True(Assert.IsType<JsonElement>(result.StructuredContent).GetProperty("supports").GetProperty("asyncTasks").GetBoolean());
+        }
+    }
+
+    [Theory]
+    [InlineData("2026-07-28", false)]
+    [InlineData("2025-11-25", false)]
+    [InlineData("2025-11-25", true)]
+    public async Task TaskCapability_RequiresRegistrationAndCurrentProtocol(string protocol, bool enableTasks)
+    {
+        await using var host = await TestServer.CreateAsync(protocol, enableTasks: enableTasks);
+        Assert.Equal(enableTasks, host.Client.ServerCapabilities.Extensions?.ContainsKey(TasksProtocol.ExtensionId) == true);
+        var response = await host.Client.CallToolAsTaskAsync(new() { Name = "dotnet_server_capabilities" }, host.Token);
+        Assert.False(response.IsTask);
+        Assert.Null(response.TaskCreated);
+        var result = Assert.IsType<CallToolResult>(response.Result);
+        Assert.NotEqual(true, result.IsError);
+        Assert.Equal(protocol == "2026-07-28" ? "complete" : null, result.ResultType);
+        var capabilities = Assert.IsType<JsonElement>(result.StructuredContent);
+        Assert.Equal(protocol, capabilities.GetProperty("protocolVersion").GetString());
+        Assert.False(capabilities.GetProperty("supports").GetProperty("asyncTasks").GetBoolean());
     }
 
     [Fact]
@@ -801,6 +836,7 @@ public class Sdk20CompatibilityTests
             McpClientHandlers? handlers = null,
             Action<Activity?>? observeToolActivity = null,
             Action<JsonRpcRequest>? transformToolRequest = null,
+            bool enableTasks = true,
             ErrorResponse? controlledError = null)
         {
             var host = new TestServer();
@@ -817,8 +853,6 @@ public class Sdk20CompatibilityTests
                 services.AddOptions<McpServerOptions>()
                     .Configure<ResourceSubscriptionManager>((options, subscriptions) => subscriptions.Configure(options));
                 services.AddTransient<DotNetCliTools>();
-                var store = new InMemoryMcpTaskStore();
-                services.AddSingleton<IMcpTaskStore>(store);
                 var builder = services.AddMcpServer(options =>
                     options.Filters.Request.CallToolFilters.Add(next => async (context, ct) =>
                     {
@@ -841,7 +875,6 @@ public class Sdk20CompatibilityTests
                         }
                     }))
                     .WithStreamServerTransport(requests.Reader.AsStream(), responses.Writer.AsStream())
-                    .WithTasks(store)
                     .WithTools([McpServerTool.Create(async (CancellationToken ct) =>
                     {
                         Assert.Equal(ct, DotNetCommandExecutor.RequestCancellationToken.Value);
@@ -874,6 +907,8 @@ public class Sdk20CompatibilityTests
                         return ValueTask.FromResult(new EmptyResult());
                     })
                     .WithPrompts<DotNetPrompts>();
+                if (enableTasks)
+                    builder.WithTasks(new InMemoryMcpTaskStore());
                 if (governance is null || fullCatalog)
                 {
                     builder.WithDotNetCliTools();
