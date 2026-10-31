@@ -417,14 +417,16 @@ public class Sdk20CompatibilityTests
     public async Task Confirmation_RespectsActionAndBoolean(string protocol, string action, string answer, bool confirmed)
     {
         var confirmations = 0;
+        var toolCalls = 0;
         await using var host = await TestServer.CreateAsync(protocol, (_, _) =>
         {
             Interlocked.Increment(ref confirmations);
             return ValueTask.FromResult(Confirmation(answer, confirmed));
-        });
+        }, transformToolRequest: _ => Interlocked.Increment(ref toolCalls));
         var request = DestructiveRequest(action, host.DirectoryPath);
         var result = await host.Client.CallToolAsync(request, host.Token);
         Assert.Equal(1, confirmations);
+        Assert.Equal(protocol == "2026-07-28" ? 2 : 1, toolCalls);
         if (answer == "accept" && confirmed)
             Assert.DoesNotContain("operation cancelled", result.GetText());
         else
@@ -478,6 +480,180 @@ public class Sdk20CompatibilityTests
         Assert.NotEqual(true, result.IsError);
         Assert.Equal(1, confirmations);
         Assert.Single(await File.ReadAllLinesAsync(marker, host.Token));
+    }
+
+    [Theory]
+    [InlineData("2026-07-28", true)]
+    [InlineData("2026-07-28", false)]
+    [InlineData("2025-11-25", true)]
+    [InlineData("2025-11-25", false)]
+    public async Task Confirmation_RemoveChangesSolutionOnlyAfterAcceptedInput(string protocol, bool accept)
+    {
+        string? solution = null;
+        string? original = null;
+        var confirmations = 0;
+        await using var host = await TestServer.CreateAsync(protocol, async (request, ct) =>
+        {
+            Assert.Equal(original, await File.ReadAllTextAsync(solution!, ct));
+            Assert.NotNull(request?.RequestedSchema);
+            Assert.Equal(["confirmed"], request.RequestedSchema.Required);
+            Interlocked.Increment(ref confirmations);
+            return Confirmation(accept ? "accept" : "decline", accept);
+        }, rawClient: protocol == "2026-07-28");
+        solution = Path.Join(host.DirectoryPath, "remove.slnx");
+        original = "<Solution><Project Path=\"remove.csproj\" /></Solution>";
+        await File.WriteAllTextAsync(solution, original, host.Token);
+        await File.WriteAllTextAsync(Path.Join(host.DirectoryPath, "remove.csproj"),
+            "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>",
+            host.Token);
+
+        var request = new CallToolRequestParams
+        {
+            Name = "dotnet_solution",
+            Arguments = new Dictionary<string, JsonElement>
+            {
+                ["action"] = JsonSerializer.SerializeToElement("Remove"),
+                ["solution"] = JsonSerializer.SerializeToElement(solution),
+                ["projects"] = JsonSerializer.SerializeToElement(new[] { "remove.csproj" })
+            }
+        };
+        var response = await SendToolRequestAsync(host, request);
+        if (protocol == "2026-07-28")
+        {
+            Assert.Equal(0, confirmations);
+            Assert.Equal(original, await File.ReadAllTextAsync(solution, host.Token));
+            Assert.Equal("input_required", response.Result!["resultType"]!.GetValue<string>());
+            var input = response.Result!.Deserialize<InputRequiredResult>(McpJsonUtilities.DefaultOptions)!;
+            var inputRequest = Assert.Single(input.InputRequests!);
+            Assert.Equal("confirmation", inputRequest.Key);
+            Assert.Equal("elicitation/create", inputRequest.Value.Method);
+            Assert.NotNull(inputRequest.Value.Params);
+            var elicitation = inputRequest.Value.Params.Value.Deserialize<ElicitRequestParams>(McpJsonUtilities.DefaultOptions)!;
+            Assert.NotNull(elicitation.RequestedSchema);
+            Assert.Equal(["confirmed"], elicitation.RequestedSchema.Required);
+            Assert.IsType<ElicitRequestParams.BooleanSchema>(elicitation.RequestedSchema.Properties["confirmed"]);
+            Assert.False(string.IsNullOrEmpty(input.RequestState));
+
+            request.RequestState = input.RequestState;
+            request.InputResponses = new Dictionary<string, InputResponse>
+            {
+                [inputRequest.Key] = InputResponse.FromElicitResult(Confirmation(accept ? "accept" : "decline", accept))
+            };
+            response = await SendToolRequestAsync(host, request);
+        }
+        else
+        {
+            Assert.Equal(1, confirmations);
+        }
+
+        var result = response.Result!.Deserialize<CallToolResult>(McpJsonUtilities.DefaultOptions)!;
+        Assert.Equal(protocol == "2026-07-28" ? "complete" : null, result.ResultType);
+        Assert.NotEqual(true, result.IsError);
+        if (accept)
+            Assert.Empty(XDocument.Load(solution).Root!.Elements("Project"));
+        else
+        {
+            Assert.Contains("Remove operation cancelled.", result.GetText());
+            Assert.Equal(original, await File.ReadAllTextAsync(solution, host.Token));
+        }
+    }
+
+    [Theory]
+    [InlineData("Clean")]
+    [InlineData("Remove")]
+    public async Task LegacyConfirmation_CompletesSingleWireCall(string action)
+    {
+        var confirmations = 0;
+        var toolCalls = 0;
+        await using var host = await TestServer.CreateAsync("2025-11-25", (request, _) =>
+        {
+            Assert.NotNull(request?.RequestedSchema);
+            Assert.Equal(["confirmed"], request.RequestedSchema.Required);
+            Interlocked.Increment(ref confirmations);
+            return ValueTask.FromResult(Confirmation("decline", false));
+        }, transformToolRequest: _ => Interlocked.Increment(ref toolCalls));
+        var response = await SendToolRequestAsync(host, DestructiveRequest(action, host.DirectoryPath));
+        var result = response.Result!.Deserialize<CallToolResult>(McpJsonUtilities.DefaultOptions)!;
+        Assert.Null(result.ResultType);
+        Assert.Equal(1, toolCalls);
+        Assert.Equal(1, confirmations);
+        Assert.Contains($"{action} operation cancelled.", result.GetText());
+    }
+
+    [Fact]
+    public async Task LegacyMrtrResolver_SimpleConfirmationNeedsOnlyOneRetryRound()
+    {
+        var confirmations = 0;
+        var toolCalls = 0;
+        await using var host = await TestServer.CreateAsync("2025-11-25", (_, _) =>
+        {
+            Interlocked.Increment(ref confirmations);
+            return ValueTask.FromResult(Confirmation("accept", true));
+        }, enableMrtrProbe: true, transformToolRequest: _ => Interlocked.Increment(ref toolCalls));
+        var response = await SendToolRequestAsync(host, new() { Name = "mrtr_confirmation_probe" });
+        var result = response.Result!.Deserialize<CallToolResult>(McpJsonUtilities.DefaultOptions)!;
+        Assert.Null(result.ResultType);
+        Assert.Equal(1, toolCalls);
+        Assert.Equal("confirmed", result.GetText());
+        Assert.Equal(1, confirmations);
+        Assert.Equal(2, host.MrtrProbeInvocations);
+    }
+
+    [Theory]
+    [InlineData("Clean", "missing")]
+    [InlineData("Clean", "string")]
+    [InlineData("Clean", "malformed")]
+    [InlineData("Remove", "missing")]
+    [InlineData("Remove", "string")]
+    [InlineData("Remove", "malformed")]
+    public async Task NativeConfirmation_InvalidResponseDoesNotExecute(string action, string responseKind)
+    {
+        await using var host = await TestServer.CreateAsync("2026-07-28", rawClient: true);
+        var marker = Path.Join(host.DirectoryPath, "clean-count.txt");
+        var project = Path.Join(host.DirectoryPath, "guarded.csproj");
+        await File.WriteAllTextAsync(project, """
+            <Project>
+              <Target Name="Clean">
+                <WriteLinesToFile File="clean-count.txt" Lines="clean" Overwrite="false" />
+              </Target>
+            </Project>
+            """, host.Token);
+        var solution = Path.Join(host.DirectoryPath, "guarded.slnx");
+        const string original = "<Solution><Project Path=\"guarded.csproj\" /></Solution>";
+        await File.WriteAllTextAsync(solution, original, host.Token);
+        var request = DestructiveRequest(action, host.DirectoryPath);
+        request.Arguments![action == "Clean" ? "project" : "solution"] = JsonSerializer.SerializeToElement(
+            action == "Clean" ? project : solution);
+        request.Arguments["projects"] = JsonSerializer.SerializeToElement(new[] { "guarded.csproj" });
+        var first = await SendToolRequestAsync(host, request);
+        var input = first.Result!.Deserialize<InputRequiredResult>(McpJsonUtilities.DefaultOptions)!;
+        request.RequestState = input.RequestState;
+        request.InputResponses = new Dictionary<string, InputResponse>
+        {
+            ["confirmation"] = responseKind == "malformed"
+                ? JsonSerializer.Deserialize<InputResponse>("[]", McpJsonUtilities.DefaultOptions)!
+                : InputResponse.FromElicitResult(new()
+                {
+                    Action = "accept",
+                    Content = responseKind == "missing"
+                        ? new Dictionary<string, JsonElement>()
+                        : new Dictionary<string, JsonElement> { ["confirmed"] = JsonSerializer.SerializeToElement("true") }
+                })
+        };
+        if (responseKind == "malformed")
+        {
+            var error = await Assert.ThrowsAsync<McpProtocolException>(() => SendToolRequestAsync(host, request));
+            Assert.Equal(McpErrorCode.InvalidParams, error.ErrorCode);
+        }
+        else
+        {
+            var response = await SendToolRequestAsync(host, request);
+            var result = response.Result!.Deserialize<CallToolResult>(McpJsonUtilities.DefaultOptions)!;
+            Assert.Contains($"{action} operation cancelled.", result.GetText());
+            Assert.DoesNotContain("dotnet ", result.GetText());
+        }
+        Assert.False(File.Exists(marker));
+        Assert.Equal(original, await File.ReadAllTextAsync(solution, host.Token));
     }
 
     [Fact]
@@ -801,6 +977,35 @@ public class Sdk20CompatibilityTests
         }
     };
 
+    private static async Task<JsonRpcResponse> SendToolRequestAsync(TestServer host, CallToolRequestParams request)
+    {
+        var message = new JsonRpcRequest
+        {
+            Id = new RequestId(Guid.NewGuid().ToString("N")),
+            Method = RequestMethods.ToolsCall,
+            Params = JsonSerializer.SerializeToNode(request, McpJsonUtilities.DefaultOptions)
+        };
+        if (host.RawTransport is null)
+            return await host.Client.SendRequestAsync(message, host.Token);
+
+        // A transport-only native client exposes the incomplete result without the SDK's
+        // automatic input resolution/retry, and advertises capabilities on each request.
+        message.Params!["_meta"] = new JsonObject
+        {
+            [MetaKeys.ProtocolVersion] = "2026-07-28",
+            [MetaKeys.ClientInfo] = JsonSerializer.SerializeToNode(
+                new Implementation { Name = "raw-confirmation-test", Version = "1.0" }, McpJsonUtilities.DefaultOptions),
+            [MetaKeys.ClientCapabilities] = JsonSerializer.SerializeToNode(
+                new ClientCapabilities { Elicitation = new() }, McpJsonUtilities.DefaultOptions)
+        };
+        await host.RawTransport.SendMessageAsync(message, host.Token);
+        var response = await host.RawTransport.MessageReader.ReadAsync(host.Token);
+        Assert.Equal(message.Id, Assert.IsAssignableFrom<JsonRpcMessageWithId>(response).Id);
+        if (response is JsonRpcError error)
+            throw new McpProtocolException(error.Error.Message, (McpErrorCode)error.Error.Code);
+        return Assert.IsType<JsonRpcResponse>(response);
+    }
+
     private static async Task<GetTaskResult> PollAsync(TestServer host, string taskId, Func<GetTaskResult, bool> finished)
     {
         while (true)
@@ -818,6 +1023,7 @@ public class Sdk20CompatibilityTests
         private ServiceProvider? _provider;
         private Task? _serverRun;
         public McpClient Client { get; private set; } = null!;
+        public ITransport? RawTransport { get; private set; }
         public string DirectoryPath { get; } = Path.Join(Path.GetTempPath(), $"dotnet-mcp-sdk20-{Guid.NewGuid():N}");
         public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -825,6 +1031,7 @@ public class Sdk20CompatibilityTests
         public TaskCompletionSource InvocationExited { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource InvocationCancelled { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public int Invocations;
+        public int MrtrProbeInvocations;
         public CancellationToken Token => _timeout.Token;
         public ResourceSubscriptionManager Subscriptions => _provider!.GetRequiredService<ResourceSubscriptionManager>();
 
@@ -837,7 +1044,9 @@ public class Sdk20CompatibilityTests
             Action<Activity?>? observeToolActivity = null,
             Action<JsonRpcRequest>? transformToolRequest = null,
             bool enableTasks = true,
-            ErrorResponse? controlledError = null)
+            ErrorResponse? controlledError = null,
+            bool enableMrtrProbe = false,
+            bool rawClient = false)
         {
             var host = new TestServer();
             host._timeout.CancelAfter(TimeSpan.FromSeconds(60));
@@ -909,6 +1118,36 @@ public class Sdk20CompatibilityTests
                     .WithPrompts<DotNetPrompts>();
                 if (enableTasks)
                     builder.WithTasks(new InMemoryMcpTaskStore());
+                if (enableMrtrProbe)
+                {
+                    builder.WithTools([McpServerTool.Create((RequestContext<CallToolRequestParams> context) =>
+                    {
+                        Interlocked.Increment(ref host.MrtrProbeInvocations);
+                        if (context.Params.RequestState is null)
+                        {
+                            throw new InputRequiredException(new Dictionary<string, InputRequest>
+                            {
+                                ["confirmation"] = InputRequest.ForElicitation(new()
+                                {
+                                    Message = "Confirm the test-only operation.",
+                                    RequestedSchema = new()
+                                    {
+                                        Properties = new Dictionary<string, ElicitRequestParams.PrimitiveSchemaDefinition>
+                                        {
+                                            ["confirmed"] = new ElicitRequestParams.BooleanSchema()
+                                        },
+                                        Required = ["confirmed"]
+                                    }
+                                })
+                            }, "confirmation-pending");
+                        }
+                        Assert.Equal("confirmation-pending", context.Params.RequestState);
+                        var response = context.Params.InputResponses!["confirmation"].Deserialize(InputResponse.ElicitResultJsonTypeInfo);
+                        Assert.Equal("accept", response!.Action);
+                        Assert.True(response.Content!["confirmed"].GetBoolean());
+                        return "confirmed";
+                    }, new() { Name = "mrtr_confirmation_probe" })]);
+                }
                 if (governance is null || fullCatalog)
                 {
                     builder.WithDotNetCliTools();
@@ -935,6 +1174,13 @@ public class Sdk20CompatibilityTests
                 }
                 host._provider = services.BuildServiceProvider();
                 host._serverRun = host._provider.GetRequiredService<McpServer>().RunAsync(host.Token);
+                if (rawClient)
+                {
+                    Assert.Equal("2026-07-28", protocol);
+                    host.RawTransport = await new StreamClientTransport(
+                        requests.Writer.AsStream(), responses.Reader.AsStream()).ConnectAsync(host.Token);
+                    return host;
+                }
                 IClientTransport transport = new PerRequestLoggingTransport(
                     new StreamClientTransport(requests.Writer.AsStream(), responses.Reader.AsStream()));
                 if (transformToolRequest is not null)
@@ -963,6 +1209,8 @@ public class Sdk20CompatibilityTests
             Release.TrySetResult();
             if (Client is not null)
                 await Client.DisposeAsync();
+            if (RawTransport is not null)
+                await RawTransport.DisposeAsync();
             await _timeout.CancelAsync();
             if (_serverRun is not null)
             {
