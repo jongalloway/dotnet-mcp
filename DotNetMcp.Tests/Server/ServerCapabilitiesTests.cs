@@ -3,7 +3,6 @@ using DotNetMcp;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using ModelContextProtocol;
-using ModelContextProtocol.Extensions.Tasks;
 using Xunit;
 
 namespace DotNetMcp.Tests;
@@ -23,8 +22,7 @@ public class ServerCapabilitiesTests
             _concurrencyManager,
             new ProcessSessionManager(),
             tokenSavingsAccumulator: new TokenSavingsAccumulator(),
-            tokenSavingsEstimator: new TokenSavingsEstimator(),
-            taskStore: new InMemoryMcpTaskStore());
+            tokenSavingsEstimator: new TokenSavingsEstimator());
     }
 
     [Fact]

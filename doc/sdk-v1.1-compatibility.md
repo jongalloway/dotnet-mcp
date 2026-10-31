@@ -1,6 +1,6 @@
 # MCP SDK Compatibility
 
-This page retains its historical filename for existing links. The current server uses **ModelContextProtocol 2.0.0** and **ModelContextProtocol.Extensions.Tasks 2.0.0**, targeting .NET 10 and stdio transport.
+This page retains its historical filename for existing links. The current server uses **ModelContextProtocol 2.3.0** and **ModelContextProtocol.Extensions.Tasks 2.3.0**, targeting .NET 10 and stdio transport.
 
 ## Protocol revisions
 
@@ -14,9 +14,13 @@ Resource updates are routed to each active native listener with its subscription
 
 ## Tasks extension
 
-`WithTasks` uses a shared `InMemoryMcpTaskStore` from the separate Tasks package. There are no `ToolTaskSupport` attributes or legacy experimental task capability objects.
+`WithTasks` uses a hosting-owned `InMemoryMcpTaskStore` from the separate Tasks package. The SDK 2.x extension still provides `IMcpTaskStore` and `InMemoryMcpTaskStore`; these are not the removed SDK 1.x experimental API. The tools do not inject the store. Task records are process-local and lost on restart. There are no `ToolTaskSupport` attributes or legacy experimental task capability objects.
 
 Async execution requires protocol 2026-07-28 and per-request opt-in to `io.modelcontextprotocol/tasks`. The extension supplies task creation, `tasks/get`, `tasks/update`, and `tasks/cancel`. Ordinary calls, including legacy-client calls, remain inline. The new extension is not wire-compatible with the old experimental Tasks implementation.
+
+`WithTasks` wraps existing tool handlers automatically, including build, test, publish, and restore; no manual alternate-result handler is needed. Clients receive `CreateTaskResult` for task-backed calls through `ResultOrCreatedTask<CallToolResult>` and poll `tasks/get` for status and the terminal result. There is no separate `tasks/status`, `tasks/list`, or `tasks/result` endpoint. Input requests use `input_required` and are answered through `tasks/update`.
+
+For connected capability snapshots, `asyncTasks` requires both server extension registration and current-request protocol/opt-in support. It is false for ordinary calls, legacy calls, or a server without Tasks registration; opt-in does not carry over to later calls. The no-connection snapshot reports maximum implementation support.
 
 An application error (`CallToolResult.IsError = true`) is retained inside a completed task. Protocol failures produce failed tasks. Cancellation reaches pending elicitation and CLI process execution, while progress reporting, concurrency locks, and tool filters remain active.
 
@@ -44,7 +48,7 @@ Application error annotations such as `mcpErrorCode` remain stable inside tool r
 
 ## References
 
-- [MCP C# SDK 2.0.0 release](https://github.com/modelcontextprotocol/csharp-sdk/releases/tag/v2.0.0)
-- [Tasks extension](https://github.com/modelcontextprotocol/csharp-sdk/blob/v2.0.0/docs/concepts/tasks/tasks.md)
+- [MCP C# SDK 2.3.0 release](https://github.com/modelcontextprotocol/csharp-sdk/releases/tag/v2.3.0)
+- [Tasks extension](https://github.com/modelcontextprotocol/csharp-sdk/blob/v2.3.0/docs/concepts/tasks/tasks.md)
 - [MRTR](https://github.com/modelcontextprotocol/csharp-sdk/blob/v2.0.0/docs/concepts/mrtr/mrtr.md)
 - [Testing](testing.md#mcp-sdk-compatibility-checks)
