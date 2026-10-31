@@ -141,6 +141,8 @@ Run the focused real-stdio Tasks checks:
 dotnet test --project .\DotNetMcp.Tests\DotNetMcp.Tests.csproj -c Release -- --filter-class '*McpConformanceTests' --filter-method '*Task*'
 ```
 
+Focused error regressions distinguish SDK wire errors from application annotations: missing resource reads produce `-32602` on the current revision and `-32002` on the legacy revision, while factory-generated tool errors retain their annotations, `IsError`, object envelopes, and equivalent structured/text JSON content on both. Unit tests cover all five missing-resource diagnostic mappings, both capability factory overloads, and separation from the SDK's renumbered `-32020`/`-32021`/`-32022` codes.
+
 `McpConformanceTests` starts the actual stdio server and checks discovery, resources/prompts, legacy and native confirmation, actual resource updates after `subscriptions/listen`, removed-method rejection, and opted-in logging. SDK 2.0's client drops the request log level during metadata injection, so the test-only logging transport writes it at the wire boundary. The logging workaround is test-only.
 
 MTP selectors of the same kind can be repeated to match multiple classes or methods. Combining `--filter-class` with `--filter-method` narrows to their intersection, not their union.

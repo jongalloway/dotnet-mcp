@@ -44,7 +44,7 @@ The full catalog still encounters an upstream scanner restriction on the certifi
 
 ## Error semantics
 
-Application error annotations such as `mcpErrorCode` remain stable inside tool results. The SDK selects actual JSON-RPC wire errors according to the active revision: for example, missing resource reads use `-32602` on 2026-07-28 and `-32002` on 2025-11-25. See the [machine-readable contract](machine-readable-contract.md#mcp-error-code-mapping).
+Application error annotations such as `mcpErrorCode` remain stable inside tool results. The SDK selects actual JSON-RPC wire errors according to the active revision: for example, missing resource reads use `-32602` on 2026-07-28 and `-32002` on 2025-11-25. Tool-result resource annotations still use `-32002` on both revisions. Application capability annotations (`-32001` or factory-specific `-32603`) are not the SDK's `MissingRequiredClientCapability` wire error (`-32021`). The SDK's renumbered wire codes (`-32020`, `-32021`, `-32022`) do not collide with the custom application annotations. See the [machine-readable contract](machine-readable-contract.md#mcp-error-code-mapping) for the mapping and intentional legacy resource-code overlap.
 
 ## References
 
