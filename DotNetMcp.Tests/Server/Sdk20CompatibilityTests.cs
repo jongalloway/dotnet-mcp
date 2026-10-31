@@ -214,12 +214,53 @@ public class Sdk20CompatibilityTests
             Assert.True(resourceUi.PrefersBorder);
         }
 #pragma warning restore MCPEXP003
+    }
 
+    [Theory]
+    [InlineData("2026-07-28", -32602)]
+    [InlineData("2025-11-25", -32002)]
+    public async Task MissingResource_WireErrorFollowsNegotiatedRevision(string protocol, int expectedCode)
+    {
+        await using var host = await TestServer.CreateAsync(protocol);
+        Assert.Equal(protocol, host.Client.NegotiatedProtocolVersion);
         var error = await Assert.ThrowsAsync<McpProtocolException>(
             async () => await host.Client.ReadResourceAsync("dotnet://missing", cancellationToken: host.Token));
-#pragma warning disable MCP9005 // Assert the SDK's legacy resource error compatibility.
-        Assert.Equal(protocol == "2026-07-28" ? McpErrorCode.InvalidParams : McpErrorCode.ResourceNotFound, error.ErrorCode);
-#pragma warning restore MCP9005
+        Assert.Equal(expectedCode, (int)error.ErrorCode);
+    }
+
+    [Theory]
+    [InlineData("2026-07-28", "NU1101", -32002)]
+    [InlineData("2025-11-25", "NU1101", -32002)]
+    [InlineData("2026-07-28", "capability", -32001)]
+    [InlineData("2025-11-25", "capability", -32001)]
+    [InlineData("2026-07-28", "capabilityWithReason", -32603)]
+    [InlineData("2025-11-25", "capabilityWithReason", -32603)]
+    public async Task ApplicationErrors_PreserveAnnotationsAndToolResultEnvelope(
+        string protocol, string scenario, int expectedCode)
+    {
+        var response = scenario switch
+        {
+            "capability" => ErrorResultFactory.ReturnCapabilityNotAvailable("test feature", details: "Disabled"),
+            "capabilityWithReason" => ErrorResultFactory.ReturnCapabilityNotAvailable("test feature", reason: "Disabled"),
+            _ => Assert.IsType<ErrorResponse>(
+                ErrorResultFactory.CreateResult("", $"error {scenario}: Resource not found", 1, "dotnet build"))
+        };
+        await using var host = await TestServer.CreateAsync(protocol, controlledError: response);
+        Assert.Equal(protocol, host.Client.NegotiatedProtocolVersion);
+        host.Release.TrySetResult();
+
+        var result = await host.Client.CallToolAsync("controlled", cancellationToken: host.Token);
+        Assert.True(result.IsError);
+        var structured = Assert.IsType<JsonElement>(result.StructuredContent);
+        Assert.Equal(JsonValueKind.Object, structured.ValueKind);
+        Assert.False(structured.GetProperty("success").GetBoolean());
+        Assert.Equal(response.ExitCode, structured.GetProperty("exitCode").GetInt32());
+        Assert.False(structured.TryGetProperty("result", out _));
+        var error = Assert.Single(structured.GetProperty("errors").EnumerateArray());
+        Assert.Equal(Assert.Single(response.Errors).Code, error.GetProperty("code").GetString());
+        Assert.Equal(expectedCode, error.GetProperty("mcpErrorCode").GetInt32());
+        using var text = JsonDocument.Parse(Assert.IsType<TextContentBlock>(Assert.Single(result.Content)).Text);
+        Assert.True(JsonElement.DeepEquals(text.RootElement, structured));
     }
 
     [Fact]
@@ -759,7 +800,8 @@ public class Sdk20CompatibilityTests
             bool fullCatalog = false,
             McpClientHandlers? handlers = null,
             Action<Activity?>? observeToolActivity = null,
-            Action<JsonRpcRequest>? transformToolRequest = null)
+            Action<JsonRpcRequest>? transformToolRequest = null,
+            ErrorResponse? controlledError = null)
         {
             var host = new TestServer();
             host._timeout.CancelAfter(TimeSpan.FromSeconds(60));
@@ -808,6 +850,13 @@ public class Sdk20CompatibilityTests
                         try
                         {
                             await host.Release.Task.WaitAsync(ct);
+                            if (controlledError is not null)
+                            {
+                                var result = StructuredContentHelper.ToCallToolResult(
+                                    ErrorResultFactory.ToJson(controlledError), controlledError);
+                                result.IsError = true;
+                                return result;
+                            }
                             return new CallToolResult { IsError = true, Content = [new TextContentBlock { Text = "controlled application error" }] };
                         }
                         finally { host.Exited.TrySetResult(); }

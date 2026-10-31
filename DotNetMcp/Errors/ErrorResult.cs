@@ -162,9 +162,10 @@ public sealed class ErrorResult
     public string RawOutput { get; init; } = string.Empty;
 
     /// <summary>
-    /// MCP (Model Context Protocol) error code following JSON-RPC 2.0 specification.
-    /// Common codes: -32002 (ResourceNotFound), -32602 (InvalidParams), -32603 (InternalError).
-    /// Only set when an MCP error code is applicable to this error.
+    /// Optional application error annotation using JSON-RPC and legacy MCP conventions.
+    /// Common values: -32002 (ResourceNotFound), -32001 (CapabilityNotAvailable),
+    /// -32602 (InvalidParams), and -32603 (InternalError).
+    /// Stable across protocol revisions; this does not determine the JSON-RPC wire error code.
     /// </summary>
     [JsonPropertyName("mcpErrorCode")]
     public int? McpErrorCode { get; init; }

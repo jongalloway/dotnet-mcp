@@ -1007,7 +1007,17 @@ The optional `mcpErrorCode` inside a tool result is stable application metadata 
 - Resource-not-found errors (NU1101, NU1102, MSB1003, NETSDK1004, MSB4236) use `-32002` (ResourceNotFound).
 - Compilation and build errors that are not resource-related (e.g., CS0103, MSB3644) typically have no MCP error code (`null`).
 
-Actual protocol errors are selected by the SDK. For example, a missing `resources/read` URI produces `InvalidParams` (`-32602`) on 2026-07-28 and the legacy resource-not-found code (`-32002`) on 2025-11-25. This does not renumber the existing application annotations above. SDK protocol codes such as `MissingRequiredCapability` (`-32021`) are distinct from the application's `CAPABILITY_NOT_AVAILABLE`.
+Actual protocol errors are selected by the SDK. Under SEP-2164, a missing `resources/read` URI produces `InvalidParams` (`-32602`) on 2026-07-28 and the legacy resource-not-found code (`-32002`) on 2025-11-25. The SDK chooses automatically; application code must not force the legacy wire code for current clients. This deprecation does not renumber the existing application annotations above.
+
+The SDK's renumbered protocol errors are separate from application annotations:
+
+| SDK protocol error | Previous wire code | Current wire code |
+|--------------------|--------------------|-------------------|
+| `HeaderMismatch` | `-32001` | `-32020` |
+| `MissingRequiredClientCapability` | `-32003` | `-32021` |
+| `UnsupportedProtocolVersion` | `-32004` | `-32022` |
+
+Neither application annotation (`-32001` or `-32002`) collides with these renumbered wire codes. The application capability annotation must not be substituted for `MissingRequiredClientCapability`, which reports missing client capability declarations. The application resource annotation intentionally retains the same number as the SDK's legacy resource error, but occurs inside a tool result, not in the JSON-RPC error envelope. `ErrorCodeDictionary` supplies .NET diagnostic descriptions and suggested fixes; `McpErrorCodes` and `ErrorResultFactory` supply application annotations, not negotiated wire mappings.
 
 ## Security and Redaction
 

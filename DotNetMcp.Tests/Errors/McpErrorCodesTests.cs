@@ -15,12 +15,25 @@ public class McpErrorCodesTests
         Assert.Equal(-32602, McpErrorCodes.InvalidParams);
         Assert.Equal(-32603, McpErrorCodes.InternalError);
         
-        // MCP-specific error code
+        // Stable application annotations
         Assert.Equal(-32002, McpErrorCodes.ResourceNotFound);
+        Assert.Equal(-32001, McpErrorCodes.CapabilityNotAvailable);
         
         // Server error range
         Assert.Equal(-32000, McpErrorCodes.ServerErrorRangeStart);
         Assert.Equal(-32099, McpErrorCodes.ServerErrorRangeEnd);
+    }
+
+    [Theory]
+    [InlineData(ModelContextProtocol.McpErrorCode.HeaderMismatch, -32020)]
+    [InlineData(ModelContextProtocol.McpErrorCode.MissingRequiredClientCapability, -32021)]
+    [InlineData(ModelContextProtocol.McpErrorCode.UnsupportedProtocolVersion, -32022)]
+    public void ApplicationAnnotations_DoNotCollideWithRenumberedProtocolErrors(
+        ModelContextProtocol.McpErrorCode protocolCode, int expectedCode)
+    {
+        Assert.Equal(expectedCode, (int)protocolCode);
+        Assert.NotEqual(McpErrorCodes.CapabilityNotAvailable, (int)protocolCode);
+        Assert.NotEqual(McpErrorCodes.ResourceNotFound, (int)protocolCode);
     }
 
     [Theory]

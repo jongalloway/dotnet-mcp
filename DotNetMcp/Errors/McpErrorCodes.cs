@@ -42,6 +42,8 @@ public static class McpErrorCodes
     /// <summary>
     /// Application capability-not-available annotation (-32001).
     /// Used when a feature is not yet implemented, disabled, or unsupported due to environment limitations.
+    /// Distinct from SDK wire errors HeaderMismatch (-32020), MissingRequiredClientCapability (-32021),
+    /// and UnsupportedProtocolVersion (-32022); not a substitute for missing client capabilities.
     /// </summary>
     public const int CapabilityNotAvailable = -32001;
 
