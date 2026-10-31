@@ -6,11 +6,11 @@ Governance is disabled by default. When enabled, you can provide one or more pol
 
 ## SDK compatibility and startup restriction
 
-The released governance extension **4.0.0** is retained with MCP SDK **2.0.0**. Compatibility tests exercise allow/deny policies with production tools for inline and Tasks execution, and confirmation through MRTR and task input updates.
+The current governance extension is **5.0.0**, used with MCP SDK **2.3.0**. The SDK 2.0 migration initially used governance 4.0.0; those package versions are no longer the current dependency pins. Compatibility tests exercise allow/deny policies with production tools for inline and Tasks execution, and confirmation through MRTR and task input updates.
 
 **Full-catalog governance startup has a pre-existing toolkit scanner limitation.** This is reproducible with MCP SDK **1.4.0**, not introduced by SDK 2.0. The unchanged baseline first rejects an innocuous template description containing "override"; after rewording only that description and the equivalent EF description, SDK 1.4 also rejects the existing `dotnet_dev_certs` input property `password` as an unsafe sensitive field. The v4 and v5 scanners both contain this rule. The parameter is part of the certificate-export tool contract; renaming it or disabling the scanner is not an SDK compatibility fix.
 
-The server keeps `ScanToolsOnStartup`, `FailOnUnsafeTools`, policy enforcement, authentication requirements, and response sanitization unchanged. Enabling governance with the full catalog therefore fails startup rather than silently accepting the flagged schema, preserving the baseline fail-closed behavior. The tests separately verify that rejection and policy/MRTR/Tasks compatibility on a safe subset of production tools with scanning still enabled. Governance 4.0.0 is compatible with the SDK migration; resolving the independent full-catalog startup limitation still requires an upstream scanner fix or an explicitly approved governance-policy change.
+The server keeps `ScanToolsOnStartup`, `FailOnUnsafeTools`, policy enforcement, authentication requirements, and response sanitization unchanged. Enabling governance with the full catalog therefore fails startup rather than silently accepting the flagged schema, preserving the baseline fail-closed behavior. The tests separately verify that rejection and policy/MRTR/Tasks compatibility on a safe subset of production tools with scanning still enabled. The package upgrade does not resolve the independent full-catalog startup limitation; that still requires an upstream scanner fix or an explicitly approved governance-policy change.
 
 ## Example appsettings configuration
 

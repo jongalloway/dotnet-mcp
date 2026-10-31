@@ -228,13 +228,15 @@ dotnet-mcp uses the official [MCP C# SDK](https://csharp.sdk.modelcontextprotoco
 
 The server uses SDK **2.3.0**, supports protocol **2026-07-28**, and retains older stdio clients, including **2025-11-25**. Async execution requires the new Tasks extension and per-request opt-in; legacy clients continue to call tools inline. See [SDK compatibility](doc/sdk-v1.1-compatibility.md) for wire-protocol differences and [governance configuration](doc/mcp-governance.md) for the existing fail-closed catalog limitation.
 
+Use `dotnet_server_capabilities` to discover the negotiated protocol and feature availability for the active request. On 2026-07-28, logging needs a per-request log level, and Sampling/Elicitation depend on the request's client capability metadata. These flags do not carry over from earlier requests. A no-connection snapshot reports implementation support, not a guarantee that a client can use each feature; see the [capability contract](doc/machine-readable-contract.md#connection-dependent-capabilities-and-tasks).
+
 | Feature | How dotnet-mcp uses it | Why |
 | ------- | ---------------------- | --- |
 | [Resources](https://modelcontextprotocol.io/specification/latest/server/resources) | Exposes `dotnet://sdk-info`, `dotnet://runtime-info`, `dotnet://templates`, `dotnet://frameworks`, and `dotnet://workspace` as read-only MCP resources. | Lets clients answer environment and workspace topology questions quickly without shelling out, and reduces token churn from repeated CLI discovery. |
 | [Prompts](https://modelcontextprotocol.io/specification/latest/server/prompts) | Publishes reusable prompts such as `create_new_webapi`, `add_package_and_restore`, and `run_tests_with_coverage`. | Gives MCP clients guided, discoverable workflows instead of rebuilding common prompt scaffolding from scratch. |
-| [Roots](https://modelcontextprotocol.io/specification/latest/client/roots) | Uses client workspace roots to auto-detect a single project or solution when the user omits an explicit path. | Improves out-of-box behavior in IDE clients and reduces the number of parameters users need to supply. |
-| [Sampling](https://modelcontextprotocol.io/specification/latest/client/sampling) | Requests client-mediated LLM summaries for build and test failures when the client supports sampling. | Keeps intelligent diagnostics inside the MCP flow without requiring separate server-side model credentials. |
-| [Elicitation](https://modelcontextprotocol.io/specification/latest/client/elicitation) | Uses MRTR confirmation before clean and solution removal, with legacy elicitation and task input handling where appropriate. | Adds a human-in-the-loop safety check before side effects; decline, cancel, and an unchecked confirmation do not proceed. |
+| [Roots](https://modelcontextprotocol.io/specification/latest/client/roots) | Retains deprecated stdio Roots discovery to auto-detect a single project or solution when the client advertises Roots and the user omits an explicit path. | Improves out-of-box behavior in compatible IDE clients while preserving explicit-path precedence. |
+| [Sampling](https://modelcontextprotocol.io/specification/latest/client/sampling) | Retains deprecated client-mediated Sampling for build and test failure summaries when advertised and supported by the transport. Roots/Sampling MRTR replacement is deferred. | Keeps intelligent diagnostics inside the MCP flow without requiring separate server-side model credentials; successful commands and unsupported clients retain their original output. |
+| [Elicitation](https://modelcontextprotocol.io/specification/latest/client/elicitation) | Uses MRTR confirmation before clean and solution removal when the client supports elicitation, with legacy elicitation and task input handling where appropriate. | Adds a human-in-the-loop check before side effects; decline, cancel, and an unchecked confirmation do not proceed. Clients without elicitation retain unprompted behavior, so confirmation is not an authorization boundary. |
 | [Progress notifications](https://modelcontextprotocol.io/specification/latest/basic/utilities/progress) | Reports start/completion progress for long-running restore, build, test, publish, pack, tool, and workload operations. | Gives clients a better UX for slow operations and makes orchestration easier for agents that surface progress. |
 | [Tasks](https://github.com/modelcontextprotocol/csharp-sdk/blob/v2.3.0/docs/concepts/tasks/tasks.md) | Uses `WithTasks` with a hosting-owned, process-local in-memory store; tool handlers do not depend on storage. | Opted-in 2026-07-28 calls support task creation, polling via `tasks/get`, input updates via `tasks/update`, and cancellation via `tasks/cancel`; ordinary calls remain inline. |
 | [Tools and tool metadata](https://modelcontextprotocol.io/specification/latest/server/tools) | Uses consolidated tools with rich metadata such as titles, categories, priorities, and action lists. | Improves discoverability, routing, and client-side presentation, especially in MCP-aware IDE integrations. |
@@ -1099,12 +1101,12 @@ Key files to start with:
 ## Technology Stack
 
 - **Protocol**: [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)
-- **SDK**: [MCP SDK for .NET](https://github.com/modelcontextprotocol/csharp-sdk) v2.3.0, with the matching Tasks extension
+- **SDK**: [MCP SDK for .NET](https://github.com/modelcontextprotocol/csharp-sdk) v2.3.0, with matching Tasks and Apps extensions
 - **Runtime**: .NET 10.0 (target framework)
 - **Transport**: stdio (standard input/output)
 - **NuGet Packages**:
-  - `Microsoft.TemplateEngine.Abstractions` & `Edge` (v10.0.101) - Template metadata
-  - `Microsoft.Build.Utilities.Core` & `Microsoft.Build` (v18.0.2) - Project validation
+  - `Microsoft.TemplateEngine.Abstractions` & `Edge` (v10.0.403) - Template metadata
+  - `Microsoft.Build.Utilities.Core` (v18.11.0) & `Microsoft.Build` (v18.9.6) - Project validation
 
 ## Documentation
 
