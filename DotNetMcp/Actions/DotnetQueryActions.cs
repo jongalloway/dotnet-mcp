@@ -4,31 +4,31 @@ namespace DotNetMcp.Actions;
 public enum DotnetSdkQueryAction
 {
     /// <summary>Display the current SDK version.</summary>
-    Version = (int)DotnetSdkAction.Version,
+    Version = DotnetSdkAction.Version,
     /// <summary>Display SDK information without running CLI first-use setup.</summary>
-    Info = (int)DotnetSdkAction.Info,
+    Info = DotnetSdkAction.Info,
     /// <summary>List installed SDKs.</summary>
-    ListSdks = (int)DotnetSdkAction.ListSdks,
+    ListSdks = DotnetSdkAction.ListSdks,
     /// <summary>List installed runtimes.</summary>
-    ListRuntimes = (int)DotnetSdkAction.ListRuntimes,
+    ListRuntimes = DotnetSdkAction.ListRuntimes,
     /// <summary>Describe supported frameworks.</summary>
-    FrameworkInfo = (int)DotnetSdkAction.FrameworkInfo,
+    FrameworkInfo = DotnetSdkAction.FrameworkInfo,
     /// <summary>Read cache statistics without loading or clearing cached data.</summary>
-    CacheMetrics = (int)DotnetSdkAction.CacheMetrics
+    CacheMetrics = DotnetSdkAction.CacheMetrics
 }
 
 /// <summary>Verified read-only actions for dotnet_project_query.</summary>
 public enum DotnetProjectQueryAction
 {
     /// <summary>Read already captured process output without starting or stopping a process.</summary>
-    Logs = (int)DotnetProjectAction.Logs
+    Logs = DotnetProjectAction.Logs
 }
 
 /// <summary>Snapshot-only actions for dotnet_server_metrics_query.</summary>
 public enum DotnetServerMetricsQueryAction
 {
     /// <summary>Read invocation metrics.</summary>
-    Get = (int)DotnetServerMetricsAction.Get,
+    Get = DotnetServerMetricsAction.Get,
     /// <summary>Read token savings estimates.</summary>
-    TokenSavingsGet = (int)DotnetServerMetricsAction.TokenSavingsGet
+    TokenSavingsGet = DotnetServerMetricsAction.TokenSavingsGet
 }
