@@ -102,11 +102,11 @@ public sealed partial class DotNetCliTools
         });
 
         // Add structured content for List action
-        object? structured = action == DotnetPackageAction.List
+        object? structured = action == DotnetPackageAction.List && !StructuredContentHelper.IsFailure(textResult)
             ? BuildPackageListStructuredContent(textResult)
             : null;
 
-        return StructuredContentHelper.ToCallToolResult(textResult, structured);
+        return StructuredContentHelper.ActionResult(action, textResult, structured);
     }
 
     private async Task<string> HandleAddAction(string? packageId, string? project, string? version, string? source, string? framework, bool prerelease, McpServer? server = null, RequestContext<CallToolRequestParams>? context = null)

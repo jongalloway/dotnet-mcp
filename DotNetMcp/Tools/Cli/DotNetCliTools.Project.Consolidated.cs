@@ -195,7 +195,8 @@ public sealed partial class DotNetCliTools
                 LockInfo = buildResult.LockInfo
             };
             var textContent = GetBuildTextForStructuredResponse(textResult, buildResult);
-            return StructuredContentHelper.ToCallToolResult(textContent, projectActionResult);
+            return StructuredContentHelper.ToCallToolResult(textContent, projectActionResult,
+                isError: !buildResult.Success || StructuredContentHelper.IsFailure(textResult));
         }
 
         if (action == DotnetProjectAction.Test)
@@ -214,7 +215,8 @@ public sealed partial class DotNetCliTools
                 FirstFailures = testResult.FirstFailures,
                 LockInfo = testResult.LockInfo
             };
-            return StructuredContentHelper.ToCallToolResult(textResult, projectActionResult);
+            return StructuredContentHelper.ToCallToolResult(textResult, projectActionResult,
+                isError: !testResult.Success || StructuredContentHelper.IsFailure(textResult));
         }
 
         // For other concurrency-gated actions (Run, Publish), include lock metadata
@@ -225,10 +227,13 @@ public sealed partial class DotNetCliTools
         {
             var lockInfo = BuildLockInfo(concurrencyOpType, GetOperationTarget(effectiveProject, workingDirectory),
                 isContended: IsConcurrencyConflictText(textResult));
-            return StructuredContentHelper.ToCallToolResult(textResult, new ProjectActionResult { LockInfo = lockInfo });
+            return StructuredContentHelper.ToCallToolResult(textResult, new ProjectActionResult { LockInfo = lockInfo },
+                isError: StructuredContentHelper.IsFailure(textResult) || lockInfo.LockContended == true);
         }
 
-        return StructuredContentHelper.ToCallToolResult(textResult);
+        if (StructuredContentHelper.IsFailure(textResult))
+            return StructuredContentHelper.ApplicationError(textResult);
+        return StructuredContentHelper.ActionResult(action, textResult, ProjectMetadataResults.FromText(action, textResult));
     }
 
     internal static string GetBuildTextForStructuredResponse(string rawText, BuildResult buildResult)

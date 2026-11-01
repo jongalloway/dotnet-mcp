@@ -151,6 +151,14 @@ Focused error regressions distinguish SDK wire errors from application annotatio
 
 MTP selectors of the same kind can be repeated to match multiple classes or methods. Combining `--filter-class` with `--filter-method` narrows to their intersection, not their union.
 
+### Structured output contracts
+
+`OutputSchemaTests` obtains the production schemas through actual `tools/list` calls and validates structured responses on both MCP 2026-07-28 and 2025-11-25. Coverage includes all six schema-bearing tools, action-restricted text fallbacks, domain metadata, empty/non-empty lists, diagnostic failures, capability/validation errors, optional runtime enrichment, lock contention, and object envelopes without a new `result` wrapper. Deterministic command producers avoid network-dependent package operations; project metadata fixtures are isolated and deleted after each test. Compatibility checks preserve the first text block and require serialized JSON text matching the payload. Negative schema cases reject missing fields, incorrect nested types, and fallback misuse. Production stdio conformance tests also verify that returned application errors increment failure metrics rather than success metrics.
+
+```powershell
+dotnet test --project .\DotNetMcp.Tests\DotNetMcp.Tests.csproj -- --filter-class '*OutputSchemaTests' --filter-class '*StructuredContentTests' --filter-class '*ServerMetricsToolTests'
+```
+
 ## Test isolation and runtime dependencies
 
 Tool command-building tests record `dotnet tool` commands through a per-instance executor override instead of installing, updating, or removing real tools. Other commands in those test classes still use the normal executor. Real local-tool installation coverage belongs to isolated opt-in release scenarios, not the source-controlled `.config/dotnet-tools.json` or the user's global tools.

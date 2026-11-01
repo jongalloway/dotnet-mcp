@@ -41,6 +41,8 @@ public sealed partial class DotNetCliTools
 
         // Parse installed SDKs from dotnet --list-sdks
         var sdksOutput = await ExecuteDotNetCommand("--list-sdks");
+        if (StructuredContentHelper.IsFailure(sdksOutput))
+            return StructuredContentHelper.ApplicationError(sdksOutput);
         var installedSdks = ParseInstalledSdks(sdksOutput);
 
         // Create the capabilities snapshot
