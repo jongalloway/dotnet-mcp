@@ -9,19 +9,44 @@ namespace DotNetMcp;
 
 internal static class ToolOutputSchemas
 {
-    private static readonly JsonElement SdkSchema = Compose(
+    private static readonly JsonElement SdkSchema = WithFallback(Compose(
         (typeof(SdkActionResult), ["version"]),
         (typeof(SdkListResult), ["sdks"]),
-        (typeof(RuntimeListResult), ["runtimes"]));
+        (typeof(RuntimeListResult), ["runtimes"]),
+        (typeof(TemplateListResult), []),
+        (typeof(TemplateDetailsResult), []),
+        (typeof(FrameworkListResult), []),
+        (typeof(CacheMetricsResult), [])),
+        Enum.GetNames<DotnetSdkAction>().Except(["Version", "ListSdks", "ListRuntimes", "FrameworkInfo", "CacheMetrics"]).ToArray());
 
-    private static readonly JsonElement MetricsSchema = Compose(
+    private static readonly JsonElement ProjectSchema = WithFallback(Compose(
+        (typeof(ProjectActionResult), ["success", "errorCount", "warningCount", "summary"]),
+        (typeof(ProjectActionResult), ["success", "passed", "failed", "skipped", "summary"]),
+        (typeof(ProjectActionResult), ["lockInfo"]),
+        (typeof(ProjectAnalysisResult), []),
+        (typeof(ProjectDependenciesResult), []),
+        (typeof(ProjectValidationResult), []),
+        (typeof(ProjectPropertyResult), ["success", "projectPath", "propertyName", "propertyValue"]),
+        (typeof(ProjectPropertyResult), ["success", "projectPath", "propertyName", "removed"]),
+        (typeof(ProjectItemResult), ["success", "projectPath", "itemType", "include"]),
+        (typeof(ProjectItemsResult), [])),
+        Enum.GetNames<DotnetProjectAction>().Except(["Build", "Test", "Run", "Publish", "Analyze", "Dependencies", "Validate",
+            "SetProperty", "GetProperty", "RemoveProperty", "AddItem", "RemoveItem", "ListItems"]).ToArray());
+
+    private static readonly JsonElement PackageSchema = WithFallback(Compose((typeof(PackageListResult), [])),
+        Enum.GetNames<DotnetPackageAction>().Except(["List"]).ToArray());
+    private static readonly JsonElement SolutionSchema = WithFallback(Compose((typeof(SolutionListResult), [])),
+        Enum.GetNames<DotnetSolutionAction>().Except(["List"]).ToArray());
+    private static readonly JsonElement CapabilitiesSchema = WithFallback(Compose((typeof(ServerCapabilities), [])), []);
+
+    private static readonly JsonElement MetricsSchema = WithFallback(Compose(
         (typeof(ServerMetricsResponse), []),
         (typeof(ServerMetricsResetResponse), []),
-        (typeof(ServerMetricsTokenSavingsResponse), []));
+        (typeof(ServerMetricsTokenSavingsResponse), [])), []);
 
-    private static readonly JsonElement MetricsQuerySchema = Compose(
+    private static readonly JsonElement MetricsQuerySchema = WithFallback(Compose(
         (typeof(ServerMetricsResponse), []),
-        (typeof(ServerMetricsTokenSavingsResponse), []));
+        (typeof(ServerMetricsTokenSavingsResponse), [])), []);
 
     internal static IMcpServerBuilder WithDotNetCliTools(this IMcpServerBuilder builder)
     {
@@ -41,6 +66,10 @@ internal static class ToolOutputSchemas
                     nameof(DotNetCliTools.DotnetSdk) or nameof(DotNetCliTools.DotnetSdkQuery) => SdkSchema,
                     nameof(DotNetCliTools.DotnetServerMetrics) => MetricsSchema,
                     nameof(DotNetCliTools.DotnetServerMetricsQuery) => MetricsQuerySchema,
+                    nameof(DotNetCliTools.DotnetProject) => ProjectSchema,
+                    nameof(DotNetCliTools.DotnetPackage) => PackageSchema,
+                    nameof(DotNetCliTools.DotnetSolution) => SolutionSchema,
+                    nameof(DotNetCliTools.DotnetServerCapabilities) => CapabilitiesSchema,
                     _ => null
                 }
             });
@@ -53,7 +82,19 @@ internal static class ToolOutputSchemas
         {
             var schema = JsonNode.Parse(AIJsonUtilities.CreateJsonSchema(type).GetRawText())!.AsObject();
             schema.Remove("$schema");
+            AllowOmittedNulls(schema);
             var properties = schema["properties"]!.AsObject();
+            schema["additionalProperties"] = false;
+            if (type == typeof(ProjectActionResult))
+            {
+                string[] allowed = required.Contains("errorCount")
+                    ? ["success", "project", "configuration", "errorCount", "warningCount", "summary", "errors", "warnings", "lockInfo"]
+                    : required.Contains("passed")
+                        ? ["success", "passed", "failed", "skipped", "durationMs", "summary", "firstFailures", "lockInfo"]
+                        : ["lockInfo"];
+                foreach (var key in properties.Select(p => p.Key).Except(allowed).ToArray())
+                    properties.Remove(key);
+            }
             var requiredNames = required.Length == 0 ? properties.Select(property => property.Key).ToArray() : required;
             schema["required"] = new JsonArray(requiredNames.Select(name => (JsonNode?)JsonValue.Create(name)).ToArray());
             foreach (var (name, types) in requiredNames.SelectMany(name =>
@@ -64,9 +105,11 @@ internal static class ToolOutputSchemas
             }
 
             // Exporter references are rooted in each model; rebase them into the composed document.
-            RebaseReferences(schema, $"#/$defs/{type.Name}");
-            definitions[type.Name] = schema;
-            branches.Add(new JsonObject { ["$ref"] = $"#/$defs/{type.Name}" });
+            var definitionName = definitions.ContainsKey(type.Name) ? $"{type.Name}{definitions.Count}" : type.Name;
+            RebaseReferences(schema, $"#/$defs/{definitionName}");
+            FixLockScope(schema);
+            definitions[definitionName] = schema;
+            branches.Add(new JsonObject { ["$ref"] = $"#/$defs/{definitionName}" });
         }
 
         return JsonSerializer.SerializeToElement(new JsonObject
@@ -76,6 +119,46 @@ internal static class ToolOutputSchemas
             ["anyOf"] = branches,
             ["$defs"] = definitions
         });
+    }
+
+    private static JsonElement WithFallback(JsonElement schema, string[] actions)
+    {
+        var root = JsonNode.Parse(schema.GetRawText())!.AsObject();
+        var errors = JsonNode.Parse(Compose((typeof(ApplicationErrorResult), []), (typeof(ErrorResponse), ["success", "errors"])).GetRawText())!;
+        foreach (var (key, value) in errors["$defs"]!.AsObject())
+            root["$defs"]![key] = value!.DeepClone();
+        root["$defs"]!["ApplicationErrorResult"]!["properties"]!["success"]!["const"] = false;
+        root["$defs"]!["ErrorResponse"]!["properties"]!["success"]!["const"] = false;
+        foreach (var branch in errors["anyOf"]!.AsArray())
+            root["anyOf"]!.AsArray().Add(branch!.DeepClone());
+        if (actions.Length > 0)
+        {
+            var fallback = JsonNode.Parse(Compose((typeof(ActionTextResult), [])).GetRawText())!;
+            var definition = fallback["$defs"]!["ActionTextResult"]!.DeepClone();
+            definition["properties"]!["action"]!["enum"] = new JsonArray(actions.Select(a => (JsonNode?)JsonValue.Create(a)).ToArray());
+            root["$defs"]!["ActionTextResult"] = definition;
+            root["anyOf"]!.AsArray().Add(new JsonObject { ["$ref"] = "#/$defs/ActionTextResult" });
+        }
+        return JsonSerializer.SerializeToElement(root);
+    }
+
+    private static void FixLockScope(JsonNode node)
+    {
+        if (node is JsonObject obj)
+        {
+            if (obj["properties"] is JsonObject properties && properties.ContainsKey("lockScope"))
+            {
+                properties["lockScope"] = new JsonObject
+                {
+                    ["type"] = "string",
+                    ["enum"] = new JsonArray("project", "solution", "workingDirectory", "global")
+                };
+                obj["required"] = new JsonArray("lockScope", "lockKey");
+            }
+            foreach (var child in obj.Select(p => p.Value).OfType<JsonNode>()) FixLockScope(child);
+        }
+        else if (node is JsonArray array)
+            foreach (var child in array.OfType<JsonNode>()) FixLockScope(child);
     }
 
     private static void RebaseReferences(JsonNode node, string prefix)
@@ -92,5 +175,28 @@ internal static class ToolOutputSchemas
             foreach (var item in array.OfType<JsonNode>())
                 RebaseReferences(item, prefix);
         }
+    }
+
+    private static void AllowOmittedNulls(JsonNode node)
+    {
+        if (node is JsonObject obj)
+        {
+            if (obj["properties"] is JsonObject properties && obj["required"] is JsonArray required)
+            {
+                foreach (var name in required.Select(n => n!.GetValue<string>()).ToArray())
+                    if (properties[name]?["type"] is JsonArray types && types.Any(t => t!.GetValue<string>() == "null"))
+                        required.Remove(required.First(n => n!.GetValue<string>() == name));
+            }
+            if (obj["properties"] is JsonObject identity)
+            {
+                if (identity.ContainsKey("version") && identity.ContainsKey("path") && identity.Count <= 3)
+                    obj["required"] = identity.ContainsKey("name") ? new JsonArray("name", "version") : new JsonArray("version");
+                if (identity.ContainsKey("requestedVersion") && identity.ContainsKey("name"))
+                    obj["required"] = new JsonArray("name");
+            }
+            foreach (var child in obj.Select(p => p.Value).OfType<JsonNode>()) AllowOmittedNulls(child);
+        }
+        else if (node is JsonArray array)
+            foreach (var child in array.OfType<JsonNode>()) AllowOmittedNulls(child);
     }
 }

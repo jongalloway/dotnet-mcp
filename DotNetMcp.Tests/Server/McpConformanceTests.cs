@@ -441,6 +441,8 @@ public class McpConformanceTests : IAsyncLifetime
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.IsError);
+        Assert.Equal("Info", result.StructuredContent!.Value.GetProperty("action").GetString());
+        Assert.Equal(result.GetText(), result.StructuredContent.Value.GetProperty("text").GetString());
         
         var textContent = result.Content.OfType<TextContentBlock>().FirstOrDefault();
         Assert.NotNull(textContent);
@@ -448,6 +450,26 @@ public class McpConformanceTests : IAsyncLifetime
         
         // Should contain SDK information
         Assert.Contains(".NET", textContent.Text);
+    }
+
+    [Fact]
+    public async Task Server_Metrics_CountsReturnedApplicationErrorsAsFailures()
+    {
+        Assert.NotNull(_client);
+        await _client.CallToolAsync("dotnet_server_metrics",
+            new Dictionary<string, object?> { ["action"] = "Reset" },
+            cancellationToken: TestContext.Current.CancellationToken);
+        var failure = await _client.CallToolAsync("dotnet_sdk",
+            new Dictionary<string, object?> { ["action"] = "SearchTemplates" },
+            cancellationToken: TestContext.Current.CancellationToken);
+        Assert.True(failure.IsError);
+        Assert.False(failure.StructuredContent!.Value.GetProperty("success").GetBoolean());
+        var metrics = await _client.CallToolAsync("dotnet_server_metrics",
+            new Dictionary<string, object?> { ["action"] = "Get" },
+            cancellationToken: TestContext.Current.CancellationToken);
+        var sdkMetrics = metrics.StructuredContent!.Value.GetProperty("toolMetrics").GetProperty("dotnet_sdk");
+        Assert.Equal(1, sdkMetrics.GetProperty("failureCount").GetInt64());
+        Assert.Equal(0, sdkMetrics.GetProperty("successCount").GetInt64());
     }
 
     #endregion
@@ -1081,11 +1103,13 @@ public class McpConformanceTests : IAsyncLifetime
         var tools = await _client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
         var schema = tools.Single(tool => tool.Name == "dotnet_server_metrics").ProtocolTool.OutputSchema!.Value;
         Assert.Equal("object", schema.GetProperty("type").GetString());
-        Assert.Equal(3, schema.GetProperty("anyOf").GetArrayLength());
+        Assert.Equal(5, schema.GetProperty("anyOf").GetArrayLength());
         var json = schema.GetRawText();
         Assert.Contains("toolMetrics", json);
         Assert.Contains("totalInvocations", json);
         Assert.Contains("workflowTokenSavings", json);
+        Assert.Contains("ApplicationErrorResult", json);
+        Assert.Contains("ErrorResponse", json);
         Assert.Contains("success", json);
         Assert.DoesNotContain("structuredContent", json);
     }

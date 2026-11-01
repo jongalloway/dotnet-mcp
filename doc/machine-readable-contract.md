@@ -11,7 +11,7 @@ The .NET MCP Server provides two complementary mechanisms for machine-readable t
 
 The following tools return `CallToolResult` with a `structuredContent` field:
 
-### Query Operations (Read-Only)
+### Established query and metrics payloads
 
 | Tool | Action(s) | Structured Fields |
 |------|-----------|-------------------|
@@ -24,31 +24,53 @@ The following tools return `CallToolResult` with a `structuredContent` field:
 | `dotnet_server_metrics` | `Get` | `toolMetrics`, `totalInvocations`, `totalSuccesses`, `totalFailures`, `tokenSavingsEnabled` |
 | `dotnet_server_metrics` | `TokenSavingsGet`, `TokenSavingsReset` | `success`, `message`, `workflowTokenSavings`, workflow totals, `assumptionsVersion` |
 
-`dotnet_server_metrics` also returns `{ "success": true, "message": "..." }` for `Reset`. Resetting token savings returns the token-savings response shape with an empty workflow array and zero totals. `dotnet_sdk` template queries, including `ListTemplates`, currently return text content only.
+`dotnet_server_metrics` also returns `{ "success": true, "message": "..." }` for `Reset`. Resetting token savings returns the token-savings response shape with an empty workflow array and zero totals.
+
+### Complete action-to-shape inventory
+
+Every successful action of the six schema-bearing tools supplies structured content. Existing envelopes are retained; newly structured actions expose existing domain data or an explicit `{ "action": "<Action>", "text": "<unchanged response>" }` fallback.
+
+| Tool | Actions | Successful shape |
+|------|---------|------------------|
+| `dotnet_sdk` | `Version`, `ListSdks`, `ListRuntimes` | Existing version/SDK/runtime objects above. Optional runtime discovery failure adds `warning` and omits `runtimes`. |
+| `dotnet_sdk` | `ListTemplates`, `SearchTemplates` | `templates` array with `shortName`, `shortNames`, `language`, `type`, optional `name`/`description`/`author`, and typed `parameters`. Filters, limits, ordering and text use the same acquired data. CLI fallback uses `action`/`text`, not fabricated template metadata. |
+| `dotnet_sdk` | `TemplateInfo` | `template` with the same metadata and parameter details; CLI help fallback uses `action`/`text`. |
+| `dotnet_sdk` | `FrameworkInfo` | `frameworks` array with description and classification flags; `latestRecommended`, `latestLts`. An explicit framework returns a single entry. |
+| `dotnet_sdk` | `CacheMetrics` | `templates`, `sdk`, `runtime`, `workspace` snapshots, each with `hits`, `misses`, `hitRatio`. |
+| `dotnet_sdk` | `Info`, `ClearTemplateCache`, `ListTemplatePacks`, `InstallTemplatePack`, `UninstallTemplatePack`, `ConfigureGlobalJson` | `action`/`text`. No invented installation or configuration metadata. |
+| `dotnet_project` | `Build` | `success`, `errorCount`, `warningCount`, `summary`; optional `project`, `configuration`, diagnostics and `lockInfo`. |
+| `dotnet_project` | `Test` | `success`, `passed`, `failed`, `skipped`, `summary`; optional `durationMs`, `firstFailures`, `lockInfo`. |
+| `dotnet_project` | `Run`, `Publish` | Existing `lockInfo` object. No new mandatory success/summary envelope or guessed output path. |
+| `dotnet_project` | `Analyze` | Existing project JSON: `success`, `projectPath`, `projectName`, `sdk`, `targetFrameworks`, `outputType`, package/project references, build properties, analyzers, language settings. |
+| `dotnet_project` | `Dependencies` | `success`, `projectPath`, frameworks, direct package/project dependencies, count and notes. |
+| `dotnet_project` | `Validate` | `success`, `projectPath`, `isValid`, `errors`, `warnings`, `recommendations`. `success` means validation ran; `isValid` describes project health. |
+| `dotnet_project` | `SetProperty`, `GetProperty`, `RemoveProperty` | `success`, `projectPath`, `propertyName`; `propertyValue` for Set/Get, `isSet` for Get, `removed` for Remove. |
+| `dotnet_project` | `AddItem`, `RemoveItem`, `ListItems` | `success`, `projectPath`, `itemType`; Add/Remove include `include`, optional metadata or `removed`; List includes `count`, typed `items`. |
+| `dotnet_project` | `New`, `Restore`, `Clean`, `Pack`, `Watch`, `Format`, `Stop`, `Logs`, `ListTemplateOptions` | `action`/`text`. No inferred package path or process status. |
+| `dotnet_package` | `List` | Existing `packages` object above. |
+| `dotnet_package` | `Add`, `Remove`, `Search`, `Update`, `AddReference`, `RemoveReference`, `ListReferences`, `ClearCache` | `action`/`text`. |
+| `dotnet_solution` | `List` | Existing `projects` object above. |
+| `dotnet_solution` | `Create`, `Add`, `Remove`, `Analyze`, `Dependencies`, `Validate` | `action`/`text`. |
+| `dotnet_server_capabilities` | No action parameter | Existing full capabilities snapshot. |
+| `dotnet_server_metrics` | `Get`, `Reset`, `TokenSavingsGet`, `TokenSavingsReset` | Existing snapshot/reset/token-savings envelopes above. |
 
 ### Output schemas and protocol compatibility
 
-Structured tools advertise an `outputSchema` describing **`structuredContent`**, not the entire `CallToolResult` or JSON embedded in legacy text content. SDK queries and server metrics use JSON Schema 2020-12 `anyOf` alternatives with local `$defs`/`$ref` references to their response models. SDK alternatives require `version`, `sdks`, or `runtimes`; metrics alternatives describe the metrics snapshot, reset confirmation, or token-savings response. Only the populated fields are serialized, and optional runtime metadata may be absent.
+Structured tools advertise an `outputSchema` describing **`structuredContent`**, not the entire `CallToolResult` or JSON embedded in legacy text content. All six use JSON Schema 2020-12 `anyOf` alternatives with local `$defs`/`$ref` references to typed response models and meaningful required fields. Text fallback branches restrict `action` to the actions that actually use them; they cannot mask malformed Build, Test, package-list, or other established payloads. Optional null properties may be absent.
 
-These production schemas retain a root `type: "object"` and existing object envelopes on both MCP `2026-07-28` and `2025-11-25`. Clients do not need to unwrap a new `result` property. Project, solution, package, and capabilities outputs retain their typed object schemas.
+These production schemas retain a root `type: "object"` and existing object envelopes on both MCP `2026-07-28` and `2025-11-25`. Clients do not need to unwrap a new `result` property. The first human-readable block is preserved, including the SDK dashboard hint and concise successful build response. A serialized JSON text block is appended for backwards compatibility unless existing text already represents the same payload.
+
+Known validation, domain, capability and CLI failures set `isError: true` and return a schema-covered `{ "success": false, "error": "<existing response>" }` object, or the existing typed `ErrorResponse` (`success`, `errors`) for missing metrics capabilities. Failed Build/Test retain their diagnostic payloads, and failed Run/Publish retain lock metadata. Failed lists never become successful empty collections; an actual successful empty list remains valid. Exit status and known application error envelopes determine failures, not incidental words in stdout. Invalid actions do not fall through to a default successful action.
+
+Executor startup failures are errors even without an exit-code line. Build/Test validation and lock-contention failures also set `success: false` and retain their failure message as the summary when the command never ran. Successful `Logs` retrieval is independent of application output: an `Exit Code: 1` line in retrieved logs is data, not the retrieval's exit status. Invalid log requests still return tool errors.
+
+The existing error factory's idempotent exception is retained: template-pack installation exit code 106 means the pack is already installed and remains a successful text-fallback result. Other operations returning 106 are failures.
+
+Unexpected exceptions caught by the production filter may remain **text-only `isError: true` execution errors**, distinct from successful structured contracts. Protocol errors, cancellation and input-required suspension propagate unchanged. Invocation telemetry treats returned `isError` results as failures.
 
 The MCP SDK also supports natural array/scalar and composed schemas. Where legacy protocol compatibility requires wrapping ordinary marshalled return values, the SDK adapts the advertised schema and preserves local reference resolution. Explicit `CallToolResult` responses retain the application's structured payload rather than automatically wrapping it; this server therefore supplies root object schemas for those responses on legacy connections.
 
-### Mutating Operations (Write/Modify)
-
-| Tool | Action(s) | Base Contract | Domain-Specific Fields |
-|------|-----------|---------------|------------------------|
-| `dotnet_project` | `Build` | `MinimalMutatingResult` | `project`, `configuration`, `errorCount`, `warningCount` |
-| `dotnet_project` | `Test` | `MinimalMutatingResult` | `passed`, `failed`, `skipped`, `durationMs`, `firstFailures` |
-| `dotnet_project` | `Run` | `MinimalMutatingResult` | _(none)_ |
-| `dotnet_project` | `Publish` | `MinimalMutatingResult` | `framework`, `runtime`, `outputPath` |
-| `dotnet_project` | `Pack` | `MinimalMutatingResult` | `packagePath`, `version` |
-| `dotnet_package` | `Add`, `Remove` | `MinimalMutatingResult` | `packageName`, `version`, `previousVersion` |
-| `dotnet_ef` | `Migrations Add`, `Migrations Remove`, `Database Update` | `MinimalMutatingResult` | `migrationName`, `migrationsApplied` |
-
-All operations return `success` (boolean) and `summary` (string) at minimum. Locking operations include `lockInfo`. See [Minimal Mutating Result Contract](#minimal-mutating-result-contract) for details.
-
-All other actions for these tools return only text content (no `structuredContent`).
+Tools outside this inventory retain their existing text-oriented contracts, including `dotnet_ef`. Schema-bearing mutating actions do not share a mandatory minimal mutation envelope.
 
 ---
 
@@ -56,7 +78,7 @@ All other actions for these tools return only text content (no `structuredConten
 
 All `dotnet_project` actions that acquire a concurrency lock — **Build**, **Run**, **Test**, and **Publish** — include a `lockInfo` object in their `structuredContent`. This allows consumers to confirm lock granularity, diagnose contention, and implement higher-level orchestration policies.
 
-**Note:** `lockInfo` is part of the `MinimalMutatingResult` base contract (see [Minimal Mutating Result Contract](#minimal-mutating-result-contract) below) and is only included when the operation acquires a lock.
+`lockInfo` identifies the operation's lock target and includes contention metadata even when acquisition fails. Run/Publish expose this existing shape without adding a mandatory mutation envelope.
 
 ### `lockInfo` Fields
 
@@ -92,11 +114,11 @@ All `dotnet_project` actions that acquire a concurrency lock — **Build**, **Ru
 }
 ```
 
-### Example: Test / Run / Publish (success)
+### Example: Run / Publish (success)
 
 ```json
 {
-  "content": [{ "type": "text", "text": "Test run succeeded.\nExit Code: 0" }],
+  "content": [{ "type": "text", "text": "Command completed.\nExit Code: 0" }],
   "structuredContent": {
     "lockInfo": {
       "lockScope": "workingDirectory",
@@ -112,6 +134,7 @@ When a conflicting operation is already in progress, the text content contains t
 
 ```json
 {
+  "isError": true,
   "content": [{ "type": "text", "text": "Error: Cannot execute 'build' on 'MyApp.csproj' because a conflicting operation is already in progress: build on /home/user/projects/myapp/myapp.csproj (started at 2026-04-11 05:30:00)\nHint: Wait for the conflicting operation to complete, or cancel it before retrying this operation." }],
   "structuredContent": {
     "success": false,
@@ -237,41 +260,6 @@ Sampling is used for build/test failure analysis, not successful commands. Capab
 The Tasks extension preserves the normal `CallToolResult` inside a completed task. `IsError: true` remains an application error result, not a failed task. Protocol failures use the failed task state. Legacy clients receive normal inline results.
 
 `WithTasks` supplies `tasks/get` for status and terminal results, `tasks/update` for `input_required` responses, and `tasks/cancel` for cancellation. There are no separate `tasks/status`, `tasks/list`, or `tasks/result` endpoints. Task records use the hosting-owned process-local store and are lost on restart. Cancellation propagates through pending input and CLI execution rather than starting failure analysis.
-
-## Minimal Mutating Result Contract
-
-All mutating actions — operations that modify the file system, build state, or project configuration — return `CallToolResult` with a standardized minimal base contract. This enables AI assistants to efficiently parse outcomes without scanning verbose logs.
-
-### Rationale
-
-Mutating operations (Build, Test, Publish, Run, Package operations, EF Migrations, etc.) generate large volumes of diagnostic output. The minimal base contract distills this to:
-
-- **`success` (boolean)**: Whether the operation completed without errors (exit code 0)
-- **`summary` (string)**: A 1–2 sentence human-readable outcome (e.g., "5 tests passed", "Build failed: 3 errors")
-- **`lockInfo` (optional)**: For locking operations, concurrency context (see [Concurrency Lock Metadata](#concurrency-lock-metadata-lockinfo) above)
-
-### Base Contract Schema
-
-```typescript
-interface MinimalMutatingResult {
-  success: boolean;           // Always present: true iff exit code 0
-  summary: string;            // Always present: 1–2 sentence outcome summary
-  
-  lockInfo?: {
-    lockScope: "project" | "solution" | "workingDirectory" | "global";
-    lockKey: string;
-    lockContended?: boolean;
-    lockWaitedMs?: number;
-  };
-  
-  // Domain-specific fields (action-dependent, optional)
-  // See examples below for per-action schemas
-}
-```
-
-### Examples
-
----
 
 ## Token Savings Estimation Contract
 
@@ -408,11 +396,6 @@ Assumptions are versioned. The initial profile is `v1` and includes workflow heu
 {
   "content": [{ "type": "text", "text": "Publish succeeded.\nOutput: /home/user/publish..." }],
   "structuredContent": {
-    "success": true,
-    "summary": "Published to /home/user/publish (net10.0, linux-x64, 45.2 MB)",
-    "framework": "net10.0",
-    "runtime": "linux-x64",
-    "outputPath": "/home/user/publish",
     "lockInfo": {
       "lockScope": "project",
       "lockKey": "/home/user/projects/myapp/MyApp.csproj"
@@ -427,8 +410,8 @@ Assumptions are versioned. The initial profile is `v1` and includes workflow heu
 {
   "content": [{ "type": "text", "text": "Added 'Newtonsoft.Json 13.0.3' to MyApp.csproj..." }],
   "structuredContent": {
-    "success": true,
-    "summary": "Newtonsoft.Json 13.0.3 added to MyApp.csproj"
+    "action": "Add",
+    "text": "Added 'Newtonsoft.Json 13.0.3' to MyApp.csproj..."
   }
 }
 ```
@@ -439,8 +422,6 @@ Assumptions are versioned. The initial profile is `v1` and includes workflow heu
 {
   "content": [{ "type": "text", "text": "Application output...\nApplication exited with code 0" }],
   "structuredContent": {
-    "success": true,
-    "summary": "Application ran successfully",
     "lockInfo": {
       "lockScope": "workingDirectory",
       "lockKey": "/home/user/projects/myapp"
@@ -449,24 +430,9 @@ Assumptions are versioned. The initial profile is `v1` and includes workflow heu
 }
 ```
 
-### Domain-Specific Extensions
-
-Each mutating action may add domain-specific fields while maintaining the base `{ success, summary }` contract:
-
-| Action | Additional Fields |
-|--------|-------------------|
-| Build | `project`, `configuration`, `errorCount`, `warningCount` |
-| Test | `passed`, `failed`, `skipped`, `durationMs`, `firstFailures` |
-| Publish | `framework`, `runtime`, `outputPath` |
-| Run | _(none; minimal contract)_ |
-| Package Add/Remove | `packageName`, `version`, `previousVersion` (for Remove) |
-| EF Migrations | `migrationName`, `migrationsApplied` |
-
-Domain-specific fields are **optional** but recommended for actions that naturally produce structured data.
-
 ### Human-Readable Text Behavior
 
-The `content` array continues to show verbose output (build logs, test details, error diagnostics) unchanged. See [issue #447](https://github.com/jongalloway/dotnet-mcp/issues/447) for how clients can opt into suppressing verbose text when structured content is available.
+The first `content` block preserves existing output. Successful builds with an explicit zero exit code use the existing concise build confirmation; failures keep diagnostic text. Structured JSON is also available as compatibility text. Examples above abbreviate the `content` array by omitting the additional serialized JSON block.
 
 ---
 
@@ -1402,7 +1368,7 @@ public async Task MyTool_WithMachineReadableTrue_ReturnsValidJson()
 
 ### v2.0 (Current)
 
-- `dotnet_sdk` (Version, ListSdks, ListRuntimes), `dotnet_solution` (List), `dotnet_package` (List), and `dotnet_server_capabilities` return `CallToolResult` with `structuredContent` alongside text content
+- All successful actions of `dotnet_sdk`, `dotnet_project`, `dotnet_solution`, `dotnet_package`, `dotnet_server_capabilities`, and `dotnet_server_metrics` return schema-conforming `structuredContent` alongside preserved text.
 - `StructuredContentHelper` provides `ToCallToolResult()` factory and `GetText()` extension for working with `CallToolResult`
 
 ### v1.0

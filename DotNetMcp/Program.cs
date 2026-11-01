@@ -179,7 +179,7 @@ builder.Services.Configure<McpServerOptions>(options =>
         }
         catch (Exception ex)
         {
-            // Convert unhandled exceptions to a structured error result so the MCP task
+            // Convert unhandled exceptions to a tool error result so the MCP task
             // lifecycle completes with a proper error instead of "unknown error".
             // Redact the message and tool name to avoid leaking sensitive information
             // (e.g., command-line arguments embedded in exception messages).

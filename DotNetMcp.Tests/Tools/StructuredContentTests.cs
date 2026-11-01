@@ -12,6 +12,35 @@ namespace DotNetMcp.Tests;
 /// </summary>
 public class StructuredContentTests
 {
+    [Fact]
+    public void StructuredContentHelper_PreservesFirstTextAndAddsCompatibilityJson()
+    {
+        var result = StructuredContentHelper.ToCallToolResult("human-readable", new { value = 42 });
+        Assert.Null(result.IsError);
+        Assert.Equal("human-readable", result.GetText());
+        Assert.Equal(2, result.Content.Count);
+        var compatibility = result.Content.OfType<ModelContextProtocol.Protocol.TextContentBlock>().Last().Text;
+        Assert.True(JsonElement.DeepEquals(JsonSerializer.Deserialize<JsonElement>(compatibility), result.StructuredContent!.Value));
+    }
+
+    [Fact]
+    public void StructuredContentHelper_DoesNotDuplicateExistingJsonText()
+    {
+        const string text = "{\n  \"value\": 42\n}";
+        var result = StructuredContentHelper.ToCallToolResult(text, new { value = 42 });
+        Assert.Single(result.Content);
+        Assert.Equal(text, result.GetText());
+    }
+
+    [Fact]
+    public void StructuredContentHelper_TextOnlyExecutionErrorsRemainDistinct()
+    {
+        var result = StructuredContentHelper.ToCallToolResult("Internal error in tool: unavailable", isError: true);
+        Assert.True(result.IsError);
+        Assert.False(result.StructuredContent.HasValue);
+        Assert.Single(result.Content);
+    }
+
     private readonly DotNetCliTools _tools;
 
     public StructuredContentTests()
@@ -59,13 +88,14 @@ public class StructuredContentTests
     }
 
     [Fact]
-    public async Task DotnetSdk_OtherActions_ReturnNoStructuredContent()
+    public async Task DotnetSdk_Info_ReturnsTypedTextFallback()
     {
         var result = await _tools.DotnetSdk(action: DotnetSdkAction.Info);
         Assert.NotNull(result);
         Assert.NotEmpty(result.Content);
-        // Non-structured actions should not have structured content
-        Assert.False(result.StructuredContent.HasValue);
+        Assert.True(result.StructuredContent.HasValue);
+        Assert.Equal("Info", result.StructuredContent.Value.GetProperty("action").GetString());
+        Assert.Equal(result.GetText(), result.StructuredContent.Value.GetProperty("text").GetString());
     }
 
     [Fact]

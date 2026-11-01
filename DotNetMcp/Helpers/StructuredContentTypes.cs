@@ -42,6 +42,9 @@ public sealed class InstalledRuntimeInfo
 /// </summary>
 public sealed class SdkListResult
 {
+    /// <summary>Warning when optional runtime discovery was unavailable.</summary>
+    [JsonPropertyName("warning")]
+    public string? Warning { get; init; }
     /// <summary>All installed .NET SDKs.</summary>
     [JsonPropertyName("sdks")]
     public InstalledSdkInfo[] Sdks { get; init; } = [];
@@ -77,6 +80,9 @@ public sealed class RuntimeListResult
 /// </summary>
 public sealed class SdkActionResult
 {
+    /// <summary>Warning when optional runtime discovery was unavailable.</summary>
+    [JsonPropertyName("warning")]
+    public string? Warning { get; init; }
     /// <summary>SDK version string. Present for the Version action.</summary>
     [JsonPropertyName("version")]
     public string? Version { get; init; }
@@ -132,14 +138,13 @@ public sealed class PackageListResult
 }
 
 /// <summary>
-/// Union output schema for the dotnet_project tool.
-/// Covers both build-specific results (Build, Clean, Restore, etc.) and
-/// concurrency-lock-only results (Run, Test, Publish).
-/// All fields are optional; only the fields relevant to the executed action are populated.
+/// Diagnostics for Build/Test and concurrency-lock-only results for Run/Publish.
+/// Other project actions use separate metadata or typed text response models.
+/// Only fields relevant to the action are populated; the schema requires each family's identifying fields.
 /// </summary>
 public sealed class ProjectActionResult
 {
-    /// <summary>Whether the build succeeded. Present for Build action.</summary>
+    /// <summary>Whether the operation succeeded. Present for Build and Test.</summary>
     [JsonPropertyName("success")]
     public bool? Success { get; init; }
 
@@ -195,3 +200,59 @@ public sealed class ProjectActionResult
     [JsonPropertyName("lockInfo")]
     public LockInfo? LockInfo { get; init; }
 }
+
+/// <summary>A successful action for which only human-readable output is available.</summary>
+public sealed class ActionTextResult
+{
+    /// <summary>The executed action.</summary>
+    [JsonPropertyName("action")]
+    public required string Action { get; init; }
+    /// <summary>The unchanged human-readable response.</summary>
+    [JsonPropertyName("text")]
+    public required string Text { get; init; }
+}
+
+/// <summary>A known validation, domain, capability, or execution failure.</summary>
+public sealed class ApplicationErrorResult
+{
+    /// <summary>Always false for application failures.</summary>
+    [JsonPropertyName("success")]
+    public bool Success => false;
+    /// <summary>The existing error response.</summary>
+    [JsonPropertyName("error")]
+    public required string Error { get; init; }
+}
+
+internal sealed record TemplateListResult(
+    [property: JsonPropertyName("templates")] TemplateDisplayInfo[] Templates);
+internal sealed record TemplateDetailsResult(
+    [property: JsonPropertyName("template")] TemplateDisplayInfo Template);
+internal sealed record FrameworkMetadata(
+    [property: JsonPropertyName("framework")] string Framework,
+    [property: JsonPropertyName("description")] string Description,
+    [property: JsonPropertyName("isLts")] bool IsLts,
+    [property: JsonPropertyName("isModernNet")] bool IsModernNet,
+    [property: JsonPropertyName("isNetCore")] bool IsNetCore,
+    [property: JsonPropertyName("isNetFramework")] bool IsNetFramework,
+    [property: JsonPropertyName("isNetStandard")] bool IsNetStandard);
+internal sealed record FrameworkListResult(
+    [property: JsonPropertyName("frameworks")] FrameworkMetadata[] Frameworks,
+    [property: JsonPropertyName("latestRecommended")] string LatestRecommended,
+    [property: JsonPropertyName("latestLts")] string LatestLts);
+internal sealed record CacheSnapshot(
+    [property: JsonPropertyName("hits")] long Hits,
+    [property: JsonPropertyName("misses")] long Misses,
+    [property: JsonPropertyName("hitRatio")] double HitRatio)
+{
+    internal static CacheSnapshot FromMetrics(CacheMetrics metrics)
+    {
+        var hits = metrics.Hits;
+        var misses = metrics.Misses;
+        return new(hits, misses, hits + misses == 0 ? 0 : (double)hits / (hits + misses));
+    }
+}
+internal sealed record CacheMetricsResult(
+    [property: JsonPropertyName("templates")] CacheSnapshot Templates,
+    [property: JsonPropertyName("sdk")] CacheSnapshot Sdk,
+    [property: JsonPropertyName("runtime")] CacheSnapshot Runtime,
+    [property: JsonPropertyName("workspace")] CacheSnapshot Workspace);
