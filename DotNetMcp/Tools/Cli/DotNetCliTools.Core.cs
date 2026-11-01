@@ -24,6 +24,8 @@ public sealed partial class DotNetCliTools
     private readonly TokenSavingsEstimator? _tokenSavingsEstimator;
     private readonly ResourceSubscriptionManager? _subscriptions;
 
+    internal Func<string, CancellationToken, string?, Task<string>>? CommandExecutorOverride { get; init; }
+
     // Constants for server capability discovery
     private const string DefaultServerVersion = "1.0.0";
     private const string ProtocolVersion = "2026-07-28";
@@ -52,7 +54,9 @@ public sealed partial class DotNetCliTools
     }
 
     private async Task<string> ExecuteDotNetCommand(string arguments, CancellationToken cancellationToken = default, string? workingDirectory = null)
-        => await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, unsafeOutput: false, cancellationToken: cancellationToken, workingDirectory: workingDirectory);
+        => CommandExecutorOverride is { } executor
+            ? await executor(arguments, cancellationToken, workingDirectory)
+            : await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, unsafeOutput: false, cancellationToken: cancellationToken, workingDirectory: workingDirectory);
 
     /// <summary>
     /// Execute a command with concurrency control. Returns error if there's a conflict.
@@ -80,7 +84,7 @@ public sealed partial class DotNetCliTools
         try
         {
             // Execute the command
-            var result = await DotNetCommandExecutor.ExecuteCommandAsync(arguments, _logger, unsafeOutput: false, cancellationToken: cancellationToken, workingDirectory: workingDirectory);
+            var result = await ExecuteDotNetCommand(arguments, cancellationToken, workingDirectory);
             return (result, lockInfo);
         }
         finally

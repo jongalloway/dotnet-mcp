@@ -15,7 +15,10 @@ public class EdgeCaseAndIntegrationTests
     public EdgeCaseAndIntegrationTests()
     {
         _concurrencyManager = new ConcurrencyManager();
-        _tools = new DotNetCliTools(NullLogger<DotNetCliTools>.Instance, _concurrencyManager, new ProcessSessionManager());
+        _tools = new DotNetCliTools(NullLogger<DotNetCliTools>.Instance, _concurrencyManager, new ProcessSessionManager())
+        {
+            CommandExecutorOverride = MachineReadableCommandAssertions.RecordToolCommandAsync
+        };
     }
 
     // Project Build/Run/Test Edge Cases

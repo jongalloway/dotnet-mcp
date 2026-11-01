@@ -17,7 +17,10 @@ public class DotNetCliToolsTests
     {
         _logger = NullLogger<DotNetCliTools>.Instance;
         _concurrencyManager = new ConcurrencyManager();
-        _tools = new DotNetCliTools(_logger, _concurrencyManager, new ProcessSessionManager());
+        _tools = new DotNetCliTools(_logger, _concurrencyManager, new ProcessSessionManager())
+        {
+            CommandExecutorOverride = MachineReadableCommandAssertions.RecordToolCommandAsync
+        };
     }
 
     [Fact]
@@ -378,6 +381,7 @@ public class DotNetCliToolsTests
             packageId: "dotnet-ef")).GetText();
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet tool install \"dotnet-ef\"");
     }
 
     [Fact]
@@ -390,6 +394,7 @@ public class DotNetCliToolsTests
             global: true)).GetText();
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet tool install \"dotnet-ef\" --global");
     }
 
     [Fact]
@@ -402,6 +407,7 @@ public class DotNetCliToolsTests
             version: "8.0.0")).GetText();
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet tool install \"dotnet-ef\" --version 8.0.0");
     }
 
     [Fact]
@@ -414,6 +420,7 @@ public class DotNetCliToolsTests
             framework: "net8.0")).GetText();
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet tool install \"dotnet-ef\" --framework net8.0");
     }
 
     [Fact]
@@ -428,6 +435,7 @@ public class DotNetCliToolsTests
             framework: "net8.0")).GetText();
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet tool install \"dotnet-ef\" --global --version 8.0.0 --framework net8.0");
     }
 
     [Fact]
@@ -475,6 +483,7 @@ public class DotNetCliToolsTests
             packageId: "dotnet-ef")).GetText();
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet tool update \"dotnet-ef\"");
     }
 
     [Fact]
@@ -487,6 +496,7 @@ public class DotNetCliToolsTests
             global: true)).GetText();
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet tool update \"dotnet-ef\" --global");
     }
 
     [Fact]
@@ -499,6 +509,7 @@ public class DotNetCliToolsTests
             version: "8.0.1")).GetText();
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet tool update \"dotnet-ef\" --version 8.0.1");
     }
 
     [Fact]
@@ -523,6 +534,7 @@ public class DotNetCliToolsTests
             packageId: "dotnet-ef")).GetText();
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet tool uninstall \"dotnet-ef\"");
     }
 
     [Fact]
@@ -535,6 +547,7 @@ public class DotNetCliToolsTests
             global: true)).GetText();
 
         Assert.NotNull(result);
+        MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet tool uninstall \"dotnet-ef\" --global");
     }
 
     [Fact]
