@@ -4,6 +4,7 @@ using Xunit;
 
 namespace DotNetMcp.Tests;
 
+[Collection("ProcessWideStateTests")]
 public class WorkspaceSnapshotResourceTests
 {
     [Fact]

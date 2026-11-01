@@ -82,7 +82,7 @@ public class ProjectAnalysisHelperTests
 
             Assert.NotNull(result);
             using var json = JsonDocument.Parse(result);
-            Assert.True(json.RootElement.GetProperty("success").GetBoolean());
+            Assert.True(json.RootElement.GetProperty("success").GetBoolean(), result);
             Assert.Equal(projectFile, json.RootElement.GetProperty("projectPath").GetString());
             Assert.Equal("Test", json.RootElement.GetProperty("projectName").GetString());
             Assert.True(json.RootElement.TryGetProperty("targetFrameworks", out _));
@@ -260,10 +260,28 @@ public class ProjectAnalysisHelperTests
     }
 
     [Fact]
+    public async Task ValidateProjectAsync_WithSdkMissingTargetFramework_ReturnsEvaluationError()
+    {
+        var projectFile = CreateTempProject("""<Project Sdk="Microsoft.NET.Sdk" />""");
+        try
+        {
+            var result = await ProjectAnalysisHelper.ValidateProjectAsync(projectFile, _logger);
+
+            using var json = JsonDocument.Parse(result);
+            Assert.False(json.RootElement.GetProperty("success").GetBoolean(), result);
+            Assert.Contains("Error validating project:", json.RootElement.GetProperty("error").GetString());
+        }
+        finally
+        {
+            Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task ValidateProjectAsync_WithMissingTargetFramework_ReturnsErrors()
     {
         var projectFile = CreateTempProject("""
-            <Project Sdk="Microsoft.NET.Sdk">
+            <Project>
               <PropertyGroup>
               </PropertyGroup>
             </Project>
@@ -452,11 +470,12 @@ public class ProjectAnalysisHelperTests
 
         try
         {
-            var result = await ProjectAnalysisHelper.GetPropertyAsync(projectFile, "OutputType", _logger);
+            var result = await ProjectAnalysisHelper.GetPropertyAsync(projectFile, "DotNetMcpUnsetTestProperty", _logger);
 
             var json = JsonDocument.Parse(result);
             Assert.True(json.RootElement.GetProperty("success").GetBoolean());
-            Assert.Equal("OutputType", json.RootElement.GetProperty("propertyName").GetString());
+            Assert.Equal("DotNetMcpUnsetTestProperty", json.RootElement.GetProperty("propertyName").GetString());
+            Assert.Equal(string.Empty, json.RootElement.GetProperty("propertyValue").GetString());
             Assert.False(json.RootElement.GetProperty("isSet").GetBoolean());
         }
         finally
@@ -520,11 +539,11 @@ public class ProjectAnalysisHelperTests
 
         try
         {
-            var result = await ProjectAnalysisHelper.RemovePropertyAsync(projectFile, "OutputType", _logger);
+            var result = await ProjectAnalysisHelper.RemovePropertyAsync(projectFile, "DotNetMcpUnsetTestProperty", _logger);
 
             var json = JsonDocument.Parse(result);
             Assert.True(json.RootElement.GetProperty("success").GetBoolean());
-            Assert.Equal("OutputType", json.RootElement.GetProperty("propertyName").GetString());
+            Assert.Equal("DotNetMcpUnsetTestProperty", json.RootElement.GetProperty("propertyName").GetString());
             Assert.False(json.RootElement.GetProperty("removed").GetBoolean());
         }
         finally

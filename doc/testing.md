@@ -125,6 +125,8 @@ dotnet test --solution DotNetMcp.slnx -c Release
 
 ## MCP SDK compatibility checks
 
+Both projects use matching MCP SDK and extension versions. The SDK 2.x compatibility matrix remains applicable to the current 2.3.0 packages; do not restore the removed experimental Tasks API or change legacy application error annotations to match native wire errors.
+
 Run the focused protocol matrix:
 
 ```powershell
@@ -148,6 +150,14 @@ Focused error regressions distinguish SDK wire errors from application annotatio
 `McpConformanceTests` starts the actual stdio server and checks discovery, resources/prompts, legacy and native confirmation for both Clean and solution Remove, actual resource updates after `subscriptions/listen`, removed-method rejection, and opted-in logging. SDK 2.0's client drops the request log level during metadata injection, so the test-only logging transport writes it at the wire boundary. The logging workaround is test-only.
 
 MTP selectors of the same kind can be repeated to match multiple classes or methods. Combining `--filter-class` with `--filter-method` narrows to their intersection, not their union.
+
+## Test isolation and runtime dependencies
+
+Tool command-building tests record `dotnet tool` commands through a per-instance executor override instead of installing, updating, or removing real tools. Other commands in those test classes still use the normal executor. Real local-tool installation coverage belongs to isolated opt-in release scenarios, not the source-controlled `.config/dotnet-tools.json` or the user's global tools.
+
+Tests that change the process-wide current directory use the nonparallel `ProcessWideStateTests` collection, including workspace snapshot resource tests. Project analysis tests exercise evaluated MSBuild properties: an omitted property can still have an SDK default, so unset-property fixtures use a custom property name. SDK projects with no target framework may fail evaluation before validation; non-SDK fixtures separately exercise the validation result for a missing target framework.
+
+In-process MSBuild analysis requires runtime assets compatible with the project's target framework. Keep `Microsoft.Build` and `Microsoft.Build.Utilities.Core` aligned on a .NET 10-compatible release, and retain the explicit `NuGet.Frameworks` dependency needed by MSBuild property functions rather than relying on the older version supplied by TemplateEngine.
 
 ## Scenario Tests (Opt-in)
 

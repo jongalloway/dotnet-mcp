@@ -7,6 +7,17 @@ namespace DotNetMcp.Tests;
 
 internal static class MachineReadableCommandAssertions
 {
+    internal static Task<string> RecordToolCommandAsync(string arguments, CancellationToken cancellationToken, string? workingDirectory)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (arguments.StartsWith("tool ", StringComparison.Ordinal))
+        {
+            return Task.FromResult($"Command: dotnet {arguments}\nRecorded tool command (not executed).\nExit Code: 0");
+        }
+
+        return DotNetCommandExecutor.ExecuteCommandAsync(arguments, cancellationToken: cancellationToken, workingDirectory: workingDirectory);
+    }
+
     public static void AssertExecutedDotnetCommand(string resultText, string expectedCommand)
     {
         Assert.False(string.IsNullOrWhiteSpace(expectedCommand));
@@ -49,4 +60,3 @@ internal static class MachineReadableCommandAssertions
     /// </summary>
     public static string GetExecutedCommand(string resultText) => ExtractExecutedDotnetCommand(resultText);
 }
-
