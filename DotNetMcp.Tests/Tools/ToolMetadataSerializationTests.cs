@@ -23,7 +23,7 @@ public class ToolMetadataSerializationTests
     /// After Phase 2: Only consolidated tools and utilities have [McpServerTool].
     /// Expected: 8 consolidated tools (project, package, solution, ef, workload, tool, sdk, dev-certs)
     ///          + 4 utilities (server_capabilities, help, server_info, server_metrics)
-    ///          = 12 total tools
+    ///          + 3 restricted query companions = 15 method-discovered tools
     /// </summary>
     [Fact]
     public void AllToolMethods_HaveMcpServerToolAttribute()
@@ -38,7 +38,7 @@ public class ToolMetadataSerializationTests
         // Assert
         Assert.NotEmpty(toolMethods);
         // Phase 2: Verify we have exactly the expected consolidated tools and utilities
-        Assert.Equal(12, toolMethods.Count);
+        Assert.Equal(15, toolMethods.Count);
     }
 
     /// <summary>
@@ -420,7 +420,7 @@ public class ToolMetadataSerializationTests
     }
 
     /// <summary>
-    /// Verifies that read-only tools (DotnetHelp, DotnetServerCapabilities, DotnetServerInfo)
+    /// Verifies that query companions and server metadata tools
     /// are annotated with ReadOnly = true and Idempotent = true.
     /// </summary>
     [Fact]
@@ -430,7 +430,7 @@ public class ToolMetadataSerializationTests
         var toolType = typeof(DotNetCliTools);
         var methods = toolType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
 
-        var readOnlyToolNames = new[] { "DotnetHelp", "DotnetServerCapabilities", "DotnetServerInfo" };
+        var readOnlyToolNames = new[] { "DotnetSdkQuery", "DotnetProjectQuery", "DotnetServerMetricsQuery", "DotnetServerCapabilities", "DotnetServerInfo" };
 
         foreach (var toolName in readOnlyToolNames)
         {
@@ -442,6 +442,8 @@ public class ToolMetadataSerializationTests
 
             Assert.True(attr.ReadOnly, $"{toolName} should have ReadOnly = true");
             Assert.True(attr.Idempotent, $"{toolName} should have Idempotent = true");
+            Assert.False(attr.Destructive);
+            Assert.False(attr.OpenWorld);
         }
     }
 
@@ -466,6 +468,9 @@ public class ToolMetadataSerializationTests
             "DotnetWorkload",   // Uninstall action
             "DotnetDevCerts",   // CertificateClean and SecretsClear actions
             "DotnetEf",         // DatabaseDrop and MigrationsRemove actions
+            "DotnetSdk",        // Template changes and global.json writes
+            "DotnetServerMetrics", // Deletes accumulated counters
+            "DotnetHelp",       // External command execution and CLI initialization
         };
 
         foreach (var toolName in destructiveToolNames)
@@ -477,6 +482,8 @@ public class ToolMetadataSerializationTests
             Assert.NotNull(attr);
 
             Assert.True(attr.Destructive, $"{toolName} should have Destructive = true because it has at least one destructive action");
+            Assert.False(attr.ReadOnly);
+            Assert.False(attr.Idempotent);
         }
     }
 }

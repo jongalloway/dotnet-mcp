@@ -65,12 +65,12 @@ public sealed partial class DotNetCliTools
     /// <param name="itemType">Item type for AddItem/RemoveItem/ListItems actions (e.g., 'Using', 'Content', 'None')</param>
     /// <param name="include">The Include attribute value for AddItem/RemoveItem actions</param>
     /// <param name="context">Injected MCP request context for confirmation and per-request logging</param>
-    [McpServerTool(Title = ".NET Project", Destructive = true, UseStructuredContent = true, OutputSchemaType = typeof(ProjectActionResult), IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/File%20Folder/Flat/file_folder_flat.svg")]
+    [McpServerTool(Title = ".NET Project", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = true, UseStructuredContent = true, OutputSchemaType = typeof(ProjectActionResult), IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/File%20Folder/Flat/file_folder_flat.svg")]
     [McpMeta("category", "project")]
     [McpMeta("priority", 10.0)]
     [McpMeta("commonlyUsed", true)]
     [McpMeta("consolidatedTool", true)]
-    [McpMeta("actions", JsonValue = """["New","Restore","Build","Run","Test","Publish","Clean","Analyze","Dependencies","Validate","Pack","Watch","Format","Stop","Logs","SetProperty","GetProperty","RemoveProperty","AddItem","RemoveItem","ListItems"]""")]
+    [McpMeta("actions", JsonValue = """["New","Restore","Build","Run","Test","Publish","Clean","Analyze","Dependencies","Validate","Pack","Watch","Format","Stop","Logs","ListTemplateOptions","SetProperty","GetProperty","RemoveProperty","AddItem","RemoveItem","ListItems"]""")]
     public async partial Task<CallToolResult> DotnetProject(
         DotnetProjectAction action,
         string? project = null,

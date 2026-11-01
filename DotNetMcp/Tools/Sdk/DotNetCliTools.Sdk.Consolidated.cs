@@ -36,7 +36,7 @@ public sealed partial class DotNetCliTools
     /// <param name="rollForward">SDK roll-forward policy for global.json (e.g., 'latestMinor', 'latestMajor', 'disable') for ConfigureGlobalJson action</param>
     /// <param name="testRunner">Test runner to configure in global.json (e.g., 'Microsoft.Testing.Platform', 'VSTest') for ConfigureGlobalJson action</param>
     /// <param name="globalJsonPath">Path to global.json file; defaults to 'global.json' in the working directory for ConfigureGlobalJson action</param>
-    [McpServerTool(Title = ".NET SDK & Templates", Destructive = true, UseStructuredContent = true, OutputSchemaType = typeof(SdkActionResult), IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Gear/Flat/gear_flat.svg")]
+    [McpServerTool(Title = ".NET SDK & Templates", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = true, UseStructuredContent = true, OutputSchemaType = typeof(SdkActionResult), IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Gear/Flat/gear_flat.svg")]
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]

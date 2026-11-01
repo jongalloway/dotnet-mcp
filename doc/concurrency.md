@@ -4,7 +4,7 @@ This document provides guidance for AI orchestrators and MCP clients on which .N
 
 ## Overview
 
-The .NET MCP Server provides 10 consolidated tools (8 domain tools + 2 utilities) with multiple actions each. Understanding which operations can run concurrently is essential for:
+The .NET MCP Server provides 8 domain tools, 4 utilities, and 3 restricted read-only query companions. Understanding which operations can run concurrently is essential for:
 
 - **AI orchestrators** that execute multiple operations simultaneously
 - **MCP clients** that batch or parallelize requests
@@ -16,11 +16,13 @@ The .NET MCP Server provides 10 consolidated tools (8 domain tools + 2 utilities
 
 | Can Run in Parallel | Tool Categories | Implementation |
 |---------------------|-----------------|----------------|
-| ✅ **Yes - Safe** | Read-only operations (Info, List, Search, Check) | No locking needed |
+| ✅ **Yes - Safe** | Restricted query companions and server metadata | Snapshot reads; no mutation locks needed |
 | ⚠️ **Conditional** | Mutating operations on different files/projects | Automatic conflict detection |
 | ❌ **No - Unsafe** | Mutating operations on same file/project, long-running operations | Returns CONCURRENCY_CONFLICT error |
 
 ## Automatic Concurrency Control (v1.1+)
+
+Action names such as `List`, `Info`, `Search`, and `Check` are not proof of read-only behavior. CLI initialization, template caches, MSBuild evaluation, and EF application execution can have side effects. Prefer query companions for their permitted actions, and use the [annotation/eligibility matrix](tool-surface-consolidation.md#tool-annotations-and-read-only-query-contracts) when assessing aggregate calls. The historical operation tables below describe concurrency intent, not a sandbox or a guarantee of zero environmental effects.
 
 The .NET MCP Server automatically prevents conflicting operations from running simultaneously. When a conflict is detected, the server returns a structured error:
 
@@ -47,7 +49,7 @@ This applies to:
 
 ### Fully Thread-Safe Operations (Read-Only)
 
-These operations **can always run in parallel** with any other operations, including themselves. They do not modify state and are safe to execute concurrently.
+The following historical discovery operations are designed for concurrent use, but some may initialize shared SDK/cache state. Only the restricted query companions advertise a read-only contract; serialize discovery where initialization or shared state matters.
 
 | Tool | Actions | Description | Parallel Safe |
 |------|---------|-------------|---------------|

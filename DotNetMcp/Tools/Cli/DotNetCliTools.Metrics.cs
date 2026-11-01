@@ -19,7 +19,7 @@ public sealed partial class DotNetCliTools
     /// No PII is stored; only tool names and timing data are tracked.
     /// </summary>
     /// <param name="action">The metrics operation to perform: Get (return current snapshot) or Reset (clear all counters)</param>
-    [McpServerTool(Title = "Server Metrics", ReadOnly = false, Idempotent = false, UseStructuredContent = true, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Bar%20Chart/Flat/bar_chart_flat.svg")]
+    [McpServerTool(Title = "Server Metrics", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = false, UseStructuredContent = true, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Bar%20Chart/Flat/bar_chart_flat.svg")]
     [McpMeta("category", "telemetry")]
     [McpMeta("priority", 5.0)]
     [McpMeta("consolidatedTool", true)]
@@ -36,7 +36,7 @@ public sealed partial class DotNetCliTools
                 "server metrics",
                 "Metrics accumulator is not registered. Ensure ToolMetricsAccumulator is registered in the DI container.",
                 alternatives: null);
-            return Task.FromResult(StructuredContentHelper.ToCallToolResult(ErrorResultFactory.ToJson(error)));
+            return Task.FromResult(QueryError(ErrorResultFactory.ToJson(error)));
         }
 
         if ((_tokenSavingsAccumulator is null || _tokenSavingsEstimator is null) && action is DotnetServerMetricsAction.TokenSavingsGet or DotnetServerMetricsAction.TokenSavingsReset)
@@ -45,7 +45,7 @@ public sealed partial class DotNetCliTools
                 "token savings metrics",
                 "Token savings services are not registered. Ensure TokenSavingsAccumulator and TokenSavingsEstimator are registered in the DI container.",
                 alternatives: null);
-            return Task.FromResult(StructuredContentHelper.ToCallToolResult(ErrorResultFactory.ToJson(error)));
+            return Task.FromResult(QueryError(ErrorResultFactory.ToJson(error)));
         }
 
         switch (action)

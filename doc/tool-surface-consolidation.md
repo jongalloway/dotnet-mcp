@@ -2,11 +2,11 @@
 
 ## Executive Summary
 
-The .NET MCP Server has successfully transitioned from **74 individual tools** to **10 consolidated tools** (8 high-level domain tools plus 2 utility tools) while preserving full functionality. This consolidation uses enum-driven subcommands, semantic grouping, and consistent parameter patterns—aligning with modern MCP best practices and improving the developer experience for both AI assistants and human contributors.
+The .NET MCP Server transitioned from **74 individual tools** to domain-grouped tools while preserving functionality. The current surface has **15 tools**: 8 domain tools, 4 utilities, and 3 restricted read-only query companions. Most sections below retain the historical consolidation design; the annotation and query contracts in the next section describe the current surface.
 
 > **Status**: **Implemented** as of v1.0.0 (January 2026)
 >
-> The consolidated-only tool surface is the **sole supported interface** in the initial 1.0.0 release.
+> Existing consolidated tools remain supported alongside the additive query companions.
 
 **Key Benefits (Achieved):**
 
@@ -14,6 +14,78 @@ The .NET MCP Server has successfully transitioned from **74 individual tools** t
 - **✅ Better Discoverability**: Tools grouped by domain (project, package, EF, workload, etc.)
 - **✅ Enhanced Maintainability**: Consistent patterns, shared validation, reduced code duplication
 - **✅ Future-Proof**: Easy to extend with new actions without increasing top-level tool count
+
+## Tool annotations and read-only query contracts
+
+MCP exposes one `annotations` object per tool definition, not one per `action`. A mixed tool must describe its most consequential supported actions, even when a particular call only requests information. Selecting a query action does not change that tool's discovery-time annotations.
+
+### Effective hints and SDK defaults
+
+These four hints are explicitly emitted by production `tools/list` on both supported protocol revisions (`2026-07-28` and `2025-11-25`):
+
+| Tool | `readOnlyHint` | `destructiveHint` | `idempotentHint` | `openWorldHint` | Rationale |
+|------|---------------|-------------------|------------------|-----------------|-----------|
+| `dotnet_project` | false | true | false | true | Can modify project files, delete outputs, start/stop processes, and run arbitrary build/application code. |
+| `dotnet_package` | false | true | false | true | Can replace/remove references, clear caches, restore packages, and query external feeds. |
+| `dotnet_solution` | false | true | false | true | Can change membership/files; analysis evaluates referenced projects and imports. |
+| `dotnet_ef` | false | true | false | true | Can alter/drop databases, generate/replace files, build projects, and execute application code. |
+| `dotnet_workload` | false | true | false | true | Can install/remove SDK components and download manifests/packages. |
+| `dotnet_tool` | false | true | false | true | Can install/remove tools, replace manifests, and execute arbitrary tool code. |
+| `dotnet_sdk` | false | true | false | true | Can install/remove templates, clear caches, and replace `global.json` settings. |
+| `dotnet_dev_certs` | false | true | false | true | Can modify certificate stores and secrets; project discovery/CLI initialization can have additional effects. |
+| `dotnet_server_metrics` | false | true | false | false | Reset actions delete in-memory counters; no open-ended external interactions. |
+| `dotnet_help` | false | true | false | true | The free-form command can invoke external tools with `--help`; CLI initialization is not necessarily read-only. |
+| `dotnet_server_capabilities`, `dotnet_server_info` | true | false | true | false | Query local SDK/server metadata, without project execution or configuration changes. |
+| `dotnet_sdk_query`, `dotnet_project_query`, `dotnet_server_metrics_query` | true | false | true | false | Restricted metadata/snapshot actions described below. |
+
+SDK 2.3.0 keeps nullable backing fields for attribute hints. Before explicit annotation of the mixed tools, their wire definitions emitted `destructiveHint: true` but **omitted** the other three hints. An omitted hint is not a serialized false. The protocol's effective defaults are:
+
+| Hint | Default when omitted |
+|------|----------------------|
+| `readOnlyHint` | false |
+| `destructiveHint` | true |
+| `idempotentHint` | false |
+| `openWorldHint` | true |
+
+The previous mixed-domain defaults were conservative, not evidence that these tools were read-only. Explicit values make intent inspectable without client-specific default handling. Server-metrics resets remain conservatively non-idempotent because intervening calls can accumulate more counters to delete. Snapshot results can vary without making a read-only operation non-idempotent: idempotency concerns effects, not identical output.
+
+`openWorldHint` is independent of `readOnlyHint`. A read-only network search could be open-world; a local tool executing arbitrary project imports or application code can also be open-world. It does not simply mean “uses HTTP.” Destructive and idempotent hints are principally relevant when read-only is false.
+
+### Action effects and query eligibility
+
+The audit follows handlers, not just action names. The table groups every supported action by its relevant effects; parameter-dependent behavior is part of the contract.
+
+| Domain | Actions and relevant effects | Restricted companion |
+|--------|-----------------------------|----------------------|
+| Project | `New` writes files and may restore. `Restore`, `Build`, `Publish`, `Pack` write outputs/caches and may contact feeds or run build logic. `Run`, `Test`, `Watch` additionally execute application/test code. `Clean` deletes outputs; `Stop` terminates processes; `Format` can rewrite source (even verification may evaluate/restore). `SetProperty`, `RemoveProperty`, `AddItem`, `RemoveItem` edit evaluated project files. `Analyze`, `Dependencies`, `Validate`, `GetProperty`, `ListItems` evaluate MSBuild, including project-controlled imports/property functions. `ListTemplateOptions` invokes the template CLI. `Logs` reads already captured session output. | `dotnet_project_query`: `Logs` only. |
+| Package | `Add`, `Update`, `Remove` change dependencies/project files; `AddReference`, `RemoveReference` edit project references. `ClearCache` deletes NuGet caches. `Search` queries feeds. `List` can restore/contact feeds (`outdated`/`deprecated`), and `ListReferences` evaluates project metadata. CLI queries can also trigger first-run initialization. | None: existing query-looking paths do not guarantee a side-effect-free invocation. |
+| Solution | `Create`, `Add`, `Remove` write solution files/membership. `List` reads solution membership through the CLI, with possible first-run initialization. `Analyze`, `Dependencies`, `Validate` inspect referenced projects using MSBuild evaluation. | None without changing these execution paths. |
+| EF | `MigrationsAdd`, `MigrationsRemove`, `DbContextScaffold` create/delete/replace generated files. `MigrationsScript` can write its output path. `DatabaseUpdate`, `DatabaseDrop` change/delete database state. `MigrationsList`, `DbContextList`, `DbContextInfo` can build/restore and run design-time application code; `noBuild` does not eliminate application execution or database access. | None: discovery is not an execution sandbox. |
+| Workload | `Install`, `Update`, `Uninstall` change SDK/workload files and may download packages. `List`, `Info`, `Search` query installed/local manifests, but run CLI initialization; initialization can perform workload integrity repair. | None without imposing new initialization behavior. |
+| Tool | `Install`, `Update`, `Uninstall`, `Restore` change installed tools/caches and may download packages. `CreateManifest` writes a manifest (`force` can replace it). `Run` executes arbitrary tool code. `List`, `Search` query manifests/feeds but also run CLI initialization. | None without changing the execution contract. |
+| SDK | `Version`, `Info`, `ListSdks`, `ListRuntimes` query SDK/host metadata without CLI first-use configuration. `FrameworkInfo` describes framework constants/metadata and may discover installed SDKs. `CacheMetrics` reads existing cache counters. `ListTemplates`, `SearchTemplates`, `TemplateInfo` can initialize/populate/reload Template Engine caches; `forceReload` changes cache state. `ListTemplatePacks` invokes `dotnet new uninstall` without a package to list packs, with CLI initialization. `ClearTemplateCache` deletes cached state. `InstallTemplatePack`, `UninstallTemplatePack` change templates/caches and may use feeds. `ConfigureGlobalJson` creates/replaces SDK/test configuration. | `dotnet_sdk_query`: `Version`, `Info`, `ListSdks`, `ListRuntimes`, `FrameworkInfo`, `CacheMetrics`. |
+| Certificates/secrets | `CertificateTrust` changes trust stores; `CertificateClean` deletes certificates; `CertificateExport` writes a file and may create a certificate. `CertificateCheck` checks certificate presence (and trustedness when `trust` is set), but runs CLI initialization even without it. `SecretsInit`, `SecretsSet`, `SecretsRemove`, `SecretsClear` change project/user files. `SecretsList` may evaluate a project to resolve its secret store and runs CLI initialization. | None: a check-only command does not eliminate SDK first-use effects. |
+| Server metrics | `Get`, `TokenSavingsGet` copy current in-memory snapshots. `Reset`, `TokenSavingsReset` clear accumulated state. | `dotnet_server_metrics_query`: `Get`, `TokenSavingsGet`. |
+
+The CLI first-run exclusion is deliberate. The [.NET 10 entry point](https://github.com/dotnet/sdk/blob/v10.0.100/src/Cli/dotnet/Program.cs) configures certificates, global-tools PATH, first-use sentinels, and possibly workload integrity repair for subcommands, while top-level SDK version/info queries return before that configuration. Host-level installed SDK/runtime listing does not execute those subcommands. Do not infer global purity from a successful query on an already initialized development machine. SDK upgrades and new action implementations require rechecking eligibility.
+
+Normal server request accounting still records query invocations. This instrumentation does not grant a query access to reset counters or mutate project/SDK state. Query tools are not filesystem/network sandboxes, and hints are not authorization: clients must trust the server and continue applying their own permissions and governance policies.
+
+### Restricted query surface and compatibility
+
+Each query companion has a dedicated action enum, minimal input schema, and runtime validation before dispatch. Excluded action names and undefined numeric values are rejected with `isError: true`, without executing a command or resetting counters. Enum numeric values retain the corresponding aggregate numbering, so a numeric aggregate mutation cannot accidentally become an allowed query. The existing handlers produce the same successful text/structured results; SDK query schemas retain SDK/runtime result variants and metrics query schemas omit reset-only responses.
+
+```json
+{"name":"dotnet_sdk_query","arguments":{"action":"ListSdks"}}
+{"name":"dotnet_project_query","arguments":{"action":"Logs","sessionId":"<existing-session>","tailLines":50}}
+{"name":"dotnet_server_metrics_query","arguments":{"action":"Get"}}
+```
+
+Use the aggregate tools for every other action. No existing tool, action, or parameter was removed or renamed. The three companions expand discovery from 12 to 15 production tools; test-only tools are not part of that count. Clients with allowlists must opt into the new names, and adding tools can change model selection and catalog token cost. Removing or replacing aggregate tools would be a breaking change and is not part of this design.
+
+Existing SDK/metrics Apps remain linked to their original tools, not to read-only companions that would misleadingly host mutation-capable dashboards. Governance scanning/enforcement and its existing fail-closed full-catalog limitation remain unchanged. MCP resources remain available for metadata retrieval; these tools do not replace resource contracts.
+
+Integration tests verify explicit and omitted/default hints, schemas, successful result parity, rejected action values, and non-resetting snapshots on both protocol revisions. Production stdio conformance tests check the same aggregate/query annotation boundaries.
 
 ---
 

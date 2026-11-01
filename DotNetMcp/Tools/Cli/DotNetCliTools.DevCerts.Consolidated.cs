@@ -24,7 +24,7 @@ public sealed partial class DotNetCliTools
     /// <param name="key">Secret key for set/remove operations (supports hierarchical keys like 'ConnectionStrings:Default')</param>
     /// <param name="value">Secret value for set operation</param>
     /// <param name="workingDirectory">Working directory for command execution</param>
-    [McpServerTool(Title = "Dev Certs & User Secrets", Destructive = true, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Locked/Flat/locked_flat.svg")]
+    [McpServerTool(Title = "Dev Certs & User Secrets", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = true, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Locked/Flat/locked_flat.svg")]
     [McpMeta("category", "security")]
     [McpMeta("priority", 8.0)]
     [McpMeta("commonlyUsed", true)]

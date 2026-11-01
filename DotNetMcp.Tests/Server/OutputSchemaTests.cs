@@ -21,12 +21,15 @@ public class OutputSchemaTests
         var tools = await host.Client.ListToolsAsync(cancellationToken: host.Token);
         foreach (var action in new[] { "Version", "ListSdks", "ListRuntimes" })
         {
-            var result = await host.Client.CallToolAsync("dotnet_sdk",
-                new Dictionary<string, object?> { ["action"] = action }, cancellationToken: host.Token);
-            var content = Assert.IsType<JsonElement>(result.StructuredContent);
-            Assert.Equal(JsonValueKind.Object, content.ValueKind);
-            Assert.False(content.TryGetProperty("result", out _));
-            AssertValid(tools.Single(tool => tool.Name == "dotnet_sdk").ProtocolTool.OutputSchema!.Value, content);
+            foreach (var name in new[] { "dotnet_sdk", "dotnet_sdk_query" })
+            {
+                var result = await host.Client.CallToolAsync(name,
+                    new Dictionary<string, object?> { ["action"] = action }, cancellationToken: host.Token);
+                var content = Assert.IsType<JsonElement>(result.StructuredContent);
+                Assert.Equal(JsonValueKind.Object, content.ValueKind);
+                Assert.False(content.TryGetProperty("result", out _));
+                AssertValid(tools.Single(tool => tool.Name == name).ProtocolTool.OutputSchema!.Value, content);
+            }
         }
 
         host.Metrics.RecordInvocation("dotnet_sdk", 25, success: true);
@@ -35,17 +38,32 @@ public class OutputSchemaTests
             [new TokenSavingsStepInput { StepId = "schema-test", StepKind = "discovery", PromptText = "Find SDKs" }]));
         foreach (var action in new[] { "Get", "TokenSavingsGet", "TokenSavingsReset", "Reset", "Get" })
         {
-            var result = await host.Client.CallToolAsync("dotnet_server_metrics",
-                new Dictionary<string, object?> { ["action"] = action }, cancellationToken: host.Token);
-            var content = Assert.IsType<JsonElement>(result.StructuredContent);
-            Assert.Equal(JsonValueKind.Object, content.ValueKind);
-            Assert.False(content.TryGetProperty("result", out _));
-            AssertValid(tools.Single(tool => tool.Name == "dotnet_server_metrics").ProtocolTool.OutputSchema!.Value, content);
-            if (action == "TokenSavingsGet")
-                Assert.Equal(1, content.GetProperty("workflowTokenSavings").GetArrayLength());
-            if (action == "TokenSavingsReset")
-                Assert.Equal(0, content.GetProperty("workflowTokenSavings").GetArrayLength());
+            foreach (var name in action is "Get" or "TokenSavingsGet"
+                ? new[] { "dotnet_server_metrics", "dotnet_server_metrics_query" }
+                : new[] { "dotnet_server_metrics" })
+            {
+                var result = await host.Client.CallToolAsync(name,
+                    new Dictionary<string, object?> { ["action"] = action }, cancellationToken: host.Token);
+                var content = Assert.IsType<JsonElement>(result.StructuredContent);
+                Assert.Equal(JsonValueKind.Object, content.ValueKind);
+                Assert.False(content.TryGetProperty("result", out _));
+                AssertValid(tools.Single(tool => tool.Name == name).ProtocolTool.OutputSchema!.Value, content);
+                if (action == "TokenSavingsGet")
+                    Assert.Equal(1, content.GetProperty("workflowTokenSavings").GetArrayLength());
+                if (action == "TokenSavingsReset")
+                    Assert.Equal(0, content.GetProperty("workflowTokenSavings").GetArrayLength());
+            }
         }
+
+    }
+
+    [Fact]
+    public void MetricsQuerySchema_DoesNotAdvertiseResetResponses()
+    {
+        var schema = ToolOutputSchemas.CreateTool(typeof(DotNetCliTools).GetMethod(nameof(DotNetCliTools.DotnetServerMetricsQuery))!)
+            .ProtocolTool.OutputSchema!.Value;
+        Assert.False(schema.GetProperty("$defs").TryGetProperty(nameof(ServerMetricsResetResponse), out _));
+        AssertInvalid(schema, Parse("""{"success":true,"message":"Server metrics have been reset."}"""));
     }
 
     [Fact]

@@ -87,11 +87,11 @@ public sealed class ToolMetricSnapshot
     [JsonPropertyName("avgDurationMs")]
     public double AvgDurationMs { get; }
 
-    /// <summary>Number of invocations that completed without an exception.</summary>
+    /// <summary>Number of invocations that completed without an exception or an error tool result.</summary>
     [JsonPropertyName("successCount")]
     public long SuccessCount { get; }
 
-    /// <summary>Number of invocations that threw an exception.</summary>
+    /// <summary>Number of invocations that threw an exception or returned an error tool result.</summary>
     [JsonPropertyName("failureCount")]
     public long FailureCount { get; }
 

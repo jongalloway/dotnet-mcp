@@ -37,7 +37,7 @@ public sealed partial class DotNetCliTools
     /// <param name="cacheType">Cache location to clear: all, http-cache, global-packages, temp, plugins-cache</param>
     /// <param name="workingDirectory">Working directory for command execution</param>
     /// <param name="context">Injected MCP request context for per-request logging</param>
-    [McpServerTool(Title = "NuGet Package Manager", Destructive = true, UseStructuredContent = true, OutputSchemaType = typeof(PackageListResult), IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Package/Flat/package_flat.svg")]
+    [McpServerTool(Title = "NuGet Package Manager", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = true, UseStructuredContent = true, OutputSchemaType = typeof(PackageListResult), IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Package/Flat/package_flat.svg")]
     [McpMeta("category", "package")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]

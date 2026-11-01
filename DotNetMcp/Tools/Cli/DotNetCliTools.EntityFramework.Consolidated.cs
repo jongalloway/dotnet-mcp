@@ -38,7 +38,7 @@ public sealed partial class DotNetCliTools
     /// <param name="dryRun">Perform a dry run without actually executing (DatabaseDrop)</param>
     /// <param name="connectionDisplay">Show connection string used (MigrationsList)</param>
     /// <param name="workingDirectory">Working directory for command execution</param>
-    [McpServerTool(Title = "Entity Framework Core", Destructive = true, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Floppy%20Disk/Flat/floppy_disk_flat.svg")]
+    [McpServerTool(Title = "Entity Framework Core", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = true, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Floppy%20Disk/Flat/floppy_disk_flat.svg")]
     [McpMeta("category", "ef")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]

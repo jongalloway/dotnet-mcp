@@ -159,7 +159,7 @@ builder.Services.Configure<McpServerOptions>(options =>
         try
         {
             var result = await DotNetCommandExecutor.WithRequestCancellationAsync(ct, () => next(context, ct));
-            success = true;
+            success = result.IsError != true;
             return result;
         }
         catch (OperationCanceledException)
