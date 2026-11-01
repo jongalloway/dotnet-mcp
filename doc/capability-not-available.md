@@ -27,7 +27,9 @@ Use `CAPABILITY_NOT_AVAILABLE` when:
 
 ## API
 
-### Helper Method
+### Helper Overloads
+
+The overload with an explicit `reason` produces the response shown below:
 
 ```csharp
 public static ErrorResponse ReturnCapabilityNotAvailable(
@@ -50,6 +52,28 @@ public static ErrorResponse ReturnCapabilityNotAvailable(
   - MCP error code: `-32603` (InternalError)
   - Structured data with feature and reason
   - Optional alternatives array
+
+The command-context overload uses the same application error code and category, but annotates it with `mcpErrorCode: -32001`:
+
+```csharp
+public static ErrorResponse ReturnCapabilityNotAvailable(
+    string feature,
+    IEnumerable<string>? alternatives = null,
+    string? command = null,
+    string? details = null)
+```
+
+It includes command/exit-code/stderr context in `data`; it does not use the explicit-reason overload's `additionalData.feature` and `additionalData.reason` shape. For example:
+
+```csharp
+var error = ErrorResultFactory.ReturnCapabilityNotAvailable(
+    "dotnet CLI",
+    alternatives: new[] { "Install the .NET SDK and retry" },
+    command: "dotnet --info",
+    details: "The dotnet executable was not found");
+```
+
+Clients should identify the condition by `code: "CAPABILITY_NOT_AVAILABLE"` and accept either annotation. Neither overload creates a JSON-RPC protocol error.
 
 ## Response Structure
 
@@ -208,4 +232,6 @@ public Task<string> GetTelemetryData()
 
 ## MCP Error Code Mapping
 
-`CAPABILITY_NOT_AVAILABLE` maps to JSON-RPC error code `-32603` (InternalError), indicating a server-side limitation that prevents execution.
+`CAPABILITY_NOT_AVAILABLE` carries a stable application annotation: `-32603` (InternalError) for the explicit-reason overload, or `-32001` (CapabilityNotAvailable) for the command-context overload. These values remain inside the tool result on both current and legacy revisions.
+
+SDK wire errors are separate: `HeaderMismatch` is `-32020`, `MissingRequiredClientCapability` is `-32021`, and `UnsupportedProtocolVersion` is `-32022`. Do not use an application capability annotation in place of a missing-client-capability wire error. Likewise, missing `resources/read` URIs use SDK-selected `-32602` on 2026-07-28 and `-32002` on 2025-11-25; application resource annotations retain `-32002`. See the [machine-readable contract](machine-readable-contract.md#mcp-error-code-mapping) for the complete distinction.
