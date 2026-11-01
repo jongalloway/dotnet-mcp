@@ -142,7 +142,8 @@ public class ToolAnnotationTests
             var query = await host.Client.CallToolAsync("dotnet_sdk_query", arguments, cancellationToken: host.Token);
             var aggregate = await host.Client.CallToolAsync("dotnet_sdk", arguments, cancellationToken: host.Token);
             Assert.NotEqual(true, query.IsError);
-            Assert.Equal(aggregate.GetText(), query.GetText());
+            Assert.EndsWith(query.GetText(), aggregate.GetText());
+            Assert.DoesNotContain("displayed in the SDK dashboard", query.GetText());
             Assert.Equal(aggregate.StructuredContent?.GetRawText(), query.StructuredContent?.GetRawText());
         }
 
@@ -213,12 +214,16 @@ public class ToolAnnotationTests
         Assert.Contains("not registered", result.GetText());
     }
 
-    [Fact]
-    public async Task SdkQuery_ValidationAndCommandFailuresAreErrors()
+    [Theory]
+    [InlineData(DotnetSdkQueryAction.Version)]
+    [InlineData(DotnetSdkQueryAction.Info)]
+    [InlineData(DotnetSdkQueryAction.ListSdks)]
+    [InlineData(DotnetSdkQueryAction.ListRuntimes)]
+    public async Task SdkQuery_ValidationAndCommandFailuresAreErrors(DotnetSdkQueryAction action)
     {
         var realTools = new DotNetCliTools(NullLogger<DotNetCliTools>.Instance,
             new ConcurrencyManager(), new ProcessSessionManager());
-        var invalid = await realTools.DotnetSdkQuery(DotnetSdkQueryAction.Version,
+        var invalid = await realTools.DotnetSdkQuery(action,
             workingDirectory: Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString("N")));
         Assert.True(invalid.IsError);
         Assert.Contains("Directory not found", invalid.GetText());
@@ -233,7 +238,7 @@ public class ToolAnnotationTests
                 return Task.FromResult("Error: SDK unavailable\nExit Code: 1");
             }
         };
-        var failed = await tools.DotnetSdkQuery(DotnetSdkQueryAction.Version);
+        var failed = await tools.DotnetSdkQuery(action);
         Assert.True(failed.IsError);
         Assert.Equal(1, executions);
     }

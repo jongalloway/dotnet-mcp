@@ -417,6 +417,8 @@ public class OutputSchemaTests
         foreach (var (name, action) in new[]
         {
             ("dotnet_sdk", "Version"), ("dotnet_sdk", "ListSdks"), ("dotnet_sdk", "ListRuntimes"),
+            ("dotnet_sdk_query", "Version"), ("dotnet_sdk_query", "Info"),
+            ("dotnet_sdk_query", "ListSdks"), ("dotnet_sdk_query", "ListRuntimes"),
             ("dotnet_package", "List"), ("dotnet_solution", "List"),
             ("dotnet_project", "Build"), ("dotnet_project", "Test"),
             ("dotnet_server_capabilities", (string?)null)
@@ -466,6 +468,10 @@ public class OutputSchemaTests
             AssertContract(schema, result);
             Assert.Equal("Logs", result.StructuredContent!.Value.GetProperty("action").GetString());
             Assert.Equal(result.GetText(), result.StructuredContent.Value.GetProperty("text").GetString());
+            var query = await host.Client.CallToolAsync("dotnet_project_query", new Dictionary<string, object?>
+            { ["action"] = "Logs", ["sessionId"] = sessionId }, cancellationToken: host.Token);
+            Assert.Equal(result.GetText(), query.GetText());
+            Assert.False(query.IsError == true);
             foreach (var arguments in new Dictionary<string, object?>[]
             {
                 new() { ["action"] = "Logs" },
@@ -477,6 +483,8 @@ public class OutputSchemaTests
                 var invalid = await host.Client.CallToolAsync("dotnet_project", arguments, cancellationToken: host.Token);
                 Assert.True(invalid.IsError);
                 AssertContract(schema, invalid);
+                var invalidQuery = await host.Client.CallToolAsync("dotnet_project_query", arguments, cancellationToken: host.Token);
+                Assert.True(invalidQuery.IsError);
             }
         }
         finally { Assert.True(host.Sessions.TryStopSession(sessionId, out _)); }
@@ -489,7 +497,7 @@ public class OutputSchemaTests
     {
         await using var host = await Host.CreateAsync(protocol);
         var tools = await host.Client.ListToolsAsync(cancellationToken: host.Token);
-        foreach (var action in new[] { "Version", "ListSdks", "ListRuntimes" })
+        foreach (var action in Enum.GetNames<DotnetSdkQueryAction>())
         {
             foreach (var name in new[] { "dotnet_sdk", "dotnet_sdk_query" })
             {

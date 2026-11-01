@@ -65,6 +65,30 @@ public sealed partial class DotNetCliTools
         string? testRunner = null,
         string? globalJsonPath = null,
         McpServer? server = null)
+        => await DotnetSdkCoreAsync(action, searchTerm, templateShortName, templatePackage, templateVersion,
+            nugetSource, interactive, force, framework, forceReload, filter, maxResults, workingDirectory,
+            sdkVersion, rollForward, testRunner, globalJsonPath, server);
+
+    private async Task<CallToolResult> DotnetSdkCoreAsync(
+        DotnetSdkAction action,
+        string? searchTerm = null,
+        string? templateShortName = null,
+        string? templatePackage = null,
+        string? templateVersion = null,
+        string? nugetSource = null,
+        bool interactive = false,
+        bool force = false,
+        string? framework = null,
+        bool forceReload = false,
+        string? filter = null,
+        int? maxResults = null,
+        string? workingDirectory = null,
+        string? sdkVersion = null,
+        string? rollForward = null,
+        string? testRunner = null,
+        string? globalJsonPath = null,
+        McpServer? server = null,
+        bool useDashboard = true)
     {
         object? metadata = null;
         async Task<string> QueryTemplatesAsync()
@@ -132,7 +156,7 @@ public sealed partial class DotNetCliTools
 
         // When structured content is available, the SDK dashboard UI renders it visually.
         // Add a hint so the LLM avoids repeating the same data in prose.
-        var displayText = structured is SdkActionResult
+        var displayText = useDashboard && structured is SdkActionResult
             ? $"[This data is displayed in the SDK dashboard UI. Summarize briefly or refer the user to it rather than repeating all details.]\n\n{textResult}"
             : textResult;
 

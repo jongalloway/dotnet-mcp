@@ -36,7 +36,7 @@ public sealed partial class DotNetCliTools
             DotnetSdkQueryAction.CacheMetrics => DotnetSdkAction.CacheMetrics,
             _ => throw new InvalidOperationException($"Unsupported query action '{action}'.")
         };
-        return MarkQueryFailure(await DotnetSdk(sdkAction, framework: framework, workingDirectory: workingDirectory));
+        return await DotnetSdkCoreAsync(sdkAction, framework: framework, workingDirectory: workingDirectory, useDashboard: false);
     }
 
     /// <summary>
@@ -61,7 +61,9 @@ public sealed partial class DotNetCliTools
         if (!ParameterValidator.ValidateAction<DotnetProjectQueryAction>(action, out var error))
             return QueryError($"Error: {error}");
 
-        return MarkQueryFailure(StructuredContentHelper.ToCallToolResult(await HandleLogsAction(sessionId, tailLines, since)));
+        var text = await HandleLogsAction(sessionId, tailLines, since);
+        return StructuredContentHelper.ToCallToolResult(text,
+            isError: text.StartsWith("Error:", StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>
@@ -95,11 +97,4 @@ public sealed partial class DotNetCliTools
         return result;
     }
 
-    private static CallToolResult MarkQueryFailure(CallToolResult result)
-    {
-        var text = result.GetText();
-        if (text.StartsWith("Error:", StringComparison.OrdinalIgnoreCase) || IsCommandFailure(text))
-            result.IsError = true;
-        return result;
-    }
 }
