@@ -17,24 +17,27 @@ This approach provides rich metadata access, type-safe operations, and validatio
 
 - **ModelContextProtocol** (v2.3.0): stdio hosting, tool discovery, MRTR, resources, prompts, and legacy-client compatibility.
 - **ModelContextProtocol.Extensions.Tasks** (v2.3.0): `WithTasks`, `IMcpTaskStore`, and `InMemoryMcpTaskStore` in the extension namespace. Hosting passes one process-local in-memory store to `WithTasks`; tool handlers and capability reporting do not inject the store. Task records do not survive a server restart.
-- **Microsoft.AgentGovernance.Extensions.ModelContextProtocol** (v4.0.0): retained policy enforcement and response sanitization. See [governance configuration](mcp-governance.md) for its fail-closed startup restriction on the current catalog.
+- **ModelContextProtocol.Extensions.Apps** (v2.3.0): `WithMcpApps` registration and MCP Apps tool/resource metadata. See [MCP Apps](mcp-apps.md) for the UI resource contract.
+- **Microsoft.AgentGovernance.Extensions.ModelContextProtocol** (v5.0.0): opt-in policy enforcement and response sanitization. See [governance configuration](mcp-governance.md) for its fail-closed startup restriction on the current catalog.
 
-Tasks require MCP 2026-07-28 and `io.modelcontextprotocol/tasks` opt-in on each request. Earlier clients use ordinary inline calls, not the removed experimental Tasks API. Task cancellation flows through the tool filter to command execution, workspace Roots discovery, Sampling, and pending confirmation. Cancellation interrupts input waits instead of entering their normal best-effort fallbacks. The matching MCP dependency graph also requires `Microsoft.Extensions.Logging.Abstractions` 10.0.10.
+The SDK 2.0 migration adopted MCP 2026-07-28; the current hosting and extension packages are 2.3.0. These are MCP SDK versions, not .NET SDK versions.
+
+Tasks require MCP 2026-07-28 and `io.modelcontextprotocol/tasks` opt-in on each request. Earlier clients use ordinary inline calls, not the removed experimental Tasks API. Task cancellation flows through the tool filter to command execution, workspace Roots discovery, Sampling, and pending confirmation. Cancellation interrupts input waits instead of entering their normal best-effort fallbacks.
 
 `WithTasks` automatically wraps opted-in tool invocations and wires `tasks/get`, `tasks/update`, and `tasks/cancel`. Status and terminal results are returned by `tasks/get`; there are no separate `tasks/status`, `tasks/list`, or `tasks/result` endpoints. Existing tool handlers keep their ordinary `CallToolResult` signatures. Clients use `CallToolAsTaskAsync` to receive `ResultOrCreatedTask<CallToolResult>` or `CallToolWithPollingAsync` to handle polling and input responses automatically.
 
-Connected `dotnet_server_capabilities` snapshots report `asyncTasks` only when the server has registered the Tasks extension and the current request uses the required protocol and opt-in. An ordinary request reports false even after an opted-in request on the same connection. Direct calls without a connection report maximum implementation support, not negotiated availability.
+Connected `dotnet_server_capabilities` snapshots report `asyncTasks` only when the server has registered the Tasks extension and the current request uses the required protocol and opt-in. An ordinary request reports false even after an opted-in request on the same connection. Current-protocol `mcpLogging` requires a per-request log level, while `sampling` and `elicitation` reflect the request's client capability metadata. Direct calls without a connection report maximum implementation support, not negotiated availability. See the [capability contract](machine-readable-contract.md#connection-dependent-capabilities-and-tasks) for current and legacy behavior.
 
 Cancellable commands disable shared MSBuild workers and node reuse in their child-process environment. This keeps build work in the command's owned process tree so cancelling a task does not leave a reused worker running or interfere with another session's worker.
 
 After process cleanup, request/task cancellation propagates out of the invocation, so a cancelled build or test cannot start AI failure analysis. Explicit-token-only command callers retain the existing cancellation result string.
 
-See [SDK compatibility](sdk-v1.1-compatibility.md) for confirmation, deprecated stdio capabilities, and wire-protocol differences. The .NET SDK integration packages below are unchanged.
+See [SDK compatibility](sdk-v1.1-compatibility.md) for confirmation, deprecated stdio capabilities, and wire-protocol differences. The .NET SDK integration packages below provide metadata and validation independently of MCP protocol negotiation.
 
 ### Template Engine
 
-- **Microsoft.TemplateEngine.Abstractions** (v10.0.101)
-- **Microsoft.TemplateEngine.Edge** (v10.0.101)
+- **Microsoft.TemplateEngine.Abstractions** (v10.0.403)
+- **Microsoft.TemplateEngine.Edge** (v10.0.403)
 
 Provides programmatic access to the .NET template system:
 
@@ -45,8 +48,8 @@ Provides programmatic access to the .NET template system:
 
 ### MSBuild
 
-- **Microsoft.Build.Utilities.Core** (v18.0.2)
-- **Microsoft.Build** (v18.0.2)
+- **Microsoft.Build.Utilities.Core** (v18.11.0)
+- **Microsoft.Build** (v18.9.6)
 
 Provides framework validation, metadata, and project analysis:
 

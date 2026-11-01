@@ -2,6 +2,8 @@
 
 This page retains its historical filename for existing links. The current server uses **ModelContextProtocol 2.3.0** and **ModelContextProtocol.Extensions.Tasks 2.3.0**, targeting .NET 10 and stdio transport.
 
+The SDK 2.0 migration to MCP 2026-07-28 supersedes the former SDK 1.1 guidance, including its experimental Tasks API and task-store workaround. This page documents the current 2.x implementation; historical changelog entries still describe the behavior of their original releases.
+
 ## Protocol revisions
 
 The maximum supported revision is **2026-07-28**. The SDK also accepts legacy initialization, including **2025-11-25**; no protocol pin removes older clients. Tools, resources, prompts, completions, structured results, icons, and existing MCP Apps resource metadata are preserved.
@@ -52,7 +54,7 @@ The Roots/Sampling MRTR replacement is intentionally deferred; this compatibilit
 
 ## Governance
 
-Governance **4.0.0** remains a required dependency. Policy enforcement, authentication requirements, schema scanning, fail-closed startup, and response sanitization are not disabled for SDK compatibility.
+Governance **5.0.0** is the current dependency, superseding the 4.0.0 package used during the SDK 2.0 migration. Runtime governance is opt-in and disabled by default. When enabled, policy enforcement, authentication requirements, schema scanning, fail-closed startup, and response sanitization are not disabled for SDK compatibility.
 
 The full catalog still encounters an upstream scanner restriction on the certificate tool's `password` schema field, also reproduced with SDK 1.4.0. Safe-subset integration tests establish allow/deny and MRTR/Tasks compatibility; a separate test verifies the pre-existing full-catalog fail-closed behavior is preserved. This is **not** a successful full-catalog governance startup. See [governance configuration](mcp-governance.md).
 

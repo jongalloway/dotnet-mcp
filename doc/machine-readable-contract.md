@@ -181,15 +181,38 @@ When a conflicting operation is already in progress, the text content contains t
 
 ### Example: `dotnet_server_capabilities`
 
+The `structuredContent` portion of an ordinary 2026-07-28 request with no Tasks opt-in, log level, or client Sampling/Elicitation advertisement is shown below. Text content is omitted; the full response also includes the same snapshot as JSON text. Server version and installed SDKs are illustrative.
+
 ```json
 {
-  "content": [{ "type": "text", "text": "{ \"serverVersion\": \"1.0.0\", ... }" }],
   "structuredContent": {
     "serverVersion": "1.0.0",
     "protocolVersion": "2026-07-28",
-    "supportedCategories": ["template", "project", ...],
-    "supports": { "structuredErrors": true, "machineReadable": true, ... },
-    "sdkVersions": { "installed": ["10.0.100"], "recommended": "net10.0", "lts": "net8.0" }
+    "supportedCategories": [
+      "template", "project", "package", "solution", "reference", "tool",
+      "watch", "sdk", "security", "framework", "workspace", "format",
+      "nuget", "help", "efcore", "telemetry"
+    ],
+    "supports": {
+      "structuredErrors": true,
+      "machineReadable": true,
+      "cancellation": true,
+      "telemetry": true,
+      "metrics": true,
+      "asyncTasks": false,
+      "prompts": true,
+      "elicitation": false,
+      "mcpLogging": false,
+      "completions": true,
+      "sampling": false,
+      "progressNotifications": true,
+      "tokenSavings": true
+    },
+    "sdkVersions": {
+      "installed": ["10.0.100"],
+      "recommended": "net10.0",
+      "lts": "net10.0"
+    }
   }
 }
 ```
@@ -198,9 +221,22 @@ When a conflicting operation is already in progress, the text content contains t
 
 ## Connection-Dependent Capabilities and Tasks
 
-`dotnet_server_capabilities.protocolVersion` reports the active connection's revision, not a hard-coded maximum. In a no-connection snapshot it reports the maximum supported revision, `2026-07-28`. Feature field names and types remain unchanged: `asyncTasks` requires both a registered store and an opted-in current-protocol request; `elicitation` and `sampling` reflect that request's client capabilities; `mcpLogging` requires a current request log level (and messages respect its threshold). Without a connection these flags describe implementation support, subject to client negotiation.
+`dotnet_server_capabilities.protocolVersion` reports the active connection's revision, not a hard-coded maximum. In a no-connection snapshot it reports the maximum supported revision, `2026-07-28`. The MCP SDK 2.x migration changes availability semantics, not the boolean field names or object envelope of `ServerFeatureSupport`:
+
+| `supports` field | Current request (`2026-07-28`) | Legacy connection (including `2025-11-25`) | No connection |
+| --- | --- | --- | --- |
+| `asyncTasks` | True only when the server has registered the Tasks extension and the request opts in to `io.modelcontextprotocol/tasks`. Ordinary requests report false. | False; tools execute inline, even if the server registers the new extension. | True: maximum implementation support. |
+| `mcpLogging` | True when `_meta["io.modelcontextprotocol/logLevel"]` supplies a log level. Omission reports false and emits no MCP logs. | True; notifications use the session logging threshold, defaulting to Info when unset. | True: implementation support, not a promise of notifications. |
+| `sampling` | True when the request's client capability metadata advertises Sampling. | Reflects the session's client Sampling advertisement. | True: implementation support, not an available client model. |
+| `elicitation` | True when the request's client capability metadata advertises Elicitation. | Reflects the session's client Elicitation advertisement. | True: implementation support, not a promise of client confirmation. |
+
+Current-protocol opt-in and client capabilities are request-scoped: an opted-in call does not enable the next ordinary call on the same connection. `mcpLogging` indicates availability, not whether the threshold permits the server's Info notifications: Debug/Info allow them, while Warning or higher suppress them. Host logging continues to stderr independently.
+
+Sampling is used for build/test failure analysis, not successful commands. Capability advertisement alone does not guarantee that the transport can deliver server-to-client input or that the client has an available model. Destructive-operation confirmation is conditional on elicitation support; unsupported clients retain unprompted behavior. See [SDK compatibility](sdk-v1.1-compatibility.md) for retained deprecated stdio APIs, MRTR confirmation, and deferred Roots/Sampling migration.
 
 The Tasks extension preserves the normal `CallToolResult` inside a completed task. `IsError: true` remains an application error result, not a failed task. Protocol failures use the failed task state. Legacy clients receive normal inline results.
+
+`WithTasks` supplies `tasks/get` for status and terminal results, `tasks/update` for `input_required` responses, and `tasks/cancel` for cancellation. There are no separate `tasks/status`, `tasks/list`, or `tasks/result` endpoints. Task records use the hosting-owned process-local store and are lost on restart. Cancellation propagates through pending input and CLI execution rather than starting failure analysis.
 
 ## Minimal Mutating Result Contract
 
