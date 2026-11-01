@@ -15,7 +15,7 @@ The server itself has icons configured in `Program.cs`:
 
 ## Tool-Level Icons
 
-All 11 MCP tools have icons configured via the `IconSource` property. In addition to icons, dotnet-mcp uses MCP SDK tool metadata such as titles, categories, priorities, and task support declarations to help clients present the tool catalog more effectively.
+All 15 MCP tools have icons configured via the `IconSource` property. Query companions reuse their domain's icon and have distinct titles and restricted action metadata. In addition to icons, dotnet-mcp uses MCP SDK tool metadata such as titles, categories, priorities, and task support declarations to help clients present the tool catalog more effectively.
 
 | Tool | Category | Icon | Visual | Description |
 | ---- | -------- | ---- | ------ | ----------- |
@@ -30,6 +30,10 @@ All 11 MCP tools have icons configured via the `IconSource` property. In additio
 | `dotnet_help` | help | [light_bulb_flat.svg](https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Light%20Bulb/Flat/light_bulb_flat.svg) | 💡 | Command help |
 | `dotnet_server_capabilities` | help | [bar_chart_flat.svg](https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Bar%20Chart/Flat/bar_chart_flat.svg) | 📊 | Server capabilities |
 | `dotnet_server_info` | help | [information_flat.svg](https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Information/Flat/information_flat.svg) | ℹ️ | Server information |
+| `dotnet_server_metrics` | telemetry | Bar chart (same SVG as server capabilities) | 📊 | Metrics snapshots and resets |
+| `dotnet_sdk_query` | sdk | Gear (same SVG as SDK) | ⚙️ | Restricted SDK metadata queries |
+| `dotnet_project_query` | project | File folder (same SVG as project) | 📁 | Captured process logs |
+| `dotnet_server_metrics_query` | telemetry | Bar chart (same SVG as server capabilities) | 📊 | Non-resetting metrics snapshots |
 
 ## Icon Design Principles
 

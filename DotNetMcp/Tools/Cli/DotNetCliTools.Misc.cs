@@ -13,9 +13,10 @@ public sealed partial class DotNetCliTools
 {
     /// <summary>
     /// Get help for a specific dotnet command. Use this to discover available options for any dotnet command.
+    /// Commands can invoke CLI first-run setup or external tools; this is not a read-only execution boundary.
     /// </summary>
     /// <param name="command">The dotnet command to get help for (e.g., 'build', 'new', 'run'). If not specified, shows general dotnet help.</param>
-    [McpServerTool(Title = ".NET CLI Help", ReadOnly = true, Idempotent = true, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Light%20Bulb/Flat/light_bulb_flat.svg")]
+    [McpServerTool(Title = ".NET CLI Help", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = true, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Light%20Bulb/Flat/light_bulb_flat.svg")]
     [McpMeta("category", "help")]
     [McpMeta("priority", 5.0)]
     public async partial Task<CallToolResult> DotnetHelp(
@@ -26,7 +27,7 @@ public sealed partial class DotNetCliTools
     /// Get a machine-readable JSON snapshot of server capabilities, versions, and supported features for agent orchestration and discovery.
     /// </summary>
     /// <param name="context">Injected MCP request context for request-dependent capability reporting</param>
-    [McpServerTool(Title = "Server Capabilities", ReadOnly = true, Idempotent = true, UseStructuredContent = true, OutputSchemaType = typeof(ServerCapabilities), IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Bar%20Chart/Flat/bar_chart_flat.svg")]
+    [McpServerTool(Title = "Server Capabilities", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false, UseStructuredContent = true, OutputSchemaType = typeof(ServerCapabilities), IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Bar%20Chart/Flat/bar_chart_flat.svg")]
     [McpMeta("category", "help")]
     [McpMeta("priority", 8.0)]
     [McpMeta("commonlyUsed", true)]
@@ -110,7 +111,7 @@ public sealed partial class DotNetCliTools
     /// Get detailed human-readable information about .NET MCP Server capabilities, including supported features, concurrency safety, and available resources.
     /// Provides guidance for AI orchestrators on parallel execution.
     /// </summary>
-    [McpServerTool(Title = "Server Information", ReadOnly = true, Idempotent = true, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Information/Flat/information_flat.svg")]
+    [McpServerTool(Title = "Server Information", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Information/Flat/information_flat.svg")]
     [McpMeta("category", "help")]
     [McpMeta("priority", 5.0)]
     public partial Task<CallToolResult> DotnetServerInfo()
@@ -124,7 +125,7 @@ public sealed partial class DotNetCliTools
         result.AppendLine();
 
         result.AppendLine("FEATURES:");
-        result.AppendLine("  • 12 Consolidated MCP Tools (8 functional + 4 utility)");
+        result.AppendLine("  • 15 MCP Tools (8 domain + 4 utility + 3 read-only query companions)");
         result.AppendLine("  • 5 MCP Resources (SDK, Runtime, Templates, Frameworks, Workspace)");
         result.AppendLine("  • 3 Predefined Prompts (create_new_webapi, add_package_and_restore, run_tests_with_coverage)");
         result.AppendLine("  • Completion handler: argument autocomplete for templates, frameworks, configurations, and runtime identifiers");
@@ -140,13 +141,13 @@ public sealed partial class DotNetCliTools
         result.AppendLine();
 
         result.AppendLine("CONSOLIDATED TOOLS:");
-        result.AppendLine("  • dotnet_project (13 actions): New, Restore, Build, Run, Test, Publish, Clean, Analyze, Dependencies, Validate, Pack, Watch, Format");
+        result.AppendLine("  • dotnet_project (22 actions): New, Restore, Build, Run, Test, Publish, Clean, Analyze, Dependencies, Validate, Pack, Watch, Format, Stop, Logs, ListTemplateOptions, SetProperty, GetProperty, RemoveProperty, AddItem, RemoveItem, ListItems");
         result.AppendLine("  • dotnet_package (9 actions): Add, Remove, Search, Update, List, AddReference, RemoveReference, ListReferences, ClearCache");
-        result.AppendLine("  • dotnet_solution (4 actions): Create, Add, List, Remove");
+        result.AppendLine("  • dotnet_solution (7 actions): Create, Add, List, Remove, Analyze, Dependencies, Validate");
         result.AppendLine("  • dotnet_ef (9 actions): MigrationsAdd, MigrationsList, MigrationsRemove, MigrationsScript, DatabaseUpdate, DatabaseDrop, DbContextList, DbContextInfo, DbContextScaffold");
         result.AppendLine("  • dotnet_workload (6 actions): List, Info, Search, Install, Update, Uninstall");
         result.AppendLine("  • dotnet_tool (8 actions): Install, List, Update, Uninstall, Restore, CreateManifest, Search, Run");
-        result.AppendLine("  • dotnet_sdk (10 actions): Version, Info, ListSdks, ListRuntimes, ListTemplates, SearchTemplates, TemplateInfo, ClearTemplateCache, FrameworkInfo, CacheMetrics");
+        result.AppendLine("  • dotnet_sdk (14 actions): Version, Info, ListSdks, ListRuntimes, ListTemplates, SearchTemplates, TemplateInfo, ClearTemplateCache, ListTemplatePacks, InstallTemplatePack, UninstallTemplatePack, FrameworkInfo, CacheMetrics, ConfigureGlobalJson");
         result.AppendLine("  • dotnet_dev_certs (9 actions): CertificateTrust, CertificateCheck, CertificateClean, CertificateExport, SecretsInit, SecretsSet, SecretsList, SecretsRemove, SecretsClear");
         result.AppendLine();
 
@@ -154,12 +155,19 @@ public sealed partial class DotNetCliTools
         result.AppendLine("  • dotnet_help: Get help for any dotnet command");
         result.AppendLine("  • dotnet_server_capabilities: Machine-readable server capabilities JSON");
         result.AppendLine("  • dotnet_server_info: This detailed information output");
-        result.AppendLine("  • dotnet_server_metrics: In-memory telemetry metrics (Get/Reset) collected via message filter");
+        result.AppendLine("  • dotnet_server_metrics: In-memory telemetry metrics (Get, TokenSavingsGet, TokenSavingsReset, Reset)");
+        result.AppendLine();
+        result.AppendLine("READ-ONLY QUERY TOOLS:");
+        result.AppendLine("  • dotnet_sdk_query: Version, Info, ListSdks, ListRuntimes, FrameworkInfo, CacheMetrics");
+        result.AppendLine("  • dotnet_project_query: Logs from an existing process session");
+        result.AppendLine("  • dotnet_server_metrics_query: Get, TokenSavingsGet (no resets)");
+        result.AppendLine("  • Query tools reject all other actions. Existing aggregate tools remain compatible.");
         result.AppendLine();
 
         result.AppendLine("CONCURRENCY SAFETY:");
         result.AppendLine("  ✅ Read-only operations: Always safe for parallel execution");
-        result.AppendLine("     (Info, List, Search, Check, Help, Metrics tools)");
+        result.AppendLine("     (Query companions, server capabilities, server information)");
+        result.AppendLine("     List/Info/Search/Check/Help action names alone do not guarantee read-only behavior.");
         result.AppendLine("  ⚠️  Mutating operations: Safe on different targets only");
         result.AppendLine("     (Build, Add, Remove operations on different projects)");
         result.AppendLine("  ❌ Global/Long-running: Never run in parallel");
@@ -174,7 +182,7 @@ public sealed partial class DotNetCliTools
         result.AppendLine("  • SDK Info: 5-minute TTL, thread-safe with metrics");
         result.AppendLine("  • Runtime Info: 5-minute TTL, thread-safe with metrics");
         result.AppendLine("  • Force reload available on template tools");
-        result.AppendLine("  • Use dotnet_sdk (action: CacheMetrics) for hit/miss statistics");
+        result.AppendLine("  • Use dotnet_sdk_query (action: CacheMetrics) for hit/miss statistics");
         result.AppendLine();
 
         result.AppendLine("RESOURCES (Read-Only Access):");

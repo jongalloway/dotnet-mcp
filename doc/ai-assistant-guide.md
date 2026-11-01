@@ -36,6 +36,10 @@ await callTool("dotnet_project", { action: "Test", filter: "Category=Unit" });
 
 ### First Steps with Your AI Assistant
 
+For verified read-only calls, prefer `dotnet_sdk_query` (`Version`, `Info`, `ListSdks`, `ListRuntimes`, `FrameworkInfo`, `CacheMetrics`), `dotnet_project_query` (`Logs` from an existing session), and `dotnet_server_metrics_query` (`Get`, `TokenSavingsGet`). These companion tools have restricted action schemas and runtime rejection of all other actions; existing aggregate calls remain supported.
+
+Do not choose permissions from an action name alone. Template discovery changes caches, project analysis evaluates MSBuild, EF discovery can build/run application code, and CLI first-run setup can change certificates, PATH, or workloads even for list/search/check operations. Keep those requests on their conservative aggregate tools. Standard hints describe a whole tool, not individual actions; they are not a sandbox or authorization mechanism. Read-only and open-world are separate concepts. See the [annotation and eligibility matrix](tool-surface-consolidation.md#tool-annotations-and-read-only-query-contracts).
+
 Once you've installed the .NET MCP Server, start with simple requests to verify everything works:
 
 **Verify Installation:**
@@ -1064,7 +1068,7 @@ AI: Reads dotnet://frameworks resource (fast, no execution)
 **❌ Less Efficient:**
 
 ```text
-AI: Executes dotnet_sdk (action: "Info", slower, runs dotnet command)
+AI: Executes dotnet_sdk_query (action: "Info", slower, runs dotnet command)
 ```
 
 ### 6. Bundle Related Operations
@@ -1527,23 +1531,14 @@ The .NET MCP Server (v1.1+) implements automatic concurrency control to prevent 
 
 #### ✅ Safe for Parallel Execution
 
-**Read-Only Operations:**
-These can always run concurrently with any other operations:
+**Verified Read-Only Query Operations:**
 
-- `dotnet_sdk` (action: "ListTemplates") - List templates
-- `dotnet_sdk` (action: "SearchTemplates") - Search templates  
-- `dotnet_sdk` (action: "TemplateInfo") - Get template info
-- `dotnet_sdk` (action: "ListTemplatePacks") - List installed template packs
-- `dotnet_package` (action: "Search") - Search NuGet packages
-- `dotnet_package` (action: "List") - List packages
-- `dotnet_sdk` (action: "Info") - Get SDK information
-- `dotnet_sdk` (action: "ListSdks") - List SDKs
-- `dotnet_sdk` (action: "ListRuntimes") - List runtimes
-- `dotnet_solution` (action: "List") - List projects in solution
-- `dotnet_package` (action: "ListReferences") - List project references
-- `dotnet_tool` (action: "List") - List tools
-- `dotnet_workload` (action: "List") - List workloads
-- All MCP resources (dotnet://sdk-info, etc.)
+- `dotnet_sdk_query` - SDK/runtime metadata, framework descriptions, existing cache metrics
+- `dotnet_project_query` - Already captured process logs
+- `dotnet_server_metrics_query` - Non-resetting telemetry snapshots
+- `dotnet_server_info`, `dotnet_server_capabilities` - Server metadata
+
+These queries can run concurrently, although snapshots may change while other calls modify the environment. Template/package/solution/tool/workload discovery remains on aggregate tools and is not guaranteed side-effect-free. Resource access remains useful for metadata but does not change the annotations of an equivalent tool call.
 
 **Example - Parallel Discovery:**
 
@@ -1551,12 +1546,12 @@ These can always run concurrently with any other operations:
 User: "Show me available web templates, search for Entity Framework packages, 
        and list my installed SDKs"
 
-AI can execute all three simultaneously:
+AI chooses the appropriate tools and considers shared SDK/cache state before parallelizing:
 - dotnet_sdk (action: "SearchTemplates", searchTerm: "web")
 - dotnet_package (action: "Search", searchTerm: "entityframework")
-- dotnet_sdk (action: "ListSdks")
+- dotnet_sdk_query (action: "ListSdks")
 
-All return immediately without conflicts.
+Only the SDK query carries a read-only tool-level hint. Template and package discovery can initialize caches or the CLI.
 ```
 
 #### ⚠️ Conditional Parallel Execution

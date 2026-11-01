@@ -290,7 +290,7 @@ public class McpConformanceTests : IAsyncLifetime
         var tools = await _client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert - Read-only tools should have ReadOnlyHint = true in protocol response
-        var readOnlyToolNames = new[] { "dotnet_help", "dotnet_server_capabilities", "dotnet_server_info" };
+        var readOnlyToolNames = new[] { "dotnet_sdk_query", "dotnet_project_query", "dotnet_server_metrics_query", "dotnet_server_capabilities", "dotnet_server_info" };
         foreach (var toolName in readOnlyToolNames)
         {
             var tool = tools.FirstOrDefault(t => t.Name == toolName);
@@ -300,6 +300,8 @@ public class McpConformanceTests : IAsyncLifetime
             Assert.NotNull(annotations);
             Assert.True(annotations.ReadOnlyHint, $"{toolName} should have ReadOnlyHint = true");
             Assert.True(annotations.IdempotentHint, $"{toolName} should have IdempotentHint = true");
+            Assert.False(annotations.DestructiveHint);
+            Assert.False(annotations.OpenWorldHint);
         }
     }
 
@@ -323,6 +325,8 @@ public class McpConformanceTests : IAsyncLifetime
             "dotnet_dev_certs", // CertificateClean/SecretsClear actions
             "dotnet_ef",        // DatabaseDrop action
             "dotnet_sdk",       // ConfigureGlobalJson action (writes global.json)
+            "dotnet_server_metrics", // Resets delete in-memory counters
+            "dotnet_help",      // CLI initialization and external command execution
         };
         foreach (var toolName in destructiveToolNames)
         {
@@ -332,6 +336,9 @@ public class McpConformanceTests : IAsyncLifetime
             var annotations = tool.ProtocolTool.Annotations;
             Assert.NotNull(annotations);
             Assert.True(annotations.DestructiveHint, $"{toolName} should have DestructiveHint = true");
+            Assert.False(annotations.ReadOnlyHint);
+            Assert.False(annotations.IdempotentHint);
+            Assert.Equal(toolName != "dotnet_server_metrics", annotations.OpenWorldHint);
         }
     }
 
@@ -935,6 +942,26 @@ public class McpConformanceTests : IAsyncLifetime
     #endregion
 
     #region OutputSchema Declaration Tests
+
+    [Fact]
+    public async Task Server_QueryRejection_IsAnErrorAndIsRecordedAsFailure()
+    {
+        Assert.NotNull(_client);
+        var rejected = await _client.CallToolAsync("dotnet_server_metrics_query",
+            new Dictionary<string, object?> { ["action"] = (int)DotNetMcp.Actions.DotnetServerMetricsAction.Reset },
+            cancellationToken: TestContext.Current.CancellationToken);
+        Assert.True(rejected.IsError);
+        Assert.Contains("Invalid action", rejected.GetText());
+
+        var snapshot = await _client.CallToolAsync("dotnet_server_metrics_query",
+            new Dictionary<string, object?> { ["action"] = "Get" },
+            cancellationToken: TestContext.Current.CancellationToken);
+        Assert.NotEqual(true, snapshot.IsError);
+        var content = Assert.IsType<JsonElement>(snapshot.StructuredContent);
+        var metric = content.GetProperty("toolMetrics").GetProperty("dotnet_server_metrics_query");
+        Assert.Equal(1, metric.GetProperty("failureCount").GetInt64());
+        Assert.Equal(0, metric.GetProperty("successCount").GetInt64());
+    }
 
     [Fact]
     public async Task Server_ToolList_StructuredTools_HaveOutputSchema()

@@ -36,7 +36,7 @@ public sealed partial class DotNetCliTools
     /// <param name="rollForward">SDK roll-forward policy for global.json (e.g., 'latestMinor', 'latestMajor', 'disable') for ConfigureGlobalJson action</param>
     /// <param name="testRunner">Test runner to configure in global.json (e.g., 'Microsoft.Testing.Platform', 'VSTest') for ConfigureGlobalJson action</param>
     /// <param name="globalJsonPath">Path to global.json file; defaults to 'global.json' in the working directory for ConfigureGlobalJson action</param>
-    [McpServerTool(Title = ".NET SDK & Templates", Destructive = true, UseStructuredContent = true, OutputSchemaType = typeof(SdkActionResult), IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Gear/Flat/gear_flat.svg")]
+    [McpServerTool(Title = ".NET SDK & Templates", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = true, UseStructuredContent = true, OutputSchemaType = typeof(SdkActionResult), IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Gear/Flat/gear_flat.svg")]
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 9.0)]
     [McpMeta("commonlyUsed", true)]
@@ -65,6 +65,30 @@ public sealed partial class DotNetCliTools
         string? testRunner = null,
         string? globalJsonPath = null,
         McpServer? server = null)
+        => await DotnetSdkCoreAsync(action, searchTerm, templateShortName, templatePackage, templateVersion,
+            nugetSource, interactive, force, framework, forceReload, filter, maxResults, workingDirectory,
+            sdkVersion, rollForward, testRunner, globalJsonPath, server);
+
+    private async Task<CallToolResult> DotnetSdkCoreAsync(
+        DotnetSdkAction action,
+        string? searchTerm = null,
+        string? templateShortName = null,
+        string? templatePackage = null,
+        string? templateVersion = null,
+        string? nugetSource = null,
+        bool interactive = false,
+        bool force = false,
+        string? framework = null,
+        bool forceReload = false,
+        string? filter = null,
+        int? maxResults = null,
+        string? workingDirectory = null,
+        string? sdkVersion = null,
+        string? rollForward = null,
+        string? testRunner = null,
+        string? globalJsonPath = null,
+        McpServer? server = null,
+        bool useDashboard = true)
     {
         object? metadata = null;
         async Task<string> QueryTemplatesAsync()
@@ -132,7 +156,7 @@ public sealed partial class DotNetCliTools
 
         // When structured content is available, the SDK dashboard UI renders it visually.
         // Add a hint so the LLM avoids repeating the same data in prose.
-        var displayText = structured is SdkActionResult
+        var displayText = useDashboard && structured is SdkActionResult
             ? $"[This data is displayed in the SDK dashboard UI. Summarize briefly or refer the user to it rather than repeating all details.]\n\n{textResult}"
             : textResult;
 

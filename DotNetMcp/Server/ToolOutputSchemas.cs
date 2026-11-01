@@ -44,6 +44,10 @@ internal static class ToolOutputSchemas
         (typeof(ServerMetricsResetResponse), []),
         (typeof(ServerMetricsTokenSavingsResponse), [])), []);
 
+    private static readonly JsonElement MetricsQuerySchema = WithFallback(Compose(
+        (typeof(ServerMetricsResponse), []),
+        (typeof(ServerMetricsTokenSavingsResponse), [])), []);
+
     internal static IMcpServerBuilder WithDotNetCliTools(this IMcpServerBuilder builder)
     {
         builder.Services.AddTransient<DotNetCliTools>();
@@ -59,8 +63,9 @@ internal static class ToolOutputSchemas
             {
                 OutputSchema = method.Name switch
                 {
-                    nameof(DotNetCliTools.DotnetSdk) => SdkSchema,
+                    nameof(DotNetCliTools.DotnetSdk) or nameof(DotNetCliTools.DotnetSdkQuery) => SdkSchema,
                     nameof(DotNetCliTools.DotnetServerMetrics) => MetricsSchema,
+                    nameof(DotNetCliTools.DotnetServerMetricsQuery) => MetricsQuerySchema,
                     nameof(DotNetCliTools.DotnetProject) => ProjectSchema,
                     nameof(DotNetCliTools.DotnetPackage) => PackageSchema,
                     nameof(DotNetCliTools.DotnetSolution) => SolutionSchema,

@@ -735,7 +735,21 @@ All tools include **visual icons** for improved discoverability in AI assistant 
 
 The server provides comprehensive .NET development capabilities through **consolidated MCP tools** that group related operations by domain, making it easier for AI assistants to select the right tool and compose workflows.
 
-> **Note**: The .NET MCP Server uses **consolidated tools only**. Each consolidated tool provides multiple related operations through an `action` parameter. This design improves AI orchestration and provides better semantic organization compared to having individual tools for each operation.
+> **Note**: Domain tools group related operations through an `action` parameter. Additive, restricted query companions let clients distinguish verified read-only requests using standard MCP annotations; all existing consolidated calls remain supported.
+
+### Read-Only Query Tools
+
+Prefer these tools for qualifying queries:
+
+| Tool | Allowed actions | Parameters besides `action` |
+|------|-----------------|-----------------------------|
+| `dotnet_sdk_query` | `Version`, `Info`, `ListSdks`, `ListRuntimes`, `FrameworkInfo`, `CacheMetrics` | Optional `framework`, `workingDirectory` |
+| `dotnet_project_query` | `Logs` | Required `sessionId`; optional `tailLines`, `since` |
+| `dotnet_server_metrics_query` | `Get`, `TokenSavingsGet` | None |
+
+These tools explicitly advertise read-only, idempotent, closed-world hints and reject other actions at runtime. The eight mixed domain tools retain conservative mutating/open-world hints, while metrics resets are mutating but closed-world. `dotnet_help` is also conservative because free-form help commands can invoke external tools or CLI initialization.
+
+Not every `List`, `Info`, or `Search` action qualifies: CLI initialization can modify SDK/certificate state, EF discovery can execute application code, and project analysis evaluates MSBuild. Read-only is not synonymous with offline, and annotations are hints rather than permissions or a sandbox. See [annotation rationale and action eligibility](doc/tool-surface-consolidation.md#tool-annotations-and-read-only-query-contracts).
 
 ### MCP Resources (Read-Only Context)
 
@@ -803,27 +817,24 @@ const sessionId = runResult.metadata.sessionId;
 
 // Wait a moment for the application to start...
 
-// Retrieve logs from the background session
-await callTool("dotnet_project", {
+// Retrieve logs from the background session without invoking a mutating tool
+await callTool("dotnet_project_query", {
   action: "Logs",
-  sessionId: sessionId,
-  machineReadable: true
+  sessionId: sessionId
 });
 
 // Retrieve only the last 50 lines of logs
-await callTool("dotnet_project", {
+await callTool("dotnet_project_query", {
   action: "Logs",
   sessionId: sessionId,
-  tailLines: 50,
-  machineReadable: true
+  tailLines: 50
 });
 
 // Retrieve logs since a specific timestamp
-await callTool("dotnet_project", {
+await callTool("dotnet_project_query", {
   action: "Logs",
   sessionId: sessionId,
-  since: "2024-01-01T12:00:00Z",
-  machineReadable: true
+  since: "2024-01-01T12:00:00Z"
 });
 
 // Stop the background process

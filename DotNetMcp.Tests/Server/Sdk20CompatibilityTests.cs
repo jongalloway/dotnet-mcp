@@ -172,7 +172,7 @@ public class Sdk20CompatibilityTests
         await using var host = await TestServer.CreateAsync(protocol);
         Assert.Equal(protocol, host.Client.NegotiatedProtocolVersion);
         var tools = await host.Client.ListToolsAsync(cancellationToken: host.Token);
-        Assert.Equal(13, tools.Count);
+        Assert.Equal(16, tools.Count); // 15 production methods and the controlled test tool.
         foreach (var tool in tools)
         {
             Assert.Equal(JsonValueKind.Object, tool.ProtocolTool.InputSchema.ValueKind);
@@ -1237,6 +1237,23 @@ public class Sdk20CompatibilityTests
         Assert.Equal(deny, result.GetText().Contains("blocked by governance policy", StringComparison.Ordinal));
     }
 
+    [Theory]
+    [InlineData("2026-07-28", false)]
+    [InlineData("2026-07-28", true)]
+    [InlineData("2025-11-25", false)]
+    [InlineData("2025-11-25", true)]
+    public async Task Governance_QueryToolNamesStillRequirePolicyPermission(string protocol, bool deny)
+    {
+        await using var host = await TestServer.CreateAsync(protocol, governance: deny ? "deny" : "allow");
+        var result = await host.Client.CallToolAsync("dotnet_sdk_query",
+            new Dictionary<string, object?> { ["action"] = "FrameworkInfo", ["framework"] = "net10.0" },
+            cancellationToken: host.Token);
+        Assert.Equal(deny, result.IsError == true);
+        Assert.Equal(deny, result.GetText().Contains("blocked by governance policy", StringComparison.Ordinal));
+        if (!deny)
+            Assert.Contains("Framework: net10.0", result.GetText());
+    }
+
     private static ElicitResult Confirmation(string action, bool confirmed) => new()
     {
         Action = action,
@@ -1434,7 +1451,7 @@ public class Sdk20CompatibilityTests
                 {
                     // Keep the scanner enabled. These production tools avoid the catalog's
                     // existing password field, whose fail-closed rejection is tested separately.
-                    builder.WithTools(new[] { nameof(DotNetCliTools.DotnetServerInfo), nameof(DotNetCliTools.DotnetProject) }
+                    builder.WithTools(new[] { nameof(DotNetCliTools.DotnetServerInfo), nameof(DotNetCliTools.DotnetProject), nameof(DotNetCliTools.DotnetSdkQuery) }
                         .Select(name => ToolOutputSchemas.CreateTool(typeof(DotNetCliTools).GetMethod(name)!)));
                 }
 #pragma warning disable MCPEXP003 // Match production's experimental MCP Apps registration.

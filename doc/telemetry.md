@@ -81,7 +81,9 @@ The shipped `Community.Mcp.DotNet` server does **not** register an OpenTelemetry
 
 ### Coexistence with Server Metrics
 
-`ToolMetricsAccumulator` and the token savings services in `DotNetMcp/Telemetry` collect in-memory summaries exposed by `dotnet_server_metrics`. They do not define an ActivitySource or Meter and do not compete with `Experimental.ModelContextProtocol`. Their counts, timing summaries, and token estimates remain separate from SDK request-duration histograms; subscribing to the SDK Meter does not export these accumulators automatically.
+`ToolMetricsAccumulator` and the token savings services in `DotNetMcp/Telemetry` collect in-memory summaries exposed by `dotnet_server_metrics`. Prefer `dotnet_server_metrics_query` with `Get` or `TokenSavingsGet` for non-resetting snapshots; resets remain on the original tool. They do not define an ActivitySource or Meter and do not compete with `Experimental.ModelContextProtocol`. Their counts, timing summaries, and token estimates remain separate from SDK request-duration histograms; subscribing to the SDK Meter does not export these accumulators automatically.
+
+The request filter counts both exceptions and returned `isError: true` results as failures, including rejected query actions. It records each tool's actual name rather than combining query and aggregate names. Reading a snapshot does not reset counters, although request accounting records that read after the result is produced, so successive snapshots may differ.
 
 ## Structured Logging Configuration
 

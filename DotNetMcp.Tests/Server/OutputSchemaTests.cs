@@ -19,11 +19,11 @@ public class OutputSchemaTests
     [Theory]
     [InlineData("2026-07-28")]
     [InlineData("2025-11-25")]
-    public async Task AllSixSchemas_ValidateRealActionFamiliesAndCompatibilityText(string protocol)
+    public async Task AllEightSchemas_ValidateRealActionFamiliesAndCompatibilityText(string protocol)
     {
         await using var host = await Host.CreateAsync(protocol);
         var tools = await host.Client.ListToolsAsync(cancellationToken: host.Token);
-        Assert.Equal(6, tools.Count(t => t.ProtocolTool.OutputSchema.HasValue));
+        Assert.Equal(8, tools.Count(t => t.ProtocolTool.OutputSchema.HasValue));
         foreach (var action in new[] { "Info", "FrameworkInfo", "CacheMetrics", "ListTemplates", "SearchTemplates", "TemplateInfo" })
         {
             var result = await host.Client.CallToolAsync("dotnet_sdk", new Dictionary<string, object?>
@@ -155,6 +155,14 @@ public class OutputSchemaTests
                 new Dictionary<string, object?> { ["action"] = action }, cancellationToken: host.Token);
             Assert.True(result.IsError);
             AssertContract(tools.Single(t => t.Name == "dotnet_server_metrics").ProtocolTool.OutputSchema!.Value, result);
+            Assert.Contains("CAPABILITY_NOT_AVAILABLE", result.GetText());
+        }
+        foreach (var action in Enum.GetNames<DotnetServerMetricsQueryAction>())
+        {
+            var result = await host.Client.CallToolAsync("dotnet_server_metrics_query",
+                new Dictionary<string, object?> { ["action"] = action }, cancellationToken: host.Token);
+            Assert.True(result.IsError);
+            AssertContract(tools.Single(t => t.Name == "dotnet_server_metrics_query").ProtocolTool.OutputSchema!.Value, result);
             Assert.Contains("CAPABILITY_NOT_AVAILABLE", result.GetText());
         }
         foreach (var (name, action) in new[] { ("dotnet_sdk", "TemplateInfo"), ("dotnet_package", "Add"), ("dotnet_solution", "Create"), ("dotnet_project", "SetProperty") })
@@ -409,6 +417,8 @@ public class OutputSchemaTests
         foreach (var (name, action) in new[]
         {
             ("dotnet_sdk", "Version"), ("dotnet_sdk", "ListSdks"), ("dotnet_sdk", "ListRuntimes"),
+            ("dotnet_sdk_query", "Version"), ("dotnet_sdk_query", "Info"),
+            ("dotnet_sdk_query", "ListSdks"), ("dotnet_sdk_query", "ListRuntimes"),
             ("dotnet_package", "List"), ("dotnet_solution", "List"),
             ("dotnet_project", "Build"), ("dotnet_project", "Test"),
             ("dotnet_server_capabilities", (string?)null)
@@ -458,6 +468,10 @@ public class OutputSchemaTests
             AssertContract(schema, result);
             Assert.Equal("Logs", result.StructuredContent!.Value.GetProperty("action").GetString());
             Assert.Equal(result.GetText(), result.StructuredContent.Value.GetProperty("text").GetString());
+            var query = await host.Client.CallToolAsync("dotnet_project_query", new Dictionary<string, object?>
+            { ["action"] = "Logs", ["sessionId"] = sessionId }, cancellationToken: host.Token);
+            Assert.Equal(result.GetText(), query.GetText());
+            Assert.False(query.IsError == true);
             foreach (var arguments in new Dictionary<string, object?>[]
             {
                 new() { ["action"] = "Logs" },
@@ -469,6 +483,8 @@ public class OutputSchemaTests
                 var invalid = await host.Client.CallToolAsync("dotnet_project", arguments, cancellationToken: host.Token);
                 Assert.True(invalid.IsError);
                 AssertContract(schema, invalid);
+                var invalidQuery = await host.Client.CallToolAsync("dotnet_project_query", arguments, cancellationToken: host.Token);
+                Assert.True(invalidQuery.IsError);
             }
         }
         finally { Assert.True(host.Sessions.TryStopSession(sessionId, out _)); }
@@ -481,14 +497,17 @@ public class OutputSchemaTests
     {
         await using var host = await Host.CreateAsync(protocol);
         var tools = await host.Client.ListToolsAsync(cancellationToken: host.Token);
-        foreach (var action in new[] { "Version", "ListSdks", "ListRuntimes" })
+        foreach (var action in Enum.GetNames<DotnetSdkQueryAction>())
         {
-            var result = await host.Client.CallToolAsync("dotnet_sdk",
-                new Dictionary<string, object?> { ["action"] = action }, cancellationToken: host.Token);
-            var content = Assert.IsType<JsonElement>(result.StructuredContent);
-            Assert.Equal(JsonValueKind.Object, content.ValueKind);
-            Assert.False(content.TryGetProperty("result", out _));
-            AssertValid(tools.Single(tool => tool.Name == "dotnet_sdk").ProtocolTool.OutputSchema!.Value, content);
+            foreach (var name in new[] { "dotnet_sdk", "dotnet_sdk_query" })
+            {
+                var result = await host.Client.CallToolAsync(name,
+                    new Dictionary<string, object?> { ["action"] = action }, cancellationToken: host.Token);
+                var content = Assert.IsType<JsonElement>(result.StructuredContent);
+                Assert.Equal(JsonValueKind.Object, content.ValueKind);
+                Assert.False(content.TryGetProperty("result", out _));
+                AssertValid(tools.Single(tool => tool.Name == name).ProtocolTool.OutputSchema!.Value, content);
+            }
         }
 
         host.Metrics.RecordInvocation("dotnet_sdk", 25, success: true);
@@ -497,17 +516,32 @@ public class OutputSchemaTests
             [new TokenSavingsStepInput { StepId = "schema-test", StepKind = "discovery", PromptText = "Find SDKs" }]));
         foreach (var action in new[] { "Get", "TokenSavingsGet", "TokenSavingsReset", "Reset", "Get" })
         {
-            var result = await host.Client.CallToolAsync("dotnet_server_metrics",
-                new Dictionary<string, object?> { ["action"] = action }, cancellationToken: host.Token);
-            var content = Assert.IsType<JsonElement>(result.StructuredContent);
-            Assert.Equal(JsonValueKind.Object, content.ValueKind);
-            Assert.False(content.TryGetProperty("result", out _));
-            AssertValid(tools.Single(tool => tool.Name == "dotnet_server_metrics").ProtocolTool.OutputSchema!.Value, content);
-            if (action == "TokenSavingsGet")
-                Assert.Equal(1, content.GetProperty("workflowTokenSavings").GetArrayLength());
-            if (action == "TokenSavingsReset")
-                Assert.Equal(0, content.GetProperty("workflowTokenSavings").GetArrayLength());
+            foreach (var name in action is "Get" or "TokenSavingsGet"
+                ? new[] { "dotnet_server_metrics", "dotnet_server_metrics_query" }
+                : new[] { "dotnet_server_metrics" })
+            {
+                var result = await host.Client.CallToolAsync(name,
+                    new Dictionary<string, object?> { ["action"] = action }, cancellationToken: host.Token);
+                var content = Assert.IsType<JsonElement>(result.StructuredContent);
+                Assert.Equal(JsonValueKind.Object, content.ValueKind);
+                Assert.False(content.TryGetProperty("result", out _));
+                AssertValid(tools.Single(tool => tool.Name == name).ProtocolTool.OutputSchema!.Value, content);
+                if (action == "TokenSavingsGet")
+                    Assert.Equal(1, content.GetProperty("workflowTokenSavings").GetArrayLength());
+                if (action == "TokenSavingsReset")
+                    Assert.Equal(0, content.GetProperty("workflowTokenSavings").GetArrayLength());
+            }
         }
+
+    }
+
+    [Fact]
+    public void MetricsQuerySchema_DoesNotAdvertiseResetResponses()
+    {
+        var schema = ToolOutputSchemas.CreateTool(typeof(DotNetCliTools).GetMethod(nameof(DotNetCliTools.DotnetServerMetricsQuery))!)
+            .ProtocolTool.OutputSchema!.Value;
+        Assert.False(schema.GetProperty("$defs").TryGetProperty(nameof(ServerMetricsResetResponse), out _));
+        AssertInvalid(schema, Parse("""{"success":true,"message":"Server metrics have been reset."}"""));
     }
 
     [Fact]
