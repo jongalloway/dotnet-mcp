@@ -182,21 +182,22 @@ public sealed partial class DotNetCliTools
             var lockInfo = BuildLockInfo("build", GetOperationTarget(effectiveProject, workingDirectory),
                 isContended: IsConcurrencyConflictText(textResult));
             var buildResult = ErrorResultFactory.ParseBuildOutput(textResult, effectiveProject, configuration, lockInfo);
+            var isError = !buildResult.Success || StructuredContentHelper.IsFailure(textResult);
             var projectActionResult = new ProjectActionResult
             {
-                Success = buildResult.Success,
+                Success = !isError,
                 Project = buildResult.Project,
                 Configuration = buildResult.Configuration,
                 ErrorCount = buildResult.ErrorCount,
                 WarningCount = buildResult.WarningCount,
-                Summary = buildResult.Summary,
+                Summary = isError && buildResult.Success ? textResult.Trim() : buildResult.Summary,
                 Errors = buildResult.Errors,
                 Warnings = buildResult.Warnings,
                 LockInfo = buildResult.LockInfo
             };
             var textContent = GetBuildTextForStructuredResponse(textResult, buildResult);
             return StructuredContentHelper.ToCallToolResult(textContent, projectActionResult,
-                isError: !buildResult.Success || StructuredContentHelper.IsFailure(textResult));
+                isError: isError);
         }
 
         if (action == DotnetProjectAction.Test)
@@ -204,19 +205,20 @@ public sealed partial class DotNetCliTools
             var lockInfo = BuildLockInfo("test", GetOperationTarget(effectiveProject, workingDirectory),
                 isContended: IsConcurrencyConflictText(textResult));
             var testResult = ErrorResultFactory.ParseTestOutput(textResult, lockInfo);
+            var isError = !testResult.Success || StructuredContentHelper.IsFailure(textResult);
             var projectActionResult = new ProjectActionResult
             {
-                Success = testResult.Success,
+                Success = !isError,
                 Passed = testResult.Passed,
                 Failed = testResult.Failed,
                 Skipped = testResult.Skipped,
                 DurationMs = testResult.DurationMs,
-                Summary = testResult.Summary,
+                Summary = isError && testResult.Success ? textResult.Trim() : testResult.Summary,
                 FirstFailures = testResult.FirstFailures,
                 LockInfo = testResult.LockInfo
             };
             return StructuredContentHelper.ToCallToolResult(textResult, projectActionResult,
-                isError: !testResult.Success || StructuredContentHelper.IsFailure(textResult));
+                isError: isError);
         }
 
         // For other concurrency-gated actions (Run, Publish), include lock metadata
@@ -230,6 +232,13 @@ public sealed partial class DotNetCliTools
             return StructuredContentHelper.ToCallToolResult(textResult, new ProjectActionResult { LockInfo = lockInfo },
                 isError: StructuredContentHelper.IsFailure(textResult) || lockInfo.LockContended == true);
         }
+
+        // Logs contain application output, not the executor's exit status.
+        if (action == DotnetProjectAction.Logs)
+            return textResult.StartsWith("Error:", StringComparison.OrdinalIgnoreCase)
+                ? StructuredContentHelper.ApplicationError(textResult)
+                : StructuredContentHelper.ToCallToolResult(textResult,
+                    new ActionTextResult { Action = action.ToString(), Text = textResult });
 
         if (StructuredContentHelper.IsFailure(textResult))
             return StructuredContentHelper.ApplicationError(textResult);

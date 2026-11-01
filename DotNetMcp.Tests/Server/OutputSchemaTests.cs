@@ -1,4 +1,5 @@
 using System.IO.Pipelines;
+using System.Diagnostics;
 using DotNetMcp.Actions;
 using System.Reflection;
 using System.Text.Json;
@@ -356,10 +357,121 @@ public class OutputSchemaTests
                 Assert.True(result.IsError);
                 AssertContract(schema, result);
                 Assert.True(result.StructuredContent!.Value.GetProperty("lockInfo").GetProperty("lockContended").GetBoolean());
+                if (action is "Build" or "Test")
+                {
+                    Assert.False(result.StructuredContent.Value.GetProperty("success").GetBoolean());
+                    Assert.DoesNotContain("succeeded", result.StructuredContent.Value.GetProperty("summary").GetString()!,
+                        StringComparison.OrdinalIgnoreCase);
+                }
             }
             Assert.Equal(0, executions);
         }
         finally { host.Concurrency.ReleaseOperation("build", project); }
+    }
+
+    [Theory]
+    [InlineData("2026-07-28")]
+    [InlineData("2025-11-25")]
+    public async Task BuildAndTestValidationFailures_HaveConsistentStructuredOutcomes(string protocol)
+    {
+        var executions = 0;
+        await using var host = await Host.CreateAsync(protocol, executor: (_, _, _) =>
+        {
+            executions++;
+            return Task.FromResult("Exit Code: 0");
+        });
+        var schema = (await host.Client.ListToolsAsync(cancellationToken: host.Token))
+            .Single(t => t.Name == "dotnet_project").ProtocolTool.OutputSchema!.Value;
+        foreach (var action in new[] { "Build", "Test" })
+        {
+            var result = await host.Client.CallToolAsync("dotnet_project", new Dictionary<string, object?>
+            {
+                ["action"] = action, ["project"] = "fixture.csproj", ["configuration"] = "Invalid"
+            }, cancellationToken: host.Token);
+            Assert.True(result.IsError);
+            AssertContract(schema, result);
+            Assert.False(result.StructuredContent!.Value.GetProperty("success").GetBoolean());
+            Assert.DoesNotContain("succeeded", result.StructuredContent.Value.GetProperty("summary").GetString()!,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.True(result.StructuredContent.Value.TryGetProperty("lockInfo", out _));
+        }
+        Assert.Equal(0, executions);
+    }
+
+    [Theory]
+    [InlineData("2026-07-28")]
+    [InlineData("2025-11-25")]
+    public async Task ExecutorStartupFailures_NeverProduceSuccessfulPayloads(string protocol)
+    {
+        const string failure = "dotnet command could not be started: executable unavailable";
+        await using var host = await Host.CreateAsync(protocol, executor: (_, _, _) => Task.FromResult(failure));
+        var tools = await host.Client.ListToolsAsync(cancellationToken: host.Token);
+        foreach (var (name, action) in new[]
+        {
+            ("dotnet_sdk", "Version"), ("dotnet_sdk", "ListSdks"), ("dotnet_sdk", "ListRuntimes"),
+            ("dotnet_package", "List"), ("dotnet_solution", "List"),
+            ("dotnet_project", "Build"), ("dotnet_project", "Test"),
+            ("dotnet_server_capabilities", (string?)null)
+        })
+        {
+            var result = await host.Client.CallToolAsync(name, new Dictionary<string, object?>
+            {
+                ["action"] = action, ["project"] = "fixture.csproj", ["solution"] = "fixture.slnx"
+            }, cancellationToken: host.Token);
+            Assert.True(result.IsError, $"{name}/{action}: {result.GetText()}");
+            AssertContract(tools.Single(t => t.Name == name).ProtocolTool.OutputSchema!.Value, result);
+            Assert.False(result.StructuredContent!.Value.GetProperty("success").GetBoolean());
+            foreach (var field in new[] { "sdks", "runtimes", "packages", "projects", "serverVersion" })
+                Assert.False(result.StructuredContent.Value.TryGetProperty(field, out _));
+        }
+    }
+
+    [Theory]
+    [InlineData("2026-07-28")]
+    [InlineData("2025-11-25")]
+    public async Task LogsContainingFailureText_RemainSuccessfulRetrievals(string protocol)
+    {
+        await using var host = await Host.CreateAsync(protocol);
+        var schema = (await host.Client.ListToolsAsync(cancellationToken: host.Token))
+            .Single(t => t.Name == "dotnet_project").ProtocolTool.OutputSchema!.Value;
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = OperatingSystem.IsWindows() ? "cmd.exe" : "sh",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        startInfo.ArgumentList.Add(OperatingSystem.IsWindows() ? "/c" : "-c");
+        startInfo.ArgumentList.Add("echo Exit Code: 1");
+        using var process = Process.Start(startInfo)!;
+        var sessionId = Guid.NewGuid().ToString("N");
+        Assert.True(host.Sessions.RegisterSession(sessionId, process, "run", "fixture"));
+        try
+        {
+            await process.WaitForExitAsync(host.Token);
+            process.WaitForExit();
+            var result = await host.Client.CallToolAsync("dotnet_project", new Dictionary<string, object?>
+            { ["action"] = "Logs", ["sessionId"] = sessionId }, cancellationToken: host.Token);
+            Assert.Contains("Exit Code: 1", result.GetText());
+            Assert.False(result.IsError == true);
+            AssertContract(schema, result);
+            Assert.Equal("Logs", result.StructuredContent!.Value.GetProperty("action").GetString());
+            Assert.Equal(result.GetText(), result.StructuredContent.Value.GetProperty("text").GetString());
+            foreach (var arguments in new Dictionary<string, object?>[]
+            {
+                new() { ["action"] = "Logs" },
+                new() { ["action"] = "Logs", ["sessionId"] = "missing" },
+                new() { ["action"] = "Logs", ["sessionId"] = sessionId, ["tailLines"] = 0 },
+                new() { ["action"] = "Logs", ["sessionId"] = sessionId, ["since"] = "invalid" }
+            })
+            {
+                var invalid = await host.Client.CallToolAsync("dotnet_project", arguments, cancellationToken: host.Token);
+                Assert.True(invalid.IsError);
+                AssertContract(schema, invalid);
+            }
+        }
+        finally { Assert.True(host.Sessions.TryStopSession(sessionId, out _)); }
     }
 
     [Theory]
@@ -553,6 +665,7 @@ public class OutputSchemaTests
         public ToolMetricsAccumulator Metrics { get; } = new();
         public TokenSavingsAccumulator TokenSavings { get; } = new();
         public ConcurrencyManager Concurrency { get; } = new();
+        public ProcessSessionManager Sessions { get; } = new();
         public CancellationToken Token => _timeout.Token;
 
         public static async Task<Host> CreateAsync(string protocol, McpServerTool? tool = null,
@@ -566,7 +679,7 @@ public class OutputSchemaTests
                 var services = new ServiceCollection();
                 services.AddLogging();
                 services.AddSingleton(host.Concurrency);
-                services.AddSingleton<ProcessSessionManager>();
+                services.AddSingleton(host.Sessions);
                 services.AddSingleton(host.Metrics);
                 services.AddSingleton(host.TokenSavings);
                 services.AddSingleton<TokenSavingsEstimator>();

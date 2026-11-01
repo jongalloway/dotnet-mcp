@@ -57,7 +57,8 @@ public static class StructuredContentHelper
             if (int.TryParse(codeText.Trim(), out var code))
                 return code != 0 && ErrorResultFactory.CreateResult(string.Empty, string.Empty, code, command) is not SuccessResult;
         }
-        if (trimmed.StartsWith("Error:", StringComparison.OrdinalIgnoreCase) ||
+        if (trimmed.StartsWith("dotnet command could not be started:", StringComparison.Ordinal) ||
+            trimmed.StartsWith("Error:", StringComparison.OrdinalIgnoreCase) ||
             trimmed.StartsWith("Error accessing ", StringComparison.Ordinal) ||
             trimmed.StartsWith("Error getting ", StringComparison.Ordinal) ||
             trimmed.StartsWith("Error searching ", StringComparison.Ordinal) ||

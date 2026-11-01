@@ -62,6 +62,8 @@ These production schemas retain a root `type: "object"` and existing object enve
 
 Known validation, domain, capability and CLI failures set `isError: true` and return a schema-covered `{ "success": false, "error": "<existing response>" }` object, or the existing typed `ErrorResponse` (`success`, `errors`) for missing metrics capabilities. Failed Build/Test retain their diagnostic payloads, and failed Run/Publish retain lock metadata. Failed lists never become successful empty collections; an actual successful empty list remains valid. Exit status and known application error envelopes determine failures, not incidental words in stdout. Invalid actions do not fall through to a default successful action.
 
+Executor startup failures are errors even without an exit-code line. Build/Test validation and lock-contention failures also set `success: false` and retain their failure message as the summary when the command never ran. Successful `Logs` retrieval is independent of application output: an `Exit Code: 1` line in retrieved logs is data, not the retrieval's exit status. Invalid log requests still return tool errors.
+
 The existing error factory's idempotent exception is retained: template-pack installation exit code 106 means the pack is already installed and remains a successful text-fallback result. Other operations returning 106 are failures.
 
 Unexpected exceptions caught by the production filter may remain **text-only `isError: true` execution errors**, distinct from successful structured contracts. Protocol errors, cancellation and input-required suspension propagate unchanged. Invocation telemetry treats returned `isError` results as failures.
