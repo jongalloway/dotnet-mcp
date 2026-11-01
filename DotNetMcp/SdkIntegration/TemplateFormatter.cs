@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using Microsoft.TemplateEngine.Abstractions;
 
 namespace DotNetMcp;
@@ -8,14 +9,14 @@ namespace DotNetMcp;
 /// Decoupled from <see cref="ITemplateInfo"/> to enable deterministic tests without Template Engine state.
 /// </summary>
 internal sealed record TemplateDisplayInfo(
-    string ShortName,
-    IReadOnlyList<string> ShortNames,
-    string Language,
-    string Type,
-    string? Description,
-    string? Name,
-    string? Author,
-    IReadOnlyList<TemplateParameterDisplayInfo> Parameters)
+    [property: JsonPropertyName("shortName")] string ShortName,
+    [property: JsonPropertyName("shortNames")] IReadOnlyList<string> ShortNames,
+    [property: JsonPropertyName("language")] string Language,
+    [property: JsonPropertyName("type")] string Type,
+    [property: JsonPropertyName("description")] string? Description,
+    [property: JsonPropertyName("name")] string? Name,
+    [property: JsonPropertyName("author")] string? Author,
+    [property: JsonPropertyName("parameters")] IReadOnlyList<TemplateParameterDisplayInfo> Parameters)
 {
     /// <summary>Creates a <see cref="TemplateDisplayInfo"/> from an <see cref="ITemplateInfo"/> instance.</summary>
     internal static TemplateDisplayInfo FromTemplateInfo(ITemplateInfo template) =>
@@ -39,10 +40,10 @@ internal sealed record TemplateDisplayInfo(
 /// A pure-data representation of a template parameter used for formatting output.
 /// </summary>
 internal sealed record TemplateParameterDisplayInfo(
-    string Name,
-    string? Description,
-    string DataType,
-    string? DefaultValue);
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("description")] string? Description,
+    [property: JsonPropertyName("dataType")] string DataType,
+    [property: JsonPropertyName("defaultValue")] string? DefaultValue);
 
 /// <summary>
 /// Pure formatting functions for template metadata.

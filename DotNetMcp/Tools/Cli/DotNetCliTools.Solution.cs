@@ -120,7 +120,7 @@ public sealed partial class DotNetCliTools
         // Validate action parameter
         if (!ParameterValidator.ValidateAction<DotnetSolutionAction>(action, out var actionError))
         {
-            return StructuredContentHelper.ToCallToolResult($"Error: {actionError}");
+            return StructuredContentHelper.ApplicationError($"Error: {actionError}");
         }
 
         // Auto-detect solution from workspace roots when not explicitly specified.
@@ -148,11 +148,11 @@ public sealed partial class DotNetCliTools
         };
 
         // Add structured content for List action
-        object? structured = action == DotnetSolutionAction.List
+        object? structured = action == DotnetSolutionAction.List && !StructuredContentHelper.IsFailure(textResult)
             ? BuildSolutionListStructuredContent(textResult)
             : null;
 
-        return StructuredContentHelper.ToCallToolResult(textResult, structured);
+        return StructuredContentHelper.ActionResult(action, textResult, structured);
     }
 
     private async Task<string> HandleCreateAction(string? name, string? output, string? format)

@@ -66,6 +66,20 @@ public sealed partial class DotNetCliTools
         string? globalJsonPath = null,
         McpServer? server = null)
     {
+        object? metadata = null;
+        async Task<string> QueryTemplatesAsync()
+        {
+            var query = await TemplateEngineHelper.QueryStructuredAsync(action, forceReload, _logger, filter, maxResults, searchTerm, templateShortName);
+            metadata = query.Payload;
+            return query.Text;
+        }
+        async Task<string> QuerySdksAsync()
+        {
+            var text = await ExecuteDotNetCommand("--list-sdks");
+            if (!StructuredContentHelper.IsFailure(text))
+                metadata = await BuildListSdksWithRuntimesStructuredContentAsync(text);
+            return text;
+        }
         var textResult = await WithWorkingDirectoryAsync(workingDirectory, async () =>
         {
             // Validate action parameter
@@ -80,18 +94,20 @@ public sealed partial class DotNetCliTools
                 // Use executor directly so workingDirectory is honored without changing helper method signatures
                 DotnetSdkAction.Version => await ExecuteDotNetCommand("--version"),
                 DotnetSdkAction.Info => await ExecuteDotNetCommand("--info"),
-                DotnetSdkAction.ListSdks => await ExecuteDotNetCommand("--list-sdks"),
+                DotnetSdkAction.ListSdks => await QuerySdksAsync(),
                 DotnetSdkAction.ListRuntimes => await ExecuteDotNetCommand("--list-runtimes"),
 
-                DotnetSdkAction.ListTemplates => await DotnetTemplateList(forceReload, filter, maxResults),
+                DotnetSdkAction.ListTemplates => await QueryTemplatesAsync(),
+                DotnetSdkAction.SearchTemplates when !string.IsNullOrWhiteSpace(searchTerm) => await QueryTemplatesAsync(),
+                DotnetSdkAction.TemplateInfo when !string.IsNullOrWhiteSpace(templateShortName) => await QueryTemplatesAsync(),
                 DotnetSdkAction.SearchTemplates => await HandleSearchTemplatesAction(searchTerm, forceReload),
                 DotnetSdkAction.TemplateInfo => await HandleTemplateInfoAction(templateShortName, forceReload),
                 DotnetSdkAction.ClearTemplateCache => await DotnetTemplateClearCache(server),
                 DotnetSdkAction.ListTemplatePacks => await DotnetTemplatePackList(),
                 DotnetSdkAction.InstallTemplatePack => await HandleTemplatePackInstallAction(templatePackage, templateVersion, nugetSource, interactive, force, server),
                 DotnetSdkAction.UninstallTemplatePack => await HandleTemplatePackUninstallAction(templatePackage, server),
-                DotnetSdkAction.FrameworkInfo => await DotnetFrameworkInfo(framework),
-                DotnetSdkAction.CacheMetrics => await DotnetCacheMetrics(),
+                DotnetSdkAction.FrameworkInfo => await DotnetFrameworkInfoCoreAsync(framework, value => metadata = value),
+                DotnetSdkAction.CacheMetrics => await DotnetCacheMetricsCore(value => metadata = value),
                 DotnetSdkAction.ConfigureGlobalJson => HandleConfigureGlobalJsonAction(sdkVersion, rollForward, testRunner, globalJsonPath),
                 _ => $"Error: Action '{action}' is not supported."
             };
@@ -101,21 +117,27 @@ public sealed partial class DotNetCliTools
         // For ListSdks, also fetch runtimes so the dashboard UI can render both
         // from a single tool-result notification (tools/call from MCP App iframes
         // is not reliably supported by all hosts).
-        SdkActionResult? structured = action switch
+        if (StructuredContentHelper.IsFailure(textResult, action == DotnetSdkAction.InstallTemplatePack ? "dotnet new install" : null))
+            return StructuredContentHelper.ApplicationError(textResult);
+        if (metadata is ApplicationErrorResult)
+            return StructuredContentHelper.ToCallToolResult(textResult, metadata, isError: true);
+        object? structured = metadata ?? (action switch
         {
             DotnetSdkAction.Version => BuildVersionStructuredContent(textResult),
-            DotnetSdkAction.ListSdks => await BuildListSdksWithRuntimesStructuredContentAsync(textResult),
             DotnetSdkAction.ListRuntimes => BuildListRuntimesStructuredContent(textResult),
-            _ => null
-        };
+            _ => (object?)null
+        });
+        if (action == DotnetSdkAction.Version && structured is null)
+            return StructuredContentHelper.ApplicationError(textResult);
 
         // When structured content is available, the SDK dashboard UI renders it visually.
         // Add a hint so the LLM avoids repeating the same data in prose.
-        var displayText = structured != null
+        var displayText = structured is SdkActionResult
             ? $"[This data is displayed in the SDK dashboard UI. Summarize briefly or refer the user to it rather than repeating all details.]\n\n{textResult}"
             : textResult;
 
-        return StructuredContentHelper.ToCallToolResult(displayText, structured);
+        return StructuredContentHelper.ToCallToolResult(displayText,
+            structured ?? new ActionTextResult { Action = action.ToString(), Text = textResult });
     }
 
     private async Task<string> HandleSearchTemplatesAction(string? searchTerm, bool forceReload)
@@ -438,14 +460,22 @@ public sealed partial class DotNetCliTools
     [McpMeta("category", "template")]
     [McpMeta("usesTemplateEngine", true)]
     internal Task<string> DotnetCacheMetrics()
+        => DotnetCacheMetricsCore();
+
+    private Task<string> DotnetCacheMetricsCore(Action<CacheMetricsResult>? capture = null)
     {
+        var snapshots = new CacheMetricsResult(CacheSnapshot.FromMetrics(TemplateEngineHelper.Metrics),
+            CacheSnapshot.FromMetrics(DotNetResources.GetSdkMetrics()), CacheSnapshot.FromMetrics(DotNetResources.GetRuntimeMetrics()),
+            CacheSnapshot.FromMetrics(DotNetResources.GetWorkspaceMetrics()));
+        capture?.Invoke(snapshots);
+        static string Format(CacheSnapshot snapshot) => $"Hits: {snapshot.Hits}, Misses: {snapshot.Misses}, Hit Ratio: {snapshot.HitRatio:P2}";
         var result = new StringBuilder();
         result.AppendLine("Cache Metrics:");
         result.AppendLine();
-        result.AppendLine($"Templates: {TemplateEngineHelper.Metrics}");
-        result.AppendLine($"SDK Info: {DotNetResources.GetSdkMetrics()}");
-        result.AppendLine($"Runtime Info: {DotNetResources.GetRuntimeMetrics()}");
-        result.AppendLine($"Workspace: {DotNetResources.GetWorkspaceMetrics()}");
+        result.AppendLine($"Templates: {Format(snapshots.Templates)}");
+        result.AppendLine($"SDK Info: {Format(snapshots.Sdk)}");
+        result.AppendLine($"Runtime Info: {Format(snapshots.Runtime)}");
+        result.AppendLine($"Workspace: {Format(snapshots.Workspace)}");
         return Task.FromResult(result.ToString());
     }
 
@@ -457,11 +487,19 @@ public sealed partial class DotNetCliTools
     [McpMeta("category", "framework")]
     [McpMeta("usesFrameworkHelper", true)]
     internal async Task<string> DotnetFrameworkInfo(string? framework = null)
+        => await DotnetFrameworkInfoCoreAsync(framework);
+
+    private async Task<string> DotnetFrameworkInfoCoreAsync(string? framework, Action<FrameworkListResult>? capture = null)
     {
         var result = new StringBuilder();
+        var metadata = new List<FrameworkMetadata>();
+        static FrameworkMetadata Describe(string fw) => new(fw, FrameworkHelper.GetFrameworkDescription(fw),
+            FrameworkHelper.IsLtsFramework(fw), FrameworkHelper.IsModernNet(fw), FrameworkHelper.IsNetCore(fw),
+            FrameworkHelper.IsNetFramework(fw), FrameworkHelper.IsNetStandard(fw));
 
         if (!string.IsNullOrEmpty(framework))
         {
+            metadata.Add(Describe(framework));
             result.AppendLine($"Framework: {framework}");
             result.AppendLine($"Description: {FrameworkHelper.GetFrameworkDescription(framework)}");
             result.AppendLine($"Is LTS: {FrameworkHelper.IsLtsFramework(framework)}");
@@ -486,6 +524,8 @@ public sealed partial class DotNetCliTools
                     supportedModernFrameworks.Insert(0, DotNetSdkConstants.TargetFrameworks.Net110);
                 }
             }
+            catch (OperationCanceledException) { throw; }
+            catch (InputRequiredException) { throw; }
             catch (Exception ex)
             {
                 // If SDK discovery fails, fall back to stable list.
@@ -495,6 +535,7 @@ public sealed partial class DotNetCliTools
             result.AppendLine("Modern .NET Frameworks (5.0+):");
             foreach (var fw in supportedModernFrameworks)
             {
+                metadata.Add(Describe(fw));
                 var ltsMarker = FrameworkHelper.IsLtsFramework(fw) ? " (LTS)" : string.Empty;
                 result.AppendLine($"  {fw}{ltsMarker} - {FrameworkHelper.GetFrameworkDescription(fw)}");
             }
@@ -503,6 +544,7 @@ public sealed partial class DotNetCliTools
             result.AppendLine(".NET Core Frameworks:");
             foreach (var fw in FrameworkHelper.GetSupportedNetCoreFrameworks())
             {
+                metadata.Add(Describe(fw));
                 var ltsMarker = FrameworkHelper.IsLtsFramework(fw) ? " (LTS)" : string.Empty;
                 result.AppendLine($"  {fw}{ltsMarker} - {FrameworkHelper.GetFrameworkDescription(fw)}");
             }
@@ -512,6 +554,7 @@ public sealed partial class DotNetCliTools
             result.AppendLine($"Latest LTS: {FrameworkHelper.GetLatestLtsFramework()}");
         }
 
+        capture?.Invoke(new FrameworkListResult(metadata.ToArray(), FrameworkHelper.GetLatestRecommendedFramework(), FrameworkHelper.GetLatestLtsFramework()));
         return result.ToString();
     }
 
@@ -559,7 +602,7 @@ public sealed partial class DotNetCliTools
         return new SdkActionResult { Version = version };
     }
 
-    private static SdkListResult? BuildListSdksStructuredContent(string textResult)
+    private static SdkListResult BuildListSdksStructuredContent(string textResult)
     {
         var lines = textResult.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         var sdks = lines
@@ -581,7 +624,7 @@ public sealed partial class DotNetCliTools
     /// Build structured content for ListSdks that also includes runtime data.
     /// The SDK dashboard UI needs both to render fully from a single tool-result notification.
     /// </summary>
-    private async Task<SdkActionResult?> BuildListSdksWithRuntimesStructuredContentAsync(string sdkTextResult)
+    private async Task<SdkActionResult> BuildListSdksWithRuntimesStructuredContentAsync(string sdkTextResult)
     {
         var sdkContent = BuildListSdksStructuredContent(sdkTextResult);
 
@@ -589,48 +632,21 @@ public sealed partial class DotNetCliTools
         try
         {
             var runtimeTextResult = await ExecuteDotNetCommand("--list-runtimes");
+            if (StructuredContentHelper.IsFailure(runtimeTextResult))
+                return new SdkActionResult { Sdks = sdkContent.Sdks, Warning = "Runtime discovery failed; runtime metadata is unavailable." };
 
-            // Merge both into a single object the dashboard can consume
-            var sdkLines = sdkTextResult.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            var sdks = sdkLines
-                .Where(l => !l.StartsWith("Exit Code:", StringComparison.OrdinalIgnoreCase)
-                    && !l.StartsWith("Error", StringComparison.OrdinalIgnoreCase)
-                    && l.TrimStart().Length > 0 && char.IsDigit(l.TrimStart()[0]))
-                .Select(l =>
-                {
-                    var parts = l.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-                    var ver = parts.Length > 0 ? parts[0] : l.Trim();
-                    var path = parts.Length > 1 ? parts[1].Trim('[', ']', ' ') : null;
-                    return new InstalledSdkInfo { Version = ver, Path = path };
-                })
-                .ToArray();
-
-            var runtimeLines = runtimeTextResult.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            var runtimes = runtimeLines
-                .Where(l => !l.StartsWith("Exit Code:", StringComparison.OrdinalIgnoreCase)
-                    && !l.StartsWith("Error", StringComparison.OrdinalIgnoreCase)
-                    && !l.StartsWith("Command:", StringComparison.OrdinalIgnoreCase)
-                    && l.TrimStart().Length > 0 && char.IsAsciiLetter(l.TrimStart()[0]))
-                .Select(l =>
-                {
-                    var parts = l.Trim().Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
-                    var name = parts.Length > 0 ? parts[0] : string.Empty;
-                    var ver = parts.Length > 1 ? parts[1] : string.Empty;
-                    var path = parts.Length > 2 ? parts[2].Trim('[', ']', ' ') : null;
-                    return new InstalledRuntimeInfo { Name = name, Version = ver, Path = path };
-                })
-                .ToArray();
-
-            return new SdkActionResult { Sdks = sdks, Runtimes = runtimes };
+            return new SdkActionResult { Sdks = sdkContent.Sdks, Runtimes = BuildListRuntimesStructuredContent(runtimeTextResult).Runtimes };
         }
-        catch (Exception)
+        catch (OperationCanceledException) { throw; }
+        catch (InputRequiredException) { throw; }
+        catch (Exception ex)
         {
-            // If runtime fetch fails, return SDKs only — dashboard will show what it can
-            return sdkContent != null ? new SdkActionResult { Sdks = sdkContent.Sdks } : null;
+            _logger.LogWarning(ex, "Optional runtime discovery failed.");
+            return new SdkActionResult { Sdks = sdkContent.Sdks, Warning = "Runtime discovery failed; runtime metadata is unavailable." };
         }
     }
 
-    private static SdkActionResult? BuildListRuntimesStructuredContent(string textResult)
+    private static SdkActionResult BuildListRuntimesStructuredContent(string textResult)
     {
         var lines = textResult.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         var runtimes = lines

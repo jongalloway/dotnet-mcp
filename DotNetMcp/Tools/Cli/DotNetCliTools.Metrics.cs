@@ -30,13 +30,15 @@ public sealed partial class DotNetCliTools
     [McpMeta("ui/resourceUri", "ui://dotnet-mcp/server-metrics")]
     public partial Task<CallToolResult> DotnetServerMetrics(DotnetServerMetricsAction action)
     {
+        if (!ParameterValidator.ValidateAction<DotnetServerMetricsAction>(action, out var actionError))
+            return Task.FromResult(StructuredContentHelper.ApplicationError($"Error: {actionError}"));
         if ((_metricsAccumulator is null) && action is DotnetServerMetricsAction.Get or DotnetServerMetricsAction.Reset)
         {
             var error = ErrorResultFactory.ReturnCapabilityNotAvailable(
                 "server metrics",
                 "Metrics accumulator is not registered. Ensure ToolMetricsAccumulator is registered in the DI container.",
                 alternatives: null);
-            return Task.FromResult(StructuredContentHelper.ToCallToolResult(ErrorResultFactory.ToJson(error)));
+            return Task.FromResult(StructuredContentHelper.ToCallToolResult(ErrorResultFactory.ToJson(error), error, isError: true));
         }
 
         if ((_tokenSavingsAccumulator is null || _tokenSavingsEstimator is null) && action is DotnetServerMetricsAction.TokenSavingsGet or DotnetServerMetricsAction.TokenSavingsReset)
@@ -45,7 +47,7 @@ public sealed partial class DotNetCliTools
                 "token savings metrics",
                 "Token savings services are not registered. Ensure TokenSavingsAccumulator and TokenSavingsEstimator are registered in the DI container.",
                 alternatives: null);
-            return Task.FromResult(StructuredContentHelper.ToCallToolResult(ErrorResultFactory.ToJson(error)));
+            return Task.FromResult(StructuredContentHelper.ToCallToolResult(ErrorResultFactory.ToJson(error), error, isError: true));
         }
 
         switch (action)
@@ -86,7 +88,6 @@ public sealed partial class DotNetCliTools
                 return Task.FromResult(StructuredContentHelper.ToCallToolResult(ErrorResultFactory.ToJson(tokenResponse), tokenResponse));
 
             case DotnetServerMetricsAction.Get:
-            default:
                 var snapshot = _metricsAccumulator!.GetSnapshot();
                 var metricsResponse = new ServerMetricsResponse
                 {
@@ -99,6 +100,8 @@ public sealed partial class DotNetCliTools
                     TokenSavingsEnabled = _tokenSavingsAccumulator is not null && _tokenSavingsEstimator is not null
                 };
                 return Task.FromResult(StructuredContentHelper.ToCallToolResult(ErrorResultFactory.ToJson(metricsResponse), metricsResponse));
+            default:
+                throw new ArgumentOutOfRangeException(nameof(action));
         }
     }
 }

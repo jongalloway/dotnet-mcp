@@ -145,7 +145,7 @@ public class TemplateEngineHelper
         catch (OperationCanceledException ex)
         {
             logger?.LogDebug(ex, "Template query cancelled");
-            return null;
+            throw;
         }
     }
 
@@ -257,6 +257,9 @@ public class TemplateEngineHelper
     /// <param name="filter">Optional filter string; matches short name, name, or type (case-insensitive).</param>
     /// <param name="maxResults">Optional maximum number of templates to return after filtering.</param>
     public static async Task<string> GetInstalledTemplatesAsync(bool forceReload = false, ILogger? logger = null, string? filter = null, int? maxResults = null)
+        => await GetInstalledTemplatesCoreAsync(forceReload, logger, filter, maxResults);
+
+    private static async Task<string> GetInstalledTemplatesCoreAsync(bool forceReload, ILogger? logger, string? filter, int? maxResults, Action<TemplateDisplayInfo[]>? capture = null)
     {
         try
         {
@@ -282,9 +285,12 @@ public class TemplateEngineHelper
             }
 
             IEnumerable<TemplateDisplayInfo> displayInfos = templates.Select(TemplateDisplayInfo.FromTemplateInfo);
-            displayInfos = ApplyTemplateFilter(displayInfos, filter, maxResults);
+            displayInfos = ApplyTemplateFilter(displayInfos, filter, maxResults).OrderBy(t => t.ShortName).ToArray();
+            capture?.Invoke(displayInfos.ToArray());
             return TemplateFormatter.FormatInstalledTemplates(displayInfos);
         }
+        catch (OperationCanceledException) { throw; }
+        catch (ModelContextProtocol.Protocol.InputRequiredException) { throw; }
         catch (Exception ex)
         {
             var message = $"Error accessing template engine: {ex.Message}\n\nYou may try running 'dotnet new --list' from the command line for more information.";
@@ -329,6 +335,9 @@ public class TemplateEngineHelper
     /// <param name="forceReload">If true, bypasses cache and reloads from disk.</param>
     /// <param name="logger">Optional logger instance.</param>
     public static async Task<string> GetTemplateDetailsAsync(string templateShortName, bool forceReload = false, ILogger? logger = null)
+        => await GetTemplateDetailsCoreAsync(templateShortName, forceReload, logger);
+
+    private static async Task<string> GetTemplateDetailsCoreAsync(string templateShortName, bool forceReload, ILogger? logger, Action<TemplateDisplayInfo>? capture = null)
     {
         try
         {
@@ -367,7 +376,7 @@ public class TemplateEngineHelper
                     }
                     catch (OperationCanceledException)
                     {
-                        // Ignore and fall through to the normal not-found message.
+                        throw;
                     }
                 }
 
@@ -376,8 +385,11 @@ public class TemplateEngineHelper
             }
 
             var displayInfo = TemplateDisplayInfo.FromTemplateInfo(template);
+            capture?.Invoke(displayInfo);
             return TemplateFormatter.FormatTemplateDetails(displayInfo);
         }
+        catch (OperationCanceledException) { throw; }
+        catch (ModelContextProtocol.Protocol.InputRequiredException) { throw; }
         catch (Exception ex)
         {
             var message = $"Error getting template details: {ex.Message}";
@@ -392,6 +404,9 @@ public class TemplateEngineHelper
     /// <param name="forceReload">If true, bypasses cache and reloads from disk.</param>
     /// <param name="logger">Optional logger instance.</param>
     public static async Task<string> SearchTemplatesAsync(string searchTerm, bool forceReload = false, ILogger? logger = null)
+        => await SearchTemplatesCoreAsync(searchTerm, forceReload, logger);
+
+    private static async Task<string> SearchTemplatesCoreAsync(string searchTerm, bool forceReload, ILogger? logger, Action<TemplateDisplayInfo[]>? capture = null)
     {
         try
         {
@@ -420,18 +435,43 @@ public class TemplateEngineHelper
 
             if (!matches.Any())
             {
+                if (templates.Any())
+                    capture?.Invoke([]);
                 var message = $"No templates found matching '{searchTerm}'.";
                 return message;
             }
 
-            var displayInfos = matches.Select(TemplateDisplayInfo.FromTemplateInfo);
+            var displayInfos = matches.Select(TemplateDisplayInfo.FromTemplateInfo).OrderBy(t => t.ShortName).ToArray();
+            capture?.Invoke(displayInfos);
             return TemplateFormatter.FormatSearchResults(searchTerm, displayInfos);
         }
+        catch (OperationCanceledException) { throw; }
+        catch (ModelContextProtocol.Protocol.InputRequiredException) { throw; }
         catch (Exception ex)
         {
             var message = $"Error searching templates: {ex.Message}";
             return message;
         }
+    }
+
+    internal static async Task<(string Text, object? Payload)> QueryStructuredAsync(
+        DotnetSdkAction action, bool forceReload, ILogger? logger, string? filter, int? maxResults,
+        string? searchTerm, string? templateShortName)
+    {
+        object? payload = null;
+        var text = action switch
+        {
+            DotnetSdkAction.ListTemplates => await GetInstalledTemplatesCoreAsync(forceReload, logger, filter, maxResults,
+                templates => payload = new TemplateListResult(templates)),
+            DotnetSdkAction.SearchTemplates => await SearchTemplatesCoreAsync(searchTerm!, forceReload, logger,
+                templates => payload = new TemplateListResult(templates)),
+            DotnetSdkAction.TemplateInfo => await GetTemplateDetailsCoreAsync(templateShortName!, forceReload, logger,
+                template => payload = new TemplateDetailsResult(template)),
+            _ => throw new ArgumentOutOfRangeException(nameof(action))
+        };
+        if (payload is null && text.StartsWith("No templates found", StringComparison.Ordinal))
+            payload = new ApplicationErrorResult { Error = text };
+        return (text, payload);
     }
 
     /// <summary>
@@ -488,7 +528,7 @@ public class TemplateEngineHelper
                 {
                     // Operation was cancelled
                     logger?.LogDebug(ex, "Template validation cancelled");
-                    return false;
+                    throw;
                 }
             }
 
@@ -510,7 +550,7 @@ public class TemplateEngineHelper
         {
             // If operation is cancelled, return false
             logger?.LogDebug(ex, "Template validation cancelled");
-            return false;
+            throw;
         }
     }
 }
