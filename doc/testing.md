@@ -330,7 +330,7 @@ The Cobertura XML will be written under the test output folder, typically:
 - `DotNetMcp.Tests/bin/Release/net10.0/TestResults/*.cobertura.xml`
 - `DotNetMcp.Tests/bin/Release/net11.0/TestResults/*.cobertura.xml`
 
-CI runs the two coverage suites separately with explicit output paths in `coverage/`, then uploads both reports and submits both to Codecov from the current SDK lane. This avoids the SDK's multi-application merge deleting the individual framework reports. The .NET 10 report retains the artifact filename `coverage.cobertura.xml` for the existing download/diagnostic script; the additional report is `net11.0.cobertura.xml`.
+CI retains framework-specific reports under `TestResults/coverage/` using `--results-directory-layout per-module` and `--no-artifact-post-processing`, so the SDK's multi-application merge cannot delete them. Both reports are uploaded and submitted to Codecov from the current SDK lane. The .NET 10 report retains the artifact filename `coverage.cobertura.xml` for the existing download/diagnostic script; the additional report is `net11.0.cobertura.xml`.
 
 ## Packaged-tool compatibility
 
