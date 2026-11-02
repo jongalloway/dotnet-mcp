@@ -253,7 +253,10 @@ public class Sdk20CompatibilityTests
                     var result = await pending;
                     Assert.True(result.IsError);
                 }
-                catch (McpProtocolException) { }
+                catch (McpProtocolException ex)
+                {
+                    Assert.Equal(McpErrorCode.InternalError, ex.ErrorCode);
+                }
             }
             await exited.Task.WaitAsync(host.Token);
             await host.InvocationExited.Task.WaitAsync(host.Token);
