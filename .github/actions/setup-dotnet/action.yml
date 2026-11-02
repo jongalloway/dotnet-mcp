@@ -1,0 +1,57 @@
+name: Setup supported .NET SDKs
+description: Install .NET 10 and the RC3 baseline or automatically selected .NET 11 GA SDK.
+inputs:
+  lane:
+    description: current automatically adopts GA; rc3 preserves the exact baseline.
+    default: current
+  cache:
+    description: Enable setup-dotnet NuGet caching.
+    default: "false"
+  cache-dependency-path:
+    description: Files used for the NuGet cache key.
+    default: "**/*.csproj"
+outputs:
+  sdk-version:
+    description: Exact selected build SDK.
+    value: ${{ steps.resolve.outputs.sdk-version }}
+  phase:
+    description: rc3 or ga.
+    value: ${{ steps.resolve.outputs.phase }}
+runs:
+  using: composite
+  steps:
+    - name: Resolve build SDK
+      id: resolve
+      shell: pwsh
+      env:
+        SDK_LANE: ${{ inputs.lane }}
+      run: |
+        & "$env:GITHUB_WORKSPACE/scripts/resolve-dotnet-sdk.ps1" -Lane $env:SDK_LANE -GitHubOutputPath $env:GITHUB_OUTPUT
+    - name: Install .NET SDKs
+      uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # pin@v6.0.0
+      with:
+        dotnet-version: |
+          10.0.x
+          ${{ steps.resolve.outputs.sdk-version }}
+        cache: ${{ inputs.cache }}
+        cache-dependency-path: ${{ inputs.cache-dependency-path }}
+    - name: Pin this job to the resolved SDK and record inventory
+      shell: pwsh
+      env:
+        SELECTED_SDK: ${{ steps.resolve.outputs.sdk-version }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $configPath = Join-Path $env:GITHUB_WORKSPACE 'global.json'
+        $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+        # A job-local exact pin keeps preinstalled SDKs from changing matrix coverage.
+        $config.sdk.version = $env:SELECTED_SDK
+        $config.sdk.rollForward = 'disable'
+        $config | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $configPath
+        $actual = & dotnet --version
+        if ($LASTEXITCODE -ne 0 -or $actual -ne $env:SELECTED_SDK) {
+          throw "Expected SDK $env:SELECTED_SDK, selected '$actual'."
+        }
+        $inventory = @("Selected build SDK: $actual", (& dotnet --list-sdks), (& dotnet --list-runtimes))
+        if ($LASTEXITCODE -ne 0) { throw 'Failed to read .NET inventory.' }
+        $inventory | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+        $inventory | Write-Host

@@ -8,7 +8,7 @@ This project is an **MCP (Model Context Protocol) server** that integrates with 
 
 ## Key Technologies
 
-- **.NET 10.0 and .NET 11.0 RC3**: Dual-targeted server and tests; source builds use the exact RC3 SDK pinned in `global.json`
+- **.NET 10.0 and .NET 11.0 RC3 or GA**: Dual-targeted server and tests; `global.json` specifies an RC3 SDK minimum with `latestPatch` roll-forward within 11.0.1xx. Shared CI setup automatically installs GA when published; exact-RC3 regression/package lanes remain pinned.
 - **Model Context Protocol SDK**: Version 2.0.0, with matching `ModelContextProtocol.Extensions.Tasks`
 - **Stdio Transport**: Communication via standard input/output
 - **Microsoft.Extensions.Hosting**: For application lifecycle management

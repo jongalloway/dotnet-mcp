@@ -43,10 +43,8 @@ jobs:
 
       - name: Setup .NET
         id: setup_dotnet
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # pin@v6.0.0
+        uses: ./.github/actions/setup-dotnet
         with:
-          dotnet-version: "10.0.x"
-          global-json-file: global.json
           cache: true
           cache-dependency-path: "**/*.csproj"
 
@@ -246,6 +244,7 @@ jobs:
             echo ""
             echo "- Package: \`${{ steps.package.outputs.package_id }}\` \`${{ steps.package.outputs.version }}\`"
             echo "- Ref: \`${{ github.ref }}\`"
+            echo "- Build SDK: \`${{ steps.setup_dotnet.outputs.sdk-version }}\`"
             echo "- Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             echo ""
             echo "### Step outcomes"

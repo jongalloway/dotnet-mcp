@@ -18,7 +18,7 @@ Click to install in your preferred environment:
 [![VS Code Insiders - Install .NET MCP](https://img.shields.io/badge/VS_Code_Insiders-Install_.NET_MCP-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dnx%22%2C%22args%22%3A%5B%22Community.Mcp.DotNet%401.%2A%22%2C%22--yes%22%5D%7D&quality=insiders)
 [![Visual Studio - Install .NET MCP](https://img.shields.io/badge/Visual_Studio-Install_.NET_MCP-5C2D91?style=flat-square&logo=visualstudio&logoColor=white)](https://vs-open.link/mcp-install?%7B%22name%22%3A%22Community.Mcp.DotNet%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22dnx%22%2C%22args%22%3A%5B%22Community.Mcp.DotNet%401.%2A%22%2C%22--yes%22%5D%7D)
 
-> **Note**: Quick install requires the .NET 10 or .NET 11 SDK. Source builds require the pinned .NET 11 RC3 SDK.
+> **Note**: Quick install requires the .NET 10 or .NET 11 SDK. Source builds require .NET 11 RC3 or a compatible GA SDK in the 11.0.1xx feature band.
 
 ## What is This?
 
@@ -248,7 +248,7 @@ Use `dotnet_server_capabilities` to discover the negotiated protocol and feature
 ### Requirements
 
 - **For package installation**: .NET 10 SDK or .NET 11 SDK (RC3 or later)
-- **For source builds**: .NET SDK `11.0.100-rc.3.26522.148`, pinned in `global.json`; install the .NET 10 SDK alongside it to run both test targets
+- **For source builds**: .NET SDK `11.0.100-rc.3.26522.148` or a GA/servicing SDK in the 11.0.1xx feature band; `global.json` selects the latest installed compatible patch. Install the .NET 10 SDK alongside it to run both test targets.
 - Visual Studio Code, Visual Studio 2022 (v17.13+), or Claude Desktop
 
 ### Runtime and SDK compatibility
@@ -273,7 +273,7 @@ dotnet tool install Community.Mcp.DotNet@<exact-version> --tool-path ./tools
 
 Replace `<exact-version>` with the desired published version. An exact prerelease version does not require `--prerelease`; floating prerelease selection does. Point MCP clients at the installed `dotnet-mcp` executable when using a tool-path install.
 
-The package explicitly uses `RollForward=Minor`, keeping runtime resolution within the target major version. Its .NET 11 runtime floor is `11.0.0-rc.3.26522.148`. RC3-to-GA is a same-major runtime transition, not a reason to require `Major` roll-forward. This policy is configured and the RC3 package is retained for GA testing, but **GA compatibility is not yet verified**. A .NET 11-only build cannot run backward on .NET 10; the separate .NET 10 assets provide that support.
+The package explicitly uses `RollForward=Minor`, keeping runtime resolution within the target major version. The RC3-built package's .NET 11 runtime floor is `11.0.0-rc.3.26522.148`. RC3-to-GA is a same-major runtime transition, not a reason to require `Major` roll-forward. A compatible runtime must already be installed; roll-forward does not download one. CI automatically installs the GA SDK when published and verifies an unchanged RC3-built package on GA, while retaining exact-RC3 coverage. **GA execution is pending until GA is available.** A .NET 11-only build cannot run backward on .NET 10; the separate .NET 10 assets provide that support.
 
 The server runtime and the SDK used for project commands are separate choices. Future SDK-specific CLI features should be checked against the selected project's SDK; only features using .NET 11-only in-process APIs need the .NET 11 server build.
 
@@ -1088,7 +1088,7 @@ await callTool("dotnet_dev_certs", {
 
 For development or contributing:
 
-Install the exact RC3 SDK pinned in `global.json`. The repository's `NuGet.Config` adds Microsoft's public `dotnet-tools` feed because Template Engine RC3 depends on NuGet `8.0.0-rc.2448` packages that are not yet on NuGet.org. Retain your normal NuGet.org source for the other dependencies; this extra feed is needed to build, not to install the tool's bundled dependencies. The tool still requires a compatible .NET runtime.
+Install the RC3 baseline SDK from `global.json` or a GA/servicing SDK in the 11.0.1xx feature band. The `latestPatch` SDK policy automatically selects the latest compatible installed SDK without crossing feature bands or major versions; CI installs the selected release automatically. The repository's `NuGet.Config` adds Microsoft's public `dotnet-tools` feed because Template Engine RC3 depends on NuGet `8.0.0-rc.2448` packages that are not yet on NuGet.org. Retain your normal NuGet.org source for the other dependencies; this extra feed is needed to build, not to install the tool's bundled dependencies. The tool still requires a compatible .NET runtime.
 
 ```bash
 git clone https://github.com/jongalloway/dotnet-mcp.git
@@ -1237,7 +1237,7 @@ See [.github/copilot-instructions.md](.github/copilot-instructions.md) for devel
 ### "dnx not found"
 
 - **Cause**: .NET 10 SDK not installed
-- **Solution**: Install the [.NET 10 or .NET 11 SDK](https://dotnet.microsoft.com/download). Source-based manual configuration additionally requires the pinned RC3 SDK and an explicit `--framework`.
+- **Solution**: Install the [.NET 10 or .NET 11 SDK](https://dotnet.microsoft.com/download). Source-based manual configuration additionally requires an SDK compatible with the RC3 minimum in `global.json` and an explicit `--framework`.
 
 ### "No templates found"
 

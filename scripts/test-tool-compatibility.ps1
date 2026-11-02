@@ -83,10 +83,10 @@ $projectRoot = [System.IO.Directory]::CreateDirectory((Join-Path $work 'projects
 $config = Join-Path $work 'NuGet.Config'
 '<configuration><packageSources><clear /></packageSources></configuration>' | Set-Content -LiteralPath $config
 
-function New-ChildProcess([string] $FilePath, [string[]] $Arguments, [string] $TraceFile = '') {
+function New-ChildProcess([string] $FilePath, [string[]] $Arguments, [string] $TraceFile = '', [string] $WorkingDirectory = $work) {
     $info = [System.Diagnostics.ProcessStartInfo]::new()
     $info.FileName = $FilePath
-    $info.WorkingDirectory = $work
+    $info.WorkingDirectory = $WorkingDirectory
     $info.UseShellExecute = $false
     $info.RedirectStandardInput = $true
     $info.RedirectStandardOutput = $true
@@ -106,8 +106,8 @@ function New-ChildProcess([string] $FilePath, [string[]] $Arguments, [string] $T
     return $process
 }
 
-function Invoke-Checked([string[]] $Arguments) {
-    $process = New-ChildProcess $dotnet $Arguments
+function Invoke-Checked([string[]] $Arguments, [string] $WorkingDirectory = $work) {
+    $process = New-ChildProcess $dotnet $Arguments -WorkingDirectory $WorkingDirectory
     try {
         $stdout = $process.StandardOutput.ReadToEndAsync()
         $stderr = $process.StandardError.ReadToEndAsync()
@@ -152,6 +152,16 @@ function Invoke-Tool($Process, [int] $Id, [string] $Name, [hashtable] $Arguments
 
 $sdkList = Invoke-Checked @('--list-sdks')
 $runtimeList = Invoke-Checked @('--list-runtimes')
+$sdkList | Set-Content -LiteralPath (Join-Path $OutputDirectory 'sdk-inventory.txt')
+$runtimeList | Set-Content -LiteralPath (Join-Path $OutputDirectory 'runtime-inventory.txt')
+$selectedProjectSdk = (Invoke-Checked @('--version') $projectRoot).Trim()
+if ($selectedProjectSdk -ne $ProjectSdkVersion) {
+    throw "Project SDK selection mismatch: expected $ProjectSdkVersion, got $selectedProjectSdk."
+}
+$selectedToolSdk = (Invoke-Checked @('--version')).Trim()
+if ($selectedToolSdk -ne $toolSdks[0].Name) {
+    throw "Tool SDK selection mismatch: expected $($toolSdks[0].Name), got $selectedToolSdk."
+}
 if ($runtimeList -notmatch [regex]::Escape("Microsoft.NETCore.App $ExpectedRuntimeVersion ")) {
     throw "Expected runtime is not installed in the isolated root: $ExpectedRuntimeVersion"
 }
@@ -213,7 +223,8 @@ foreach ($invocation in @('tool', 'dnx')) {
     if ($hostTrace -notmatch $runtimePattern) { throw "Host did not load expected runtime; see $trace" }
     $results += @{
         invocation = $invocation; framework = $ExpectedFramework; runtime = $ExpectedRuntimeVersion
-        projectFramework = $projectFramework; allowRollForward = $false; passed = $true
+        projectFramework = $projectFramework; projectSdk = $selectedProjectSdk; toolSdk = $selectedToolSdk
+        allowRollForward = $false; passed = $true
     }
 }
 @{

@@ -32,6 +32,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  sdk_policy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      lanes: ${{ steps.resolve.outputs.lanes }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # pin@v7.0.1
+      - name: Test SDK selection policy
+        shell: pwsh
+        run: ./scripts/test-sdk-selection.ps1
+      - name: Resolve available SDK lanes
+        id: resolve
+        shell: pwsh
+        run: ./scripts/resolve-dotnet-sdk.ps1 -GitHubOutputPath $env:GITHUB_OUTPUT
+
   detect_changes:
     if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
@@ -62,14 +78,19 @@ jobs:
           merge_base="$(git merge-base "$base" "$head")"
           files="$(git diff --name-only "$merge_base" "$head")"
 
-          if echo "$files" | grep -qE '^(DotNetMcp.Tests/Scenarios/|DotNetMcp/Prompts/|DotNetMcp/Resources/)'; then
+          if echo "$files" | grep -qE '^(DotNetMcp.Tests/(Scenarios|ReleaseScenarios)/|DotNetMcp/Prompts/|DotNetMcp/Resources/|global.json$|\.github/(actions/setup-dotnet/|workflows/)|scripts/(resolve-dotnet-sdk|test-sdk-selection|test-tool-compatibility|run-release-gate-tests)\.ps1$)'; then
             echo "scenario_related=true" >> "$GITHUB_OUTPUT"
           else
             echo "scenario_related=false" >> "$GITHUB_OUTPUT"
           fi
 
   pr_conformance:
+    needs: sdk_policy
     if: ${{ github.event_name == 'pull_request' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: ${{ fromJSON(needs.sdk_policy.outputs.lanes) }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -83,10 +104,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # pin@v7.0.1
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # pin@v6.0.0
+        uses: ./.github/actions/setup-dotnet
         with:
-          dotnet-version: "10.0.x"
-          global-json-file: global.json
+          lane: ${{ matrix.sdk }}
 
       - name: Restore dependencies
         run: dotnet restore DotNetMcp.slnx
@@ -101,10 +121,14 @@ jobs:
         run: dotnet test --solution DotNetMcp.slnx --no-build --configuration Release --verbosity normal -- --filter-class "*McpConformanceTests" --filter-class "*ProjectAnalysisHelperTests"
 
   pr_scenario:
-    # Runs only when scenario-specific files (Scenarios/Prompts/Resources) change.
-    needs: detect_changes
+    # Also exercise scenarios when SDK selection or validation infrastructure changes.
+    needs: [detect_changes, sdk_policy]
     if: ${{ github.event_name == 'pull_request' && needs.detect_changes.outputs.scenario_related == 'true' }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: ${{ fromJSON(needs.sdk_policy.outputs.lanes) }}
     permissions:
       contents: read
 
@@ -117,10 +141,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # pin@v7.0.1
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # pin@v6.0.0
+        uses: ./.github/actions/setup-dotnet
         with:
-          dotnet-version: "10.0.x"
-          global-json-file: global.json
+          lane: ${{ matrix.sdk }}
 
       - name: Restore dependencies
         run: dotnet restore DotNetMcp.slnx
@@ -134,7 +157,12 @@ jobs:
         run: dotnet test --solution DotNetMcp.slnx --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
 
   manual_quick_checks:
+    needs: sdk_policy
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.runFullValidation != 'true' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: ${{ fromJSON(needs.sdk_policy.outputs.lanes) }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -148,10 +176,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # pin@v7.0.1
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # pin@v6.0.0
+        uses: ./.github/actions/setup-dotnet
         with:
-          dotnet-version: "10.0.x"
-          global-json-file: global.json
+          lane: ${{ matrix.sdk }}
 
       - name: Restore dependencies
         run: dotnet restore DotNetMcp.slnx
@@ -172,7 +199,12 @@ jobs:
         run: dotnet test --solution DotNetMcp.slnx --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
 
   full_validation:
+    needs: sdk_policy
     if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.runFullValidation == 'true') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: ${{ fromJSON(needs.sdk_policy.outputs.lanes) }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -187,10 +219,9 @@ jobs:
 
       - name: Setup .NET
         id: setup_dotnet
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # pin@v6.0.0
+        uses: ./.github/actions/setup-dotnet
         with:
-          dotnet-version: "10.0.x"
-          global-json-file: global.json
+          lane: ${{ matrix.sdk }}
 
       - name: Display .NET info
         id: dotnet_info
@@ -244,7 +275,7 @@ jobs:
       - name: Upload coverage to Codecov
         id: upload_codecov
         # Upload from any full_validation run (push or workflow_dispatch) targeting the main branch.
-        if: ${{ github.ref == 'refs/heads/main' }}
+        if: ${{ github.ref == 'refs/heads/main' && matrix.sdk == 'current' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # pin@v7
         with:
           files: coverage/coverage.cobertura.xml,coverage/net11.0.cobertura.xml
@@ -255,7 +286,7 @@ jobs:
         id: upload_coverage_artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # pin@v7
         with:
-          name: coverage-cobertura
+          name: ${{ matrix.sdk == 'current' && 'coverage-cobertura' || 'coverage-cobertura-rc3' }}
           path: coverage/*.cobertura.xml
 
       - name: Run Performance Smoke Tests
@@ -278,7 +309,7 @@ jobs:
         id: upload_performance_artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # pin@v7
         with:
-          name: performance-results
+          name: ${{ matrix.sdk == 'current' && 'performance-results' || 'performance-results-rc3' }}
           path: performance-results.txt
           if-no-files-found: warn
 
@@ -293,6 +324,7 @@ jobs:
             echo "- Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             echo "- Ref: \`${{ github.ref }}\`"
             echo "- SHA: \`${{ github.sha }}\`"
+            echo "- SDK lane: \`${{ matrix.sdk }}\` (${{ steps.setup_dotnet.outputs.sdk-version }})"
             echo ""
             echo "### Step outcomes"
             echo "| Step | Outcome |"
@@ -312,6 +344,6 @@ jobs:
             echo "| Upload performance artifact | ${{ steps.upload_performance_artifact.outcome }} |"
             echo ""
             echo "### Artifacts"
-            echo "- coverage-cobertura"
-            echo "- performance-results"
+            echo "- ${{ matrix.sdk == 'current' && 'coverage-cobertura' || 'coverage-cobertura-rc3' }}"
+            echo "- ${{ matrix.sdk == 'current' && 'performance-results' || 'performance-results-rc3' }}"
           } >> "${GITHUB_STEP_SUMMARY}"

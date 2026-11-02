@@ -5,10 +5,16 @@ on:
     branches: [main]
   push:
     branches: [main]
+  workflow_call:
+    inputs:
+      rc3_run_id:
+        description: Run containing a preserved rc3-tool-package artifact.
+        required: false
+        type: string
   workflow_dispatch:
     inputs:
       rc3_run_id:
-        description: "For GA-only verification: run ID containing an existing rc3-tool-package artifact (no rebuild)"
+        description: "GA verification: run containing an existing rc3-tool-package artifact (no rebuild)"
         required: false
         type: string
 
@@ -17,35 +23,70 @@ permissions:
   actions: read
 
 jobs:
+  sdk_policy:
+    runs-on: ubuntu-latest
+    outputs:
+      environments: ${{ steps.resolve.outputs.compatibility-environments }}
+      ga-sdk: ${{ steps.resolve.outputs.ga-sdk }}
+      baseline-sdk: ${{ steps.resolve.outputs.baseline-sdk }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # pin@v7.0.1
+      - name: Resolve available SDK environments
+        id: resolve
+        shell: pwsh
+        env:
+          RC3_RUN_ID: ${{ inputs.rc3_run_id }}
+        run: |
+          $selection = ./scripts/resolve-dotnet-sdk.ps1 -GitHubOutputPath $env:GITHUB_OUTPUT
+          if ($env:RC3_RUN_ID -and -not $selection.'ga-sdk') {
+            throw 'Preserved-package GA verification requires a published GA SDK.'
+          }
+
   package:
+    needs: sdk_policy
     if: ${{ !inputs.rc3_run_id }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # pin@v7.0.1
         with:
           fetch-depth: 0
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # pin@v6.0.0
+      - uses: ./.github/actions/setup-dotnet
         with:
-          global-json-file: global.json
-          dotnet-version: "10.0.x"
-      - name: Pack once with RC3
+          lane: rc3
+      - name: Pack once with exact RC3
         run: dotnet pack "$GITHUB_WORKSPACE/DotNetMcp/DotNetMcp.csproj" --configuration Release --output artifacts/package
+      - name: Record package provenance
+        shell: pwsh
+        run: |
+          $packages = @(Get-ChildItem artifacts/package -Filter '*.nupkg')
+          if ($packages.Count -ne 1) { throw 'Expected exactly one RC3 package.' }
+          $sdk = & dotnet --version
+          if ($LASTEXITCODE -ne 0 -or $sdk -ne '${{ needs.sdk_policy.outputs.baseline-sdk }}') {
+            throw "Package must be built with the exact RC3 SDK, got '$sdk'."
+          }
+          @{
+            sdk = $sdk
+            sha256 = (Get-FileHash $packages[0].FullName -Algorithm SHA256).Hash
+            commit = '${{ github.sha }}'
+            run = '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+          } | ConvertTo-Json | Set-Content artifacts/package/provenance.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # pin@v7
         with:
           name: rc3-tool-package
-          path: artifacts/package/*.nupkg
+          path: artifacts/package/*
+          if-no-files-found: error
           retention-days: 90
 
   compatibility:
-    needs: package
-    if: ${{ always() && (needs.package.result == 'success' || (needs.package.result == 'skipped' && inputs.rc3_run_id)) }}
+    needs: [sdk_policy, package]
+    if: ${{ always() && needs.sdk_policy.result == 'success' && (needs.package.result == 'success' || (needs.package.result == 'skipped' && inputs.rc3_run_id)) }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        environment: ${{ inputs.rc3_run_id && fromJSON('["ga"]') || fromJSON('["net10", "rc3", "side-by-side"]') }}
+        environment: ${{ inputs.rc3_run_id && fromJSON('["ga","ga-side-by-side-net10","ga-side-by-side-net11"]') || fromJSON(needs.sdk_policy.outputs.environments) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # pin@v7.0.1
       - name: Download current RC3 package
@@ -67,66 +108,84 @@ jobs:
         shell: bash
         env:
           CASE: ${{ matrix.environment }}
+          RC3_SDK: ${{ needs.sdk_policy.outputs.baseline-sdk }}
+          GA_SDK: ${{ needs.sdk_policy.outputs.ga-sdk }}
         run: |
           set -euo pipefail
           curl -fsSL https://dot.net/v1/dotnet-install.sh -o "$RUNNER_TEMP/dotnet-install.sh"
           root="$RUNNER_TEMP/compatibility-dotnet"
-          if [[ "$CASE" == "net10" || "$CASE" == "side-by-side" ]]; then
+          if [[ "$CASE" == "net10" || "$CASE" == *"side-by-side"* ]]; then
             bash "$RUNNER_TEMP/dotnet-install.sh" --channel 10.0 --quality ga --install-dir "$root" --no-path
           fi
-          if [[ "$CASE" == "rc3" || "$CASE" == "side-by-side" ]]; then
-            bash "$RUNNER_TEMP/dotnet-install.sh" --version 11.0.100-rc.3.26522.148 --install-dir "$root" --no-path
+          if [[ "$CASE" == "rc3" || "$CASE" == side-by-side-* ]]; then
+            bash "$RUNNER_TEMP/dotnet-install.sh" --version "$RC3_SDK" --install-dir "$root" --no-path
           fi
-          if [[ "$CASE" == "ga" ]]; then
-            bash "$RUNNER_TEMP/dotnet-install.sh" --channel 11.0 --quality ga --install-dir "$root" --no-path
+          if [[ "$CASE" == ga* ]]; then
+            bash "$RUNNER_TEMP/dotnet-install.sh" --version "$GA_SDK" --install-dir "$root" --no-path
           fi
       - name: Install isolated SDKs (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         env:
           CASE: ${{ matrix.environment }}
+          RC3_SDK: ${{ needs.sdk_policy.outputs.baseline-sdk }}
+          GA_SDK: ${{ needs.sdk_policy.outputs.ga-sdk }}
         run: |
           $ErrorActionPreference = 'Stop'
           $installer = Join-Path $env:RUNNER_TEMP 'dotnet-install.ps1'
           Invoke-WebRequest https://dot.net/v1/dotnet-install.ps1 -OutFile $installer
           $root = Join-Path $env:RUNNER_TEMP 'compatibility-dotnet'
-          if ($env:CASE -in @('net10', 'side-by-side')) {
+          if ($env:CASE -eq 'net10' -or $env:CASE -like '*side-by-side*') {
             & $installer -Channel 10.0 -Quality GA -InstallDir $root -NoPath
           }
-          if ($env:CASE -in @('rc3', 'side-by-side')) {
-            & $installer -Version 11.0.100-rc.3.26522.148 -InstallDir $root -NoPath
+          if ($env:CASE -eq 'rc3' -or $env:CASE -like 'side-by-side-*') {
+            & $installer -Version $env:RC3_SDK -InstallDir $root -NoPath
           }
-          if ($env:CASE -eq 'ga') {
-            & $installer -Channel 11.0 -Quality GA -InstallDir $root -NoPath
+          if ($env:CASE -like 'ga*') {
+            & $installer -Version $env:GA_SDK -InstallDir $root -NoPath
           }
       - name: Exercise packaged tool
         shell: pwsh
         env:
           CASE: ${{ matrix.environment }}
+          RC3_SDK: ${{ needs.sdk_policy.outputs.baseline-sdk }}
         run: |
+          $ErrorActionPreference = 'Stop'
           $root = Join-Path $env:RUNNER_TEMP 'compatibility-dotnet'
           $sdks = @(Get-ChildItem (Join-Path $root 'sdk') -Directory | Select-Object -ExpandProperty Name)
-          $major = if ($env:CASE -in @('net10', 'side-by-side')) { '10' } else { '11' }
+          $major = if ($env:CASE -eq 'net10' -or $env:CASE -like '*-net10') { '10' } else { '11' }
           $sdk = @($sdks | Where-Object { $_ -like "$major.*" })
-          if ($sdk.Count -ne 1) { throw "Expected one .NET $major SDK: $sdks" }
+          if ($sdk.Count -ne 1) { throw "Expected one .NET $major project SDK: $sdks" }
           $runtimeMajor = if ($env:CASE -eq 'net10') { '10' } else { '11' }
           $runtime = @(Get-ChildItem (Join-Path $root 'shared/Microsoft.NETCore.App') -Directory |
             Where-Object Name -Like "$runtimeMajor.*" | Select-Object -ExpandProperty Name)
           if ($runtime.Count -ne 1) { throw 'Expected one server runtime for this case.' }
-          if ($env:CASE -eq 'ga' -and ($sdks -match '-' -or $runtime -match '-')) {
+          if ($env:CASE -like 'ga*' -and ($sdks -match '-' -or $runtime -match '-')) {
             throw 'GA verification must not contain preview SDKs or runtimes.'
           }
           $packages = @(Get-ChildItem artifacts/package -Filter '*.nupkg')
           if ($packages.Count -ne 1) { throw 'Expected exactly one preserved package.' }
+          $provenance = Get-Content artifacts/package/provenance.json -Raw | ConvertFrom-Json
+          if ($provenance.sdk -ne $env:RC3_SDK -or
+              $provenance.sha256 -ne (Get-FileHash $packages[0].FullName -Algorithm SHA256).Hash) {
+            throw 'RC3 package provenance or SHA-256 does not match.'
+          }
           ./scripts/test-tool-compatibility.ps1 -PackagePath $packages[0].FullName -DotnetRoot $root `
             -ExpectedFramework "net$runtimeMajor.0" -ProjectSdkVersion $sdk[0] `
             -ExpectedRuntimeVersion $runtime[0] -OutputDirectory (Join-Path $PWD 'artifacts/compatibility-results')
+          Copy-Item artifacts/package/provenance.json artifacts/compatibility-results/provenance.json
+          @(
+            "## Packaged compatibility: ${{ matrix.os }} / $env:CASE"
+            "Project SDK: $($sdk[0]); server runtime: $($runtime[0])"
+            "Package SHA-256: $($provenance.sha256)"
+            "RC3 build: $($provenance.run) / $($provenance.commit)"
+          ) | Out-File $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
       - name: Preserve selection evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # pin@v7
         with:
           name: compatibility-${{ matrix.os }}-${{ matrix.environment }}
           path: |
-            artifacts/compatibility-results/results.json
+            artifacts/compatibility-results/*.json
             artifacts/compatibility-results/*.txt
           if-no-files-found: warn
