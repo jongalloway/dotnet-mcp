@@ -13,9 +13,31 @@ on:
         required: false
         default: "ubuntu-latest"
 
+permissions:
+  contents: read
+  actions: read
+
 jobs:
+  sdk_policy:
+    runs-on: ubuntu-latest
+    outputs:
+      lanes: ${{ steps.resolve.outputs.lanes }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # pin@v7.0.1
+      - name: Test SDK selection policy
+        shell: pwsh
+        run: ./scripts/test-sdk-selection.ps1
+      - name: Resolve available SDK lanes
+        id: resolve
+        shell: pwsh
+        run: ./scripts/resolve-dotnet-sdk.ps1 -GitHubOutputPath $env:GITHUB_OUTPUT
+
+  packaged-tool:
+    uses: ./.github/workflows/tool-compatibility.yml
+
   release-scenarios:
-    name: Release scenarios (${{ matrix.os }})
+    needs: sdk_policy
+    name: Release scenarios (${{ matrix.os }}, ${{ matrix.sdk }}, ${{ matrix.framework }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     permissions:
@@ -25,6 +47,8 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{ inputs.os == 'all' && fromJSON('["ubuntu-latest", "windows-latest"]') || fromJSON(format('["{0}"]', inputs.os)) }}
+        sdk: ${{ fromJSON(needs.sdk_policy.outputs.lanes) }}
+        framework: [net10.0, net11.0]
 
     env:
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
@@ -38,14 +62,17 @@ jobs:
 
       - name: Setup .NET
         id: setup_dotnet
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # pin@v6.0.0
+        uses: ./.github/actions/setup-dotnet
         with:
-          dotnet-version: "10.0.x"
-          global-json-file: global.json
+          lane: ${{ matrix.sdk }}
 
       - name: Display .NET info
         id: dotnet_info
-        run: dotnet --info
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path artifacts/release-results -Force | Out-Null
+          dotnet --info | Tee-Object artifacts/release-results/dotnet-info.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Restore dependencies
         id: restore
@@ -53,7 +80,7 @@ jobs:
 
       - name: Build
         id: build
-        run: dotnet build DotNetMcp.slnx --no-restore --configuration Release
+        run: dotnet build DotNetMcp.slnx --no-restore --configuration Release --framework ${{ matrix.framework }}
 
       - name: Validate server.json
         id: validate_server_json
@@ -61,9 +88,19 @@ jobs:
 
       - name: Run Scenario + Release Scenario Tests
         id: release_scenarios
+        shell: pwsh
         run: |
-          dotnet test --solution DotNetMcp.slnx --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
-          dotnet test --solution DotNetMcp.slnx --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.ReleaseScenarios*"
+          pwsh -NoProfile -File scripts/run-release-gate-tests.ps1 -Framework ${{ matrix.framework }} -NoRestore -NoBuild -SkipServerJsonValidation 2>&1 |
+            Tee-Object artifacts/release-results/scenarios.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Preserve release diagnostics
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # pin@v7
+        with:
+          name: release-scenarios-${{ matrix.os }}-${{ matrix.sdk }}-${{ matrix.framework }}
+          path: artifacts/release-results/*
+          if-no-files-found: warn
 
       - name: Write workflow summary
         if: always()
@@ -73,6 +110,9 @@ jobs:
           ## dotnet-mcp release scenarios summary
 
           - OS: `${{ matrix.os }}`
+          - SDK lane: `${{ matrix.sdk }}`
+          - Test/server target: `${{ matrix.framework }}`
+          - Build SDK: `${{ steps.setup_dotnet.outputs.sdk-version }}`
           - Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           - Ref: `${{ github.ref }}`
           - SHA: `${{ github.sha }}`

@@ -65,8 +65,12 @@ If you do want a long-running, in-repo history, use [CHANGELOG.md](../CHANGELOG.
 
 Optional but recommended:
 
-- `dotnet build "$PWD/DotNetMcp/DotNetMcp.csproj"` (uses the pinned RC3 SDK and builds both targets)
+- `dotnet build "$PWD/DotNetMcp/DotNetMcp.csproj"` (uses the RC3 minimum or compatible installed GA SDK and builds both targets)
 - `dotnet test --solution DotNetMcp.slnx`
+
+Before tagging, run `release-scenarios.yml` with `os=all` against the intended source ref and confirm its SHA and every job outcome. It covers both target frameworks, Windows/Linux source scenarios, and the packaged-tool matrix without publishing. See [Testing](testing.md#release-gate-scenario-tests-manual--workflow_dispatch) for commands and evidence artifacts.
+
+Build and publish setup automatically adopts the stable .NET 11.0.1xx SDK once official release metadata announces it; until then it uses the exact RC3 baseline. Exact-RC3 regression lanes remain, and the packaged compatibility artifact is always built with RC3. Retain `rc3-tool-package` (including provenance and hash) before its 90-day expiry to verify that same package on GA later with `rc3_run_id`. GA runtime roll-forward requires GA to be installed; it does not install runtimes automatically. Do not treat pre-GA fixture checks as proof of GA execution.
 
 ### 2) Create an annotated tag
 

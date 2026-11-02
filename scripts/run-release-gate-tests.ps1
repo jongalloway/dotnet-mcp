@@ -3,6 +3,9 @@ param(
     [ValidateSet('Debug', 'Release')]
     [string] $Configuration = 'Release',
 
+    [ValidateSet('net10.0', 'net11.0')]
+    [string[]] $Framework = @('net10.0', 'net11.0'),
+
     [switch] $NoRestore,
     [switch] $NoBuild,
     [switch] $SkipServerJsonValidation,
@@ -55,11 +58,12 @@ try {
     if ($NoBuild) { $baseTestArgs += '--no-build' }
     if ($NoRestore) { $baseTestArgs += '--no-restore' }
 
-    # Run regular scenario tests.
-    Invoke-Checked 'dotnet' ($baseTestArgs + @('--', '--filter-namespace', $ScenarioTestFilterNamespace))
-
-    # Run long-running release-gate scenario tests.
-    Invoke-Checked 'dotnet' ($baseTestArgs + @('--', '--filter-namespace', $ReleaseScenarioTestFilterNamespace))
+    # Tool installs share SDK caches, so do not run the two frameworks concurrently.
+    foreach ($targetFramework in $Framework) {
+        $frameworkTestArgs = $baseTestArgs + @('--framework', $targetFramework)
+        Invoke-Checked 'dotnet' ($frameworkTestArgs + @('--', '--filter-namespace', $ScenarioTestFilterNamespace))
+        Invoke-Checked 'dotnet' ($frameworkTestArgs + @('--', '--filter-namespace', $ReleaseScenarioTestFilterNamespace))
+    }
 }
 finally {
     Pop-Location

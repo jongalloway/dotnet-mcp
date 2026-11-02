@@ -30,7 +30,11 @@ This project uses **consolidated tools** as the primary test surface:
 
 ## Quick start
 
-Install the exact .NET 11 RC3 SDK pinned in `global.json` and the .NET 10 SDK/runtime. The server and tests target both `net10.0` and `net11.0`; the commands below run both targets unless `--framework` selects one. Stdio tests discover the server binary for their own framework. Discovery probes allow for cold startup when both suites run concurrently.
+Install the .NET 11 RC3 baseline from `global.json` or a compatible GA/servicing SDK in the 11.0.1xx feature band, plus the .NET 10 SDK/runtime. The `latestPatch` SDK policy prefers the latest compatible installed patch, including GA after RC3, without moving to later feature bands or major versions. The server and tests target both `net10.0` and `net11.0`; the commands below run both targets unless `--framework` selects one. Stdio tests discover the server binary for their own framework. Discovery probes allow for cold startup when both suites run concurrently.
+
+The shared `.github/actions/setup-dotnet` action reads official release metadata to install .NET 10 alongside RC3 until GA is published, then automatically installs the latest stable SDK in 11.0.1xx. Normal build and publish jobs use that current selection. Build validation retains an additional exact-RC3 lane once GA is available. Each job uses an isolated SDK root so preinstalled SDKs cannot change its lane, without modifying the checkout's `global.json` or MTP runner configuration. Release metadata or installation errors fail setup rather than silently reverting to RC3.
+
+Run the offline SDK-selection fixtures with `pwsh -File scripts/test-sdk-selection.ps1`. They cover the RC3-to-GA transition, servicing, feature-band bounds, and invalid metadata without requiring an unreleased SDK. `pwsh -File scripts/resolve-dotnet-sdk.ps1` displays the live selection.
 
 Run all tests (recommended):
 
@@ -166,7 +170,7 @@ Tests that change the process-wide current directory use the nonparallel `Proces
 
 An SDK project with no target framework can either complete validation (`success:true`, `isValid:false`, and `"No target framework specified"` in `errors`) or fail evaluation (`success:false` with an evaluation `error`). The SDK/import environment determines this, not OS name alone. The SDK missing-framework regression test selects strict assertions for the actual response without OS-specific skips. Non-SDK missing-framework and malformed-XML fixtures deterministically cover completed invalid validation and evaluation failure, respectively.
 
-CI remains Ubuntu-only; PR checks run `ProjectAnalysisHelperTests` alongside MCP conformance tests, and main runs them in the full suite. The same portable tests can run on-device on Windows or macOS with the same class selector. For example, from a Windows checkout:
+The normal source CI runs on Ubuntu; PR checks run `ProjectAnalysisHelperTests` alongside MCP conformance tests, and main runs them in the full suite. Packaged compatibility and manual release validation cover Windows and Ubuntu. The same portable tests can run on-device on Windows or macOS with the same class selector. For example, from a Windows checkout:
 
 ```powershell
 dotnet test --solution DotNetMcp.slnx -c Release -- --filter-class '*ProjectAnalysisHelperTests'
@@ -263,7 +267,14 @@ pwsh -File scripts/run-release-gate-tests.ps1 -SkipServerJsonValidation
 ### Run in GitHub Actions (manual)
 
 The workflow [.github/workflows/release-scenarios.yml](../.github/workflows/release-scenarios.yml) is designed to be run via `workflow_dispatch`.
-It runs release scenario tests on the selected OS.
+It runs both scenario tiers and target frameworks on the selected OS, with current and exact-RC3 build SDK lanes when distinct. Each target framework gets its own runner so local tool installations cannot collide in shared SDK caches. The local helper runs framework suites sequentially and accepts `-Framework net10.0` or `-Framework net11.0` to select one. Select `all` to cover Windows and Ubuntu. The workflow also calls the packaged-tool compatibility workflow, so package failures fail the release validation. Each scenario suite is exit-code checked separately; logs and SDK inventories are retained in `release-scenarios-<os>-<lane>-<framework>` artifacts.
+
+```powershell
+gh workflow run release-scenarios.yml --ref <branch-or-sha> -f os=all
+gh workflow run build.yml --ref <branch-or-sha> -f runFullValidation=true -f runScenarioTests=true
+```
+
+Inspect the completed runs and their checked-out SHA; dispatching a workflow is not evidence that it passed. These workflows do not publish packages or create release tags.
 
 ## MCP Conformance Tests
 
@@ -319,16 +330,18 @@ The Cobertura XML will be written under the test output folder, typically:
 - `DotNetMcp.Tests/bin/Release/net10.0/TestResults/*.cobertura.xml`
 - `DotNetMcp.Tests/bin/Release/net11.0/TestResults/*.cobertura.xml`
 
-CI uploads both reports and submits both to Codecov. The .NET 10 report retains the artifact filename `coverage.cobertura.xml` for the existing download/diagnostic script; the additional report is `net11.0.cobertura.xml`.
+CI retains framework-specific reports under `TestResults/coverage/` using `--results-directory-layout per-module` and `--no-artifact-post-processing`, so the SDK's multi-application merge cannot delete them. Both reports are uploaded and submitted to Codecov from the current SDK lane. The .NET 10 report retains the artifact filename `coverage.cobertura.xml` for the existing download/diagnostic script; the additional report is `net11.0.cobertura.xml`.
 
 ## Packaged-tool compatibility
 
-The `Packaged Tool Compatibility` workflow builds one dual-targeted package with the pinned RC3 SDK. On Windows and Linux it tests that package using `dnx` and a fresh tool-path install in isolated .NET 10-only, RC3-only, and side-by-side SDK roots. Tests initialize MCP, list tools and templates, create/analyze/build a console project, and inspect host traces to assert the selected tool assets and loaded runtime. The side-by-side case runs the .NET 11 tool against a project pinned to the .NET 10 SDK.
+The `Packaged Tool Compatibility` workflow builds one dual-targeted package with the exact RC3 SDK, even after normal builds adopt GA. On Windows and Linux it tests that package using `dnx` and a fresh tool-path install in isolated .NET 10-only, RC3-only, and side-by-side SDK roots. Side-by-side cases explicitly select each project SDK independently of the .NET 11 tool SDK/runtime. Tests assert `dotnet --version` in the pinned project workspace, initialize MCP, list tools and templates, create/analyze/build a console project, and inspect host traces to assert the selected tool assets and loaded runtime.
+
+When official release metadata contains GA in the allowed feature band, the matrix automatically adds GA-only and GA/.NET 10 side-by-side cases for both project SDKs. GA roots contain no preview SDKs or runtimes. The same RC3-built package is used, not a rebuild with GA.
 
 To run a case locally, supply a complete isolated SDK installation (not just a runtime), the exact SDK/runtime versions, and a new output directory:
 
 ```powershell
-dotnet pack "$PWD\DotNetMcp\DotNetMcp.csproj" -c Release -o artifacts/package
+& C:\isolated-sdk-rc3\dotnet.exe pack "$PWD\DotNetMcp\DotNetMcp.csproj" -c Release -o artifacts/package
 pwsh -File scripts/test-tool-compatibility.ps1 `
   -PackagePath artifacts/package/Community.Mcp.DotNet.<version>.nupkg `
   -DotnetRoot C:\isolated-sdk-rc3 `
@@ -338,9 +351,16 @@ pwsh -File scripts/test-tool-compatibility.ps1 `
   -OutputDirectory artifacts/compatibility-rc3
 ```
 
-Use the official `dotnet-install` script to provision each isolated root without modifying system installations. For the side-by-side case install both SDKs into one root and pass the .NET 10 project SDK version with `-ExpectedFramework net11.0`. The harness pins tool installation to the SDK matching `ExpectedFramework`, independently of the project SDK. It sets isolated CLI homes, package caches, tool paths, and host roots; inherited runtime roll-forward overrides are removed. Neither invocation uses `--allow-roll-forward`.
+Use the official `dotnet-install` script to provision each isolated root without modifying system installations. Build the baseline package through a root containing RC3 and no GA SDK so `latestPatch` cannot select GA for that build. On Linux, use that root's `dotnet` executable instead of `dotnet.exe`. For a side-by-side execution case install both SDKs into one root and pass either project SDK version with `-ExpectedFramework net11.0`. The harness pins tool installation to the SDK matching `ExpectedFramework`, independently of the project SDK. It sets isolated CLI homes, package caches, tool paths, and host roots; inherited runtime roll-forward overrides are removed. Neither invocation uses `--allow-roll-forward`.
 
-The workflow preserves `rc3-tool-package` for 90 days. Download and retain that artifact before expiry if needed. **GA-only verification remains pending until .NET 11 GA is available.** To exercise GA later, dispatch the workflow with `rc3_run_id` pointing to an earlier run containing that artifact. The package job is skipped; the existing package is downloaded and run in a GA-only root without rebuilding or installing RC3. Compare the SHA-256 recorded in each `results.json` to confirm artifact identity. Failure to obtain GA or the preserved artifact fails the check; it is not counted as a pass.
+The workflow preserves `rc3-tool-package` for 90 days, including `provenance.json` with the exact build SDK, source SHA, run URL, and package SHA-256. Download and retain that artifact before expiry if needed. **Real GA execution remains pending until .NET 11 GA is available; fixture tests are not a GA execution pass.** Subsequent workflow runs automatically exercise GA once published. To verify a package preserved before GA, dispatch with `rc3_run_id` pointing to a run containing the package and provenance artifact. The package job is skipped; the existing package is downloaded and its hash is verified before execution without RC3 installed in the GA roots. Artifacts from older workflow revisions without provenance must be regenerated with the updated workflow before using this override.
+
+```powershell
+gh workflow run tool-compatibility.yml --ref <branch-or-sha>
+gh workflow run tool-compatibility.yml --ref <branch-or-sha> -f rc3_run_id=<preserved-run-id>
+```
+
+Each `compatibility-<os>-<environment>` artifact retains selection results, provenance, inventories, and host traces. Compare package hashes across runs to establish artifact identity. Failure to obtain GA, metadata, or the preserved artifact fails the check; it is not counted as a pass. No `--allow-roll-forward` flags are added: the packaged `Minor` runtime policy permits an installed GA runtime, independently of SDK selection and installation.
 
 ## Downloading CI coverage artifacts
 
