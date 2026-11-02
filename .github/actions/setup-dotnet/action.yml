@@ -29,24 +29,25 @@ runs:
         & "$env:GITHUB_WORKSPACE/scripts/resolve-dotnet-sdk.ps1" -Lane $env:SDK_LANE -GitHubOutputPath $env:GITHUB_OUTPUT
     - name: Install .NET SDKs
       uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # pin@v6.0.0
+      env:
+        DOTNET_INSTALL_DIR: ${{ runner.temp }}/source-dotnet
       with:
         dotnet-version: |
           10.0.x
           ${{ steps.resolve.outputs.sdk-version }}
         cache: ${{ inputs.cache }}
         cache-dependency-path: ${{ inputs.cache-dependency-path }}
-    - name: Pin this job to the resolved SDK and record inventory
+    - name: Verify isolated SDK selection and record inventory
       shell: pwsh
       env:
         SELECTED_SDK: ${{ steps.resolve.outputs.sdk-version }}
       run: |
         $ErrorActionPreference = 'Stop'
-        $configPath = Join-Path $env:GITHUB_WORKSPACE 'global.json'
-        $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
-        # A job-local exact pin keeps preinstalled SDKs from changing matrix coverage.
-        $config.sdk.version = $env:SELECTED_SDK
-        $config.sdk.rollForward = 'disable'
-        $config | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $configPath
+        $root = Join-Path $env:RUNNER_TEMP 'source-dotnet'
+        $hostPath = Join-Path $root $(if ($IsWindows) { 'dotnet.exe' } else { 'dotnet' })
+        if ((Get-Command dotnet).Source -ne $hostPath) { throw 'Expected the isolated dotnet host on PATH.' }
+        @("DOTNET_HOST_PATH=$hostPath", "DOTNET_ROOT_X64=$root", "DOTNET_ROOT_ARM64=$root") |
+          Out-File -LiteralPath $env:GITHUB_ENV -Append -Encoding utf8
         $actual = & dotnet --version
         if ($LASTEXITCODE -ne 0 -or $actual -ne $env:SELECTED_SDK) {
           throw "Expected SDK $env:SELECTED_SDK, selected '$actual'."

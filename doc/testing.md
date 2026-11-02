@@ -32,7 +32,7 @@ This project uses **consolidated tools** as the primary test surface:
 
 Install the .NET 11 RC3 baseline from `global.json` or a compatible GA/servicing SDK in the 11.0.1xx feature band, plus the .NET 10 SDK/runtime. The `latestPatch` SDK policy prefers the latest compatible installed patch, including GA after RC3, without moving to later feature bands or major versions. The server and tests target both `net10.0` and `net11.0`; the commands below run both targets unless `--framework` selects one. Stdio tests discover the server binary for their own framework. Discovery probes allow for cold startup when both suites run concurrently.
 
-The shared `.github/actions/setup-dotnet` action reads official release metadata to install .NET 10 alongside RC3 until GA is published, then automatically installs the latest stable SDK in 11.0.1xx. Normal build and publish jobs use that current selection. Build validation retains an additional exact-RC3 lane once GA is available. Job-local exact pins prevent preinstalled SDKs from changing the selected lane and preserve the MTP runner configuration. Release metadata or installation errors fail setup rather than silently reverting to RC3.
+The shared `.github/actions/setup-dotnet` action reads official release metadata to install .NET 10 alongside RC3 until GA is published, then automatically installs the latest stable SDK in 11.0.1xx. Normal build and publish jobs use that current selection. Build validation retains an additional exact-RC3 lane once GA is available. Each job uses an isolated SDK root so preinstalled SDKs cannot change its lane, without modifying the checkout's `global.json` or MTP runner configuration. Release metadata or installation errors fail setup rather than silently reverting to RC3.
 
 Run the offline SDK-selection fixtures with `pwsh -File scripts/test-sdk-selection.ps1`. They cover the RC3-to-GA transition, servicing, feature-band bounds, and invalid metadata without requiring an unreleased SDK. `pwsh -File scripts/resolve-dotnet-sdk.ps1` displays the live selection.
 
@@ -341,7 +341,7 @@ When official release metadata contains GA in the allowed feature band, the matr
 To run a case locally, supply a complete isolated SDK installation (not just a runtime), the exact SDK/runtime versions, and a new output directory:
 
 ```powershell
-dotnet pack "$PWD\DotNetMcp\DotNetMcp.csproj" -c Release -o artifacts/package
+& C:\isolated-sdk-rc3\dotnet.exe pack "$PWD\DotNetMcp\DotNetMcp.csproj" -c Release -o artifacts/package
 pwsh -File scripts/test-tool-compatibility.ps1 `
   -PackagePath artifacts/package/Community.Mcp.DotNet.<version>.nupkg `
   -DotnetRoot C:\isolated-sdk-rc3 `
@@ -351,7 +351,7 @@ pwsh -File scripts/test-tool-compatibility.ps1 `
   -OutputDirectory artifacts/compatibility-rc3
 ```
 
-Use the official `dotnet-install` script to provision each isolated root without modifying system installations. For the side-by-side case install both SDKs into one root and pass the .NET 10 project SDK version with `-ExpectedFramework net11.0`. The harness pins tool installation to the SDK matching `ExpectedFramework`, independently of the project SDK. It sets isolated CLI homes, package caches, tool paths, and host roots; inherited runtime roll-forward overrides are removed. Neither invocation uses `--allow-roll-forward`.
+Use the official `dotnet-install` script to provision each isolated root without modifying system installations. Build the baseline package through a root containing RC3 and no GA SDK so `latestPatch` cannot select GA for that build. On Linux, use that root's `dotnet` executable instead of `dotnet.exe`. For a side-by-side execution case install both SDKs into one root and pass either project SDK version with `-ExpectedFramework net11.0`. The harness pins tool installation to the SDK matching `ExpectedFramework`, independently of the project SDK. It sets isolated CLI homes, package caches, tool paths, and host roots; inherited runtime roll-forward overrides are removed. Neither invocation uses `--allow-roll-forward`.
 
 The workflow preserves `rc3-tool-package` for 90 days, including `provenance.json` with the exact build SDK, source SHA, run URL, and package SHA-256. Download and retain that artifact before expiry if needed. **Real GA execution remains pending until .NET 11 GA is available; fixture tests are not a GA execution pass.** Subsequent workflow runs automatically exercise GA once published. To verify a package preserved before GA, dispatch with `rc3_run_id` pointing to a run containing the package and provenance artifact. The package job is skipped; the existing package is downloaded and its hash is verified before execution without RC3 installed in the GA roots. Artifacts from older workflow revisions without provenance must be regenerated with the updated workflow before using this override.
 
