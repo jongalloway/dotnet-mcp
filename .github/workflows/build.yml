@@ -253,23 +253,28 @@ jobs:
 
       - name: Test
         id: test
-        run: dotnet test --solution DotNetMcp.slnx --no-build --configuration Release --verbosity normal -- --coverage --coverage-output-format cobertura
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p coverage
+          for tfm in net10.0 net11.0; do
+            name="$tfm.cobertura.xml"
+            if [[ "$tfm" == "net10.0" ]]; then name="coverage.cobertura.xml"; fi
+            dotnet test --solution DotNetMcp.slnx --framework "$tfm" --no-build \
+              --configuration Release --verbosity normal -- \
+              --coverage --coverage-output "$GITHUB_WORKSPACE/coverage/$name" --coverage-output-format cobertura
+          done
 
       - name: Collect coverage artifact
         id: collect_coverage
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p coverage
-          for tfm in net10.0 net11.0; do
-            mapfile -t reports < <(find "DotNetMcp.Tests/bin/Release/$tfm" -name '*.cobertura.xml')
-            if [[ ${#reports[@]} -ne 1 ]]; then
-              echo "Expected exactly one Cobertura report for $tfm, found ${#reports[@]}." >&2
+          for report in coverage/coverage.cobertura.xml coverage/net11.0.cobertura.xml; do
+            if [[ ! -s "$report" ]]; then
+              echo "Expected a nonempty Cobertura report: $report" >&2
               exit 1
             fi
-            name="$tfm.cobertura.xml"
-            if [[ "$tfm" == "net10.0" ]]; then name="coverage.cobertura.xml"; fi
-            cp "${reports[0]}" "coverage/$name"
           done
 
       - name: Upload coverage to Codecov

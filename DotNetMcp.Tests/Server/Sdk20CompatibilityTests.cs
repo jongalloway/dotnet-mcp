@@ -242,8 +242,12 @@ public class Sdk20CompatibilityTests
             {
                 await cancellation.CancelAsync();
                 await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending);
-                // The SDK's client-side input handler token can outlive the tools/call token.
-                release.TrySetResult();
+                try
+                {
+                    // The client input handler can outlive the call; do not race server cancellation with acceptance.
+                    await host.InvocationExited.Task.WaitAsync(TimeSpan.FromSeconds(10), host.Token);
+                }
+                finally { release.TrySetResult(); }
             }
             else
             {
