@@ -96,8 +96,8 @@ jobs:
       - name: Validate server.json
         run: pwsh -File scripts/validate-server-json.ps1
 
-      - name: Run MCP Conformance Tests
-        run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-class "*McpConformanceTests"
+      - name: Run MCP Conformance and Project Analysis Tests
+        run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-class "*McpConformanceTests" --filter-class "*ProjectAnalysisHelperTests"
 
   pr_scenario:
     # Runs only when scenario-specific files (Scenarios/Prompts/Resources) change.

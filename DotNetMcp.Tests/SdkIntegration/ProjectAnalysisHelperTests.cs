@@ -260,7 +260,7 @@ public class ProjectAnalysisHelperTests
     }
 
     [Fact]
-    public async Task ValidateProjectAsync_WithSdkMissingTargetFramework_ReturnsEvaluationError()
+    public async Task ValidateProjectAsync_WithSdkMissingTargetFramework_RejectsProject()
     {
         var projectFile = CreateTempProject("""<Project Sdk="Microsoft.NET.Sdk" />""");
         try
@@ -268,8 +268,46 @@ public class ProjectAnalysisHelperTests
             var result = await ProjectAnalysisHelper.ValidateProjectAsync(projectFile, _logger);
 
             using var json = JsonDocument.Parse(result);
+            if (json.RootElement.GetProperty("success").GetBoolean())
+            {
+                Assert.Equal(projectFile, json.RootElement.GetProperty("projectPath").GetString());
+                Assert.False(json.RootElement.GetProperty("isValid").GetBoolean(), result);
+                Assert.Collection(json.RootElement.GetProperty("errors").EnumerateArray(),
+                    error => Assert.Equal("No target framework specified", error.GetString()));
+                Assert.Equal(JsonValueKind.Array, json.RootElement.GetProperty("warnings").ValueKind);
+                Assert.Equal(JsonValueKind.Array, json.RootElement.GetProperty("recommendations").ValueKind);
+                Assert.False(json.RootElement.TryGetProperty("error", out _), result);
+            }
+            else
+            {
+                var error = Assert.IsType<string>(json.RootElement.GetProperty("error").GetString());
+                Assert.StartsWith("Error validating project: ", error);
+                Assert.False(string.IsNullOrWhiteSpace(error["Error validating project: ".Length..]), result);
+                Assert.False(json.RootElement.TryGetProperty("isValid", out _), result);
+                Assert.False(json.RootElement.TryGetProperty("errors", out _), result);
+            }
+        }
+        finally
+        {
+            Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task ValidateProjectAsync_WithMalformedProject_ReturnsEvaluationError()
+    {
+        var projectFile = CreateTempProject("<Project>");
+        try
+        {
+            var result = await ProjectAnalysisHelper.ValidateProjectAsync(projectFile, _logger);
+
+            using var json = JsonDocument.Parse(result);
             Assert.False(json.RootElement.GetProperty("success").GetBoolean(), result);
-            Assert.Contains("Error validating project:", json.RootElement.GetProperty("error").GetString());
+            var error = Assert.IsType<string>(json.RootElement.GetProperty("error").GetString());
+            Assert.StartsWith("Error validating project: ", error);
+            Assert.False(string.IsNullOrWhiteSpace(error["Error validating project: ".Length..]), result);
+            Assert.False(json.RootElement.TryGetProperty("isValid", out _), result);
+            Assert.False(json.RootElement.TryGetProperty("errors", out _), result);
         }
         finally
         {
