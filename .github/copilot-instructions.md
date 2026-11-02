@@ -104,9 +104,8 @@ After making code changes:
 
 When running tests:
 
-- Use `dotnet test --project ...` to run a specific test project.
-  - Do not pass a `.csproj` as a positional argument; `dotnet test` will warn: `Specifying a project for 'dotnet test' should be via '--project'`.
-- Use `dotnet test --solution ...` to run from the solution.
+- Run this repository's tests with `dotnet test --solution DotNetMcp.slnx`. The pinned .NET 11 RC3 SDK has a `--project` discovery regression; solution discovery runs both target frameworks without changing test selectors.
+- For other projects, MTP supports `--project ...`; do not pass a `.csproj` as a positional argument.
 - Use Microsoft Testing Platform filters after `--` (for example `--filter-class ...`).
 
 ## SDK Integration Patterns

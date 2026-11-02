@@ -62,8 +62,8 @@ jobs:
       - name: Run Scenario + Release Scenario Tests
         id: release_scenarios
         run: |
-          dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
-          dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.ReleaseScenarios*"
+          dotnet test --solution DotNetMcp.slnx --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
+          dotnet test --solution DotNetMcp.slnx --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.ReleaseScenarios*"
 
       - name: Write workflow summary
         if: always()

@@ -103,7 +103,7 @@ if (-not $CoverageFile) {
     
     if ($coverageFiles.Count -eq 0) {
         Write-Warning "No coverage files found. Run tests with coverage first:"
-        Write-Host "  dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release -- --coverage --coverage-output-format cobertura"
+        Write-Host "  dotnet test --solution DotNetMcp.slnx -c Release -- --coverage --coverage-output-format cobertura"
         exit 0
     }
     

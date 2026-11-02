@@ -96,9 +96,9 @@ For telemetry and observability features, see [doc/telemetry.md](./telemetry.md)
 dotnet build --configuration Release
 
 # Run performance smoke tests
-dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj \
+dotnet test --solution DotNetMcp.slnx \
   --no-build --configuration Release \
-  --filter-namespace "*Performance*"
+  -- --filter-namespace "*Performance*"
 ```
 
 ### In CI

@@ -98,7 +98,7 @@ jobs:
         run: pwsh -File scripts/validate-server-json.ps1
 
       - name: Run MCP Conformance and Project Analysis Tests
-        run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-class "*McpConformanceTests" --filter-class "*ProjectAnalysisHelperTests"
+        run: dotnet test --solution DotNetMcp.slnx --no-build --configuration Release --verbosity normal -- --filter-class "*McpConformanceTests" --filter-class "*ProjectAnalysisHelperTests"
 
   pr_scenario:
     # Runs only when scenario-specific files (Scenarios/Prompts/Resources) change.
@@ -131,7 +131,7 @@ jobs:
       - name: Run MCP Scenario Tests
         env:
           DOTNET_MCP_SCENARIO_TESTS: "1"
-        run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
+        run: dotnet test --solution DotNetMcp.slnx --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
 
   manual_quick_checks:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.runFullValidation != 'true' }}
@@ -163,13 +163,13 @@ jobs:
         run: pwsh -File scripts/validate-server-json.ps1
 
       - name: Run MCP Conformance Tests
-        run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-class "*McpConformanceTests"
+        run: dotnet test --solution DotNetMcp.slnx --no-build --configuration Release --verbosity normal -- --filter-class "*McpConformanceTests"
 
       - name: Run MCP Scenario Tests
         if: ${{ inputs.runScenarioTests == 'true' }}
         env:
           DOTNET_MCP_SCENARIO_TESTS: "1"
-        run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
+        run: dotnet test --solution DotNetMcp.slnx --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
 
   full_validation:
     if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.runFullValidation == 'true') }}
@@ -210,7 +210,7 @@ jobs:
 
       - name: Run MCP Conformance Tests
         id: conformance_tests
-        run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-class "*McpConformanceTests"
+        run: dotnet test --solution DotNetMcp.slnx --no-build --configuration Release --verbosity normal -- --filter-class "*McpConformanceTests"
 
       - name: Run MCP Scenario Tests
         id: scenario_tests
@@ -218,7 +218,7 @@ jobs:
         if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.runScenarioTests == 'true') }}
         env:
           DOTNET_MCP_SCENARIO_TESTS: "1"
-        run: dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
+        run: dotnet test --solution DotNetMcp.slnx --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
 
       - name: Test
         id: test
@@ -267,7 +267,7 @@ jobs:
         run: |
           set -uo pipefail
           echo "Running performance smoke tests..."
-          dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj \
+          dotnet test --solution DotNetMcp.slnx \
             --no-build --configuration Release \
             --verbosity detailed \
             -- --filter-namespace "*Performance*" > performance-results.txt 2>&1 || true
