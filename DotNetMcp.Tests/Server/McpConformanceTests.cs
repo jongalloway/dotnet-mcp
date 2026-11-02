@@ -1159,6 +1159,14 @@ public class McpConformanceTests : IAsyncLifetime
     [InlineData("2025-11-25", "Clean")]
     [InlineData("2026-07-28", "Remove")]
     [InlineData("2025-11-25", "Remove")]
+    [InlineData("2026-07-28", "DatabaseDrop")]
+    [InlineData("2025-11-25", "DatabaseDrop")]
+    [InlineData("2026-07-28", "CertificateClean")]
+    [InlineData("2025-11-25", "CertificateClean")]
+    [InlineData("2026-07-28", "SecretsRemove")]
+    [InlineData("2025-11-25", "SecretsRemove")]
+    [InlineData("2026-07-28", "SecretsClear")]
+    [InlineData("2025-11-25", "SecretsClear")]
     public async Task Server_ConfirmationControlFlow_ReachesSdk(string protocol, string action)
     {
         var executable = GetServerExecutablePath();
@@ -1184,12 +1192,21 @@ public class McpConformanceTests : IAsyncLifetime
             },
             cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotEmpty(await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken));
-        var result = await client.CallToolAsync(action == "Clean" ? "dotnet_project" : "dotnet_solution",
+        var tool = action switch
+        {
+            "Clean" => "dotnet_project",
+            "Remove" => "dotnet_solution",
+            "DatabaseDrop" => "dotnet_ef",
+            _ => "dotnet_dev_certs"
+        };
+        var result = await client.CallToolAsync(tool,
             new Dictionary<string, object?>
             {
                 ["action"] = action,
                 [action == "Clean" ? "project" : "solution"] = action == "Clean" ? "missing.csproj" : "missing.sln",
-                ["projects"] = new[] { "missing.csproj" }
+                ["projects"] = new[] { "missing.csproj" },
+                ["force"] = true,
+                ["key"] = "Example:Key"
             },
             cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(1, confirmations);
