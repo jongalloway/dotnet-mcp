@@ -246,6 +246,8 @@ Provides comprehensive .csproj file analysis using MSBuild APIs without requirin
   - Returns JSON with direct package and project dependencies
 - `ValidateProjectAsync(projectPath, logger)` - Project health check
   - Returns JSON with errors, warnings, and recommendations
+  - `success:true` means evaluation and the health check completed; `isValid` indicates whether the project has validation errors. A missing target framework returns `isValid:false` with `"No target framework specified"` in `errors`.
+  - If the file cannot be evaluated, returns `success:false` with an `error` beginning `"Error validating project:"` instead of a health-check result. An SDK project without a target framework can produce either outcome depending on SDK/import evaluation; OS name alone does not determine the result. A nonexistent file returns `success:false` with a file-not-found error.
 
 **Usage Example:**
 

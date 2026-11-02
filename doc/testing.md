@@ -165,7 +165,17 @@ dotnet test --project .\DotNetMcp.Tests\DotNetMcp.Tests.csproj -- --filter-class
 
 Tool command-building tests record `dotnet tool` commands through a per-instance executor override instead of installing, updating, or removing real tools. Other commands in those test classes still use the normal executor. Real local-tool installation coverage belongs to isolated opt-in release scenarios, not the source-controlled `.config/dotnet-tools.json` or the user's global tools.
 
-Tests that change the process-wide current directory use the nonparallel `ProcessWideStateTests` collection, including workspace snapshot resource tests. Project analysis tests exercise evaluated MSBuild properties: an omitted property can still have an SDK default, so unset-property fixtures use a custom property name. SDK projects with no target framework may fail evaluation before validation; non-SDK fixtures separately exercise the validation result for a missing target framework.
+Tests that change the process-wide current directory use the nonparallel `ProcessWideStateTests` collection, including workspace snapshot resource tests. Project analysis tests exercise evaluated MSBuild properties: an omitted property can still have an SDK default, so unset-property fixtures use a custom property name.
+
+An SDK project with no target framework can either complete validation (`success:true`, `isValid:false`, and `"No target framework specified"` in `errors`) or fail evaluation (`success:false` with an evaluation `error`). The SDK/import environment determines this, not OS name alone. The SDK missing-framework regression test selects strict assertions for the actual response without OS-specific skips. Non-SDK missing-framework and malformed-XML fixtures deterministically cover completed invalid validation and evaluation failure, respectively.
+
+CI remains Ubuntu-only; PR checks run `ProjectAnalysisHelperTests` alongside MCP conformance tests, and main runs them in the full suite. The same portable tests can run on-device on Windows or macOS with the same class selector. For example, from a Windows checkout:
+
+```powershell
+dotnet test --project .\DotNetMcp.Tests\DotNetMcp.Tests.csproj -c Release -- --filter-class '*ProjectAnalysisHelperTests'
+```
+
+On macOS or Linux, pass the local test-project path to `--project` and keep the same selector. Each platform runs all fixtures and selects assertions based on its actual evaluation result.
 
 In-process MSBuild analysis requires runtime assets compatible with the project's target framework. Keep `Microsoft.Build` and `Microsoft.Build.Utilities.Core` aligned on a .NET 10-compatible release, and retain the explicit `NuGet.Frameworks` dependency needed by MSBuild property functions rather than relying on the older version supplied by TemplateEngine.
 
