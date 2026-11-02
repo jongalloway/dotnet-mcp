@@ -8,12 +8,14 @@ This project is an **MCP (Model Context Protocol) server** that integrates with 
 
 ## Key Technologies
 
-- **.NET 10.0**: The latest version of .NET (LTS - Long Term Support)
+- **.NET 10.0 and .NET 11.0 RC3**: Dual-targeted server and tests; source builds use the exact RC3 SDK pinned in `global.json`
 - **Model Context Protocol SDK**: Version 2.0.0, with matching `ModelContextProtocol.Extensions.Tasks`
 - **Stdio Transport**: Communication via standard input/output
 - **Microsoft.Extensions.Hosting**: For application lifecycle management
-- **Microsoft.TemplateEngine.\***: Direct integration with .NET Template Engine (v10.0.101)
-- **Microsoft.Build.\***: MSBuild integration for framework validation (v18.0.2)
+- **Microsoft.TemplateEngine.\***: v10.0.403 for `net10.0`, v11.0.100-rc.3.26522.148 for `net11.0`; keep dependency groups target-specific
+- **Microsoft.Build.\***: MSBuild integration for framework validation (v18.9.6)
+
+`NuGet.Config` adds the public `dotnet-tools` feed for RC3's NuGet 8 dependencies. Packaged tools include those dependencies and do not require the feed at installation. Both targets expose the same MCP tools, and project defaults remain .NET 10 LTS. `RollForward=Minor` does not permit backward or cross-major runtime selection. Verify generated runtimeconfigs and packaged tool execution, not just project builds.
 
 ## Architecture
 
@@ -96,7 +98,7 @@ dotnet build /path/to/dotnet-mcp/DotNetMcp/DotNetMcp.csproj
 ### Testing Changes
 
 After making code changes:
-1. Build with full path: `dotnet build --project [full path to .csproj]`
+1. Build both targets with full path: `dotnet build [full path to .csproj]`
 2. Check for compilation errors
 3. Test the MCP server manually if significant changes were made
 
@@ -262,8 +264,8 @@ Framework validation and information.
   - 703 passing tests covering all 74 MCP tools
   - MCP conformance tests validate protocol compliance
   - See [doc/testing.md](../doc/testing.md) for details
-- **Build the project**: `dotnet build --project [full path to .csproj]`
-- **Run the server**: `dotnet run --project [full path to .csproj]`
+- **Build the project**: `dotnet build [full path to .csproj]`
+- **Run the server**: `dotnet run --framework net11.0 --project [full path to .csproj]` (or `net10.0`)
 - **Manual testing**: Test with MCP Inspector or Claude Desktop
 - Verify all commands work with various parameter combinations
 - **Test SDK integration**: Try the new template and framework info tools

@@ -65,7 +65,7 @@ If you do want a long-running, in-repo history, use [CHANGELOG.md](../CHANGELOG.
 
 Optional but recommended:
 
-- `dotnet build --project DotNetMcp/DotNetMcp.csproj`
+- `dotnet build "$PWD/DotNetMcp/DotNetMcp.csproj"` (uses the pinned RC3 SDK and builds both targets)
 - `dotnet test --solution DotNetMcp.slnx`
 
 ### 2) Create an annotated tag

@@ -63,6 +63,7 @@ public class McpConformanceTests : IAsyncLifetime
         // Connect to the server and perform handshake
         _client = await McpClient.CreateAsync(
             new PerRequestLoggingTransport(transport),
+            new() { DiscoverProbeTimeout = TimeSpan.FromSeconds(30) },
             loggerFactory: _loggerFactory,
             cancellationToken: TestContext.Current.CancellationToken);
 

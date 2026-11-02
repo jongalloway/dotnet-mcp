@@ -27,7 +27,9 @@ public class McpAppsMetaWireFormatTest : IAsyncLifetime
         };
 
         _client = await McpClient.CreateAsync(
-            new StdioClientTransport(transportOptions));
+            new StdioClientTransport(transportOptions),
+            new() { DiscoverProbeTimeout = TimeSpan.FromSeconds(30) },
+            cancellationToken: TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

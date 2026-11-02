@@ -86,6 +86,7 @@ jobs:
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # pin@v6.0.0
         with:
           dotnet-version: "10.0.x"
+          global-json-file: global.json
 
       - name: Restore dependencies
         run: dotnet restore DotNetMcp.slnx
@@ -119,6 +120,7 @@ jobs:
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # pin@v6.0.0
         with:
           dotnet-version: "10.0.x"
+          global-json-file: global.json
 
       - name: Restore dependencies
         run: dotnet restore DotNetMcp.slnx
@@ -149,6 +151,7 @@ jobs:
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # pin@v6.0.0
         with:
           dotnet-version: "10.0.x"
+          global-json-file: global.json
 
       - name: Restore dependencies
         run: dotnet restore DotNetMcp.slnx
@@ -187,6 +190,7 @@ jobs:
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # pin@v6.0.0
         with:
           dotnet-version: "10.0.x"
+          global-json-file: global.json
 
       - name: Display .NET info
         id: dotnet_info
@@ -225,13 +229,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          coverage_file=$(find DotNetMcp.Tests/bin/Release -name '*.cobertura.xml' | head -n 1)
-          if [[ -z "${coverage_file}" ]]; then
-            echo "Error: No coverage file found matching '*.cobertura.xml' under 'DotNetMcp.Tests/bin/Release'." >&2
-            exit 1
-          fi
-          echo "Found coverage file: ${coverage_file}"
-          cp "${coverage_file}" coverage.cobertura.xml
+          mkdir -p coverage
+          for tfm in net10.0 net11.0; do
+            mapfile -t reports < <(find "DotNetMcp.Tests/bin/Release/$tfm" -name '*.cobertura.xml')
+            if [[ ${#reports[@]} -ne 1 ]]; then
+              echo "Expected exactly one Cobertura report for $tfm, found ${#reports[@]}." >&2
+              exit 1
+            fi
+            name="$tfm.cobertura.xml"
+            if [[ "$tfm" == "net10.0" ]]; then name="coverage.cobertura.xml"; fi
+            cp "${reports[0]}" "coverage/$name"
+          done
 
       - name: Upload coverage to Codecov
         id: upload_codecov
@@ -239,7 +247,7 @@ jobs:
         if: ${{ github.ref == 'refs/heads/main' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # pin@v7
         with:
-          files: coverage.cobertura.xml
+          files: coverage/coverage.cobertura.xml,coverage/net11.0.cobertura.xml
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
 
@@ -248,7 +256,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # pin@v7
         with:
           name: coverage-cobertura
-          path: coverage.cobertura.xml
+          path: coverage/*.cobertura.xml
 
       - name: Run Performance Smoke Tests
         id: performance_smoke

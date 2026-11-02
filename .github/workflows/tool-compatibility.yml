@@ -1,0 +1,132 @@
+name: Packaged Tool Compatibility
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      rc3_run_id:
+        description: "For GA-only verification: run ID containing an existing rc3-tool-package artifact (no rebuild)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  package:
+    if: ${{ !inputs.rc3_run_id }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # pin@v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # pin@v6.0.0
+        with:
+          global-json-file: global.json
+          dotnet-version: "10.0.x"
+      - name: Pack once with RC3
+        run: dotnet pack "$GITHUB_WORKSPACE/DotNetMcp/DotNetMcp.csproj" --configuration Release --output artifacts/package
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # pin@v7
+        with:
+          name: rc3-tool-package
+          path: artifacts/package/*.nupkg
+          retention-days: 90
+
+  compatibility:
+    needs: package
+    if: ${{ always() && (needs.package.result == 'success' || (needs.package.result == 'skipped' && inputs.rc3_run_id)) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        environment: ${{ inputs.rc3_run_id && fromJSON('["ga"]') || fromJSON('["net10", "rc3", "side-by-side"]') }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # pin@v7.0.1
+      - name: Download current RC3 package
+        if: ${{ !inputs.rc3_run_id }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # pin@v8
+        with:
+          name: rc3-tool-package
+          path: artifacts/package
+      - name: Download preserved RC3 package without rebuilding
+        if: ${{ inputs.rc3_run_id }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # pin@v8
+        with:
+          name: rc3-tool-package
+          path: artifacts/package
+          run-id: ${{ inputs.rc3_run_id }}
+          github-token: ${{ github.token }}
+      - name: Install isolated SDKs (Linux)
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          CASE: ${{ matrix.environment }}
+        run: |
+          set -euo pipefail
+          curl -fsSL https://dot.net/v1/dotnet-install.sh -o "$RUNNER_TEMP/dotnet-install.sh"
+          root="$RUNNER_TEMP/compatibility-dotnet"
+          if [[ "$CASE" == "net10" || "$CASE" == "side-by-side" ]]; then
+            bash "$RUNNER_TEMP/dotnet-install.sh" --channel 10.0 --quality ga --install-dir "$root" --no-path
+          fi
+          if [[ "$CASE" == "rc3" || "$CASE" == "side-by-side" ]]; then
+            bash "$RUNNER_TEMP/dotnet-install.sh" --version 11.0.100-rc.3.26522.148 --install-dir "$root" --no-path
+          fi
+          if [[ "$CASE" == "ga" ]]; then
+            bash "$RUNNER_TEMP/dotnet-install.sh" --channel 11.0 --quality ga --install-dir "$root" --no-path
+          fi
+      - name: Install isolated SDKs (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          CASE: ${{ matrix.environment }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $installer = Join-Path $env:RUNNER_TEMP 'dotnet-install.ps1'
+          Invoke-WebRequest https://dot.net/v1/dotnet-install.ps1 -OutFile $installer
+          $root = Join-Path $env:RUNNER_TEMP 'compatibility-dotnet'
+          if ($env:CASE -in @('net10', 'side-by-side')) {
+            & $installer -Channel 10.0 -Quality GA -InstallDir $root -NoPath
+          }
+          if ($env:CASE -in @('rc3', 'side-by-side')) {
+            & $installer -Version 11.0.100-rc.3.26522.148 -InstallDir $root -NoPath
+          }
+          if ($env:CASE -eq 'ga') {
+            & $installer -Channel 11.0 -Quality GA -InstallDir $root -NoPath
+          }
+      - name: Exercise packaged tool
+        shell: pwsh
+        env:
+          CASE: ${{ matrix.environment }}
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP 'compatibility-dotnet'
+          $sdks = @(Get-ChildItem (Join-Path $root 'sdk') -Directory | Select-Object -ExpandProperty Name)
+          $major = if ($env:CASE -in @('net10', 'side-by-side')) { '10' } else { '11' }
+          $sdk = @($sdks | Where-Object { $_ -like "$major.*" })
+          if ($sdk.Count -ne 1) { throw "Expected one .NET $major SDK: $sdks" }
+          $runtimeMajor = if ($env:CASE -eq 'net10') { '10' } else { '11' }
+          $runtime = @(Get-ChildItem (Join-Path $root 'shared/Microsoft.NETCore.App') -Directory |
+            Where-Object Name -Like "$runtimeMajor.*" | Select-Object -ExpandProperty Name)
+          if ($runtime.Count -ne 1) { throw 'Expected one server runtime for this case.' }
+          if ($env:CASE -eq 'ga' -and ($sdks -match '-' -or $runtime -match '-')) {
+            throw 'GA verification must not contain preview SDKs or runtimes.'
+          }
+          $packages = @(Get-ChildItem artifacts/package -Filter '*.nupkg')
+          if ($packages.Count -ne 1) { throw 'Expected exactly one preserved package.' }
+          ./scripts/test-tool-compatibility.ps1 -PackagePath $packages[0].FullName -DotnetRoot $root `
+            -ExpectedFramework "net$runtimeMajor.0" -ProjectSdkVersion $sdk[0] `
+            -ExpectedRuntimeVersion $runtime[0] -OutputDirectory (Join-Path $PWD 'artifacts/compatibility-results')
+      - name: Preserve selection evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # pin@v7
+        with:
+          name: compatibility-${{ matrix.os }}-${{ matrix.environment }}
+          path: |
+            artifacts/compatibility-results/results.json
+            artifacts/compatibility-results/*.txt
+          if-no-files-found: warn

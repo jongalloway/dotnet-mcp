@@ -30,6 +30,8 @@ This project uses **consolidated tools** as the primary test surface:
 
 ## Quick start
 
+Install the exact .NET 11 RC3 SDK pinned in `global.json` and the .NET 10 SDK/runtime. The server and tests target both `net10.0` and `net11.0`; the commands below run both targets unless `--framework` selects one. Stdio tests discover the server binary for their own framework. Discovery probes allow for cold startup when both suites run concurrently.
+
 Run all tests (recommended):
 
 ```bash
@@ -320,6 +322,30 @@ dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release -- --cov
 The Cobertura XML will be written under the test output folder, typically:
 
 - `DotNetMcp.Tests/bin/Release/net10.0/TestResults/*.cobertura.xml`
+- `DotNetMcp.Tests/bin/Release/net11.0/TestResults/*.cobertura.xml`
+
+CI uploads both reports and submits both to Codecov. The .NET 10 report retains the artifact filename `coverage.cobertura.xml` for the existing download/diagnostic script; the additional report is `net11.0.cobertura.xml`.
+
+## Packaged-tool compatibility
+
+The `Packaged Tool Compatibility` workflow builds one dual-targeted package with the pinned RC3 SDK. On Windows and Linux it tests that package using `dnx` and a fresh tool-path install in isolated .NET 10-only, RC3-only, and side-by-side SDK roots. Tests initialize MCP, list tools and templates, create/analyze/build a console project, and inspect host traces to assert the selected tool assets and loaded runtime. The side-by-side case runs the .NET 11 tool against a project pinned to the .NET 10 SDK.
+
+To run a case locally, supply a complete isolated SDK installation (not just a runtime), the exact SDK/runtime versions, and a new output directory:
+
+```powershell
+dotnet pack "$PWD\DotNetMcp\DotNetMcp.csproj" -c Release -o artifacts/package
+pwsh -File scripts/test-tool-compatibility.ps1 `
+  -PackagePath artifacts/package/Community.Mcp.DotNet.<version>.nupkg `
+  -DotnetRoot C:\isolated-sdk-rc3 `
+  -ExpectedFramework net11.0 `
+  -ProjectSdkVersion 11.0.100-rc.3.26522.148 `
+  -ExpectedRuntimeVersion 11.0.0-rc.3.26522.148 `
+  -OutputDirectory artifacts/compatibility-rc3
+```
+
+Use the official `dotnet-install` script to provision each isolated root without modifying system installations. For the side-by-side case install both SDKs into one root and pass the .NET 10 project SDK version with `-ExpectedFramework net11.0`. The harness pins tool installation to the SDK matching `ExpectedFramework`, independently of the project SDK. It sets isolated CLI homes, package caches, tool paths, and host roots; inherited runtime roll-forward overrides are removed. Neither invocation uses `--allow-roll-forward`.
+
+The workflow preserves `rc3-tool-package` for 90 days. Download and retain that artifact before expiry if needed. **GA-only verification remains pending until .NET 11 GA is available.** To exercise GA later, dispatch the workflow with `rc3_run_id` pointing to an earlier run containing that artifact. The package job is skipped; the existing package is downloaded and run in a GA-only root without rebuilding or installing RC3. Compare the SHA-256 recorded in each `results.json` to confirm artifact identity. Failure to obtain GA or the preserved artifact fails the check; it is not counted as a pass.
 
 ## Downloading CI coverage artifacts
 

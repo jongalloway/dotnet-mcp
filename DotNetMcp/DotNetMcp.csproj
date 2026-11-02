@@ -2,7 +2,8 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
+    <RollForward>Minor</RollForward>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -50,11 +51,6 @@
     <PackageReference Include="Microsoft.AgentGovernance.Extensions.ModelContextProtocol" Version="5.0.0" />
     <PackageReference Include="Microsoft.Build" Version="18.9.6" />
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="18.9.6" />
-    <!-- MSBuild's framework property functions require a newer runtime assembly than TemplateEngine brings in. -->
-    <PackageReference Include="NuGet.Frameworks" Version="7.9.0" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.14" />
-    <PackageReference Include="Microsoft.TemplateEngine.Abstractions" Version="10.0.403" />
-    <PackageReference Include="Microsoft.TemplateEngine.Edge" Version="10.0.403" />
     <PackageReference Include="ModelContextProtocol" Version="2.3.0" />
     <PackageReference Include="ModelContextProtocol.Extensions.Apps" Version="2.3.0" />
     <PackageReference Include="ModelContextProtocol.Extensions.Tasks" Version="2.3.0" />
@@ -62,6 +58,21 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <!-- MSBuild's framework property functions require a newer assembly than TemplateEngine brings in. -->
+    <PackageReference Include="NuGet.Frameworks" Version="7.9.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.14" />
+    <PackageReference Include="Microsoft.TemplateEngine.Abstractions" Version="10.0.403" />
+    <PackageReference Include="Microsoft.TemplateEngine.Edge" Version="10.0.403" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net11.0'">
+    <PackageReference Include="NuGet.Frameworks" Version="8.0.0-rc.2448" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="11.0.0-rc.3.26522.148" />
+    <PackageReference Include="Microsoft.TemplateEngine.Abstractions" Version="11.0.100-rc.3.26522.148" />
+    <PackageReference Include="Microsoft.TemplateEngine.Edge" Version="11.0.100-rc.3.26522.148" />
   </ItemGroup>
 
   <!-- Update server.json with current version before packing -->

@@ -167,7 +167,7 @@ builder.Services.AddOpenTelemetry()
         .AddOtlpExporter());
 ```
 
-Keep the existing server registrations and stderr console logging. Run the customized server with `dotnet run --project DotNetMcp\DotNetMcp.csproj` through an MCP client. Once the provider/exporter has been added, standard OpenTelemetry settings such as `OTEL_EXPORTER_OTLP_ENDPOINT` configure the collector connection. Choose a sampler appropriate for your deployment.
+Keep the existing server registrations and stderr console logging. Run the customized server with `dotnet run --framework net11.0 --project DotNetMcp\DotNetMcp.csproj` through an MCP client (or select `net10.0`). Once the provider/exporter has been added, standard OpenTelemetry settings such as `OTEL_EXPORTER_OTLP_ENDPOINT` configure the collector connection. Choose a sampler appropriate for your deployment.
 
 **Do not send telemetry to stdout.** The default OpenTelemetry console exporter writes there and can corrupt the stdio JSON-RPC stream. Use OTLP export to an explicitly configured collector; any console diagnostics must go to stderr.
 

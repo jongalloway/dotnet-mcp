@@ -18,7 +18,7 @@ Click to install in your preferred environment:
 [![VS Code Insiders - Install .NET MCP](https://img.shields.io/badge/VS_Code_Insiders-Install_.NET_MCP-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dnx%22%2C%22args%22%3A%5B%22Community.Mcp.DotNet%401.%2A%22%2C%22--yes%22%5D%7D&quality=insiders)
 [![Visual Studio - Install .NET MCP](https://img.shields.io/badge/Visual_Studio-Install_.NET_MCP-5C2D91?style=flat-square&logo=visualstudio&logoColor=white)](https://vs-open.link/mcp-install?%7B%22name%22%3A%22Community.Mcp.DotNet%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22dnx%22%2C%22args%22%3A%5B%22Community.Mcp.DotNet%401.%2A%22%2C%22--yes%22%5D%7D)
 
-> **Note**: Quick install requires .NET 10 SDK.
+> **Note**: Quick install requires the .NET 10 or .NET 11 SDK. Source builds require the pinned .NET 11 RC3 SDK.
 
 ## What is This?
 
@@ -247,9 +247,35 @@ Use `dotnet_server_capabilities` to discover the negotiated protocol and feature
 
 ### Requirements
 
-- **For Quick Install**: .NET 10 SDK
-- **For Manual Install**: .NET 10 SDK
+- **For package installation**: .NET 10 SDK or .NET 11 SDK (RC3 or later)
+- **For source builds**: .NET SDK `11.0.100-rc.3.26522.148`, pinned in `global.json`; install the .NET 10 SDK alongside it to run both test targets
 - Visual Studio Code, Visual Studio 2022 (v17.13+), or Claude Desktop
+
+### Runtime and SDK compatibility
+
+One package contains `net10.0` and `net11.0` builds with the same MCP tool surface. .NET 10-only machines remain supported. The .NET 11 build uses RC3 Template Engine and Hosting packages; this does not add new .NET 11-only tools or change the default .NET 10 LTS project recommendation.
+
+| Environment | Fresh installation with the selected SDK | Project support |
+| --- | --- | --- |
+| .NET 10 only | .NET 10 tool assets and runtime | .NET 10 projects |
+| .NET 11 RC3 only | .NET 11 tool assets and RC3 runtime | .NET 11 projects |
+| .NET 10 and 11 RC3 side by side, .NET 11 SDK selected | .NET 11 tool assets and runtime | .NET 10 projects with a project-local .NET 10 SDK pin, and .NET 11 projects |
+| .NET 11 GA only | Intended to use the unchanged RC3-built .NET 11 assets | GA-only execution is pending verification |
+
+Tool asset selection follows the SDK used to install or launch the tool, not simply the highest runtime installed. A `global.json` can select an older SDK. Installing .NET 11 later does not retarget an existing .NET 10 tool installation; reinstall or update it using the desired SDK. For an explicit tool installation target, `dotnet tool install` also supports `--framework net11.0`.
+
+Both `dnx` and a tool-path install were exercised against the same package on isolated .NET 10, RC3, and side-by-side installations. Neither required `--allow-roll-forward`. For a specific package version, use:
+
+```text
+dnx Community.Mcp.DotNet@<exact-version> --yes
+dotnet tool install Community.Mcp.DotNet@<exact-version> --tool-path ./tools
+```
+
+Replace `<exact-version>` with the desired published version. An exact prerelease version does not require `--prerelease`; floating prerelease selection does. Point MCP clients at the installed `dotnet-mcp` executable when using a tool-path install.
+
+The package explicitly uses `RollForward=Minor`, keeping runtime resolution within the target major version. Its .NET 11 runtime floor is `11.0.0-rc.3.26522.148`. RC3-to-GA is a same-major runtime transition, not a reason to require `Major` roll-forward. This policy is configured and the RC3 package is retained for GA testing, but **GA compatibility is not yet verified**. A .NET 11-only build cannot run backward on .NET 10; the separate .NET 10 assets provide that support.
+
+The server runtime and the SDK used for project commands are separate choices. Future SDK-specific CLI features should be checked against the selected project's SDK; only features using .NET 11-only in-process APIs need the .NET 11 server build.
 
 ### Option 1: Quick Install (Recommended)
 
@@ -276,7 +302,7 @@ Edit your VS Code settings (`Ctrl+,` or `Cmd+,`, search for "mcp"):
     "dotnet": {
       "type": "stdio",
       "command": "dotnet",
-      "args": ["run", "--project", "/path/to/dotnet-mcp/DotNetMcp/DotNetMcp.csproj"]
+      "args": ["run", "--framework", "net11.0", "--project", "/path/to/dotnet-mcp/DotNetMcp/DotNetMcp.csproj"]
     }
   }
 }
@@ -301,7 +327,7 @@ Edit your VS Code settings (`Ctrl+,` or `Cmd+,`, search for "mcp"):
    - **Name**: `dotnet`
    - **Type**: `stdio`
    - **Command**: `dotnet`
-   - **Arguments**: `run --project C:\path\to\dotnet-mcp\DotNetMcp\DotNetMcp.csproj`
+   - **Arguments**: `run --framework net11.0 --project C:\path\to\dotnet-mcp\DotNetMcp\DotNetMcp.csproj`
 
 📖 [Full Visual Studio MCP documentation](https://learn.microsoft.com/en-us/visualstudio/ide/mcp-servers?view=vs-2022)
 
@@ -344,7 +370,7 @@ Edit your VS Code settings (`Ctrl+,` or `Cmd+,`, search for "mcp"):
   "mcpServers": {
     "dotnet": {
       "command": "dotnet",
-      "args": ["run", "--project", "/path/to/dotnet-mcp/DotNetMcp/DotNetMcp.csproj"]
+      "args": ["run", "--framework", "net11.0", "--project", "/path/to/dotnet-mcp/DotNetMcp/DotNetMcp.csproj"]
     }
   }
 }
@@ -357,7 +383,7 @@ Edit your VS Code settings (`Ctrl+,` or `Cmd+,`, search for "mcp"):
   "mcpServers": {
     "dotnet": {
       "command": "dotnet",
-      "args": ["run", "--project", "C:\\path\\to\\dotnet-mcp\\DotNetMcp\\DotNetMcp.csproj"]
+      "args": ["run", "--framework", "net11.0", "--project", "C:\\path\\to\\dotnet-mcp\\DotNetMcp\\DotNetMcp.csproj"]
     }
   }
 }
@@ -1062,17 +1088,21 @@ await callTool("dotnet_dev_certs", {
 
 For development or contributing:
 
+Install the exact RC3 SDK pinned in `global.json`. The repository's `NuGet.Config` adds Microsoft's public `dotnet-tools` feed because Template Engine RC3 depends on NuGet `8.0.0-rc.2448` packages that are not yet on NuGet.org. Retain your normal NuGet.org source for the other dependencies; this extra feed is needed to build, not to install the tool's bundled dependencies. The tool still requires a compatible .NET runtime.
+
 ```bash
 git clone https://github.com/jongalloway/dotnet-mcp.git
 cd dotnet-mcp
-dotnet build --project DotNetMcp/DotNetMcp.csproj
+dotnet build "$PWD/DotNetMcp/DotNetMcp.csproj"
 ```
 
 **Run the server**:
 
 ```bash
-dotnet run --project DotNetMcp/DotNetMcp.csproj
+dotnet run --framework net11.0 --project DotNetMcp/DotNetMcp.csproj
 ```
+
+Choose `--framework net10.0` instead to run the .NET 10 build. `dotnet run` requires an explicit framework for this multi-targeted project. Package consumers do not need the RC3 build SDK to run the .NET 10 assets.
 
 The server communicates via stdio transport and is designed to be invoked by MCP clients.
 
@@ -1113,11 +1143,11 @@ Key files to start with:
 
 - **Protocol**: [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)
 - **SDK**: [MCP SDK for .NET](https://github.com/modelcontextprotocol/csharp-sdk) v2.3.0, with matching Tasks and Apps extensions
-- **Runtime**: .NET 10.0 (target framework)
+- **Runtime**: .NET 10.0 and .NET 11.0 RC3 (dual-targeted tool)
 - **Transport**: stdio (standard input/output)
 - **NuGet Packages**:
-  - `Microsoft.TemplateEngine.Abstractions` & `Edge` (v10.0.403) - Template metadata
-  - `Microsoft.Build.Utilities.Core` (v18.11.0) & `Microsoft.Build` (v18.9.6) - Project validation
+  - `Microsoft.TemplateEngine.Abstractions` & `Edge` (v10.0.403 for .NET 10; v11.0.100-rc.3.26522.148 for .NET 11) - Template metadata
+  - `Microsoft.Build.Utilities.Core` & `Microsoft.Build` (v18.9.6) - Project validation
 
 ## Documentation
 
@@ -1207,7 +1237,7 @@ See [.github/copilot-instructions.md](.github/copilot-instructions.md) for devel
 ### "dnx not found"
 
 - **Cause**: .NET 10 SDK not installed
-- **Solution**: Install [.NET 10 SDK](https://dotnet.microsoft.com/download) or use manual configuration with `dotnet run`
+- **Solution**: Install the [.NET 10 or .NET 11 SDK](https://dotnet.microsoft.com/download). Source-based manual configuration additionally requires the pinned RC3 SDK and an explicit `--framework`.
 
 ### "No templates found"
 
