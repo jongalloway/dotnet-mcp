@@ -76,6 +76,7 @@ internal sealed class McpScenarioClient : IAsyncDisposable
 
         _client = await McpClient.CreateAsync(
             transport,
+            new() { DiscoverProbeTimeout = TimeSpan.FromSeconds(30) },
             loggerFactory: _loggerFactory,
             cancellationToken: cancellationToken);
 

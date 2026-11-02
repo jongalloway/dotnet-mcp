@@ -30,18 +30,20 @@ This project uses **consolidated tools** as the primary test surface:
 
 ## Quick start
 
+Install the exact .NET 11 RC3 SDK pinned in `global.json` and the .NET 10 SDK/runtime. The server and tests target both `net10.0` and `net11.0`; the commands below run both targets unless `--framework` selects one. Stdio tests discover the server binary for their own framework. Discovery probes allow for cold startup when both suites run concurrently.
+
 Run all tests (recommended):
 
 ```bash
-dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release
+dotnet test --solution DotNetMcp.slnx -c Release
 ```
 
 Important:
 
-- When specifying a project for `dotnet test`, use `--project` (do not pass a `.csproj` as a positional argument). If you pass a project path positionally, `dotnet test` will emit: `Specifying a project for 'dotnet test' should be via '--project'`.
-- When running from the solution, use `--solution`.
+- Use `--solution DotNetMcp.slnx` for this repository. The pinned .NET 11 RC3 SDK has a `--project` discovery regression that can report no test projects or duplicate the project path before tests run.
+- Solution discovery avoids that SDK regression while preserving both target frameworks, MTP filters, and coverage options. Do not replace it with a positional project path.
 
-### Why `--project`?
+### Why `--solution`?
 
 This repository uses the **Microsoft Testing Platform (MTP)** as configured in `global.json`:
 
@@ -52,6 +54,8 @@ This repository uses the **Microsoft Testing Platform (MTP)** as configured in `
   }
 }
 ```
+
+Both server and test projects are in `DotNetMcp.slnx`. Solution-based discovery runs the same test project without the pinned SDK's broken project-discovery path. The general runner compatibility information below describes the MCP server's Test action, not the entry point to use for this repository's own tests.
 
 #### Test Runner Compatibility
 
@@ -110,13 +114,6 @@ The MCP server chooses between `--project` flag (MTP) and positional argument (V
 - `projectArgumentStyle`: `--project`, `positional`, or `none`
 - `selectionSource`: `global.json`, `testRunner-parameter`, `useLegacyProjectArgument-parameter`, or `default`
 
-Examples:
-
-```bash
-dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release
-dotnet test --solution DotNetMcp.slnx -c Release
-```
-
 Run tests from the solution:
 
 ```bash
@@ -130,7 +127,7 @@ Both projects use matching MCP SDK and extension versions. The SDK 2.x compatibi
 Run the focused protocol matrix:
 
 ```powershell
-dotnet test --project .\DotNetMcp.Tests\DotNetMcp.Tests.csproj -c Release -- --filter-class '*Sdk20CompatibilityTests' --filter-class '*ServerCapabilitiesTests'
+dotnet test --solution DotNetMcp.slnx -c Release -- --filter-class '*Sdk20CompatibilityTests' --filter-class '*ServerCapabilitiesTests'
 ```
 
 `Sdk20CompatibilityTests` covers 2026-07-28 and 2025-11-25 discovery, required tool input schemas, negotiated capabilities, resource error-code mapping, native/legacy resource-update delivery, native listener cancellation, confirmation outcomes and continuation validation, execution after confirmation, Tasks polling/update/cancellation, and governance policy composition. Deprecated-feature regressions cover logging thresholds and notification payloads, request-level logging/Sampling isolation, connected legacy Roots discovery and explicit-path precedence, and Sampling analysis of failures with successful-command and unsupported-client bypass. Cancellation coverage includes pending Roots/Sampling input and termination of a real CLI child process without subsequent AI analysis. The full-catalog governance test intentionally verifies fail-closed rejection of the existing certificate password schema; it is not evidence that governance-enabled full-catalog startup succeeds.
@@ -144,7 +141,7 @@ The Tasks capability matrix includes servers with and without `WithTasks`, legac
 Run the focused real-stdio Tasks checks:
 
 ```powershell
-dotnet test --project .\DotNetMcp.Tests\DotNetMcp.Tests.csproj -c Release -- --filter-class '*McpConformanceTests' --filter-method '*Task*'
+dotnet test --solution DotNetMcp.slnx -c Release -- --filter-class '*McpConformanceTests' --filter-method '*Task*'
 ```
 
 Focused error regressions distinguish SDK wire errors from application annotations: missing resource reads produce `-32602` on the current revision and `-32002` on the legacy revision, while factory-generated tool errors retain their annotations, `IsError`, object envelopes, and equivalent structured/text JSON content on both. Unit tests cover all five missing-resource diagnostic mappings, both capability factory overloads, and separation from the SDK's renumbered `-32020`/`-32021`/`-32022` codes.
@@ -158,7 +155,7 @@ MTP selectors of the same kind can be repeated to match multiple classes or meth
 `OutputSchemaTests` obtains the production schemas through actual `tools/list` calls and validates structured responses on both MCP 2026-07-28 and 2025-11-25. Coverage includes all six schema-bearing tools, action-restricted text fallbacks, domain metadata, empty/non-empty lists, diagnostic failures, capability/validation errors, optional runtime enrichment, lock contention, and object envelopes without a new `result` wrapper. Deterministic command producers avoid network-dependent package operations; project metadata fixtures are isolated and deleted after each test. Compatibility checks preserve the first text block and require serialized JSON text matching the payload. Negative schema cases reject missing fields, incorrect nested types, and fallback misuse. Production stdio conformance tests also verify that returned application errors increment failure metrics rather than success metrics.
 
 ```powershell
-dotnet test --project .\DotNetMcp.Tests\DotNetMcp.Tests.csproj -- --filter-class '*OutputSchemaTests' --filter-class '*StructuredContentTests' --filter-class '*ServerMetricsToolTests'
+dotnet test --solution DotNetMcp.slnx -- --filter-class '*OutputSchemaTests' --filter-class '*StructuredContentTests' --filter-class '*ServerMetricsToolTests'
 ```
 
 ## Test isolation and runtime dependencies
@@ -172,10 +169,10 @@ An SDK project with no target framework can either complete validation (`success
 CI remains Ubuntu-only; PR checks run `ProjectAnalysisHelperTests` alongside MCP conformance tests, and main runs them in the full suite. The same portable tests can run on-device on Windows or macOS with the same class selector. For example, from a Windows checkout:
 
 ```powershell
-dotnet test --project .\DotNetMcp.Tests\DotNetMcp.Tests.csproj -c Release -- --filter-class '*ProjectAnalysisHelperTests'
+dotnet test --solution DotNetMcp.slnx -c Release -- --filter-class '*ProjectAnalysisHelperTests'
 ```
 
-On macOS or Linux, pass the local test-project path to `--project` and keep the same selector. Each platform runs all fixtures and selects assertions based on its actual evaluation result.
+On macOS or Linux, use the same solution command and selector from the repository root. Each platform runs all fixtures and selects assertions based on its actual evaluation result.
 
 In-process MSBuild analysis requires runtime assets compatible with the project's target framework. Keep `Microsoft.Build` and `Microsoft.Build.Utilities.Core` aligned on a .NET 10-compatible release, and retain the explicit `NuGet.Frameworks` dependency needed by MSBuild property functions rather than relying on the older version supplied by TemplateEngine.
 
@@ -192,7 +189,7 @@ Run scenario tests locally:
 
 ```powershell
 $env:DOTNET_MCP_SCENARIO_TESTS = "1"
-dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
+dotnet test --solution DotNetMcp.slnx -c Release -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
 ```
 
 ### Per-test diagnostics with ITestOutputHelper
@@ -277,7 +274,7 @@ The repository includes conformance tests that validate the server's compliance 
 To run only the conformance tests:
 
 ```bash
-dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release -- --filter-class "*McpConformanceTests"
+dotnet test --solution DotNetMcp.slnx -c Release -- --filter-class "*McpConformanceTests"
 ```
 
 ### What Conformance Tests Validate
@@ -314,12 +311,36 @@ Conformance tests run automatically in GitHub Actions as part of the `build.yml`
 To collect coverage with Microsoft Testing Platform, run:
 
 ```bash
-dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release -- --coverage --coverage-output-format cobertura
+dotnet test --solution DotNetMcp.slnx -c Release -- --coverage --coverage-output-format cobertura
 ```
 
 The Cobertura XML will be written under the test output folder, typically:
 
 - `DotNetMcp.Tests/bin/Release/net10.0/TestResults/*.cobertura.xml`
+- `DotNetMcp.Tests/bin/Release/net11.0/TestResults/*.cobertura.xml`
+
+CI uploads both reports and submits both to Codecov. The .NET 10 report retains the artifact filename `coverage.cobertura.xml` for the existing download/diagnostic script; the additional report is `net11.0.cobertura.xml`.
+
+## Packaged-tool compatibility
+
+The `Packaged Tool Compatibility` workflow builds one dual-targeted package with the pinned RC3 SDK. On Windows and Linux it tests that package using `dnx` and a fresh tool-path install in isolated .NET 10-only, RC3-only, and side-by-side SDK roots. Tests initialize MCP, list tools and templates, create/analyze/build a console project, and inspect host traces to assert the selected tool assets and loaded runtime. The side-by-side case runs the .NET 11 tool against a project pinned to the .NET 10 SDK.
+
+To run a case locally, supply a complete isolated SDK installation (not just a runtime), the exact SDK/runtime versions, and a new output directory:
+
+```powershell
+dotnet pack "$PWD\DotNetMcp\DotNetMcp.csproj" -c Release -o artifacts/package
+pwsh -File scripts/test-tool-compatibility.ps1 `
+  -PackagePath artifacts/package/Community.Mcp.DotNet.<version>.nupkg `
+  -DotnetRoot C:\isolated-sdk-rc3 `
+  -ExpectedFramework net11.0 `
+  -ProjectSdkVersion 11.0.100-rc.3.26522.148 `
+  -ExpectedRuntimeVersion 11.0.0-rc.3.26522.148 `
+  -OutputDirectory artifacts/compatibility-rc3
+```
+
+Use the official `dotnet-install` script to provision each isolated root without modifying system installations. For the side-by-side case install both SDKs into one root and pass the .NET 10 project SDK version with `-ExpectedFramework net11.0`. The harness pins tool installation to the SDK matching `ExpectedFramework`, independently of the project SDK. It sets isolated CLI homes, package caches, tool paths, and host roots; inherited runtime roll-forward overrides are removed. Neither invocation uses `--allow-roll-forward`.
+
+The workflow preserves `rc3-tool-package` for 90 days. Download and retain that artifact before expiry if needed. **GA-only verification remains pending until .NET 11 GA is available.** To exercise GA later, dispatch the workflow with `rc3_run_id` pointing to an earlier run containing that artifact. The package job is skipped; the existing package is downloaded and run in a GA-only root without rebuilding or installing RC3. Compare the SHA-256 recorded in each `results.json` to confirm artifact identity. Failure to obtain GA or the preserved artifact fails the check; it is not counted as a pass.
 
 ## Downloading CI coverage artifacts
 
@@ -501,13 +522,13 @@ PowerShell:
 
 ```powershell
 $env:DOTNET_MCP_INTERACTIVE_TESTS = "1"
-dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release
+dotnet test --solution DotNetMcp.slnx -c Release
 ```
 
 bash:
 
 ```bash
-DOTNET_MCP_INTERACTIVE_TESTS=1 dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release
+DOTNET_MCP_INTERACTIVE_TESTS=1 dotnet test --solution DotNetMcp.slnx -c Release
 ```
 
 If interactive tests are disabled, they will appear as skipped with a message explaining how to enable them.
@@ -552,7 +573,7 @@ Avoid creating redundant tests that only differ by the `machineReadable` flag un
 ## Tips
 
 - Prefer `-c Release` for CI parity.
-- If you're iterating on a single area, use Microsoft Testing Platform filters after `--`, for example: `dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj -c Release -- --filter-class DotNetMcp.Tests.CacheMetricsTests`.
+- If you're iterating on a single area, use Microsoft Testing Platform filters after `--`, for example: `dotnet test --solution DotNetMcp.slnx -c Release -- --filter-class DotNetMcp.Tests.CacheMetricsTests`.
 
 ## Path handling
 

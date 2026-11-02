@@ -47,7 +47,7 @@ try {
 
     $baseTestArgs = @(
         'test',
-        '--project', 'DotNetMcp.Tests/DotNetMcp.Tests.csproj',
+        '--solution', 'DotNetMcp.slnx',
         '--configuration', $Configuration,
         '--verbosity', 'normal'
     )

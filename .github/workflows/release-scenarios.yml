@@ -41,6 +41,7 @@ jobs:
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # pin@v6.0.0
         with:
           dotnet-version: "10.0.x"
+          global-json-file: global.json
 
       - name: Display .NET info
         id: dotnet_info
@@ -61,8 +62,8 @@ jobs:
       - name: Run Scenario + Release Scenario Tests
         id: release_scenarios
         run: |
-          dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
-          dotnet test --project DotNetMcp.Tests/DotNetMcp.Tests.csproj --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.ReleaseScenarios*"
+          dotnet test --solution DotNetMcp.slnx --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.Scenarios*"
+          dotnet test --solution DotNetMcp.slnx --no-build --configuration Release --verbosity normal -- --filter-namespace "*DotNetMcp.Tests.ReleaseScenarios*"
 
       - name: Write workflow summary
         if: always()
