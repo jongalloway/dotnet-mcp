@@ -137,6 +137,8 @@ dotnet test --project .\DotNetMcp.Tests\DotNetMcp.Tests.csproj -c Release -- --f
 
 Confirmation tests also use a transport-only native client to inspect `inputRequests` and send `inputResponses` without the SDK's automatic retry loop. Real Clean and solution Remove fixtures verify that side effects wait for accepted boolean confirmation, while malformed or missing confirmation data do not execute the operation. Legacy tests verify one wire-level tool call; a test-only explicit-MRTR tool separately exercises the SDK's backward-compatibility resolver with one input round and two handler executions. Native SDK-client tests assert two tool calls, keeping the simple flow below the SDK's 10-retry limits.
 
+DatabaseDrop, CertificateClean, SecretsRemove, and SecretsClear use the existing command-executor override to record exact commands instead of deleting real databases, certificates, or secrets. Their matrix covers accepted/true, decline, cancel, false/missing/mistyped confirmation, invalid native continuations, task input updates/cancellation, request cancellation/input failure, and connected clients without elicitation. EF force/dry-run rules, required-key validation, unchanged unprompted actions, and SDK-injected parameters versus the public EF DbContext `context` input are checked separately. Direct null-server fallback tests record commands as well.
+
 The Tasks capability matrix includes servers with and without `WithTasks`, legacy inline fallback, and opted-in/ordinary/opted-in calls on one connection. Assertions check task versus ordinary result shapes and request-scoped `asyncTasks`, independently of task-store injection into tools.
 
 Run the focused real-stdio Tasks checks:
@@ -147,7 +149,7 @@ dotnet test --project .\DotNetMcp.Tests\DotNetMcp.Tests.csproj -c Release -- --f
 
 Focused error regressions distinguish SDK wire errors from application annotations: missing resource reads produce `-32602` on the current revision and `-32002` on the legacy revision, while factory-generated tool errors retain their annotations, `IsError`, object envelopes, and equivalent structured/text JSON content on both. Unit tests cover all five missing-resource diagnostic mappings, both capability factory overloads, and separation from the SDK's renumbered `-32020`/`-32021`/`-32022` codes.
 
-`McpConformanceTests` starts the actual stdio server and checks discovery, resources/prompts, legacy and native confirmation for both Clean and solution Remove, actual resource updates after `subscriptions/listen`, removed-method rejection, and opted-in logging. SDK 2.0's client drops the request log level during metadata injection, so the test-only logging transport writes it at the wire boundary. The logging workaround is test-only.
+`McpConformanceTests` starts the actual stdio server and checks discovery, resources/prompts, legacy and native confirmation for Clean, solution Remove, DatabaseDrop, CertificateClean, SecretsRemove, and SecretsClear, actual resource updates after `subscriptions/listen`, removed-method rejection, and opted-in logging. Stdio confirmation checks decline the operation so no destructive command executes. SDK 2.0's client drops the request log level during metadata injection, so the test-only logging transport writes it at the wire boundary. The logging workaround is test-only.
 
 MTP selectors of the same kind can be repeated to match multiple classes or methods. Combining `--filter-class` with `--filter-method` narrows to their intersection, not their union.
 

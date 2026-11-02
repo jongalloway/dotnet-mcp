@@ -33,11 +33,13 @@ public sealed partial class DotNetCliTools
     /// <param name="startupProject">Startup project file (if different from DbContext project)</param>
     /// <param name="context">The DbContext class to use (if multiple contexts exist)</param>
     /// <param name="framework">Target framework for the project</param>
-    /// <param name="force">Force operation: for MigrationsRemove reverts if already applied; for DatabaseDrop confirms deletion; for DbContextScaffold overwrites existing files</param>
+    /// <param name="force">Force operation: for MigrationsRemove reverts if already applied; required for actual DatabaseDrop but does not bypass MCP confirmation; for DbContextScaffold overwrites existing files</param>
     /// <param name="noBuild">Do not build the project before executing the command</param>
     /// <param name="dryRun">Perform a dry run without actually executing (DatabaseDrop)</param>
     /// <param name="connectionDisplay">Show connection string used (MigrationsList)</param>
     /// <param name="workingDirectory">Working directory for command execution</param>
+    /// <param name="server">Injected MCP server for destructive-operation confirmation</param>
+    /// <param name="requestContext">Injected MCP request context for destructive-operation confirmation</param>
     [McpServerTool(Title = "Entity Framework Core", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = true, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Floppy%20Disk/Flat/floppy_disk_flat.svg")]
     [McpMeta("category", "ef")]
     [McpMeta("priority", 9.0)]
@@ -68,7 +70,9 @@ public sealed partial class DotNetCliTools
         bool noBuild = false,
         bool dryRun = false,
         bool connectionDisplay = false,
-        string? workingDirectory = null)
+        string? workingDirectory = null,
+        McpServer? server = null,
+        RequestContext<CallToolRequestParams>? requestContext = null)
     {
         var textResult = await WithWorkingDirectoryAsync(workingDirectory, async () =>
         {
@@ -131,7 +135,9 @@ public sealed partial class DotNetCliTools
                     context: context,
                     framework: framework,
                     force: force,
-                    dryRun: dryRun),
+                    dryRun: dryRun,
+                    server: server,
+                    requestContext: requestContext),
 
                 DotnetEfAction.DbContextList => await DotnetEfDbContextList(
                     project: project,
@@ -176,12 +182,24 @@ public sealed partial class DotNetCliTools
         string? context,
         string? framework,
         bool force,
-        bool dryRun)
+        bool dryRun,
+        McpServer? server,
+        RequestContext<CallToolRequestParams>? requestContext)
     {
         // Safety check: DatabaseDrop requires force=true to prevent accidental deletions
         if (!force && !dryRun)
         {
             return "Error: DatabaseDrop requires force=true to confirm database deletion. This is a destructive operation that permanently deletes the database.";
+        }
+
+        if (!dryRun && !await DestructiveOperationConfirmation.ConfirmAsync(
+            server, requestContext,
+            $"This will permanently delete the database for DbContext '{context ?? "(default)"}' in {project ?? "the current project"} (startup project: {startupProject ?? "(default)"}). Do you want to proceed?",
+            "Confirm database drop",
+            "I understand this permanently deletes the database and its data",
+            DotNetCommandExecutor.RequestCancellationToken.Value))
+        {
+            return "DatabaseDrop operation cancelled.";
         }
 
         return await DotnetEfDatabaseDrop(
@@ -382,13 +400,13 @@ public sealed partial class DotNetCliTools
     /// <summary>
     /// Drop the Entity Framework Core database.
     /// WARNING: This permanently deletes the database. Use with extreme caution (typically only for development).
-    /// Set force=true to execute without confirmation prompt.
+    /// The consolidated tool requires force=true for actual deletion and also requests MCP confirmation when supported.
     /// </summary>
     /// <param name="project">Project file containing the DbContext</param>
     /// <param name="startupProject">Startup project file (if different from DbContext project)</param>
     /// <param name="context">The DbContext class to use (if multiple contexts exist)</param>
     /// <param name="framework">Target framework for the project</param>
-    /// <param name="force">Force drop without confirmation prompt (set to true to execute)</param>
+    /// <param name="force">Skip the CLI prompt; does not bypass the consolidated tool's MCP confirmation</param>
     /// <param name="dryRun">Perform a dry run without actually dropping</param>
     [McpMeta("category", "ef")]
     [McpMeta("priority", 5.0)]

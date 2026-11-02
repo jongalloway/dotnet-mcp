@@ -7,6 +7,7 @@ using System.Xml.Linq;
 using System.Threading.Channels;
 using AgentGovernance.Extensions.ModelContextProtocol;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Extensions.Apps;
@@ -19,6 +20,348 @@ namespace DotNetMcp.Tests;
 public class Sdk20CompatibilityTests
 {
     private const string SdkTelemetryName = "Experimental.ModelContextProtocol";
+
+    public static IEnumerable<object[]> DeletionOutcomes()
+    {
+        foreach (var protocol in new[] { "2026-07-28", "2025-11-25" })
+        foreach (var action in new[] { "DatabaseDrop", "CertificateClean", "SecretsRemove", "SecretsClear" })
+        foreach (var outcome in new[] { "accept", "decline", "cancel", "false", "missing", "string" })
+            yield return [protocol, action, outcome];
+    }
+
+    public static IEnumerable<object[]> DeletionActions()
+    {
+        foreach (var action in new[] { "DatabaseDrop", "CertificateClean", "SecretsRemove", "SecretsClear" })
+            yield return [action];
+    }
+
+    [Theory]
+    [MemberData(nameof(DeletionOutcomes))]
+    public async Task DeletionConfirmation_OnlyExplicitApprovalExecutes(string protocol, string action, string outcome)
+    {
+        var commands = new List<string>();
+        var confirmations = 0;
+        var calls = 0;
+        await using var host = await TestServer.CreateAsync(protocol, (request, _) =>
+        {
+            Assert.Empty(commands);
+            Assert.NotNull(request);
+            Assert.NotNull(request.RequestedSchema);
+            Assert.Contains("confirmed", request.RequestedSchema.Required!);
+            Assert.DoesNotContain("do-not-display", request.Message);
+            if (action == "DatabaseDrop")
+                Assert.Contains("ExampleContext", request.Message);
+            if (action == "CertificateClean")
+                Assert.Contains("current user", request.Message);
+            if (action is "SecretsRemove" or "SecretsClear")
+                Assert.Contains("missing.csproj", request.Message);
+            if (action == "SecretsRemove")
+                Assert.Contains("Example:Key", request.Message);
+            Interlocked.Increment(ref confirmations);
+            return ValueTask.FromResult(DeletionAnswer(outcome));
+        }, transformToolRequest: _ => Interlocked.Increment(ref calls),
+            executor: (args, _, _) =>
+            {
+                commands.Add(args);
+                return Task.FromResult("Exit Code: 0");
+            });
+        var result = await host.Client.CallToolAsync(DeletionRequest(action, host.DirectoryPath), host.Token);
+        Assert.Equal(1, confirmations);
+        Assert.Equal(protocol == "2026-07-28" ? 2 : 1, calls);
+        Assert.Equal(outcome == "accept" ? 1 : 0, commands.Count);
+        if (outcome == "accept")
+            Assert.Equal(DeletionCommand(action, host.DirectoryPath), Assert.Single(commands));
+        else
+            Assert.Contains($"{action} operation cancelled.", result.GetText());
+    }
+
+    [Theory]
+    [MemberData(nameof(DeletionActions))]
+    public async Task DeletionConfirmation_TaskWaitsForApprovalWithoutReplay(string action)
+    {
+        foreach (var outcome in new[] { "accept", "decline", "cancel", "false", "missing", "string", "malformed" })
+        {
+            var commands = new List<string>();
+            var calls = 0;
+            await using var host = await TestServer.CreateAsync("2026-07-28", (_, _) =>
+                throw new InvalidOperationException("Task input must be supplied through tasks/update."),
+                transformToolRequest: _ => Interlocked.Increment(ref calls),
+                executor: (args, _, _) =>
+                {
+                    commands.Add(args);
+                    return Task.FromResult("Exit Code: 0");
+                });
+            var task = await host.Client.CallToolAsTaskAsync(DeletionRequest(action, host.DirectoryPath), host.Token);
+            var input = Assert.IsType<InputRequiredTaskResult>(
+                await PollAsync(host, task.TaskCreated!.TaskId, r => r is not WorkingTaskResult));
+            Assert.Empty(commands);
+            var request = Assert.Single(input.InputRequests!);
+            Assert.Equal("elicitation/create", request.Value.Method);
+            await host.Client.UpdateTaskAsync(new()
+            {
+                TaskId = task.TaskCreated.TaskId,
+                InputResponses = new Dictionary<string, InputResponse>
+                {
+                    [request.Key] = outcome == "malformed"
+                        ? JsonSerializer.Deserialize<InputResponse>("[]", McpJsonUtilities.DefaultOptions)!
+                        : InputResponse.FromElicitResult(DeletionAnswer(outcome))
+                }
+            }, host.Token);
+            var terminal = await PollAsync(host, task.TaskCreated.TaskId,
+                r => r is CompletedTaskResult or FailedTaskResult or CancelledTaskResult);
+            if (outcome == "malformed")
+            {
+                var result = Assert.IsType<CompletedTaskResult>(terminal).Result.Deserialize<CallToolResult>()!;
+                Assert.True(result.IsError);
+            }
+            else
+            {
+                var result = Assert.IsType<CompletedTaskResult>(terminal).Result.Deserialize<CallToolResult>()!;
+                if (outcome != "accept")
+                    Assert.Contains($"{action} operation cancelled.", result.GetText());
+            }
+            Assert.Equal(1, calls);
+            Assert.Equal(outcome == "accept" ? 1 : 0, commands.Count);
+            if (outcome == "accept")
+                Assert.Equal(DeletionCommand(action, host.DirectoryPath), Assert.Single(commands));
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(DeletionActions))]
+    public async Task DeletionConfirmation_TaskCancellationNeverExecutes(string action)
+    {
+        var commands = 0;
+        await using var host = await TestServer.CreateAsync("2026-07-28", (_, _) =>
+            throw new InvalidOperationException("Task input must not be resolved automatically."),
+            executor: (_, _, _) =>
+            {
+                Interlocked.Increment(ref commands);
+                return Task.FromResult("Exit Code: 0");
+            });
+        var task = await host.Client.CallToolAsTaskAsync(DeletionRequest(action, host.DirectoryPath), host.Token);
+        Assert.IsType<InputRequiredTaskResult>(
+            await PollAsync(host, task.TaskCreated!.TaskId, r => r is not WorkingTaskResult));
+        await host.Client.CancelTaskAsync(task.TaskCreated.TaskId, host.Token);
+        await host.InvocationExited.Task.WaitAsync(host.Token);
+        Assert.IsType<CancelledTaskResult>(await host.Client.GetTaskAsync(task.TaskCreated.TaskId, host.Token));
+        Assert.Equal(0, commands);
+    }
+
+    [Theory]
+    [MemberData(nameof(DeletionActions))]
+    public async Task DeletionConfirmation_UnsupportedClientsKeepExistingCommands(string action)
+    {
+        foreach (var protocol in new[] { "2026-07-28", "2025-11-25" })
+        {
+            var commands = new List<string>();
+            await using var host = await TestServer.CreateAsync(protocol,
+                executor: (args, _, _) =>
+                {
+                    commands.Add(args);
+                    return Task.FromResult("Exit Code: 0");
+                });
+            var result = await host.Client.CallToolAsync(DeletionRequest(action, host.DirectoryPath), host.Token);
+            Assert.DoesNotContain("operation cancelled", result.GetText());
+            Assert.Equal(DeletionCommand(action, host.DirectoryPath), Assert.Single(commands));
+            if (protocol == "2026-07-28")
+            {
+                commands.Clear();
+                var task = await host.Client.CallToolAsTaskAsync(DeletionRequest(action, host.DirectoryPath), host.Token);
+                var completed = Assert.IsType<CompletedTaskResult>(
+                    await PollAsync(host, task.TaskCreated!.TaskId, r => r is not WorkingTaskResult));
+                Assert.DoesNotContain("operation cancelled", completed.Result.Deserialize<CallToolResult>()!.GetText());
+                Assert.Equal(DeletionCommand(action, host.DirectoryPath), Assert.Single(commands));
+            }
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(DeletionActions))]
+    public async Task DeletionConfirmation_RejectsInvalidNativeContinuation(string action)
+    {
+        foreach (var invalid in new[] { "state", "arguments", "malformed", "missing-response" })
+        {
+            var commands = 0;
+            await using var host = await TestServer.CreateAsync("2026-07-28", rawClient: true,
+                executor: (_, _, _) =>
+                {
+                    Interlocked.Increment(ref commands);
+                    return Task.FromResult("Exit Code: 0");
+                });
+            var request = DeletionRequest(action, host.DirectoryPath);
+            var first = await SendToolRequestAsync(host, request);
+            var input = first.Result!.Deserialize<InputRequiredResult>(McpJsonUtilities.DefaultOptions)!;
+            Assert.Single(input.InputRequests!);
+            Assert.Equal(0, commands);
+            request.RequestState = invalid == "state" ? "unbound" : input.RequestState;
+            request.InputResponses = new Dictionary<string, InputResponse>();
+            if (invalid != "missing-response")
+                request.InputResponses["confirmation"] = invalid == "malformed"
+                    ? JsonSerializer.Deserialize<InputResponse>("[]", McpJsonUtilities.DefaultOptions)!
+                    : InputResponse.FromElicitResult(Confirmation("accept", true));
+            if (invalid == "arguments")
+                request.Arguments!["workingDirectory"] = JsonSerializer.SerializeToElement(Path.GetTempPath());
+            var error = await Assert.ThrowsAsync<McpProtocolException>(() => SendToolRequestAsync(host, request));
+            Assert.Equal(McpErrorCode.InvalidParams, error.ErrorCode);
+            Assert.Equal(0, commands);
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(DeletionActions))]
+    public async Task DeletionConfirmation_CancellationAndInputFailureNeverExecute(string action)
+    {
+        foreach (var protocol in new[] { "2026-07-28", "2025-11-25" })
+        foreach (var cancel in new[] { true, false })
+        {
+            var commands = 0;
+            var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var exited = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            await using var host = await TestServer.CreateAsync(protocol, async (_, ct) =>
+            {
+                entered.TrySetResult();
+                try
+                {
+                    if (!cancel)
+                        throw new McpProtocolException("Confirmation unavailable.", McpErrorCode.InternalError);
+                    await release.Task.WaitAsync(ct);
+                    return Confirmation("accept", true);
+                }
+                finally { exited.TrySetResult(); }
+            }, executor: (_, _, _) =>
+            {
+                Interlocked.Increment(ref commands);
+                return Task.FromResult("Exit Code: 0");
+            });
+            using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(host.Token);
+            var pending = host.Client.CallToolAsync(DeletionRequest(action, host.DirectoryPath), cancellation.Token).AsTask();
+            await entered.Task.WaitAsync(host.Token);
+            if (cancel)
+            {
+                await cancellation.CancelAsync();
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending);
+                // The SDK's client-side input handler token can outlive the tools/call token.
+                release.TrySetResult();
+            }
+            else
+            {
+                // Native resolution can fail at the client; legacy resolution can return a tool error.
+                try
+                {
+                    var result = await pending;
+                    Assert.True(result.IsError);
+                }
+                catch (McpProtocolException ex)
+                {
+                    Assert.Equal(McpErrorCode.InternalError, ex.ErrorCode);
+                }
+            }
+            await exited.Task.WaitAsync(host.Token);
+            await host.InvocationExited.Task.WaitAsync(host.Token);
+            Assert.Equal(0, commands);
+        }
+    }
+
+    [Theory]
+    [InlineData("2026-07-28")]
+    [InlineData("2025-11-25")]
+    public async Task DeletionConfirmation_ValidationAndNonDeletionActionsDoNotPrompt(string protocol)
+    {
+        var commands = new List<string>();
+        await using var host = await TestServer.CreateAsync(protocol, (_, _) =>
+            throw new InvalidOperationException("This action must not prompt."),
+            executor: (args, _, _) =>
+            {
+                commands.Add(args);
+                return Task.FromResult("Exit Code: 0");
+            });
+        var request = DeletionRequest("DatabaseDrop", host.DirectoryPath);
+        request.Arguments!["force"] = JsonSerializer.SerializeToElement(false);
+        var rejected = await host.Client.CallToolAsync(request, host.Token);
+        Assert.Contains("requires force=true", rejected.GetText());
+        Assert.Empty(commands);
+        foreach (var force in new[] { false, true })
+        {
+            request.Arguments["force"] = JsonSerializer.SerializeToElement(force);
+            request.Arguments["dryRun"] = JsonSerializer.SerializeToElement(true);
+            await host.Client.CallToolAsync(request, host.Token);
+            Assert.Equal(DeletionCommand("DatabaseDrop", host.DirectoryPath).Replace(" --force", force ? " --force --dry-run" : " --dry-run"), commands[^1]);
+        }
+        request = DeletionRequest("SecretsRemove", host.DirectoryPath);
+        request.Arguments!.Remove("key");
+        var invalidKey = await host.Client.CallToolAsync(request, host.Token);
+        Assert.Contains("key parameter is required", invalidKey.GetText());
+        Assert.Equal(2, commands.Count);
+        foreach (var (tool, action) in new[]
+        {
+            ("dotnet_dev_certs", "CertificateCheck"),
+            ("dotnet_dev_certs", "SecretsList"),
+            ("dotnet_ef", "DbContextList"),
+            ("dotnet_sdk", "UninstallTemplatePack"),
+            ("dotnet_package", "Remove"),
+            ("dotnet_package", "RemoveReference"),
+            ("dotnet_package", "ClearCache"),
+            ("dotnet_tool", "Uninstall"),
+            ("dotnet_workload", "Uninstall")
+        })
+        {
+            await host.Client.CallToolAsync(tool, new Dictionary<string, object?>
+            {
+                ["action"] = action, ["project"] = "missing.csproj", ["packageId"] = "example",
+                ["referencePath"] = "referenced.csproj", ["workloadIds"] = new[] { "maui" }
+            }, cancellationToken: host.Token);
+        }
+        Assert.Equal(11, commands.Count);
+        var tools = await host.Client.ListToolsAsync(cancellationToken: host.Token);
+        var efInputs = tools.Single(t => t.Name == "dotnet_ef").ProtocolTool.InputSchema.GetProperty("properties");
+        Assert.Contains("string", efInputs.GetProperty("context").GetProperty("type").EnumerateArray().Select(t => t.GetString()));
+        Assert.False(efInputs.TryGetProperty("server", out _));
+        Assert.False(efInputs.TryGetProperty("requestContext", out _));
+        var certInputs = tools.Single(t => t.Name == "dotnet_dev_certs").ProtocolTool.InputSchema.GetProperty("properties");
+        Assert.False(certInputs.TryGetProperty("server", out _));
+        Assert.False(certInputs.TryGetProperty("context", out _));
+    }
+
+    private static CallToolRequestParams DeletionRequest(string action, string directory) => new()
+    {
+        Name = action == "DatabaseDrop" ? "dotnet_ef" : "dotnet_dev_certs",
+        Arguments = new Dictionary<string, JsonElement>
+        {
+            ["action"] = JsonSerializer.SerializeToElement(action),
+            ["project"] = JsonSerializer.SerializeToElement(Path.Join(directory, "missing.csproj")),
+            ["context"] = JsonSerializer.SerializeToElement("ExampleContext"),
+            ["force"] = JsonSerializer.SerializeToElement(true),
+            ["key"] = JsonSerializer.SerializeToElement("Example:Key"),
+            ["value"] = JsonSerializer.SerializeToElement("do-not-display")
+        }
+    };
+
+    private static string DeletionCommand(string action, string directory)
+    {
+        var project = Path.Join(directory, "missing.csproj");
+        return action switch
+        {
+            "DatabaseDrop" => $"ef database drop --project \"{project}\" --context \"ExampleContext\" --force",
+            "CertificateClean" => "dev-certs https --clean",
+            "SecretsRemove" => $"user-secrets remove \"Example:Key\" --project \"{project}\"",
+            "SecretsClear" => $"user-secrets clear --project \"{project}\"",
+            _ => throw new ArgumentOutOfRangeException(nameof(action))
+        };
+    }
+
+    private static ElicitResult DeletionAnswer(string outcome) => new()
+    {
+        Action = outcome is "decline" or "cancel" ? outcome : "accept",
+        Content = outcome == "missing" ? new Dictionary<string, JsonElement>() :
+            new Dictionary<string, JsonElement>
+            {
+                ["confirmed"] = outcome == "string"
+                    ? JsonSerializer.SerializeToElement("true")
+                    : JsonSerializer.SerializeToElement(outcome == "accept")
+            }
+    };
 
     [Theory]
     [InlineData("2026-07-28")]
@@ -1341,7 +1684,8 @@ public class Sdk20CompatibilityTests
             bool enableTasks = true,
             ErrorResponse? controlledError = null,
             bool enableMrtrProbe = false,
-            bool rawClient = false)
+            bool rawClient = false,
+            Func<string, CancellationToken, string?, Task<string>>? executor = null)
         {
             var host = new TestServer();
             host._timeout.CancelAfter(TimeSpan.FromSeconds(60));
@@ -1454,6 +1798,14 @@ public class Sdk20CompatibilityTests
                     builder.WithTools(new[] { nameof(DotNetCliTools.DotnetServerInfo), nameof(DotNetCliTools.DotnetProject), nameof(DotNetCliTools.DotnetSdkQuery) }
                         .Select(name => ToolOutputSchemas.CreateTool(typeof(DotNetCliTools).GetMethod(name)!)));
                 }
+                if (executor is not null)
+                    services.AddTransient(provider => new DotNetCliTools(
+                        provider.GetRequiredService<ILogger<DotNetCliTools>>(),
+                        provider.GetRequiredService<ConcurrencyManager>(),
+                        provider.GetRequiredService<ProcessSessionManager>())
+                    {
+                        CommandExecutorOverride = executor
+                    });
 #pragma warning disable MCPEXP003 // Match production's experimental MCP Apps registration.
                 builder.WithMcpApps();
 #pragma warning restore MCPEXP003

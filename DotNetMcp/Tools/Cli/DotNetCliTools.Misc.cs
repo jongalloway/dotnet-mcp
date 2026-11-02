@@ -203,7 +203,11 @@ public sealed partial class DotNetCliTools
         result.AppendLine("  When the MCP client supports elicitation, the server requests user confirmation before:");
         result.AppendLine("  • dotnet_project (action: Clean) - confirms before deleting build artifacts");
         result.AppendLine("  • dotnet_solution (action: Remove) - confirms before removing projects from solution");
+        result.AppendLine("  • dotnet_ef (action: DatabaseDrop) - confirms permanent deletion; force=true is still required, dry runs do not prompt");
+        result.AppendLine("  • dotnet_dev_certs (action: CertificateClean) - confirms removal of all HTTPS development certificates");
+        result.AppendLine("  • dotnet_dev_certs (actions: SecretsRemove, SecretsClear) - confirms deletion of user secrets");
         result.AppendLine("  Clients that do not support elicitation proceed without a confirmation prompt.");
+        result.AppendLine("  Confirmation is not authorization or a backup; see doc/sdk-v1.1-compatibility.md for the action policy.");
         result.AppendLine();
 
         result.AppendLine("SAMPLING (AI-Assisted Error Analysis):");

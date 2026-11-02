@@ -10,7 +10,8 @@ namespace DotNetMcp.Tests;
 /// Verifies that:
 /// - Destructive operations proceed normally when McpServer is null (no elicitation supported)
 /// - The server capability flags correctly advertise elicitation support
-/// - Direct calls retain the unprompted fallback; live protocol flows are covered by SDK compatibility tests
+/// - Direct calls retain the unprompted fallback, with recorded commands to avoid destructive effects
+/// - Live protocol flows are covered by SDK compatibility tests
 /// </summary>
 public class ElicitationTests
 {
@@ -21,7 +22,43 @@ public class ElicitationTests
         _tools = new DotNetCliTools(
             NullLogger<DotNetCliTools>.Instance,
             new ConcurrencyManager(),
-            new ProcessSessionManager());
+            new ProcessSessionManager())
+        {
+            CommandExecutorOverride = (args, _, _) => Task.FromResult($"Command: dotnet {args}\nExit Code: 0")
+        };
+    }
+
+    [Theory]
+    [InlineData(DotnetDevCertsAction.CertificateClean, "dev-certs https --clean")]
+    [InlineData(DotnetDevCertsAction.SecretsRemove, "user-secrets remove \"Example:Key\" --project \"test.csproj\"")]
+    [InlineData(DotnetDevCertsAction.SecretsClear, "user-secrets clear --project \"test.csproj\"")]
+    public async Task DotnetDevCerts_DeletionWithNullServer_PreservesCommand(DotnetDevCertsAction action, string command)
+    {
+        var result = await _tools.DotnetDevCerts(action, project: "test.csproj", key: "Example:Key");
+        Assert.Equal($"Command: dotnet {command}\nExit Code: 0", result.GetText());
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task DotnetEf_DatabaseDropWithNullServer_PreservesForceAndDryRun(bool force, bool dryRun)
+    {
+        var result = await _tools.DotnetEf(DotnetEfAction.DatabaseDrop,
+            project: "test.csproj", context: "ExampleContext", force: force, dryRun: dryRun);
+        if (!force && !dryRun)
+        {
+            Assert.Contains("requires force=true", result.GetText());
+            Assert.DoesNotContain("Command:", result.GetText());
+        }
+        else
+        {
+            var command = "ef database drop --project \"test.csproj\" --context \"ExampleContext\"";
+            if (force) command += " --force";
+            if (dryRun) command += " --dry-run";
+            Assert.Equal($"Command: dotnet {command}\nExit Code: 0", result.GetText());
+        }
     }
 
     #region DotnetProject Clean - Fallback Behavior
@@ -54,7 +91,7 @@ public class ElicitationTests
         // Assert - should have attempted to run 'dotnet clean' (not cancelled)
         Assert.NotNull(result);
         Assert.DoesNotContain("Clean operation cancelled", result);
-        // The command will fail because test.csproj doesn't exist, but it should have run
+        // The executor records the command instead of cleaning real project outputs.
         MachineReadableCommandAssertions.AssertExecutedDotnetCommand(result, "dotnet clean \"test.csproj\"");
     }
 
@@ -177,6 +214,10 @@ public class ElicitationTests
         Assert.Contains("ELICITATION", result, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Clean", result);
         Assert.Contains("Remove", result);
+        Assert.Contains("DatabaseDrop", result);
+        Assert.Contains("CertificateClean", result);
+        Assert.Contains("SecretsRemove", result);
+        Assert.Contains("SecretsClear", result);
     }
 
     [Fact]

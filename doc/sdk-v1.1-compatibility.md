@@ -28,13 +28,35 @@ An application error (`CallToolResult.IsError = true`) is retained inside a comp
 
 ## Destructive-operation confirmation
 
-Clean and solution Remove request a required boolean confirmation before side effects. On native ordinary calls, MRTR returns an input request and validates the continuation against the operation and arguments. Only an accepted response with `confirmed: true` proceeds; decline, cancel, and false confirmation do not.
+Project Clean, solution Remove, actual EF DatabaseDrop, CertificateClean, SecretsRemove, and SecretsClear request a required boolean confirmation before their selected side effects. On native ordinary calls, MRTR returns an input request and validates the continuation against the operation and arguments. Only an accepted response with `confirmed: true` proceeds; decline, cancel, false, missing, and mistyped confirmation do not. Invalid continuations and failed input exchanges are errors, never implicit approval. Request/task cancellation interrupts pending input without starting the command.
+
+Actual DatabaseDrop still requires `force=true`, even for clients that support elicitation. This flag skips the EF CLI prompt, not MCP confirmation. `dryRun=true` does not request confirmation and does not require force; EF can still build/run design-time application code during a dry run.
+
+### Action-level policy
+
+Confirmation is a selective human-in-the-loop check, not a blanket prompt for every mutation. Existing Clean and solution Remove behavior is retained; new gates focus on database data, user-wide certificates, and user-secret values that the server cannot restore.
+
+| Actions | Safeguards, consequences, and confirmation decision |
+| --- | --- |
+| Project Clean; solution Remove | Confirm before deleting outputs or changing solution membership. Existing behavior is retained, even though outputs can normally be rebuilt and solution edits can be version-controlled. |
+| EF DatabaseDrop | Confirm actual deletion after the independent force check. This permanently deletes the selected database and data. Dry runs remain unprompted. |
+| CertificateClean | Confirm removal of all HTTPS development certificates for the current user, which can disrupt other local applications. Platform-specific CLI/OS dialogs are not a portable MCP safeguard. |
+| SecretsRemove; SecretsClear | Confirm deletion of a selected key or all secrets for the selected project/current directory. Remove validates the key first. Prompts never include secret values. The store is outside the repository and the server provides no undo. |
+| Tool/workload/template uninstall | No new prompt: explicit validated identifiers select normally reinstallable components. Global tools/workloads/templates can affect other projects. Template uninstall without a package only lists installed packs. |
+| Package/reference removal; project property/item removal | No new prompt: explicit selection edits project metadata rather than deleting referenced source files. Recovery requires version control or backups; the server does not automatically undo edits. |
+| NuGet/template cache clearing; server-metrics resets | No new prompt for regenerable caches/disposable counters. Clearing caches can break offline workflows and repopulation may require access to feeds. |
+| EF MigrationsRemove | No new prompt. `force=true` can revert an applied migration as well as remove generated files and can lose data; the existing force behavior is preserved. |
+| EF DatabaseUpdate | No new prompt. The selected migration, including `0` rollback, or latest migration runs application-controlled schema/data changes. Even forward migrations can lose data; the server does not infer migration direction or safety from names. |
+| Generation/overwrites, configuration edits, process Stop, certificate trust/export, secret Set | No additional MCP prompts. Existing action/parameter intent, overwrite flags, and CLI/platform safeguards remain. Builds, tools, and application code can cause additional effects beyond the action's name. |
+| Discovery/check/list actions | No new confirmation. Lack of a prompt does not imply a sandbox or side-effect-free execution: some commands initialize the CLI, build, or run design-time code. |
 
 Legacy clients use the existing one-shot `ElicitAsync` path: the server sends `elicitation/create` and completes the original tool request after the answer. This does not require a native MRTR retry loop in the legacy client. Separately, SDK 2.3.0's backward-compatibility resolver can bridge an explicit MRTR input request to legacy JSON-RPC and retry the handler with its input responses.
 
 The SDK's legacy resolver allows up to **10 retry rounds**. The SDK client's automatic native MRTR retry loop also has a 10-retry limit. A simple confirmation needs only **one input round**: native ordinary calls make an initial `tools/call` and one continuation; explicit MRTR on legacy connections executes its handler twice within one wire-level tool call. The retained production legacy `ElicitAsync` path needs no handler retry.
 
 Tasks deliberately retain task-aware `ElicitAsync`, suspending the existing execution with `input_required` until `tasks/update` supplies the answer, rather than replaying the tool. Clients without elicitation retain the existing unprompted behavior; confirmation is not an authorization boundary.
+
+The unsupported-client rule also applies to the newly gated actions and direct calls without an MCP server; EF's independent force requirement still applies. There is no new bypass parameter or rejection policy for non-interactive clients. Confirmation does not supply backups, rollback, database isolation, or permission to execute arbitrary build/application code. Continue using client permissions, governance, and independent backups for those concerns.
 
 ## Retained deprecated stdio features
 

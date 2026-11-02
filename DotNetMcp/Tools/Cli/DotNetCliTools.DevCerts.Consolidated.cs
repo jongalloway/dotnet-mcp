@@ -24,6 +24,8 @@ public sealed partial class DotNetCliTools
     /// <param name="key">Secret key for set/remove operations (supports hierarchical keys like 'ConnectionStrings:Default')</param>
     /// <param name="value">Secret value for set operation</param>
     /// <param name="workingDirectory">Working directory for command execution</param>
+    /// <param name="server">Injected MCP server for destructive-operation confirmation</param>
+    /// <param name="context">Injected MCP request context for destructive-operation confirmation</param>
     [McpServerTool(Title = "Dev Certs & User Secrets", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = true, IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Locked/Flat/locked_flat.svg")]
     [McpMeta("category", "security")]
     [McpMeta("priority", 8.0)]
@@ -40,7 +42,9 @@ public sealed partial class DotNetCliTools
         bool trust = false,
         string? key = null,
         string? value = null,
-        string? workingDirectory = null)
+        string? workingDirectory = null,
+        McpServer? server = null,
+        RequestContext<CallToolRequestParams>? context = null)
     {
         var textResult = await WithWorkingDirectoryAsync(workingDirectory, async () =>
         {
@@ -55,13 +59,13 @@ public sealed partial class DotNetCliTools
             {
                 DotnetDevCertsAction.CertificateTrust => await HandleCertificateTrustAction(),
                 DotnetDevCertsAction.CertificateCheck => await HandleCertificateCheckAction(trust),
-                DotnetDevCertsAction.CertificateClean => await HandleCertificateCleanAction(),
+                DotnetDevCertsAction.CertificateClean => await HandleCertificateCleanAction(server, context),
                 DotnetDevCertsAction.CertificateExport => await HandleCertificateExportAction(path, password, format),
                 DotnetDevCertsAction.SecretsInit => await HandleSecretsInitAction(project),
                 DotnetDevCertsAction.SecretsSet => await HandleSecretsSetAction(key, value, project),
                 DotnetDevCertsAction.SecretsList => await HandleSecretsListAction(project),
-                DotnetDevCertsAction.SecretsRemove => await HandleSecretsRemoveAction(key, project),
-                DotnetDevCertsAction.SecretsClear => await HandleSecretsClearAction(project),
+                DotnetDevCertsAction.SecretsRemove => await HandleSecretsRemoveAction(key, project, server, context),
+                DotnetDevCertsAction.SecretsClear => await HandleSecretsClearAction(project, server, context),
                 _ => $"Error: Unsupported action '{action}'"
             };
         });
@@ -84,8 +88,18 @@ public sealed partial class DotNetCliTools
         return await ExecuteDotNetCommand(args);
     }
 
-    private async Task<string> HandleCertificateCleanAction()
+    private async Task<string> HandleCertificateCleanAction(McpServer? server, RequestContext<CallToolRequestParams>? context)
     {
+        if (!await DestructiveOperationConfirmation.ConfirmAsync(
+            server, context,
+            "This will remove all HTTPS development certificates for the current user, which can disrupt other local applications. Do you want to proceed?",
+            "Confirm certificate cleanup",
+            "I understand this removes all HTTPS development certificates for the current user",
+            DotNetCommandExecutor.RequestCancellationToken.Value))
+        {
+            return "CertificateClean operation cancelled.";
+        }
+
         return await ExecuteDotNetCommand("dev-certs https --clean");
     }
 
@@ -182,12 +196,24 @@ public sealed partial class DotNetCliTools
 
     private async Task<string> HandleSecretsRemoveAction(
         string? key,
-        string? project)
+        string? project,
+        McpServer? server,
+        RequestContext<CallToolRequestParams>? context)
     {
         // Validate required key parameter
         if (string.IsNullOrWhiteSpace(key))
         {
             return "Error: key parameter is required for secrets_remove action.";
+        }
+
+        if (!await DestructiveOperationConfirmation.ConfirmAsync(
+            server, context,
+            $"This will delete user secret '{key}' for {project ?? "the project in the current directory"}. The server cannot restore its value. Do you want to proceed?",
+            "Confirm secret removal",
+            "I understand this deletes the selected user secret",
+            DotNetCommandExecutor.RequestCancellationToken.Value))
+        {
+            return "SecretsRemove operation cancelled.";
         }
 
         var args = new StringBuilder($"user-secrets remove \"{key}\"");
@@ -196,8 +222,18 @@ public sealed partial class DotNetCliTools
         return await ExecuteDotNetCommand(args.ToString());
     }
 
-    private async Task<string> HandleSecretsClearAction(string? project)
+    private async Task<string> HandleSecretsClearAction(string? project, McpServer? server, RequestContext<CallToolRequestParams>? context)
     {
+        if (!await DestructiveOperationConfirmation.ConfirmAsync(
+            server, context,
+            $"This will delete all user secrets for {project ?? "the project in the current directory"}. The server cannot restore their values. Do you want to proceed?",
+            "Confirm clearing user secrets",
+            "I understand this deletes all user secrets for the selected project",
+            DotNetCommandExecutor.RequestCancellationToken.Value))
+        {
+            return "SecretsClear operation cancelled.";
+        }
+
         var args = new StringBuilder("user-secrets clear");
         if (!string.IsNullOrEmpty(project))
             args.Append($" --project \"{project}\"");
