@@ -267,7 +267,7 @@ pwsh -File scripts/run-release-gate-tests.ps1 -SkipServerJsonValidation
 ### Run in GitHub Actions (manual)
 
 The workflow [.github/workflows/release-scenarios.yml](../.github/workflows/release-scenarios.yml) is designed to be run via `workflow_dispatch`.
-It runs both scenario tiers and target frameworks on the selected OS, with current and exact-RC3 build SDK lanes when distinct. Select `all` to cover Windows and Ubuntu. It also calls the packaged-tool compatibility workflow, so package failures fail the release validation. Each scenario suite is exit-code checked separately; logs and SDK inventories are retained in `release-scenarios-<os>-<lane>` artifacts.
+It runs both scenario tiers and target frameworks on the selected OS, with current and exact-RC3 build SDK lanes when distinct. Each target framework gets its own runner so local tool installations cannot collide in shared SDK caches. The local helper runs framework suites sequentially and accepts `-Framework net10.0` or `-Framework net11.0` to select one. Select `all` to cover Windows and Ubuntu. The workflow also calls the packaged-tool compatibility workflow, so package failures fail the release validation. Each scenario suite is exit-code checked separately; logs and SDK inventories are retained in `release-scenarios-<os>-<lane>-<framework>` artifacts.
 
 ```powershell
 gh workflow run release-scenarios.yml --ref <branch-or-sha> -f os=all

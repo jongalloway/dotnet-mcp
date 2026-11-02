@@ -37,7 +37,7 @@ jobs:
 
   release-scenarios:
     needs: sdk_policy
-    name: Release scenarios (${{ matrix.os }}, ${{ matrix.sdk }})
+    name: Release scenarios (${{ matrix.os }}, ${{ matrix.sdk }}, ${{ matrix.framework }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     permissions:
@@ -48,6 +48,7 @@ jobs:
       matrix:
         os: ${{ inputs.os == 'all' && fromJSON('["ubuntu-latest", "windows-latest"]') || fromJSON(format('["{0}"]', inputs.os)) }}
         sdk: ${{ fromJSON(needs.sdk_policy.outputs.lanes) }}
+        framework: [net10.0, net11.0]
 
     env:
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
@@ -79,7 +80,7 @@ jobs:
 
       - name: Build
         id: build
-        run: dotnet build DotNetMcp.slnx --no-restore --configuration Release
+        run: dotnet build DotNetMcp.slnx --no-restore --configuration Release --framework ${{ matrix.framework }}
 
       - name: Validate server.json
         id: validate_server_json
@@ -89,7 +90,7 @@ jobs:
         id: release_scenarios
         shell: pwsh
         run: |
-          pwsh -NoProfile -File scripts/run-release-gate-tests.ps1 -NoRestore -NoBuild -SkipServerJsonValidation 2>&1 |
+          pwsh -NoProfile -File scripts/run-release-gate-tests.ps1 -Framework ${{ matrix.framework }} -NoRestore -NoBuild -SkipServerJsonValidation 2>&1 |
             Tee-Object artifacts/release-results/scenarios.txt
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
@@ -97,7 +98,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # pin@v7
         with:
-          name: release-scenarios-${{ matrix.os }}-${{ matrix.sdk }}
+          name: release-scenarios-${{ matrix.os }}-${{ matrix.sdk }}-${{ matrix.framework }}
           path: artifacts/release-results/*
           if-no-files-found: warn
 
@@ -110,6 +111,7 @@ jobs:
 
           - OS: `${{ matrix.os }}`
           - SDK lane: `${{ matrix.sdk }}`
+          - Test/server target: `${{ matrix.framework }}`
           - Build SDK: `${{ steps.setup_dotnet.outputs.sdk-version }}`
           - Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           - Ref: `${{ github.ref }}`

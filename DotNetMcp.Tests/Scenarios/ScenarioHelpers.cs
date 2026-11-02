@@ -2,6 +2,8 @@ using DotNetMcp;
 using System.Diagnostics;
 using System.Text;
 using System.ComponentModel;
+using System.Text.Json;
+using ModelContextProtocol.Protocol;
 using Xunit;
 
 namespace DotNetMcp.Tests.Scenarios;
@@ -152,5 +154,15 @@ internal static class ScenarioHelpers
             ? $"Expected success (Exit Code: 0) for step '{stepDescription}'.\nResponse:\n{text}"
             : $"Expected success (Exit Code: 0).\nResponse:\n{text}";
         Assert.True(text.Contains("Exit Code: 0", StringComparison.Ordinal), message);
+    }
+
+    public static void AssertBuildSuccess(CallToolResult result)
+    {
+        Assert.False(result.IsError == true, result.GetText());
+        Assert.True(result.StructuredContent.HasValue, "Expected structured build results.");
+        var content = result.StructuredContent.Value;
+        Assert.True(content.TryGetProperty("success", out var success), "Build result is missing success.");
+        Assert.Equal(JsonValueKind.True, success.ValueKind);
+        Assert.Equal(0, content.GetProperty("errorCount").GetInt32());
     }
 }

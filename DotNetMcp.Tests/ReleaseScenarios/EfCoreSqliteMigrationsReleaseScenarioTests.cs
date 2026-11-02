@@ -175,19 +175,19 @@ public class EfCoreSqliteMigrationsReleaseScenarioTests
 
             ScenarioHelpers.AssertSuccess(restoreProjectText, "dotnet_project Restore");
 
-            // Build once up-front so failures include full compiler diagnostics.
-            var buildProjectText = await client.CallToolTextAsync(
+            // EF commands use Debug by default; build the same configuration.
+            var buildProjectResult = await client.CallToolAsync(
                 toolName: "dotnet_project",
                 args: new Dictionary<string, object?>
                 {
                     ["action"] = "Build",
                     ["project"] = projectPath,
-                    ["configuration"] = "Release",
+                    ["configuration"] = "Debug",
                     ["noRestore"] = true
                 },
                 cancellationToken);
 
-            ScenarioHelpers.AssertSuccess(buildProjectText, "dotnet_project Build");
+            ScenarioHelpers.AssertBuildSuccess(buildProjectResult);
 
             // Add a migration and apply it.
             var migrationsAddText = await client.CallToolTextAsync(
@@ -198,7 +198,6 @@ public class EfCoreSqliteMigrationsReleaseScenarioTests
                     ["name"] = "Init",
                     ["project"] = projectPath,
                     ["startupProject"] = projectPath,
-                    ["noBuild"] = true,
                     ["workingDirectory"] = tempRoot.Path
                 },
                 cancellationToken);
@@ -212,12 +211,12 @@ public class EfCoreSqliteMigrationsReleaseScenarioTests
                     ["action"] = "DatabaseUpdate",
                     ["project"] = projectPath,
                     ["startupProject"] = projectPath,
-                    ["noBuild"] = true,
                     ["workingDirectory"] = tempRoot.Path
                 },
                 cancellationToken);
 
             ScenarioHelpers.AssertSuccess(databaseUpdateText, "dotnet_ef DatabaseUpdate");
+            Assert.Contains("Applying migration", databaseUpdateText, StringComparison.Ordinal);
 
             Assert.True(Directory.Exists(Path.Join(tempRoot.Path, "Migrations")), "Expected Migrations folder to be created.");
             Assert.True(File.Exists(Path.Join(tempRoot.Path, "app.db")), "Expected SQLite database file 'app.db' to exist.");

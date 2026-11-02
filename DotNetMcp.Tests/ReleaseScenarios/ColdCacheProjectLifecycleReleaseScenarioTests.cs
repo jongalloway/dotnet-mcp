@@ -75,7 +75,7 @@ public class ColdCacheProjectLifecycleReleaseScenarioTests
             ScenarioHelpers.AssertSuccess(restoreText, "dotnet_project Restore");
 
             // Build via MCP.
-            var buildText = await client.CallToolTextAsync(
+            var buildResult = await client.CallToolAsync(
                 toolName: "dotnet_project",
                 args: new Dictionary<string, object?>
                 {
@@ -86,7 +86,7 @@ public class ColdCacheProjectLifecycleReleaseScenarioTests
                 },
                 cancellationToken);
 
-            ScenarioHelpers.AssertSuccess(buildText, "dotnet_project Build");
+            ScenarioHelpers.AssertBuildSuccess(buildResult);
 
             // Publish via MCP and validate output exists.
             var publishDir = Path.Join(tempRoot.Path, "publish");
