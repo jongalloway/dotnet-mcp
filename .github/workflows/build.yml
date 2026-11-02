@@ -260,7 +260,7 @@ jobs:
           for tfm in net10.0 net11.0; do
             name="$tfm.cobertura.xml"
             if [[ "$tfm" == "net10.0" ]]; then name="coverage.cobertura.xml"; fi
-            dotnet test --solution DotNetMcp.slnx --framework "$tfm" --no-build \
+            dotnet test --solution DotNetMcp.slnx --framework "$tfm" --no-restore \
               --configuration Release --verbosity normal -- \
               --coverage --coverage-output "$GITHUB_WORKSPACE/coverage/$name" --coverage-output-format cobertura
           done
