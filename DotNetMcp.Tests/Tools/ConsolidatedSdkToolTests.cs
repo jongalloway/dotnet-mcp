@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using System.Text.Json;
 using DotNetMcp;
 using DotNetMcp.Actions;
 using Microsoft.Extensions.Logging;
@@ -22,6 +23,68 @@ public class ConsolidatedSdkToolTests
         _logger = NullLogger<DotNetCliTools>.Instance;
         _concurrencyManager = new ConcurrencyManager();
         _tools = new DotNetCliTools(_logger, _concurrencyManager, new ProcessSessionManager());
+    }
+
+    [Theory]
+    [InlineData("net11.0", "2026-11-09", "Preview", "net10.0")]
+    [InlineData("net11.0", "2026-11-10", "Supported", "net11.0")]
+    [InlineData("net11.0", "2026-11-11", "Supported", "net11.0")]
+    [InlineData("net8.0", "2026-11-10", "Supported", "net11.0")]
+    [InlineData("net8.0", "2026-11-11", "EOL", "net11.0")]
+    [InlineData("net8.0-windows", "2026-11-10", "Supported", "net11.0")]
+    [InlineData("net8.0-windows", "2026-11-11", "EOL", "net11.0")]
+    [InlineData("net8.0-windows10.0.19041.0", "2026-11-10", "Supported", "net11.0")]
+    [InlineData("net8.0-windows10.0.19041.0", "2026-11-11", "EOL", "net11.0")]
+    public async Task FrameworkInfo_TextAndSourceGeneratedJsonShareLifecycle(
+        string framework, string date, string status, string recommended)
+    {
+        FrameworkListResult? captured = null;
+        var text = await _tools.DotnetFrameworkInfoCoreAsync(framework, value => captured = value, DateOnly.Parse(date));
+
+        Assert.NotNull(captured);
+        var info = Assert.Single(captured.Frameworks);
+        Assert.Equal(framework, info.Framework);
+        Assert.Contains($"Framework: {framework}", text);
+        Assert.Equal(status, info.SupportStatus);
+        Assert.Contains($"Support status: {status}", text);
+        Assert.Contains($"Release type: {info.ReleaseType}", text);
+        Assert.Contains($"End of support: {info.EndOfSupport:yyyy-MM-dd}", text);
+        Assert.Equal(recommended, captured.LatestRecommended);
+        Assert.Equal("net10.0", captured.LatestLts);
+        using var json = JsonDocument.Parse(JsonSerializer.Serialize(captured, ServerJsonContext.Default.FrameworkListResult));
+        var entry = json.RootElement.GetProperty("frameworks")[0];
+        Assert.Equal(framework, entry.GetProperty("framework").GetString());
+        Assert.Equal(status, entry.GetProperty("supportStatus").GetString());
+        Assert.Equal(info.ReleaseDate!.Value.ToString("yyyy-MM-dd"), entry.GetProperty("releaseDate").GetString());
+        Assert.Equal(info.EndOfSupport!.Value.ToString("yyyy-MM-dd"), entry.GetProperty("endOfSupport").GetString());
+        Assert.Equal(info.ReleaseType, entry.GetProperty("releaseType").GetString());
+    }
+
+    [Fact]
+    public async Task FrameworkInfo_AfterGa_ListIncludesNet11OnceAndLabelsEol()
+    {
+        FrameworkListResult? captured = null;
+        var text = await _tools.DotnetFrameworkInfoCoreAsync(null, value => captured = value, new DateOnly(2026, 11, 11));
+        Assert.NotNull(captured);
+        Assert.Single(captured.Frameworks, fw => fw.Framework == "net11.0");
+        Assert.Contains(".NET 11.0 (STS)", text);
+        Assert.Contains(".NET 8.0 (LTS, EOL)", text);
+        Assert.DoesNotContain("(LTS) -", text);
+        Assert.Contains("Latest Recommended: net11.0", text);
+        Assert.Contains("Latest LTS: net10.0", text);
+    }
+
+    [Theory]
+    [InlineData("netstandard2.0")]
+    [InlineData("net48")]
+    [InlineData("net99.0")]
+    public async Task FrameworkInfo_UnknownLifecycleDoesNotInventSupport(string framework)
+    {
+        FrameworkListResult? captured = null;
+        var text = await _tools.DotnetFrameworkInfoCoreAsync(framework, value => captured = value, new DateOnly(2026, 11, 11));
+        Assert.NotNull(captured);
+        Assert.Null(Assert.Single(captured.Frameworks).SupportStatus);
+        Assert.Contains("Support status: Unknown / not applicable", text);
     }
 
     [Fact]

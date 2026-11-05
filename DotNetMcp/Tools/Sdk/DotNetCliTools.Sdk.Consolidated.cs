@@ -504,7 +504,7 @@ public sealed partial class DotNetCliTools
     }
 
     /// <summary>
-    /// Get information about .NET framework versions, including which are LTS releases. 
+    /// Get information about known .NET framework versions, including release types and current support status.
     /// Useful for understanding framework compatibility.
     /// </summary>
     /// <param name="framework">Optional: specific framework to get info about (e.g., 'net8.0', 'net6.0')</param>
@@ -513,19 +513,24 @@ public sealed partial class DotNetCliTools
     internal async Task<string> DotnetFrameworkInfo(string? framework = null)
         => await DotnetFrameworkInfoCoreAsync(framework);
 
-    private async Task<string> DotnetFrameworkInfoCoreAsync(string? framework, Action<FrameworkListResult>? capture = null)
+    internal async Task<string> DotnetFrameworkInfoCoreAsync(string? framework, Action<FrameworkListResult>? capture = null, DateOnly? asOf = null)
     {
+        var evaluationDate = asOf ?? FrameworkHelper.EvaluationDate;
         var result = new StringBuilder();
         var metadata = new List<FrameworkMetadata>();
-        static FrameworkMetadata Describe(string fw) => new(fw, FrameworkHelper.GetFrameworkDescription(fw),
-            FrameworkHelper.IsLtsFramework(fw), FrameworkHelper.IsModernNet(fw), FrameworkHelper.IsNetCore(fw),
-            FrameworkHelper.IsNetFramework(fw), FrameworkHelper.IsNetStandard(fw));
+        FrameworkMetadata Describe(string fw) => FrameworkMetadata.Describe(fw, evaluationDate);
+        string LifecycleText(FrameworkMetadata info) => info.SupportStatus is null
+            ? "Support status: Unknown / not applicable"
+            : $"Support status: {info.SupportStatus}; End of support: {info.EndOfSupport?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)}";
 
         if (!string.IsNullOrEmpty(framework))
         {
-            metadata.Add(Describe(framework));
+            var info = Describe(framework);
+            metadata.Add(info);
             result.AppendLine($"Framework: {framework}");
-            result.AppendLine($"Description: {FrameworkHelper.GetFrameworkDescription(framework)}");
+            result.AppendLine($"Description: {info.Description}");
+            result.AppendLine($"Release type: {info.ReleaseType ?? "Unknown / not applicable"}");
+            result.AppendLine(LifecycleText(info));
             result.AppendLine($"Is LTS: {FrameworkHelper.IsLtsFramework(framework)}");
             result.AppendLine($"Is Modern .NET: {FrameworkHelper.IsModernNet(framework)}");
             result.AppendLine($"Is .NET Core: {FrameworkHelper.IsNetCore(framework)}");
@@ -534,19 +539,14 @@ public sealed partial class DotNetCliTools
         }
         else
         {
-            var supportedModernFrameworks = FrameworkHelper.GetSupportedModernFrameworks().ToList();
+            var supportedModernFrameworks = FrameworkHelper.GetModernFrameworks(evaluationDate).ToList();
 
             // Only show preview TFMs when the SDK major version is installed.
             try
             {
                 var sdkList = await DotNetCommandExecutor.ExecuteCommandForResourceAsync("--list-sdks", _logger);
-                var hasNet11Sdk = sdkList
-                    .Split('\n', StringSplitOptions.RemoveEmptyEntries)
-                    .Any(line => line.TrimStart().StartsWith("11.", StringComparison.Ordinal));
-                if (hasNet11Sdk)
-                {
-                    supportedModernFrameworks.Insert(0, DotNetSdkConstants.TargetFrameworks.Net110);
-                }
+                supportedModernFrameworks = DotNetResources.GetSupportedModernFrameworksForResources(
+                    DotNetResources.ParseSdkListOutput(sdkList), evaluationDate);
             }
             catch (OperationCanceledException) { throw; }
             catch (InputRequiredException) { throw; }
@@ -560,8 +560,8 @@ public sealed partial class DotNetCliTools
             foreach (var fw in supportedModernFrameworks)
             {
                 metadata.Add(Describe(fw));
-                var ltsMarker = FrameworkHelper.IsLtsFramework(fw) ? " (LTS)" : string.Empty;
-                result.AppendLine($"  {fw}{ltsMarker} - {FrameworkHelper.GetFrameworkDescription(fw)}");
+                var info = metadata[^1];
+                result.AppendLine($"  {fw} - {info.Description}; {LifecycleText(info)}");
             }
 
             result.AppendLine();
@@ -569,16 +569,16 @@ public sealed partial class DotNetCliTools
             foreach (var fw in FrameworkHelper.GetSupportedNetCoreFrameworks())
             {
                 metadata.Add(Describe(fw));
-                var ltsMarker = FrameworkHelper.IsLtsFramework(fw) ? " (LTS)" : string.Empty;
-                result.AppendLine($"  {fw}{ltsMarker} - {FrameworkHelper.GetFrameworkDescription(fw)}");
+                var info = metadata[^1];
+                result.AppendLine($"  {fw} - {info.Description}; {LifecycleText(info)}");
             }
 
             result.AppendLine();
-            result.AppendLine($"Latest Recommended: {FrameworkHelper.GetLatestRecommendedFramework()}");
-            result.AppendLine($"Latest LTS: {FrameworkHelper.GetLatestLtsFramework()}");
+            result.AppendLine($"Latest Recommended: {FrameworkHelper.GetLatestRecommendedFramework(evaluationDate)}");
+            result.AppendLine($"Latest LTS: {FrameworkHelper.GetLatestLtsFramework(evaluationDate)}");
         }
 
-        capture?.Invoke(new FrameworkListResult(metadata.ToArray(), FrameworkHelper.GetLatestRecommendedFramework(), FrameworkHelper.GetLatestLtsFramework()));
+        capture?.Invoke(new FrameworkListResult(metadata.ToArray(), FrameworkHelper.GetLatestRecommendedFramework(evaluationDate), FrameworkHelper.GetLatestLtsFramework(evaluationDate)));
         return result.ToString();
     }
 

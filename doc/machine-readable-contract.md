@@ -35,7 +35,7 @@ Every successful action of the six schema-bearing tools supplies structured cont
 | `dotnet_sdk` | `Version`, `ListSdks`, `ListRuntimes` | Existing version/SDK/runtime objects above. Optional runtime discovery failure adds `warning` and omits `runtimes`. |
 | `dotnet_sdk` | `ListTemplates`, `SearchTemplates` | `templates` array with `shortName`, `shortNames`, `language`, `type`, optional `name`/`description`/`author`, and typed `parameters`. Filters, limits, ordering and text use the same acquired data. CLI fallback uses `action`/`text`, not fabricated template metadata. |
 | `dotnet_sdk` | `TemplateInfo` | `template` with the same metadata and parameter details; CLI help fallback uses `action`/`text`. |
-| `dotnet_sdk` | `FrameworkInfo` | `frameworks` array with description and classification flags; `latestRecommended`, `latestLts`. An explicit framework returns a single entry. |
+| `dotnet_sdk` | `FrameworkInfo` | `frameworks` array with description, classification flags, and lifecycle metadata; `latestRecommended`, `latestLts`. An explicit framework returns a single entry. |
 | `dotnet_sdk` | `CacheMetrics` | `templates`, `sdk`, `runtime`, `workspace` snapshots, each with `hits`, `misses`, `hitRatio`. |
 | `dotnet_sdk` | `Info`, `ClearTemplateCache`, `ListTemplatePacks`, `InstallTemplatePack`, `UninstallTemplatePack`, `ConfigureGlobalJson` | `action`/`text`. No invented installation or configuration metadata. |
 | `dotnet_project` | `Build` | `success`, `errorCount`, `warningCount`, `summary`; optional `project`, `configuration`, diagnostics and `lockInfo`. |
@@ -53,6 +53,23 @@ Every successful action of the six schema-bearing tools supplies structured cont
 | `dotnet_solution` | `Create`, `Add`, `Remove`, `Analyze`, `Dependencies`, `Validate` | `action`/`text`. |
 | `dotnet_server_capabilities` | No action parameter | Existing full capabilities snapshot. |
 | `dotnet_server_metrics` | `Get`, `Reset`, `TokenSavingsGet`, `TokenSavingsReset` | Existing snapshot/reset/token-savings envelopes above. |
+
+### Framework lifecycle metadata
+
+`dotnet_sdk` / `dotnet_sdk_query` (`FrameworkInfo`) and `dotnet://frameworks` expose additive lifecycle fields for recorded modern .NET and .NET Core releases:
+
+| Field | Values / meaning |
+|-------|------------------|
+| `releaseType` | `LTS` or `STS`; historical release classification, independent of support status. |
+| `supportStatus` | `Preview` before GA, `Supported` from GA through the support end date, or `EOL` afterward. |
+| `releaseDate` | GA date, in ISO `yyyy-MM-dd` format. |
+| `endOfSupport` | Published support end date, inclusive, in ISO `yyyy-MM-dd` format. |
+
+Lifecycle evaluation uses one UTC calendar date per response. The existing `isLts` flag remains true for historical LTS releases even after EOL; it does **not** mean a version is currently supported. Descriptions include release type and an EOL marker where appropriate. Unknown TFMs, .NET Standard contracts, and .NET Framework versions have null or omitted lifecycle fields, not invented support dates; legacy framework support can depend on the operating system.
+
+Known EOL frameworks remain in catalogs and framework completions for existing-project discovery. Before GA, .NET 11 is included in resource/tool lists only when an SDK 11 is installed, and its description retains `Preview`. At GA (November 10, 2026), it becomes a normal catalog entry and `latestRecommended` becomes `net11.0`; `latestLts` remains `net10.0`. Project defaults remain .NET 10. Metadata recommendations do not assert that a suitable SDK is installed.
+
+.NET 8 and 9 are supported through November 10, 2026, then marked EOL. .NET 10 and 11 are supported through November 14, 2028, according to the recorded [Microsoft support policy](https://dotnet.microsoft.com/en-us/platform/support/policy/dotnet-core) and [.NET 11 release notes](https://github.com/dotnet/core/blob/main/release-notes/11.0/README.md). Dates are explicit catalog data, not extrapolated from release-number parity. If all recorded eligible releases have expired, recommendation generation fails explicitly and requires a catalog update rather than returning an expired release as supported.
 
 ### Output schemas and protocol compatibility
 

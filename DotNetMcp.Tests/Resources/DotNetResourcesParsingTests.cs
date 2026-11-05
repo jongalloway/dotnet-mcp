@@ -63,13 +63,13 @@ public class DotNetResourcesParsingTests
         var without11 = DotNetResources.GetSupportedModernFrameworksForResources(new[]
         {
             new SdkInfo("10.0.101", "C:\\Program Files\\dotnet\\sdk\\10.0.101"),
-        });
+        }, new DateOnly(2026, 11, 9));
         Assert.DoesNotContain(DotNetSdkConstants.TargetFrameworks.Net110, without11);
 
         var with11 = DotNetResources.GetSupportedModernFrameworksForResources(new[]
         {
             new SdkInfo("11.0.100-preview.1", "C:\\Program Files\\dotnet\\sdk\\11.0.100-preview.1"),
-        });
+        }, new DateOnly(2026, 11, 9));
         Assert.Contains(DotNetSdkConstants.TargetFrameworks.Net110, with11);
 
         // It should be inserted at the beginning when present

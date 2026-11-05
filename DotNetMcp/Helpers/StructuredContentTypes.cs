@@ -234,7 +234,22 @@ internal sealed record FrameworkMetadata(
     [property: JsonPropertyName("isModernNet")] bool IsModernNet,
     [property: JsonPropertyName("isNetCore")] bool IsNetCore,
     [property: JsonPropertyName("isNetFramework")] bool IsNetFramework,
-    [property: JsonPropertyName("isNetStandard")] bool IsNetStandard);
+    [property: JsonPropertyName("isNetStandard")] bool IsNetStandard,
+    [property: JsonPropertyName("releaseType")] string? ReleaseType = null,
+    [property: JsonPropertyName("supportStatus")] string? SupportStatus = null,
+    [property: JsonPropertyName("releaseDate")] DateOnly? ReleaseDate = null,
+    [property: JsonPropertyName("endOfSupport")] DateOnly? EndOfSupport = null)
+{
+    internal static FrameworkMetadata Describe(string framework, DateOnly asOf)
+    {
+        var lifecycle = FrameworkHelper.GetFrameworkLifecycle(framework, asOf);
+        return new(framework, FrameworkHelper.GetFrameworkDescription(framework, asOf),
+            FrameworkHelper.IsLtsFramework(framework), FrameworkHelper.IsModernNet(framework),
+            FrameworkHelper.IsNetCore(framework), FrameworkHelper.IsNetFramework(framework),
+            FrameworkHelper.IsNetStandard(framework), lifecycle?.ReleaseType, lifecycle?.SupportStatus,
+            lifecycle?.ReleaseDate, lifecycle?.EndOfSupport);
+    }
+}
 internal sealed record FrameworkListResult(
     [property: JsonPropertyName("frameworks")] FrameworkMetadata[] Frameworks,
     [property: JsonPropertyName("latestRecommended")] string LatestRecommended,

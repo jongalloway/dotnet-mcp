@@ -31,7 +31,25 @@ internal sealed record ResourceFrameworkInfo(
     [property: JsonPropertyName("isLts"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? IsLts = null,
     [property: JsonPropertyName("isModernNet"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? IsModernNet = null,
     [property: JsonPropertyName("isNetCore"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? IsNetCore = null,
-    [property: JsonPropertyName("isNetStandard"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? IsNetStandard = null);
+    [property: JsonPropertyName("isNetStandard"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? IsNetStandard = null,
+    [property: JsonPropertyName("releaseType")] string? ReleaseType = null,
+    [property: JsonPropertyName("supportStatus")] string? SupportStatus = null,
+    [property: JsonPropertyName("releaseDate")] DateOnly? ReleaseDate = null,
+    [property: JsonPropertyName("endOfSupport")] DateOnly? EndOfSupport = null)
+{
+    internal static ResourceFrameworkInfo Describe(string framework, DateOnly asOf)
+    {
+        var lifecycle = FrameworkHelper.GetFrameworkLifecycle(framework, asOf);
+        return new(framework, FrameworkHelper.GetFrameworkDescription(framework, asOf),
+            FrameworkHelper.GetFrameworkVersion(framework),
+            IsLts: FrameworkHelper.IsNetStandard(framework) ? null : FrameworkHelper.IsLtsFramework(framework),
+            IsModernNet: FrameworkHelper.IsModernNet(framework) ? true : null,
+            IsNetCore: FrameworkHelper.IsNetCore(framework) ? true : null,
+            IsNetStandard: FrameworkHelper.IsNetStandard(framework) ? true : null,
+            ReleaseType: lifecycle?.ReleaseType, SupportStatus: lifecycle?.SupportStatus,
+            ReleaseDate: lifecycle?.ReleaseDate, EndOfSupport: lifecycle?.EndOfSupport);
+    }
+}
 internal sealed record WorkspaceResourceData(
     [property: JsonPropertyName("solution")] string? Solution,
     [property: JsonPropertyName("projects")] WorkspaceProjectResource[] Projects,

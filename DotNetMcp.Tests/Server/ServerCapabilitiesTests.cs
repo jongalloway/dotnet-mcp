@@ -198,11 +198,14 @@ public class ServerCapabilitiesTests
         }
     }
 
-    [Fact]
-    public async Task DotnetServerCapabilities_SdkVersions_Recommended_IsNet100()
+    [Theory]
+    [InlineData("2026-11-09", "net10.0")]
+    [InlineData("2026-11-10", "net11.0")]
+    [InlineData("2026-11-11", "net11.0")]
+    public async Task DotnetServerCapabilities_SdkVersions_Recommended_TracksGa(string date, string expected)
     {
         // Act
-        var result = (await _tools.DotnetServerCapabilities()).GetText();
+        var result = (await _tools.DotnetServerCapabilitiesCoreAsync(asOf: DateOnly.Parse(date))).GetText();
         var jsonDoc = JsonDocument.Parse(result);
         var recommended = jsonDoc.RootElement
             .GetProperty("sdkVersions")
@@ -210,14 +213,14 @@ public class ServerCapabilitiesTests
             .GetString();
 
         // Assert
-        Assert.Equal("net10.0", recommended);
+        Assert.Equal(expected, recommended);
     }
 
     [Fact]
     public async Task DotnetServerCapabilities_SdkVersions_Lts_IsNet100()
     {
         // Act
-        var result = (await _tools.DotnetServerCapabilities()).GetText();
+        var result = (await _tools.DotnetServerCapabilitiesCoreAsync(asOf: new DateOnly(2026, 11, 11))).GetText();
         var jsonDoc = JsonDocument.Parse(result);
         var lts = jsonDoc.RootElement
             .GetProperty("sdkVersions")

@@ -17,6 +17,27 @@ namespace DotNetMcp.Tests;
 public class OutputSchemaTests
 {
     [Theory]
+    [InlineData("2026-11-09")]
+    [InlineData("2026-11-10")]
+    [InlineData("2026-11-11")]
+    public void FrameworkLifecycle_SourceGeneratedPayloadMatchesSdkAndQuerySchemas(string date)
+    {
+        var payload = new FrameworkListResult(
+            [FrameworkMetadata.Describe("net11.0", DateOnly.Parse(date)),
+             FrameworkMetadata.Describe("net8.0", DateOnly.Parse(date)),
+             FrameworkMetadata.Describe("netstandard2.0", DateOnly.Parse(date))],
+            FrameworkHelper.GetLatestRecommendedFramework(DateOnly.Parse(date)), "net10.0");
+        var result = StructuredContentHelper.ToCallToolResult("Framework lifecycle", payload);
+        foreach (var method in new[] { nameof(DotNetCliTools.DotnetSdk), nameof(DotNetCliTools.DotnetSdkQuery) })
+        {
+            var schema = ToolOutputSchemas.CreateTool(typeof(DotNetCliTools).GetMethod(method)!).ProtocolTool.OutputSchema!.Value;
+            AssertContract(schema, result);
+            Assert.Contains("supportStatus", schema.GetRawText());
+            Assert.Contains("endOfSupport", schema.GetRawText());
+        }
+    }
+
+    [Theory]
     [InlineData("2026-07-28")]
     [InlineData("2025-11-25")]
     public async Task AllEightSchemas_ValidateRealActionFamiliesAndCompatibilityText(string protocol)
