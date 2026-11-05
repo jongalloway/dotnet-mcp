@@ -1,3 +1,4 @@
+using NuGet.Frameworks;
 
 namespace DotNetMcp;
 
@@ -36,12 +37,20 @@ public static class FrameworkHelper
     /// <summary>
     /// Get release type and date-aware support status, or null when lifecycle data is unknown or not applicable.
     /// Support ends after the published end-of-support date (inclusive), evaluated in UTC.
+    /// Platform-qualified TFMs use the underlying release's lifecycle.
     /// </summary>
     public static FrameworkLifecycle? GetFrameworkLifecycle(string framework)
         => GetFrameworkLifecycle(framework, EvaluationDate);
 
     internal static FrameworkLifecycle? GetFrameworkLifecycle(string framework, DateOnly asOf)
     {
+        if (!string.IsNullOrWhiteSpace(framework) && framework.Contains('-'))
+        {
+            var parsed = NuGetFramework.ParseFolder(framework);
+            if (parsed.HasPlatform)
+                framework = new NuGetFramework(parsed.Framework, parsed.Version).GetShortFolderName();
+        }
+
         var release = Releases.FirstOrDefault(release =>
             string.Equals(release.Framework, framework, StringComparison.OrdinalIgnoreCase));
         return release is null ? null : new FrameworkLifecycle(release.ReleaseType,

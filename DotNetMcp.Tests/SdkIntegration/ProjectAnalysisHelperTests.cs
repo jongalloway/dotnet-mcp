@@ -294,14 +294,18 @@ public class ProjectAnalysisHelperTests
     }
 
     [Theory]
-    [InlineData("2026-11-10", false)]
-    [InlineData("2026-11-11", true)]
-    public async Task ValidateProjectAsync_HistoricalLtsGetsEolWarningAfterSupportEnds(string date, bool isEol)
+    [InlineData("net8.0", "2026-11-10", false)]
+    [InlineData("net8.0", "2026-11-11", true)]
+    [InlineData("net8.0-windows", "2026-11-10", false)]
+    [InlineData("net8.0-windows", "2026-11-11", true)]
+    [InlineData("net8.0-windows10.0.19041.0", "2026-11-10", false)]
+    [InlineData("net8.0-windows10.0.19041.0", "2026-11-11", true)]
+    public async Task ValidateProjectAsync_HistoricalLtsGetsEolWarningAfterSupportEnds(string framework, string date, bool isEol)
     {
-        var projectFile = CreateTempProject("""
+        var projectFile = CreateTempProject($"""
             <Project>
               <PropertyGroup>
-                <TargetFramework>net8.0</TargetFramework>
+                <TargetFramework>{framework}</TargetFramework>
                 <OutputType>Exe</OutputType>
                 <Nullable>enable</Nullable>
               </PropertyGroup>
@@ -317,6 +321,11 @@ public class ProjectAnalysisHelperTests
             var recommendations = json.RootElement.GetProperty("recommendations").EnumerateArray().Select(item => item.GetString()).ToArray();
             Assert.Equal(isEol, recommendations.Any(recommendation =>
                 recommendation?.Contains("Latest LTS: net10.0", StringComparison.Ordinal) == true));
+            if (isEol)
+            {
+                Assert.Contains($"Target framework '{framework}' is out of support (EOL).", warnings);
+                Assert.Contains($"Upgrade '{framework}' to a supported framework. Latest LTS: net10.0", recommendations);
+            }
         }
         finally
         {

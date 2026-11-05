@@ -31,6 +31,10 @@ public class ConsolidatedSdkToolTests
     [InlineData("net11.0", "2026-11-11", "Supported", "net11.0")]
     [InlineData("net8.0", "2026-11-10", "Supported", "net11.0")]
     [InlineData("net8.0", "2026-11-11", "EOL", "net11.0")]
+    [InlineData("net8.0-windows", "2026-11-10", "Supported", "net11.0")]
+    [InlineData("net8.0-windows", "2026-11-11", "EOL", "net11.0")]
+    [InlineData("net8.0-windows10.0.19041.0", "2026-11-10", "Supported", "net11.0")]
+    [InlineData("net8.0-windows10.0.19041.0", "2026-11-11", "EOL", "net11.0")]
     public async Task FrameworkInfo_TextAndSourceGeneratedJsonShareLifecycle(
         string framework, string date, string status, string recommended)
     {
@@ -39,6 +43,8 @@ public class ConsolidatedSdkToolTests
 
         Assert.NotNull(captured);
         var info = Assert.Single(captured.Frameworks);
+        Assert.Equal(framework, info.Framework);
+        Assert.Contains($"Framework: {framework}", text);
         Assert.Equal(status, info.SupportStatus);
         Assert.Contains($"Support status: {status}", text);
         Assert.Contains($"Release type: {info.ReleaseType}", text);
@@ -47,6 +53,7 @@ public class ConsolidatedSdkToolTests
         Assert.Equal("net10.0", captured.LatestLts);
         using var json = JsonDocument.Parse(JsonSerializer.Serialize(captured, ServerJsonContext.Default.FrameworkListResult));
         var entry = json.RootElement.GetProperty("frameworks")[0];
+        Assert.Equal(framework, entry.GetProperty("framework").GetString());
         Assert.Equal(status, entry.GetProperty("supportStatus").GetString());
         Assert.Equal(info.ReleaseDate!.Value.ToString("yyyy-MM-dd"), entry.GetProperty("releaseDate").GetString());
         Assert.Equal(info.EndOfSupport!.Value.ToString("yyyy-MM-dd"), entry.GetProperty("endOfSupport").GetString());

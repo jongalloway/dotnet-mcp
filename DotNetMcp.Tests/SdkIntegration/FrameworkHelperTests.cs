@@ -198,6 +198,12 @@ public class FrameworkHelperTests
     [InlineData("net8.0", "2026-11-09", "Supported", "LTS", "2023-11-14", "2026-11-10")]
     [InlineData("net8.0", "2026-11-10", "Supported", "LTS", "2023-11-14", "2026-11-10")]
     [InlineData("net8.0", "2026-11-11", "EOL", "LTS", "2023-11-14", "2026-11-10")]
+    [InlineData("net8.0-windows", "2026-11-10", "Supported", "LTS", "2023-11-14", "2026-11-10")]
+    [InlineData("net8.0-windows", "2026-11-11", "EOL", "LTS", "2023-11-14", "2026-11-10")]
+    [InlineData("NET8.0-WINDOWS10.0.19041.0", "2026-11-10", "Supported", "LTS", "2023-11-14", "2026-11-10")]
+    [InlineData("net8.0-windows10.0.19041.0", "2026-11-11", "EOL", "LTS", "2023-11-14", "2026-11-10")]
+    [InlineData("net9.0-android", "2026-11-10", "Supported", "STS", "2024-11-12", "2026-11-10")]
+    [InlineData("net9.0-android", "2026-11-11", "EOL", "STS", "2024-11-12", "2026-11-10")]
     public void GetFrameworkLifecycle_UsesExplicitInclusiveSupportDates(
         string framework, string date, string status, string type, string releaseDate, string endOfSupport)
     {
@@ -234,6 +240,10 @@ public class FrameworkHelperTests
     [InlineData("netstandard2.0")]
     [InlineData("net48")]
     [InlineData("net99.0")]
+    [InlineData("net99.0-windows")]
+    [InlineData("netstandard2.0-windows")]
+    [InlineData("net48-windows")]
+    [InlineData("net8.0-windows-invalid")]
     [InlineData("invalid")]
     [InlineData("")]
     [InlineData(" ")]
@@ -268,6 +278,8 @@ public class FrameworkHelperTests
     [InlineData("NET11.0", "2026-11-10", ".NET 11.0 (STS)")]
     [InlineData("net8.0", "2026-11-10", ".NET 8.0 (LTS)")]
     [InlineData("net8.0", "2026-11-11", ".NET 8.0 (LTS, EOL)")]
+    [InlineData("net8.0-windows", "2026-11-10", "net8.0-windows (LTS)")]
+    [InlineData("net8.0-windows10.0.19041.0", "2026-11-11", "net8.0-windows10.0.19041.0 (LTS, EOL)")]
     [InlineData("net9.0", "2026-11-11", ".NET 9.0 (STS, EOL)")]
     [InlineData("net11.0", "2028-11-15", ".NET 11.0 (STS, EOL)")]
     [InlineData("net48", "2026-11-11", ".NET Framework 4.8")]
