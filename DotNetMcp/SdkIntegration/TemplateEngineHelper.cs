@@ -3,8 +3,10 @@ using System.Text.Json;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Microsoft.TemplateEngine.Abstractions;
+#if !NATIVEAOT
 using Microsoft.TemplateEngine.Edge;
 using Microsoft.TemplateEngine.Edge.Settings;
+#endif
 
 namespace DotNetMcp;
 
@@ -20,12 +22,13 @@ namespace DotNetMcp;
 /// </remarks>
 public class TemplateEngineHelper
 {
-    private static readonly CachedResourceManager<IEnumerable<ITemplateInfo>> _cacheManager =
+    private static readonly CachedResourceManager<IEnumerable<TemplateResourceMetadata>> _cacheManager =
         new("Templates");
 
     // Line separators used for splitting dotnet CLI output
     private static readonly string[] LineSeparators = ["\r\n", "\n"];
 
+#if !NATIVEAOT
     // ReaderWriterLockSlim for coordinating access to template engine singletons
     // Readers (template queries) can run concurrently, writers (ClearCacheAsync) are exclusive
     private static readonly ReaderWriterLockSlim _singletonLock = new(LockRecursionPolicy.NoRecursion);
@@ -77,6 +80,7 @@ public class TemplateEngineHelper
             }
         }
     }
+#endif
 
     // Test hooks (internal for DotNetMcp.Tests via InternalsVisibleTo)
     internal static Func<Task<IEnumerable<ITemplateInfo>>>? LoadTemplatesOverride { get; set; }
@@ -94,13 +98,17 @@ public class TemplateEngineHelper
     /// Uses lazy singleton pattern to avoid repeated initialization overhead.
     /// Protected by ReaderWriterLockSlim to coordinate with ClearCacheAsync.
     /// </summary>
-    private static async Task<IEnumerable<ITemplateInfo>> LoadTemplatesAsync()
+    private static async Task<IEnumerable<TemplateResourceMetadata>> LoadTemplatesAsync()
     {
         if (LoadTemplatesOverride is not null)
         {
-            return await LoadTemplatesOverride();
+            return (await LoadTemplatesOverride()).Select(TemplateResourceMetadata.FromTemplateInfo).ToArray();
         }
 
+#if NATIVEAOT
+        return (await SdkHelperClient.InvokeAsync(new(SdkHelperOperation.ReadTemplates))).Templates
+            ?? throw new InvalidDataException("SDK metadata helper omitted its template result.");
+#else
         // Enter read lock to safely access the singletons
         // Multiple readers can execute concurrently, but ClearCacheAsync (writer) is exclusive
         _singletonLock.EnterReadLock();
@@ -108,12 +116,13 @@ public class TemplateEngineHelper
         {
             // Call GetTemplatesAsync while holding read lock
             // This prevents ClearCacheAsync from disposing the singletons during this call
-            return await _singletons.GetTemplatesAsync();
+            return (await _singletons.GetTemplatesAsync()).Select(TemplateResourceMetadata.FromTemplateInfo).ToArray();
         }
         finally
         {
             _singletonLock.ExitReadLock();
         }
+#endif
     }
 
     private static async Task<string?> TryGetDotnetNewListOutputAsync(string? templateNameFilter, ILogger? logger)
@@ -200,7 +209,7 @@ public class TemplateEngineHelper
     /// Get templates from cache or load them if cache is expired.
     /// Cache expires after 5 minutes to allow for template installations/updates.
     /// </summary>
-    private static async Task<IEnumerable<ITemplateInfo>> GetTemplatesCachedAsync(bool forceReload = false, ILogger? logger = null)
+    private static async Task<IEnumerable<TemplateResourceMetadata>> GetTemplatesCachedAsync(bool forceReload = false, ILogger? logger = null)
     {
         var entry = await _cacheManager.GetOrLoadAsync(LoadTemplatesAsync, forceReload);
         return entry.Data;
@@ -210,7 +219,7 @@ public class TemplateEngineHelper
     /// Get templates from cache or load them if cache is expired (internal access for resources).
     /// This is intended for use by DotNetResources class to provide template data.
     /// </summary>
-    internal static Task<IEnumerable<ITemplateInfo>> GetTemplatesCachedInternalAsync(bool forceReload = false, ILogger? logger = null)
+    internal static Task<IEnumerable<TemplateResourceMetadata>> GetTemplatesCachedInternalAsync(bool forceReload = false, ILogger? logger = null)
         => GetTemplatesCachedAsync(forceReload, logger);
 
     /// <summary>
@@ -227,6 +236,7 @@ public class TemplateEngineHelper
         await _cacheManager.ClearAsync();
         _cacheManager.ResetMetrics();
         
+#if !NATIVEAOT
         // Enter write lock to safely swap singletons
         // This blocks until all in-flight template queries (read locks) complete
         _singletonLock.EnterWriteLock();
@@ -245,6 +255,7 @@ public class TemplateEngineHelper
         {
             _singletonLock.ExitWriteLock();
         }
+#endif
         
         logger?.LogInformation("Template cache, metrics, and engine singletons cleared");
     }
@@ -284,7 +295,7 @@ public class TemplateEngineHelper
                 return message;
             }
 
-            IEnumerable<TemplateDisplayInfo> displayInfos = templates.Select(TemplateDisplayInfo.FromTemplateInfo);
+            IEnumerable<TemplateDisplayInfo> displayInfos = templates.Select(template => template.ToDisplayInfo());
             displayInfos = ApplyTemplateFilter(displayInfos, filter, maxResults).OrderBy(t => t.ShortName).ToArray();
             capture?.Invoke(displayInfos.ToArray());
             return TemplateFormatter.FormatInstalledTemplates(displayInfos);
@@ -343,7 +354,7 @@ public class TemplateEngineHelper
         {
             var templates = await GetTemplatesCachedAsync(forceReload, logger);
             var template = templates.FirstOrDefault(t =>
-                t.ShortNameList.Any(sn => sn.Equals(templateShortName, StringComparison.OrdinalIgnoreCase)));
+                t.ShortNames.Any(sn => sn.Equals(templateShortName, StringComparison.OrdinalIgnoreCase)));
 
             if (template == null)
             {
@@ -384,7 +395,7 @@ public class TemplateEngineHelper
                 return notFound;
             }
 
-            var displayInfo = TemplateDisplayInfo.FromTemplateInfo(template);
+            var displayInfo = template.ToDisplayInfo();
             capture?.Invoke(displayInfo);
             return TemplateFormatter.FormatTemplateDetails(displayInfo);
         }
@@ -428,7 +439,7 @@ public class TemplateEngineHelper
             }
 
             var matches = templates.Where(t =>
-                t.ShortNameList.Any(sn => sn.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+                t.ShortNames.Any(sn => sn.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
                 (t.Name?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
                 (t.Description?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
             ).ToList();
@@ -441,7 +452,7 @@ public class TemplateEngineHelper
                 return message;
             }
 
-            var displayInfos = matches.Select(TemplateDisplayInfo.FromTemplateInfo).OrderBy(t => t.ShortName).ToArray();
+            var displayInfos = matches.Select(template => template.ToDisplayInfo()).OrderBy(t => t.ShortName).ToArray();
             capture?.Invoke(displayInfos);
             return TemplateFormatter.FormatSearchResults(searchTerm, displayInfos);
         }
@@ -532,7 +543,7 @@ public class TemplateEngineHelper
                 }
             }
 
-            return templates.Any(t => t.ShortNameList.Any(sn => sn.Equals(templateShortName, StringComparison.OrdinalIgnoreCase)));
+            return templates.Any(t => t.ShortNames.Any(sn => sn.Equals(templateShortName, StringComparison.OrdinalIgnoreCase)));
         }
         catch (InvalidOperationException ex)
         {
@@ -552,25 +563,5 @@ public class TemplateEngineHelper
             logger?.LogDebug(ex, "Template validation cancelled");
             throw;
         }
-    }
-}
-
-/// <summary>
-/// Extension methods for template-related operations.
-/// </summary>
-public static class TemplateInfoExtensions
-{
-    public static string? GetLanguage(this ITemplateInfo template)
-    {
-        if (template.TagsCollection.TryGetValue("language", out var language))
-            return language;
-        return null;
-    }
-
-    public static string? GetTemplateType(this ITemplateInfo template)
-    {
-        if (template.TagsCollection.TryGetValue("type", out var type))
-            return type;
-        return null;
     }
 }

@@ -11,7 +11,7 @@ public sealed class RecommendedAction
     /// The kind of action recommended.
     /// </summary>
     [JsonPropertyName("actionKind")]
-    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<ActionKind>))]
     public ActionKind ActionKind { get; init; }
 
     /// <summary>

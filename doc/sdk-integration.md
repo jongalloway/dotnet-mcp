@@ -11,6 +11,16 @@ The .NET MCP Server uses a hybrid architecture that combines:
 
 This approach provides rich metadata access, type-safe operations, and validation capabilities while maintaining the reliability of the official CLI.
 
+## Native publishing boundary
+
+Ordinary managed builds retain in-process Template Engine and MSBuild integration and the existing dual-target NuGet/`dnx` distribution. Opt-in Windows x64 NativeAOT publishing compiles the MCP server itself as native code, using source-generated application and protocol JSON metadata while preserving string-valued action enums and existing payload/schema contracts.
+
+The native server retains stdio, all tools, resources, prompts, MCP Apps, Tasks, confirmation, cancellation, and governance registration. APIs that require dynamic loading or reflection live in `DotNetMcp.SdkHelper`, a separate managed .NET 11 process with **no MCP SDK reference or session forwarding**. Each invocation accepts one bounded UTF-8 JSON request for an allowlisted operation: template metadata loading or one of the nine existing MSBuild project-analysis/editing operations. MSBuild operations link the same implementation used by managed builds. Template snapshots preserve raw resource metadata and ordering; server-side filtering, formatting, completion, and caching remain in the native process.
+
+The helper is published automatically under `sdk-helper` beside the native executable. Requests are limited to 1 MiB, responses to 16 MiB, and helper stderr to 1 MiB; bounds count bytes, not characters. Invocations inherit request/task cancellation, have a two-minute deadline, and terminate only their owned helper process tree. Missing helpers, invalid responses, nonzero exits, and timeouts surface explicitly; there is no fallback to a managed MCP server. The helper requires a .NET 11 runtime, and CLI operations still require the appropriate installed SDK.
+
+Native and managed tool/resource/prompt discovery, all nine MSBuild operations, and template/framework resource metadata are compared against the actual executable after relocating its whole bundle. See [native validation](testing.md#windows-nativeaot-distribution-validation) and [publishing instructions](../README.md#opt-in-nativeaot-publishing-windows-x64). Transitive AOT warnings remain visible. This boundary does not change the existing [governance scanner restriction](mcp-governance.md#sdk-compatibility-and-startup-restriction).
+
 ## SDK Packages
 
 ### MCP hosting and protocol

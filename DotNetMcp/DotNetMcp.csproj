@@ -36,6 +36,27 @@
     <MinVerDefaultPreReleaseIdentifiers>alpha.0</MinVerDefaultPreReleaseIdentifiers>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(PublishAot)' == 'true'">
+    <PackAsTool>false</PackAsTool>
+    <PublishDocumentationFile>false</PublishDocumentationFile>
+    <DefineConstants>$(DefineConstants);NATIVEAOT</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(PublishAot)' == 'true'">
+    <Compile Remove="SdkIntegration\ProjectAnalysisHelper.cs" />
+  </ItemGroup>
+
+  <Target Name="ValidateNativeTarget" BeforeTargets="PrepareForBuild" Condition="'$(PublishAot)' == 'true'">
+    <Error Condition="'$(TargetFramework)' != 'net11.0' or '$(RuntimeIdentifier)' != 'win-x64'"
+           Text="Native publishing currently supports net11.0 / win-x64 only." />
+  </Target>
+
+  <Target Name="PublishSdkHelper" AfterTargets="Publish" Condition="'$(PublishAot)' == 'true'">
+    <MSBuild Projects="$(MSBuildProjectDirectory)\..\DotNetMcp.SdkHelper\DotNetMcp.SdkHelper.csproj"
+             Targets="Restore;Publish"
+             Properties="Configuration=$(Configuration);TargetFramework=net11.0;RuntimeIdentifier=;PublishAot=false;PublishTrimmed=false;PublishSingleFile=false;SelfContained=false;PublishDir=$(PublishDir)sdk-helper\" />
+  </Target>
+
   <ItemGroup>
     <None Include="../README.md" Pack="true" PackagePath="/" />
     <!-- Keep the checked-in server.json as the source-of-truth (with placeholders), but pack a generated copy from obj/ that has the real version injected. -->
@@ -49,8 +70,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AgentGovernance.Extensions.ModelContextProtocol" Version="5.0.0" />
-    <PackageReference Include="Microsoft.Build" Version="18.9.6" />
-    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="18.9.6" />
+    <PackageReference Include="Microsoft.Build" Version="18.9.6" Condition="'$(PublishAot)' != 'true'" />
+    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="18.9.6" Condition="'$(PublishAot)' != 'true'" />
     <PackageReference Include="ModelContextProtocol" Version="2.3.0" />
     <PackageReference Include="ModelContextProtocol.Extensions.Apps" Version="2.3.0" />
     <PackageReference Include="ModelContextProtocol.Extensions.Tasks" Version="2.3.0" />
@@ -65,14 +86,14 @@
     <PackageReference Include="NuGet.Frameworks" Version="7.9.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.14" />
     <PackageReference Include="Microsoft.TemplateEngine.Abstractions" Version="10.0.403" />
-    <PackageReference Include="Microsoft.TemplateEngine.Edge" Version="10.0.403" />
+    <PackageReference Include="Microsoft.TemplateEngine.Edge" Version="10.0.403" Condition="'$(PublishAot)' != 'true'" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net11.0'">
     <PackageReference Include="NuGet.Frameworks" Version="8.0.0-rc.2448" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="11.0.0-rc.3.26522.148" />
     <PackageReference Include="Microsoft.TemplateEngine.Abstractions" Version="11.0.100-rc.3.26522.148" />
-    <PackageReference Include="Microsoft.TemplateEngine.Edge" Version="11.0.100-rc.3.26522.148" />
+    <PackageReference Include="Microsoft.TemplateEngine.Edge" Version="11.0.100-rc.3.26522.148" Condition="'$(PublishAot)' != 'true'" />
   </ItemGroup>
 
   <!-- Update server.json with current version before packing -->

@@ -1,5 +1,4 @@
 using DotNetMcp;
-using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
@@ -47,7 +46,7 @@ public class McpConformanceTests : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         // Start the dotnet-mcp server using stdio transport
-        var serverPath = GetServerExecutablePath();
+        var serverPath = TestServerCommand.Get();
 
         _output.WriteLine($"[MCP] Conformance server command: {serverPath.command} {string.Join(" ", serverPath.arguments)}");
 
@@ -1170,7 +1169,7 @@ public class McpConformanceTests : IAsyncLifetime
     [InlineData("2025-11-25", "SecretsClear")]
     public async Task Server_ConfirmationControlFlow_ReachesSdk(string protocol, string action)
     {
-        var executable = GetServerExecutablePath();
+        var executable = TestServerCommand.Get();
         var confirmations = 0;
         await using var client = await McpClient.CreateAsync(
             new StdioClientTransport(new()
@@ -1306,45 +1305,5 @@ public class McpConformanceTests : IAsyncLifetime
     /// Gets the path to the dotnet-mcp server executable for testing.
     /// This finds the compiled DotNetMcp binary in the same configuration as the test project.
     /// </summary>
-    private static (string command, string[] arguments) GetServerExecutablePath()
-    {
-        // The test binary is in: DotNetMcp.Tests/bin/{Configuration}/{Framework}/
-        // The server binary is in: DotNetMcp/bin/{Configuration}/{Framework}/
-        var testBinaryDir = AppContext.BaseDirectory;
-        var configuration = Path.GetFileName(Path.GetDirectoryName(testBinaryDir.TrimEnd(Path.DirectorySeparatorChar))!);
-        var targetFramework = Path.GetFileName(testBinaryDir.TrimEnd(Path.DirectorySeparatorChar));
-        
-        var serverBinaryDir = Path.GetFullPath(
-            Path.Join(testBinaryDir, "..", "..", "..", "..", "DotNetMcp", "bin", configuration, targetFramework));
-
-        if (!Directory.Exists(serverBinaryDir))
-        {
-            throw new DirectoryNotFoundException(
-                $"Server binary directory not found at: {serverBinaryDir}. " +
-                $"Make sure DotNetMcp project is built before running conformance tests.");
-        }
-
-        // Determine the appropriate command and arguments based on platform
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            var exePath = Path.Join(serverBinaryDir, "DotNetMcp.exe");
-            if (!File.Exists(exePath))
-            {
-                throw new FileNotFoundException($"Server executable not found at: {exePath}");
-            }
-            return (exePath, Array.Empty<string>());
-        }
-        else
-        {
-            // On Unix-like systems, use 'dotnet' to run the DLL
-            var dllPath = Path.Join(serverBinaryDir, "DotNetMcp.dll");
-            if (!File.Exists(dllPath))
-            {
-                throw new FileNotFoundException($"Server assembly not found at: {dllPath}");
-            }
-            return ("dotnet", new[] { dllPath });
-        }
-    }
-
     #endregion
 }

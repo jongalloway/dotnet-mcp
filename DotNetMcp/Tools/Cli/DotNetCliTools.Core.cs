@@ -320,7 +320,7 @@ public sealed partial class DotNetCliTools
                 {
                     Level = LoggingLevel.Info,
                     Logger = "dotnet-mcp",
-                    Data = JsonSerializer.SerializeToElement(message)
+                    Data = JsonSerializer.SerializeToElement(message, ServerJsonContext.Default.String)
                 },
                 McpJsonUtilities.DefaultOptions);
         }

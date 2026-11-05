@@ -71,13 +71,13 @@ internal static class ProjectMetadataResults
 {
     internal static object? FromText(DotnetProjectAction action, string text) => action switch
     {
-        DotnetProjectAction.Analyze => JsonSerializer.Deserialize<ProjectAnalysisResult>(text),
-        DotnetProjectAction.Dependencies => JsonSerializer.Deserialize<ProjectDependenciesResult>(text),
-        DotnetProjectAction.Validate => JsonSerializer.Deserialize<ProjectValidationResult>(text),
+        DotnetProjectAction.Analyze => JsonSerializer.Deserialize(text, ServerJsonContext.Default.ProjectAnalysisResult),
+        DotnetProjectAction.Dependencies => JsonSerializer.Deserialize(text, ServerJsonContext.Default.ProjectDependenciesResult),
+        DotnetProjectAction.Validate => JsonSerializer.Deserialize(text, ServerJsonContext.Default.ProjectValidationResult),
         DotnetProjectAction.SetProperty or DotnetProjectAction.GetProperty or DotnetProjectAction.RemoveProperty =>
-            JsonSerializer.Deserialize<ProjectPropertyResult>(text),
-        DotnetProjectAction.AddItem or DotnetProjectAction.RemoveItem => JsonSerializer.Deserialize<ProjectItemResult>(text),
-        DotnetProjectAction.ListItems => JsonSerializer.Deserialize<ProjectItemsResult>(text),
+            JsonSerializer.Deserialize(text, ServerJsonContext.Default.ProjectPropertyResult),
+        DotnetProjectAction.AddItem or DotnetProjectAction.RemoveItem => JsonSerializer.Deserialize(text, ServerJsonContext.Default.ProjectItemResult),
+        DotnetProjectAction.ListItems => JsonSerializer.Deserialize(text, ServerJsonContext.Default.ProjectItemsResult),
         _ => null
     };
 }

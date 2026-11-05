@@ -207,18 +207,14 @@ public sealed class DotNetResources
                 return await LoadSdksAsync(_logger);
             });
 
-            var responseData = new
-            {
-                sdks = entry.Data,
-                latestSdk = entry.Data.LastOrDefault()?.Version
-            };
+            var responseData = new SdkResourceData(entry.Data, entry.Data.LastOrDefault()?.Version);
 
             return _sdkCacheManager.GetJsonResponse(entry, responseData, DateTime.UtcNow);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting SDK information");
-            return JsonSerializer.Serialize(new { error = ex.Message });
+            return ServerJson.ResourceFailure(ex);
         }
     }
 
@@ -242,13 +238,13 @@ public sealed class DotNetResources
                 return ParseRuntimeListOutput(result);
             });
 
-            var responseData = new { runtimes = entry.Data };
+            var responseData = new RuntimeResourceData(entry.Data);
             return _runtimeCacheManager.GetJsonResponse(entry, responseData, DateTime.UtcNow);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting runtime information");
-            return JsonSerializer.Serialize(new { error = ex.Message });
+            return ServerJson.ResourceFailure(ex);
         }
     }
 
@@ -268,29 +264,12 @@ public sealed class DotNetResources
         {
             var templates = await TemplateEngineHelper.GetTemplatesCachedInternalAsync(forceReload: false, logger: _logger);
 
-            var templateList = templates.Select(t => new
-            {
-                name = t.Name,
-                shortNames = t.ShortNameList.ToArray(),
-                author = t.Author,
-                language = t.GetLanguage(),
-                type = t.GetTemplateType(),
-                description = t.Description,
-                parameters = t.ParameterDefinitions.Select(p => new
-                {
-                    name = p.Name,
-                    description = p.Description,
-                    dataType = p.DataType,
-                    defaultValue = p.DefaultValue
-                }).ToArray()
-            }).ToArray();
-
-            return JsonSerializer.Serialize(new { templates = templateList }, new JsonSerializerOptions { WriteIndented = true });
+            return ServerJson.SerializeResource(new TemplateResourceData(templates.ToArray()));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting template catalog");
-            return JsonSerializer.Serialize(new { error = ex.Message });
+            return ServerJson.ResourceFailure(ex);
         }
     }
 
@@ -311,49 +290,28 @@ public sealed class DotNetResources
             var supportedModernFrameworks = GetSupportedModernFrameworksForResources(sdkEntry.Data);
 
             var modernFrameworks = supportedModernFrameworks
-                .Select(fw => new
-                {
-                    tfm = fw,
-                    description = FrameworkHelper.GetFrameworkDescription(fw),
-                    isLts = FrameworkHelper.IsLtsFramework(fw),
-                    isModernNet = true,
-                    version = FrameworkHelper.GetFrameworkVersion(fw)
-                }).ToArray();
+                .Select(fw => new ResourceFrameworkInfo(fw, FrameworkHelper.GetFrameworkDescription(fw),
+                    FrameworkHelper.GetFrameworkVersion(fw), IsLts: FrameworkHelper.IsLtsFramework(fw),
+                    IsModernNet: true)).ToArray();
 
             var netCoreFrameworks = FrameworkHelper.GetSupportedNetCoreFrameworks()
-                .Select(fw => new
-                {
-                    tfm = fw,
-                    description = FrameworkHelper.GetFrameworkDescription(fw),
-                    isLts = FrameworkHelper.IsLtsFramework(fw),
-                    isNetCore = true,
-                    version = FrameworkHelper.GetFrameworkVersion(fw)
-                }).ToArray();
+                .Select(fw => new ResourceFrameworkInfo(fw, FrameworkHelper.GetFrameworkDescription(fw),
+                    FrameworkHelper.GetFrameworkVersion(fw), IsLts: FrameworkHelper.IsLtsFramework(fw),
+                    IsNetCore: true)).ToArray();
 
             var netStandardFrameworks = FrameworkHelper.GetSupportedNetStandardFrameworks()
-                .Select(fw => new
-                {
-                    tfm = fw,
-                    description = FrameworkHelper.GetFrameworkDescription(fw),
-                    isNetStandard = true,
-                    version = FrameworkHelper.GetFrameworkVersion(fw)
-                }).ToArray();
+                .Select(fw => new ResourceFrameworkInfo(fw, FrameworkHelper.GetFrameworkDescription(fw),
+                    FrameworkHelper.GetFrameworkVersion(fw), IsNetStandard: true)).ToArray();
 
-            var response = new
-            {
-                modernFrameworks,
-                netCoreFrameworks,
-                netStandardFrameworks,
-                latestRecommended = FrameworkHelper.GetLatestRecommendedFramework(),
-                latestLts = FrameworkHelper.GetLatestLtsFramework()
-            };
+            var response = new FrameworkResourceData(modernFrameworks, netCoreFrameworks, netStandardFrameworks,
+                FrameworkHelper.GetLatestRecommendedFramework(), FrameworkHelper.GetLatestLtsFramework());
 
-            return JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true });
+            return ServerJson.SerializeResource(response);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting framework information");
-            return JsonSerializer.Serialize(new { error = ex.Message });
+            return ServerJson.ResourceFailure(ex);
         }
     }
 
@@ -382,43 +340,35 @@ public sealed class DotNetResources
         catch (IOException ex)
         {
             _logger.LogError(ex, "Error getting workspace snapshot");
-            return JsonSerializer.Serialize(new { error = ex.Message });
+            return ServerJson.ResourceFailure(ex);
         }
         catch (UnauthorizedAccessException ex)
         {
             _logger.LogError(ex, "Error getting workspace snapshot");
-            return JsonSerializer.Serialize(new { error = ex.Message });
+            return ServerJson.ResourceFailure(ex);
         }
         catch (ArgumentException ex)
         {
             _logger.LogError(ex, "Error getting workspace snapshot");
-            return JsonSerializer.Serialize(new { error = ex.Message });
+            return ServerJson.ResourceFailure(ex);
         }
         catch (NotSupportedException ex)
         {
             _logger.LogError(ex, "Error getting workspace snapshot");
-            return JsonSerializer.Serialize(new { error = ex.Message });
+            return ServerJson.ResourceFailure(ex);
         }
         catch (XmlException ex)
         {
             _logger.LogError(ex, "Error getting workspace snapshot");
-            return JsonSerializer.Serialize(new { error = ex.Message });
+            return ServerJson.ResourceFailure(ex);
         }
     }
 
-    private static object ToWorkspaceSnapshotResourceData(WorkspaceSnapshot snapshot) => new
-    {
-        solution = snapshot.Solution,
-        projects = snapshot.Projects.Select(project => new
-        {
-            name = project.Name,
-            path = project.Path,
-            targetFrameworks = project.TargetFrameworks,
-            packageCount = project.PackageCount,
-            isTestProject = project.IsTestProject
-        }),
-        generatedAt = snapshot.GeneratedAt
-    };
+    private static WorkspaceResourceData ToWorkspaceSnapshotResourceData(WorkspaceSnapshot snapshot) => new(
+        snapshot.Solution,
+        snapshot.Projects.Select(project => new WorkspaceProjectResource(
+            project.Name, project.Path, project.TargetFrameworks, project.PackageCount, project.IsTestProject)).ToArray(),
+        snapshot.GeneratedAt);
 
     internal static WorkspaceSnapshot BuildWorkspaceSnapshot(string workspaceRoot)
     {

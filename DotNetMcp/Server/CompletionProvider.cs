@@ -61,7 +61,7 @@ internal static class CompletionProvider
         {
             var templates = await TemplateEngineHelper.GetTemplatesCachedInternalAsync();
             return templates
-                .SelectMany(t => t.ShortNameList)
+                .SelectMany(t => t.ShortNames)
                 .Where(sn => !string.IsNullOrEmpty(sn));
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

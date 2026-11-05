@@ -277,6 +277,21 @@ The package explicitly uses `RollForward=Minor`, keeping runtime resolution with
 
 The server runtime and the SDK used for project commands are separate choices. Future SDK-specific CLI features should be checked against the selected project's SDK; only features using .NET 11-only in-process APIs need the .NET 11 server build.
 
+### Opt-in NativeAOT publishing (Windows x64)
+
+The managed NuGet/`dnx` package remains the default distribution, with both `net10.0` and `net11.0` assets. To publish **the MCP server itself** as a native executable, use an x64 Windows machine with the source-build SDKs above and Visual Studio's **Desktop development with C++** workload, including its Windows SDK:
+
+```powershell
+pwsh -File .\scripts\publish-native.ps1
+pwsh -File .\scripts\test-native.ps1
+```
+
+Configure an MCP client's stdio command as the absolute path to `artifacts\native\win-x64\DotNetMcp.exe`, with no `dotnet run` arguments. Copy the **entire output directory**, including `sdk-helper`, when deploying it. Native publishing is opt-in and currently supports only `net11.0` / `win-x64`; it does not change ordinary builds or tool packaging.
+
+The native process owns the complete MCP session: tools, resources, prompts, MCP Apps, Tasks, cancellation, and existing governance behavior. Template Engine loading and the nine MSBuild project-analysis/editing operations run in a narrow managed SDK helper, not a second MCP server. **This is not an SDK-free or single-file distribution**: a .NET 11 runtime is required for the helper, and installed .NET SDKs remain necessary for project commands. Projects can still select their SDK through `global.json`.
+
+The validation script relocates the bundle and checks native PE/runtime identity, managed/native contract and SDK-operation parity, real stdio conformance, SDK 11 scenarios, and release gates. Transitive AOT analysis warnings, including governance's YamlDotNet dependency, remain visible; publishing is not a claim that arbitrary transitive reflection paths are AOT-safe. The existing [fail-closed full-catalog governance restriction](doc/mcp-governance.md#sdk-compatibility-and-startup-restriction) is unchanged. See [native validation details](doc/testing.md#windows-nativeaot-distribution-validation).
+
 ### Option 1: Quick Install (Recommended)
 
 Use the install badges at the top of this page to automatically configure the MCP server in your environment. The server will be downloaded from NuGet.org on first use.

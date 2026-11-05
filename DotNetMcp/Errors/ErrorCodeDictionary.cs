@@ -60,20 +60,12 @@ public static class ErrorCodeDictionary
                 return ParseErrorCodes(jsonContent);
             }
 
-            // Fallback: try loading from file in same directory as assembly
-            var assemblyLocation = assembly.Location;
-            if (!string.IsNullOrEmpty(assemblyLocation))
+            // Embedded assemblies have no Location in a native or single-file publish.
+            var filePath = Path.Join(AppContext.BaseDirectory, "ErrorCodes.json");
+            if (File.Exists(filePath))
             {
-                var directory = Path.GetDirectoryName(assemblyLocation);
-                if (directory != null)
-                {
-                    var filePath = Path.Join(directory, "ErrorCodes.json");
-                    if (File.Exists(filePath))
-                    {
-                        var json = File.ReadAllText(filePath);
-                        return ParseErrorCodes(json);
-                    }
-                }
+                var json = File.ReadAllText(filePath);
+                return ParseErrorCodes(json);
             }
 
             // Second fallback: try loading from current directory
@@ -98,10 +90,11 @@ public static class ErrorCodeDictionary
         var options = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
-            ReadCommentHandling = JsonCommentHandling.Skip
+            ReadCommentHandling = JsonCommentHandling.Skip,
+            TypeInfoResolver = ServerJsonContext.Default
         };
 
-        var data = JsonSerializer.Deserialize<ErrorCodeData>(json, options);
+        var data = JsonSerializer.Deserialize(json, new ServerJsonContext(options).ErrorCodeData);
         if (data?.ErrorCodes == null)
         {
             return new Dictionary<string, ErrorCodeInfo>(StringComparer.OrdinalIgnoreCase);
@@ -117,7 +110,7 @@ public static class ErrorCodeDictionary
         return result;
     }
 
-    private sealed class ErrorCodeData
+    internal sealed class ErrorCodeData
     {
         [JsonPropertyName("errorCodes")]
         public Dictionary<string, ErrorCodeInfo>? ErrorCodes { get; set; }

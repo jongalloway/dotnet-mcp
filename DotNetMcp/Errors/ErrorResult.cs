@@ -174,7 +174,7 @@ public sealed class ErrorResult
     /// Classified root cause of the error for programmatic handling.
     /// </summary>
     [JsonPropertyName("rootCauseKind")]
-    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<RootCauseKind>))]
     public RootCauseKind? RootCauseKind { get; init; }
 
     /// <summary>

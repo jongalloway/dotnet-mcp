@@ -38,7 +38,7 @@ public class PackageAndReferenceScenarioTests
                 ["action"] = "Add",
                 ["project"] = projectPath,
                 ["packageId"] = "NotAReal.Package.Id.12345",
-                ["source"] = "https://api.nuget.org/v3/index.json",
+                ["source"] = ScenarioHelpers.PublicPackageSource,
             },
             cancellationToken);
 

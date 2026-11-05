@@ -8,7 +8,7 @@ namespace DotNetMcp;
 /// </summary>
 public static class StructuredContentHelper
 {
-    private static readonly JsonSerializerOptions _defaultOptions = new()
+    private static readonly JsonSerializerOptions _defaultOptions = new(ServerJson.ApplicationOptions)
     {
         WriteIndented = false,
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
@@ -21,7 +21,8 @@ public static class StructuredContentHelper
     {
         if (structuredContent != null)
         {
-            var payload = JsonSerializer.SerializeToElement(structuredContent, _defaultOptions);
+            var payload = JsonSerializer.SerializeToElement(
+                structuredContent, _defaultOptions.GetTypeInfo(structuredContent.GetType()));
             var content = new List<ContentBlock> { new TextContentBlock { Text = text } };
             if (!RepresentsPayload(text, payload))
                 content.Add(new TextContentBlock { Text = payload.GetRawText() });
@@ -42,7 +43,7 @@ public static class StructuredContentHelper
 
     private static bool RepresentsPayload(string text, JsonElement payload)
     {
-        try { return JsonElement.DeepEquals(JsonSerializer.Deserialize<JsonElement>(text), payload); }
+        try { return JsonElement.DeepEquals(JsonSerializer.Deserialize(text, ServerJsonContext.Default.JsonElement), payload); }
         catch (JsonException) { return false; }
     }
 
@@ -68,7 +69,7 @@ public static class StructuredContentHelper
         {
             try
             {
-                var value = JsonSerializer.Deserialize<JsonElement>(text);
+                var value = JsonSerializer.Deserialize(text, ServerJsonContext.Default.JsonElement);
                 return value.TryGetProperty("success", out var success) && success.ValueKind == JsonValueKind.False;
             }
             catch (JsonException) { }

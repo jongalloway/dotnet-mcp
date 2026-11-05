@@ -36,6 +36,64 @@ The shared `.github/actions/setup-dotnet` action reads official release metadata
 
 Run the offline SDK-selection fixtures with `pwsh -File scripts/test-sdk-selection.ps1`. They cover the RC3-to-GA transition, servicing, feature-band bounds, and invalid metadata without requiring an unreleased SDK. `pwsh -File scripts/resolve-dotnet-sdk.ps1` displays the live selection.
 
+### Selecting an external server executable
+
+Real-stdio conformance, MCP Apps wire-format, and scenario/release-scenario tests use the same server selection. By default they launch the managed server built for the test's configuration and target framework.
+
+Set `DOTNET_MCP_TEST_SERVER_PATH` to an absolute executable path to exercise a separately published server instead. The tests launch that exact file directly, without `dotnet` arguments; an empty, relative, or missing path fails instead of falling back to managed build output.
+
+```powershell
+$env:DOTNET_MCP_TEST_SERVER_PATH = 'C:\published-server\DotNetMcp.exe'
+try {
+    dotnet test --solution DotNetMcp.slnx -c Release -- --filter-class '*McpConformanceTests' --filter-class '*McpAppsMetaWireFormatTest'
+}
+finally {
+    Remove-Item Env:\DOTNET_MCP_TEST_SERVER_PATH
+}
+```
+
+This override selects a process; it does not prove that the executable is NativeAOT. A managed apphost is also an executable. Native validation must independently establish native identity and exercise the published bundle's functionality.
+
+### Windows NativeAOT distribution validation
+
+Native publishing targets the actual MCP server, independently of the SDK's own NativeAOT CLI host. It is opt-in and currently limited to `net11.0` / `win-x64`. Install the source-build SDKs and Visual Studio's x64 C++ build tools/Windows SDK, then run:
+
+```powershell
+pwsh -File .\scripts\publish-native.ps1
+pwsh -File .\scripts\test-native.ps1
+```
+
+Publishing uses an isolated `artifacts\native-build` tree so native restore/build properties cannot contaminate the managed tool's build output. The distribution is `artifacts\native\win-x64`, including its managed `sdk-helper` directory. The publishing script rejects unsupported targets and verifies an AMD64 PE without a CLR header, dynamic-code support disabled, and the .NET 11 native runtime identity. `-UseEnvironmentalTools` is available only for an explicitly prepared linker `PATH` and CRT/Windows SDK `LIB`; it does not install or discover substitute toolchains.
+
+`test-native.ps1` copies the complete bundle to a unique temporary directory, selects that exact executable, and removes its owned copy afterward. It builds managed references, compares full tool schemas/descriptions/annotations and resource/prompt discovery, compares all nine MSBuild operations and template/framework metadata, and runs real stdio conformance and MCP Apps tests. It then invokes the existing scenario and release gates, including background run/watch lifecycle, package/project operations, cold-cache publishing, local tools, concurrency, and EF SQLite migrations. These gates require network access to their public package feeds. `-SkipReleaseScenarios` runs only the focused identity/parity/conformance checks; it is not full release validation.
+
+The Windows NativeAOT workflow performs these checks using the current SDK lane and retains the exact-RC3 regression lane when those differ. It uploads the complete native distribution and publish/validation logs. AOT warnings are deliberately not globally suppressed. In particular, governance's transitive YamlDotNet warnings remain visible, and the pre-existing full-catalog scanner rejection remains fail-closed rather than being bypassed to make native startup pass.
+
+For environments that cannot reach NuGet.org, set `DOTNET_MCP_TEST_NUGET_SOURCE` to an explicit public HTTP(S) feed before running scenario/release gates. The fixture package operations and fixture-local `NuGet.Config` then use that feed, including cold-cache and EF tool restores. The default remains NuGet.org. Invalid overrides fail rather than falling back, and restore/test/database assertions are unchanged; there is no automatic source fallback or change to the repository/user NuGet configuration.
+
+### SDK 11 compatibility scenarios
+
+```powershell
+$env:DOTNET_MCP_SCENARIO_TESTS = '1'
+try {
+    dotnet test --solution DotNetMcp.slnx -c Release --framework net11.0 -- --filter-class '*Sdk11CompatibilityScenarioTests'
+}
+finally {
+    Remove-Item Env:\DOTNET_MCP_SCENARIO_TESTS
+}
+```
+
+These scenarios pin the actual .NET 11 SDK in isolated fixtures and cover:
+
+- The SDK NativeAOT CLI host and `DOTNET_CLI_ENABLEAOT=false` opt-out. Host tracing distinguishes actual managed CLI loading; the initial "Using AOT-ed SDK" marker alone does not establish which path executed.
+- Launch-settings notices on stderr without treating a successful run as a tool error.
+- MCP Tasks cancellation of a real build worker, with observed process termination rather than a mocked cancellation result. Shared MSBuild servers and node reuse are disabled only in server-owned child environments; shared servers are never shut down.
+- Restore selection from a local source versus a higher version already in an isolated global-packages cache, including unavailable and exact-cache cases.
+- A real NU5052 package-ID warning with successful package creation, independently of restore version selection.
+- Actual VSTest execution with project-local Newtonsoft.Json rather than an SDK-bundled copy.
+
+The packaged-tool compatibility script separately compares installed tools, `dotnet dnx`, and the actual `dnx` launcher script. On .NET 11, it proves that the launcher can initialize the MCP server from a directory whose `global.json` requests a missing SDK, while `dotnet dnx` honors that pin and fails. Project CLI commands still honor their own SDK selection; launcher bypass does not bypass project SDK requirements.
+
 Run all tests (recommended):
 
 ```bash
