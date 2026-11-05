@@ -76,6 +76,22 @@ Provides framework validation, metadata, and project analysis:
 
 ## Helper Classes
 
+### SDK-dependent CLI features
+
+The active CLI SDK is determined in the command's working directory, including its `global.json`, not from the MCP server target framework. Opt-in solution filters, Run `environmentVariables`, Format `framework`, and template installation `prerelease` require SDK 11+. Unsupported opt-ins return an application error instead of silently discarding arguments. Existing operations retain their defaults.
+
+Solution filter Create emits `dotnet new slnf --parent-solution`. The parent must exist, and relative parent paths are interpreted from the filter output directory. Add/List use the SDK CLI; Remove updates the filter's JSON project array while excluding in-place writers, preserving other JSON properties. The completed content is written to an adjacent temporary file and replaced only after a final content check; invalid input or cancellation before replacement leaves the original intact. This avoids an SDK 11 RC3 removal bug that compares filter-relative input paths against parent-relative entries and reports success without removing projects when the directories differ. Unknown requested entries and malformed filters fail without modifying the file. Remove retains the same destructive-operation confirmation as ordinary solutions. Solution analysis uses the parent `.sln`/`.slnx`; filters do not change workspace auto-discovery.
+
+Run builds the same safely quoted repeated `--environment KEY=VALUE` arguments for foreground and background execution before the application argument separator. These are application settings, not mutations of the server's environment. Format forwards the selected framework; SDK restore may still produce assets for other targets.
+
+Test Auto selection honors recognized, case-insensitive `DOTNET_TEST_RUNNER` values only on supporting SDKs, then uses `global.json`, then defaults to VSTest. Unknown or empty values do not select a runner. Explicit `testRunner` and the legacy selector retain precedence; SDK 11+ child execution receives the corresponding runner via request-scoped environment state, restored after execution. No global environment or configuration files are rewritten.
+
+Template installation `prerelease: true` includes preview versions only for automatic selection. Explicit versions remain exact; successful installations retain existing template cache invalidation and resource notifications. xUnit v3 and NUnit-on-MTP creation use Project New's existing `additionalOptions` and template-option discovery. On the pinned RC3 SDK, select `framework="net11.0"` explicitly: MTP generation with `net10.0` fails despite the help listing that framework. SDK template post-actions can update the applicable `global.json` test runner even when restore is skipped; this is a template side effect, not server-side test-runner detection rewriting configuration.
+
+Some .NET 11 behavior remains SDK-owned: an inherited `Configuration` supplies omitted `-c` defaults (explicit options win), watch crash recovery occurs on relevant file changes, and container publishing selects platform-native runtimes with Docker/Podman fallbacks. Set `LocalRegistry` in the project or publish profile to force a container runtime. The server does not implement a competing selector or restart loop.
+
+Dedicated test run-level controls/artifacts layout, file-app directive/reference editing, watch device/Aspire lifecycle support, and NuGet source minimum publication age policy are tracked separately. Existing XML project editors are not a file-based C# directive editor. See the [SDK feature overview](https://learn.microsoft.com/en-us/dotnet/core/whats-new/dotnet-11/sdk) and [test runner precedence](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-test).
+
 ### CachedResourceManager<T>
 
 Located in `DotNetMcp/CachedResourceManager.cs`

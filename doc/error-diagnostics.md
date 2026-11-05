@@ -75,6 +75,12 @@ await callTool("dotnet_project", {
 
 ## Common Error Code Examples
 
+### NETSDK1235: Custom .nuspec with PackAsTool
+
+.NET 11 warns when a tool project combines `PackAsTool=true` with `NuspecFile`. Custom `.nuspec` files can violate the required tool layout and identifiers. Remove `NuspecFile` to let the SDK generate the tool package.
+
+This is an SDK warning, not a server rejection: pack can still succeed. The server preserves the diagnostic and uses the exit code to determine success; a message on stderr alone does not turn a successful invocation into an MCP error. This code is passed through, not added to the enriched error-code catalog.
+
 ### CS0246: Type or namespace not found
 
 **What it means:** The compiler can't find a type or namespace you're trying to use.

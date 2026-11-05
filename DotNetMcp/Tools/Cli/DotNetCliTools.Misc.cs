@@ -244,19 +244,27 @@ public sealed partial class DotNetCliTools
     /// <param name="includeGenerated">Include generated code files</param>
     /// <param name="diagnostics">Comma-separated list of diagnostic IDs to fix</param>
     /// <param name="severity">Severity level to fix (info, warn, error)</param>
+    /// <param name="framework">Target framework to load (SDK 11+)</param>
     internal async Task<string> DotnetFormat(
         string? project = null,
         bool verify = false,
         bool includeGenerated = false,
         string? diagnostics = null,
-        string? severity = null)
+        string? severity = null,
+        string? framework = null)
     {
+        if (!ParameterValidator.ValidateFramework(framework, out var frameworkError))
+            return $"Error: {frameworkError}";
+        if (!string.IsNullOrEmpty(framework)
+            && await SdkFeatureSupport.RequireSdk11Async("Format framework selection", _logger) is { } sdkError)
+            return sdkError;
         var args = new StringBuilder("format");
         if (!string.IsNullOrEmpty(project)) args.Append($" \"{project}\"");
         if (verify) args.Append(" --verify-no-changes");
         if (includeGenerated) args.Append(" --include-generated");
         if (!string.IsNullOrEmpty(diagnostics)) args.Append($" --diagnostics {diagnostics}");
         if (!string.IsNullOrEmpty(severity)) args.Append($" --severity {severity}");
+        if (!string.IsNullOrEmpty(framework)) args.Append($" --framework {framework}");
         return await ExecuteDotNetCommand(args.ToString());
     }
 

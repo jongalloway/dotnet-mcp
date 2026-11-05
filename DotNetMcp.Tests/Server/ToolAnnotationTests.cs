@@ -33,6 +33,19 @@ public class ToolAnnotationTests
         var expectedNames = OpenWorldTools.Concat(readOnlyTools).Append("dotnet_server_metrics").Order().ToArray();
         Assert.Equal(expectedNames, tools.Select(tool => tool.Name).Order().ToArray());
 
+        foreach (var (name, parameter) in new[]
+        {
+            ("dotnet_project", "environmentVariables"),
+            ("dotnet_solution", "parentSolution"),
+            ("dotnet_sdk", "prerelease")
+        })
+        {
+            var tool = tools.Single(tool => tool.Name == name).ProtocolTool;
+            Assert.True(tool.InputSchema.GetProperty("properties").TryGetProperty(parameter, out var schema));
+            Assert.False(string.IsNullOrWhiteSpace(schema.GetProperty("description").GetString()));
+            Assert.DoesNotContain(parameter, tool.InputSchema.GetProperty("required").EnumerateArray().Select(value => value.GetString()));
+        }
+
         foreach (var tool in tools)
         {
             var json = JsonSerializer.SerializeToElement(tool.ProtocolTool, McpJsonUtilities.DefaultOptions);

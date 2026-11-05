@@ -16,6 +16,7 @@ public static class DotNetCommandExecutor
 
     internal static readonly AsyncLocal<string?> WorkingDirectoryOverride = new();
     internal static readonly AsyncLocal<CancellationToken> RequestCancellationToken = new();
+    internal static readonly AsyncLocal<string?> TestRunnerEnvironmentOverride = new();
 
     internal static async ValueTask<T> WithRequestCancellationAsync<T>(CancellationToken cancellationToken, Func<ValueTask<T>> action)
     {
@@ -80,6 +81,8 @@ public static class DotNetCommandExecutor
             UseShellExecute = false,
             CreateNoWindow = true
         };
+        if (TestRunnerEnvironmentOverride.Value is { } runner)
+            psi.Environment["DOTNET_TEST_RUNNER"] = runner;
 
         if (requiresCancellation)
         {
