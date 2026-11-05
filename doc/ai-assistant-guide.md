@@ -101,6 +101,24 @@ AI: Reads dotnet://templates resource
 
 > **📘 About Code Examples:** The workflow examples in this guide show raw `dotnet` CLI commands for clarity and universal understanding. When AI assistants execute these operations through the MCP server, they use **consolidated MCP tools** (e.g., `dotnet_project`, `dotnet_package`, `dotnet_ef`) with appropriate actions.
 
+### .NET 11 SDK feature selection
+
+Use the existing tools rather than constructing a new CLI escape hatch:
+
+| Task | MCP arguments |
+|---|---|
+| Create a solution filter | `dotnet_solution`: Create, `format="slnf"`, explicit `parentSolution`, name/output |
+| Edit filter membership | `dotnet_solution`: Add/List/Remove with explicit `solution="...slnf"` |
+| Run with application environment | `dotnet_project`: Run, `environmentVariables` string map; works in foreground/background |
+| Format one target framework | `dotnet_project`: Format, `framework="net10.0"` |
+| Install latest preview templates | `dotnet_sdk`: InstallTemplatePack, `prerelease=true`; an explicit version remains exact |
+| Create xUnit v3 tests | `dotnet_project`: New, `template="xunit"`, `framework="net11.0"`, `additionalOptions="--xunit-version v3"` |
+| Create NUnit-on-MTP tests | `dotnet_project`: New, `template="nunit"`, `framework="net11.0"`, `additionalOptions="--test-runner Microsoft.Testing.Platform"` |
+
+These opt-ins depend on the active CLI SDK, not the server runtime. Filter creation requires an existing parent; relative parent paths are relative to the output directory. Default solution creation remains `.sln`, and filter paths are never auto-selected.
+
+Test Auto mode honors `DOTNET_TEST_RUNNER` on SDK 11+ before `global.json`. SDK MTP template post-actions can update `global.json` even with `--no-restore`; inspect the change. The pinned RC3 templates require the explicit .NET 11 target shown above for these options despite advertising .NET 10 in help. Do not pass file-based `.cs` apps into XML property/item editors. Dedicated test policy options, file-app editing, device-aware Watch, and NuGet source publication-age settings are not exposed by this increment.
+
 ### 1. Creating a New Console Application
 
 **Simple Prompt:**
@@ -275,7 +293,7 @@ dotnet add package <PackageName>
 
 ### 5. Solution Management
 
-> **Note:** The `dotnet_solution` tool provides **full parity with `dotnet sln` / `dotnet solution` CLI commands**. All solution operations (create, add, list, remove) are available through the MCP server.
+> **Note:** The `dotnet_solution` tool supports solution creation and membership operations (Create, Add, List, Remove), including explicit solution filters on SDK 11+. Use the parent solution for Analyze, Dependencies, and Validate.
 
 **Create Multi-Project Solution:**
 

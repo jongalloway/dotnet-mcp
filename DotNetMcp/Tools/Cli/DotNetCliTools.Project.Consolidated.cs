@@ -29,6 +29,7 @@ public sealed partial class DotNetCliTools
     /// <param name="runtime">Target runtime identifier for publish action (e.g., 'linux-x64', 'win-x64')</param>
     /// <param name="additionalOptions">Template-specific options for new action (e.g., '--use-program-main', '--aot')</param>
     /// <param name="appArgs">Arguments to pass to the application for run action</param>
+    /// <param name="environmentVariables">Application environment variables for Run (SDK 11+), passed with repeated --environment options. Does not change the server environment.</param>
     /// <param name="filter">Test filter expression for test action</param>
     /// <param name="collect">Data collector friendly name for test action (e.g., 'XPlat Code Coverage')</param>
     /// <param name="resultsDirectory">Directory for test results</param>
@@ -48,7 +49,7 @@ public sealed partial class DotNetCliTools
     /// <param name="diagnostics">Comma-separated list of diagnostic IDs to fix for format action</param>
     /// <param name="severity">Severity level to fix for format action (info, warn, error)</param>
     /// <param name="workingDirectory">Working directory for command execution</param>
-    /// <param name="testRunner">Test runner selection for test action (Auto, MicrosoftTestingPlatform, or VSTest). Auto detects from global.json. Default: Auto</param>
+    /// <param name="testRunner">Test runner selection for Test (Auto, MicrosoftTestingPlatform, or VSTest). Auto uses DOTNET_TEST_RUNNER on SDK 11+, then global.json. Default: Auto</param>
     /// <param name="useLegacyProjectArgument">DEPRECATED: Use testRunner parameter instead. When true, uses positional project argument (VSTest mode)</param>
     /// <param name="sessionId">Session ID for stop/logs actions (required when action is Stop or Logs)</param>
     /// <param name="startMode">Start mode for run/watch actions (Foreground or Background). Foreground blocks until exit, Background returns immediately with sessionId. Default: Foreground</param>
@@ -117,6 +118,7 @@ public sealed partial class DotNetCliTools
         string? configFile = null,
         string? itemType = null,
         string? include = null,
+        Dictionary<string, string>? environmentVariables = null,
         IProgress<ProgressNotificationValue>? progress = null,
         McpServer? server = null,
         RequestContext<CallToolRequestParams>? context = null)
@@ -144,6 +146,8 @@ public sealed partial class DotNetCliTools
             {
                 return $"Error: {errorMessage}";
             }
+            if (environmentVariables is not null && action != DotnetProjectAction.Run)
+                return "Error: environmentVariables is only used with Run.";
 
             // Route to appropriate handler based on action
             return action switch
@@ -151,7 +155,7 @@ public sealed partial class DotNetCliTools
                 DotnetProjectAction.New => await HandleNewAction(template, name, output, framework, additionalOptions),
                 DotnetProjectAction.Restore => await ExecuteWithProgress(progress, "Restoring packages...", "Restore complete", () => HandleRestoreAction(effectiveProject, verbosity, source, lockedMode, configFile, server, context)),
                 DotnetProjectAction.Build => await ExecuteWithProgress(progress, "Building project...", "Build complete", () => HandleBuildAction(effectiveProject, configuration, framework, noRestore, verbosity, output, server, context)),
-                DotnetProjectAction.Run => await ExecuteWithProgress(progress, "Building and starting application...", "Run complete", () => HandleRunAction(effectiveProject, configuration, appArgs, noBuild, startMode)),
+                DotnetProjectAction.Run => await ExecuteWithProgress(progress, "Building and starting application...", "Run complete", () => HandleRunAction(effectiveProject, configuration, appArgs, noBuild, startMode, environmentVariables)),
                 DotnetProjectAction.Test => await ExecuteWithProgress(progress, "Running tests...", "Tests complete", () => HandleTestAction(effectiveProject, configuration, filter, collect, resultsDirectory, logger, noBuild, noRestore, verbosity, framework, blame, listTests, testRunner, useLegacyProjectArgument, server, context)),
                 DotnetProjectAction.Publish => await ExecuteWithProgress(progress, "Publishing project...", "Publish complete", () => HandlePublishAction(effectiveProject, configuration, output, runtime, framework, noRestore, noBuild, selfContained, arch, os, verbosity, server, context)),
                 DotnetProjectAction.Clean => await ExecuteWithProgress(progress, "Cleaning output directories...", "Clean complete", () => HandleCleanAction(effectiveProject, configuration, framework, verbosity, server, context)),
@@ -160,7 +164,7 @@ public sealed partial class DotNetCliTools
                 DotnetProjectAction.Validate => await HandleValidateAction(projectPath),
                 DotnetProjectAction.Pack => await ExecuteWithProgress(progress, "Packing project...", "Pack complete", () => HandlePackAction(effectiveProject, configuration, output, includeSymbols, includeSource)),
                 DotnetProjectAction.Watch => await HandleWatchAction(watchAction, effectiveProject, configuration, appArgs, filter, noHotReload, startMode),
-                DotnetProjectAction.Format => await HandleFormatAction(effectiveProject, verify, includeGenerated, diagnostics, severity),
+                DotnetProjectAction.Format => await HandleFormatAction(effectiveProject, verify, includeGenerated, diagnostics, severity, framework),
                 DotnetProjectAction.Stop => await HandleStopAction(sessionId),
                 DotnetProjectAction.Logs => await HandleLogsAction(sessionId, tailLines, since),
                 DotnetProjectAction.ListTemplateOptions => await HandleListTemplateOptionsAction(template),
@@ -314,7 +318,7 @@ public sealed partial class DotNetCliTools
             "Summarize these .NET build errors and suggest fixes (be concise):");
     }
 
-    private async Task<string> HandleRunAction(string? project, string? configuration, string? appArgs, bool? noBuild, StartMode? startMode)
+    private async Task<string> HandleRunAction(string? project, string? configuration, string? appArgs, bool? noBuild, StartMode? startMode, Dictionary<string, string>? environmentVariables)
     {
         var effectiveStartMode = startMode ?? StartMode.Foreground;
 
@@ -325,7 +329,8 @@ public sealed partial class DotNetCliTools
                 project: project,
                 configuration: configuration,
                 appArgs: appArgs,
-                noBuild: noBuild ?? false);
+                noBuild: noBuild ?? false,
+                environmentVariables: environmentVariables);
         }
 
         // Background mode - start process and return immediately with session metadata
@@ -341,12 +346,12 @@ public sealed partial class DotNetCliTools
             return $"Error: {configError}";
         }
 
-        // Build the command arguments
-        var args = new StringBuilder("run");
-        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
-        if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
-        if (noBuild ?? false) args.Append(" --no-build");
-        if (!string.IsNullOrEmpty(appArgs)) args.Append($" -- {appArgs}");
+        if (ValidateRunEnvironment(environmentVariables) is { } environmentError)
+            return environmentError;
+        if (environmentVariables is { Count: > 0 }
+            && await SdkFeatureSupport.RequireSdk11Async("Run environment variables", _logger) is { } sdkError)
+            return sdkError;
+        var args = BuildRunArguments(project, configuration, appArgs, noBuild ?? false, environmentVariables);
 
         // Determine the target for session tracking
         var workingDir = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
@@ -728,7 +733,7 @@ public sealed partial class DotNetCliTools
         };
     }
 
-    private async Task<string> HandleFormatAction(string? project, bool? verify, bool? includeGenerated, string? diagnostics, string? severity)
+    private async Task<string> HandleFormatAction(string? project, bool? verify, bool? includeGenerated, string? diagnostics, string? severity, string? framework)
     {
         // Route to existing DotnetFormat method
         return await DotnetFormat(
@@ -736,7 +741,8 @@ public sealed partial class DotNetCliTools
             verify: verify ?? false,
             includeGenerated: includeGenerated ?? false,
             diagnostics: diagnostics,
-            severity: severity);
+            severity: severity,
+            framework: framework);
     }
 
     private Task<string> HandleStopAction(string? sessionId)
@@ -1161,7 +1167,8 @@ public sealed partial class DotNetCliTools
         string? project = null,
         string? configuration = null,
         string? appArgs = null,
-        bool noBuild = false)
+        bool noBuild = false,
+        Dictionary<string, string>? environmentVariables = null)
     {
         // Validate project path if provided
         if (!ParameterValidator.ValidateProjectPath(project, out var projectError))
@@ -1171,21 +1178,49 @@ public sealed partial class DotNetCliTools
         if (!ParameterValidator.ValidateConfiguration(configuration, out var configError))
             return $"Error: {configError}";
 
-        var args = new StringBuilder("run");
-        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
-        if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
-        if (noBuild) args.Append(" --no-build");
-        if (!string.IsNullOrEmpty(appArgs)) args.Append($" -- {appArgs}");
+        if (ValidateRunEnvironment(environmentVariables) is { } environmentError)
+            return environmentError;
+        if (environmentVariables is { Count: > 0 }
+            && await SdkFeatureSupport.RequireSdk11Async("Run environment variables", _logger) is { } sdkError)
+            return sdkError;
+        var args = BuildRunArguments(project, configuration, appArgs, noBuild, environmentVariables);
 
         // Capture working directory for concurrency target selection
         var workingDir = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
         return (await ExecuteWithConcurrencyCheck("run", GetOperationTarget(project, workingDir), args.ToString())).text;
     }
 
+    internal static string? ValidateRunEnvironment(Dictionary<string, string>? environmentVariables)
+    {
+        if (environmentVariables is null)
+            return null;
+        foreach (var (name, value) in environmentVariables)
+        {
+            if (string.IsNullOrWhiteSpace(name) || name.Contains('=') || name.Any(char.IsControl))
+                return "Error: environmentVariables names must be nonempty and must not contain '=' or control characters.";
+            if (value is null || value.Any(char.IsControl))
+                return "Error: environmentVariables values must be strings without control characters; use an empty string for an empty value.";
+        }
+        return null;
+    }
+
+    internal static StringBuilder BuildRunArguments(string? project, string? configuration, string? appArgs,
+        bool noBuild, Dictionary<string, string>? environmentVariables)
+    {
+        var args = new StringBuilder("run");
+        if (!string.IsNullOrEmpty(project)) args.Append($" --project \"{project}\"");
+        if (!string.IsNullOrEmpty(configuration)) args.Append($" -c {configuration}");
+        if (noBuild) args.Append(" --no-build");
+        if (environmentVariables is not null)
+            foreach (var (name, value) in environmentVariables)
+                args.Append($" --environment {CommandLineArgument.Quote($"{name}={value}")}");
+        if (!string.IsNullOrEmpty(appArgs)) args.Append($" -- {appArgs}");
+        return args;
+    }
+
     /// <summary>
     /// Run unit tests in a .NET project.
-    /// Test runner can be explicitly specified or auto-detected from global.json.
-    /// Auto mode (default) detects MTP from global.json config, otherwise uses VSTest for legacy compatibility.
+    /// Test runner can be explicitly specified or auto-detected from SDK-supported environment settings and global.json.
     /// </summary>
     internal async Task<string> DotnetProjectTest(
         string? project = null,
@@ -1222,6 +1257,15 @@ public sealed partial class DotNetCliTools
         // Determine the effective test runner
         TestRunner effectiveRunner;
         string selectionSource;
+        var explicitRunner = useLegacyProjectArgument || (testRunner.HasValue && testRunner != TestRunner.Auto);
+        var supportsEnvironmentRunner = false;
+        if (explicitRunner || SdkIntegration.TestRunnerDetector.GetEnvironmentRunner().HasValue)
+        {
+            var (major, sdkError) = await SdkFeatureSupport.GetMajorVersionAsync(_logger);
+            if (sdkError is not null)
+                return sdkError;
+            supportsEnvironmentRunner = major >= 11;
+        }
         
         // If useLegacyProjectArgument is true, use VSTest mode for backward compatibility
         if (useLegacyProjectArgument)
@@ -1242,7 +1286,8 @@ public sealed partial class DotNetCliTools
             var (detectedRunner, detectionSource) = SdkIntegration.TestRunnerDetector.DetectTestRunner(
                 workingDirectory: workingDirForDetection,
                 projectPath: project,
-                logger: _logger);
+                logger: _logger,
+                supportsEnvironmentRunner: supportsEnvironmentRunner);
             effectiveRunner = detectedRunner;
             selectionSource = detectionSource;
         }
@@ -1259,6 +1304,17 @@ public sealed partial class DotNetCliTools
             if (!string.IsNullOrEmpty(projectDir))
             {
                 DotNetCommandExecutor.WorkingDirectoryOverride.Value = projectDir;
+                if (explicitRunner || SdkIntegration.TestRunnerDetector.GetEnvironmentRunner().HasValue)
+                {
+                    var (major, sdkError) = await SdkFeatureSupport.GetMajorVersionAsync(_logger);
+                    if (sdkError is not null)
+                        return sdkError;
+                    supportsEnvironmentRunner = major >= 11;
+                    if (!explicitRunner)
+                        (effectiveRunner, selectionSource) = SdkIntegration.TestRunnerDetector.DetectTestRunner(
+                            workingDirectory: projectDir, projectPath: project, logger: _logger,
+                            supportsEnvironmentRunner: supportsEnvironmentRunner);
+                }
             }
         }
 
@@ -1296,7 +1352,18 @@ public sealed partial class DotNetCliTools
 
         // Use working directory for concurrency target selection
         var workingDirForTarget = DotNetCommandExecutor.WorkingDirectoryOverride.Value;
-        return (await ExecuteWithConcurrencyCheck("test", GetOperationTarget(project, workingDirForTarget), args.ToString())).text;
+        var previousRunner = DotNetCommandExecutor.TestRunnerEnvironmentOverride.Value;
+        try
+        {
+            if (explicitRunner && supportsEnvironmentRunner)
+                DotNetCommandExecutor.TestRunnerEnvironmentOverride.Value = effectiveRunner == TestRunner.MicrosoftTestingPlatform
+                    ? "Microsoft.Testing.Platform" : "VSTest";
+            return (await ExecuteWithConcurrencyCheck("test", GetOperationTarget(project, workingDirForTarget), args.ToString())).text;
+        }
+        finally
+        {
+            DotNetCommandExecutor.TestRunnerEnvironmentOverride.Value = previousRunner;
+        }
     }
 
     /// <summary>

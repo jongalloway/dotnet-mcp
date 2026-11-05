@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 namespace DotNetMcp.SdkIntegration;
 
 /// <summary>
-/// Helper class for detecting the active test runner (MTP vs VSTest) from global.json configuration.
+/// Helper class for detecting the active test runner from SDK-supported environment settings and global.json.
 /// </summary>
 public static class TestRunnerDetector
 {
@@ -14,12 +14,19 @@ public static class TestRunnerDetector
     /// <param name="workingDirectory">The working directory to start searching from (optional)</param>
     /// <param name="projectPath">The project path to search from if working directory is not provided (optional)</param>
     /// <param name="logger">Optional logger for diagnostic messages</param>
+    /// <param name="supportsEnvironmentRunner">Whether the active CLI SDK supports DOTNET_TEST_RUNNER (SDK 11+)</param>
     /// <returns>A tuple containing the detected runner and the source of detection</returns>
     public static (Actions.TestRunner runner, string source) DetectTestRunner(
         string? workingDirectory = null,
         string? projectPath = null,
-        ILogger? logger = null)
+        ILogger? logger = null,
+        bool supportsEnvironmentRunner = true)
     {
+        if (supportsEnvironmentRunner && GetEnvironmentRunner() is { } environmentRunner)
+        {
+            logger?.LogDebug("Detected test runner from DOTNET_TEST_RUNNER");
+            return (environmentRunner, "DOTNET_TEST_RUNNER");
+        }
         // Determine starting directory for global.json search
         string? searchDirectory = DetermineSearchDirectory(workingDirectory, projectPath);
 
@@ -36,6 +43,7 @@ public static class TestRunnerDetector
                 logger?.LogDebug(ex, "Failed to get current directory for test runner detection, defaulting to VSTest");
                 return (Actions.TestRunner.VSTest, "default");
             }
+
         }
 
         // Walk up directory tree looking for global.json
@@ -74,6 +82,16 @@ public static class TestRunnerDetector
 
         logger?.LogDebug("global.json found but no MTP runner configured, defaulting to VSTest");
         return (Actions.TestRunner.VSTest, "default");
+    }
+
+    internal static Actions.TestRunner? GetEnvironmentRunner()
+    {
+        var value = Environment.GetEnvironmentVariable("DOTNET_TEST_RUNNER");
+        if (string.Equals(value, "Microsoft.Testing.Platform", StringComparison.OrdinalIgnoreCase))
+            return Actions.TestRunner.MicrosoftTestingPlatform;
+        if (string.Equals(value, "VSTest", StringComparison.OrdinalIgnoreCase))
+            return Actions.TestRunner.VSTest;
+        return null;
     }
 
     /// <summary>

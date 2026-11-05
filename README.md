@@ -819,15 +819,27 @@ Unified interface for all project operations: **New**, **Restore**, **Build**, *
 - **Stop action**: Terminates long-running process sessions (like `dotnet run`) by session ID
 - **noBuild parameter**: Skip building before running (mirrors `dotnet run --no-build`)
 
-**Test Runner Compatibility**: The Test action automatically detects the test runner from `global.json` configuration. If `global.json` contains `{ "test": { "runner": "Microsoft.Testing.Platform" } }`, it uses the `--project` flag (MTP mode). Otherwise, it defaults to positional argument (VSTest mode) for legacy compatibility.
+**Test Runner Compatibility**: In Auto mode, the Test action honors `DOTNET_TEST_RUNNER` on .NET SDK 11+ before reading `global.json`. Recognized values are `Microsoft.Testing.Platform` and `VSTest`, case-insensitively; empty or unknown values fall through to `global.json`. MTP uses `--project`; VSTest uses a positional project argument. An explicit `testRunner` (or the deprecated legacy selector) takes precedence; on SDK 11+, the matching runner is set only in the test child process, without changing the server environment or `global.json`.
 
 You can explicitly specify the test runner using the `testRunner` parameter:
 
-- `Auto` (default) - Auto-detect from global.json
-- `MicrosoftTestingPlatform` - Use --project flag (requires .NET SDK 8+ with MTP or SDK 10+)
+- `Auto` (default) - Auto-detect from SDK-supported environment settings, then global.json
+- `MicrosoftTestingPlatform` - Use --project flag (requires .NET SDK 10+ and MTP 1.7+)
 - `VSTest` - Use positional argument (compatible with all SDK versions)
 
 The `useLegacyProjectArgument` parameter is deprecated; use `testRunner: "VSTest"` instead.
+
+**.NET 11 opt-ins:** Run accepts an `environmentVariables` string map, serialized as repeated `--environment` options in both foreground and background modes. Empty values, spaces, quotes, and embedded `=` are supported; names cannot contain `=` or control characters, and values cannot contain control characters. Format honors the existing `framework` parameter to select the target framework to analyze. These opt-ins require SDK 11+ in the command's working directory, regardless of the server's runtime.
+
+```typescript
+await callTool("dotnet_project", {
+  action: "Run", project: "MyApi/MyApi.csproj",
+  environmentVariables: { ASPNETCORE_ENVIRONMENT: "Development", LOG_LEVEL: "Debug" }
+});
+await callTool("dotnet_project", {
+  action: "Format", project: "MyApi/MyApi.csproj", framework: "net10.0"
+});
+```
 
 Example:
 
@@ -928,9 +940,21 @@ await callTool("dotnet_package", {
 
 #### dotnet_solution - Solution File Management
 
-**Full parity with `dotnet sln` / `dotnet solution` CLI commands.**
+Supports solution creation and project membership through `dotnet sln` / `dotnet solution`.
 
 Manage solution files and project membership: **Create**, **Add**, **List**, **Remove**
+
+SDK 11+ also supports `format: "slnf"` with a required `parentSolution` pointing to an existing `.sln` or `.slnx`. Relative parent paths are resolved from the filter's output directory. Add/List/Remove require an explicit `.slnf` path; filters are not added to automatic solution discovery. The default Create format remains `.sln`. Analyze/Dependencies/Validate require the parent solution, not a filter.
+
+```typescript
+await callTool("dotnet_solution", {
+  action: "Create", name: "Tests", output: "filters", format: "slnf",
+  parentSolution: "../MyApp.slnx"
+});
+await callTool("dotnet_solution", {
+  action: "Add", solution: "filters/Tests.slnf", projects: ["MyApp.Tests/MyApp.Tests.csproj"]
+});
+```
 
 Examples:
 
@@ -1072,6 +1096,23 @@ await callTool("dotnet_sdk", {
   templatePackage: "Aspire.ProjectTemplates"
 });
 ```
+
+On SDK 11+, `InstallTemplatePack` accepts `prerelease: true` to include preview versions when selecting the latest template package. An explicit `templateVersion` or inline `Package@version` still selects that exact version.
+
+The existing Project New `additionalOptions` supports the SDK 11 test templates without extra tool parameters:
+
+```typescript
+await callTool("dotnet_project", {
+  action: "New", template: "xunit", name: "MyTests", framework: "net11.0",
+  additionalOptions: "--xunit-version v3"
+});
+await callTool("dotnet_project", {
+  action: "New", template: "nunit", name: "MyNUnitTests", framework: "net11.0",
+  additionalOptions: "--test-runner Microsoft.Testing.Platform"
+});
+```
+
+The SDK's MTP template post-actions can update the applicable `global.json` to select `Microsoft.Testing.Platform`, even with `--no-restore`; inspect that change before running other test projects. The pinned RC3 templates reject these MTP options with an explicit `net10.0` target despite advertising it in help, so the examples opt in to `net11.0`. Ordinary project creation keeps the server's .NET 10 LTS default.
 
 #### dotnet_dev_certs - Developer Certificates and Secrets
 
@@ -1269,7 +1310,7 @@ See [.github/copilot-instructions.md](.github/copilot-instructions.md) for devel
 - **Cause**: Test runner mismatch or SDK version incompatibility
 - **Background**: The `--project` flag is only supported by [Microsoft Testing Platform (MTP)](https://learn.microsoft.com/dotnet/core/tools/dotnet-test-mtp). The legacy [VSTest](https://learn.microsoft.com/dotnet/core/tools/dotnet-test-vstest) runner uses positional arguments instead.
 - **Solution**: The MCP server now auto-detects the test runner from `global.json`:
-  1. **Auto mode** (default): Add `{ "test": { "runner": "Microsoft.Testing.Platform" } }` to `global.json` if using MTP, otherwise it defaults to VSTest
+  1. **Auto mode** (default): On SDK 11+, recognized `DOTNET_TEST_RUNNER` values override `global.json`; otherwise add `{ "test": { "runner": "Microsoft.Testing.Platform" } }` to `global.json` for MTP. With neither setting, the default is VSTest.
   2. **Explicit mode**: Set `testRunner: "MicrosoftTestingPlatform"` or `testRunner: "VSTest"` when calling `dotnet_project` Test action
   3. **Legacy parameter**: Use `useLegacyProjectArgument: true` (deprecated, use `testRunner: "VSTest"` instead)
 - **Verify support**: Run `dotnet test --help | grep -- --project` to check if your SDK supports the `--project` flag

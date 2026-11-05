@@ -36,6 +36,7 @@ public sealed partial class DotNetCliTools
     /// <param name="rollForward">SDK roll-forward policy for global.json (e.g., 'latestMinor', 'latestMajor', 'disable') for ConfigureGlobalJson action</param>
     /// <param name="testRunner">Test runner to configure in global.json (e.g., 'Microsoft.Testing.Platform', 'VSTest') for ConfigureGlobalJson action</param>
     /// <param name="globalJsonPath">Path to global.json file; defaults to 'global.json' in the working directory for ConfigureGlobalJson action</param>
+    /// <param name="prerelease">Include prerelease template versions when installing without an explicit version (SDK 11+). Only used with InstallTemplatePack.</param>
     [McpServerTool(Title = ".NET SDK & Templates", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = true, UseStructuredContent = true, OutputSchemaType = typeof(SdkActionResult), IconSource = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/62ecdc0d7ca5c6df32148c169556bc8d3782fca4/assets/Gear/Flat/gear_flat.svg")]
     [McpMeta("category", "sdk")]
     [McpMeta("priority", 9.0)]
@@ -64,10 +65,11 @@ public sealed partial class DotNetCliTools
         string? rollForward = null,
         string? testRunner = null,
         string? globalJsonPath = null,
-        McpServer? server = null)
+        McpServer? server = null,
+        bool prerelease = false)
         => await DotnetSdkCoreAsync(action, searchTerm, templateShortName, templatePackage, templateVersion,
             nugetSource, interactive, force, framework, forceReload, filter, maxResults, workingDirectory,
-            sdkVersion, rollForward, testRunner, globalJsonPath, server);
+            sdkVersion, rollForward, testRunner, globalJsonPath, server, prerelease: prerelease);
 
     private async Task<CallToolResult> DotnetSdkCoreAsync(
         DotnetSdkAction action,
@@ -88,7 +90,8 @@ public sealed partial class DotNetCliTools
         string? testRunner = null,
         string? globalJsonPath = null,
         McpServer? server = null,
-        bool useDashboard = true)
+        bool useDashboard = true,
+        bool prerelease = false)
     {
         object? metadata = null;
         async Task<string> QueryTemplatesAsync()
@@ -106,6 +109,8 @@ public sealed partial class DotNetCliTools
         }
         var textResult = await WithWorkingDirectoryAsync(workingDirectory, async () =>
         {
+            if (prerelease && action != DotnetSdkAction.InstallTemplatePack)
+                return "Error: prerelease is only used with InstallTemplatePack.";
             // Validate action parameter
             if (!ParameterValidator.ValidateAction<DotnetSdkAction>(action, out var errorMessage))
             {
@@ -128,7 +133,7 @@ public sealed partial class DotNetCliTools
                 DotnetSdkAction.TemplateInfo => await HandleTemplateInfoAction(templateShortName, forceReload),
                 DotnetSdkAction.ClearTemplateCache => await DotnetTemplateClearCache(server),
                 DotnetSdkAction.ListTemplatePacks => await DotnetTemplatePackList(),
-                DotnetSdkAction.InstallTemplatePack => await HandleTemplatePackInstallAction(templatePackage, templateVersion, nugetSource, interactive, force, server),
+                DotnetSdkAction.InstallTemplatePack => await HandleTemplatePackInstallAction(templatePackage, templateVersion, nugetSource, interactive, force, server, prerelease),
                 DotnetSdkAction.UninstallTemplatePack => await HandleTemplatePackUninstallAction(templatePackage, server),
                 DotnetSdkAction.FrameworkInfo => await DotnetFrameworkInfoCoreAsync(framework, value => metadata = value),
                 DotnetSdkAction.CacheMetrics => await DotnetCacheMetricsCore(value => metadata = value),
@@ -192,7 +197,8 @@ public sealed partial class DotNetCliTools
         string? nugetSource,
         bool interactive,
         bool force,
-        McpServer? server = null)
+        McpServer? server = null,
+        bool prerelease = false)
     {
         if (!ParameterValidator.ValidateTemplatePackage(templatePackage, out var packageError))
         {
@@ -218,7 +224,7 @@ public sealed partial class DotNetCliTools
             return $"Error: {message}";
         }
 
-        return await DotnetTemplatePackInstall(templatePackage!, templateVersion, nugetSource, interactive, force, server);
+        return await DotnetTemplatePackInstall(templatePackage!, templateVersion, nugetSource, interactive, force, server, prerelease);
     }
 
     private async Task<string> HandleTemplatePackUninstallAction(string? templatePackage, McpServer? server = null)
@@ -403,6 +409,7 @@ public sealed partial class DotNetCliTools
     /// <param name="nugetSource">Optional NuGet source to use (feed URL or local source)</param>
     /// <param name="interactive">Allow user interaction for authentication</param>
     /// <param name="force">Allow overriding a template pack from another source</param>
+    /// <param name="prerelease">Include prerelease versions when no explicit version is specified (SDK 11+)</param>
     [McpMeta("category", "template")]
     [McpMeta("commonlyUsed", true)]
     internal async Task<string> DotnetTemplatePackInstall(
@@ -411,8 +418,11 @@ public sealed partial class DotNetCliTools
         string? nugetSource = null,
         bool interactive = false,
         bool force = false,
-        McpServer? server = null)
+        McpServer? server = null,
+        bool prerelease = false)
     {
+        if (prerelease && await SdkFeatureSupport.RequireSdk11Async("Prerelease template selection", _logger) is { } sdkError)
+            return sdkError;
         var packageExpression = !string.IsNullOrWhiteSpace(templateVersion)
             ? $"{templatePackage}@{templateVersion}"
             : templatePackage;
@@ -421,6 +431,7 @@ public sealed partial class DotNetCliTools
         if (!string.IsNullOrWhiteSpace(nugetSource)) args.Append($" --nuget-source \"{nugetSource}\"");
         if (interactive) args.Append(" --interactive");
         if (force) args.Append(" --force");
+        if (prerelease) args.Append(" --prerelease");
 
         var result = await ExecuteDotNetCommand(args.ToString());
 
