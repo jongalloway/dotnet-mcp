@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Text;
 using System.ComponentModel;
 using System.Text.Json;
+using System.Xml.Linq;
 using ModelContextProtocol.Protocol;
 using Xunit;
 
@@ -14,6 +15,17 @@ namespace DotNetMcp.Tests.Scenarios;
 /// </summary>
 internal static class ScenarioHelpers
 {
+    internal static string PublicPackageSource =>
+        ResolvePublicPackageSource(Environment.GetEnvironmentVariable("DOTNET_MCP_TEST_NUGET_SOURCE"));
+
+    internal static string ResolvePublicPackageSource(string? source)
+    {
+        if (source is null) return "https://api.nuget.org/v3/index.json";
+        if (!Uri.TryCreate(source, UriKind.Absolute, out var uri) || uri.Scheme is not ("https" or "http"))
+            throw new InvalidOperationException("DOTNET_MCP_TEST_NUGET_SOURCE must be an absolute HTTP(S) package-feed URL.");
+        return source;
+    }
+
     /// <summary>
     /// Represents a temporary directory created for scenario tests that automatically cleans up
     /// when disposed.
@@ -69,7 +81,17 @@ internal static class ScenarioHelpers
     public static TempScenarioDirectory CreateTempDirectory(string testName)
     {
         var root = Path.Join(Path.GetTempPath(), "dotnet-mcp-scenarios", DateTime.UtcNow.ToString("yyyyMMdd"), testName, Guid.NewGuid().ToString("N"));
+        var sourceOverride = Environment.GetEnvironmentVariable("DOTNET_MCP_TEST_NUGET_SOURCE");
+        var packageSource = ResolvePublicPackageSource(sourceOverride);
         Directory.CreateDirectory(root);
+        if (sourceOverride is not null)
+        {
+            new XDocument(new XElement("configuration",
+                new XElement("packageSources", new XElement("clear"),
+                    new XElement("add", new XAttribute("key", "scenario-public"), new XAttribute("value", packageSource))),
+                new XElement("disabledPackageSources", new XElement("clear"))))
+                .Save(Path.Join(root, "NuGet.Config"));
+        }
         return new TempScenarioDirectory(root);
     }
 
@@ -80,7 +102,8 @@ internal static class ScenarioHelpers
     /// <param name="workingDirectory">The working directory for the command.</param>
     /// <param name="cancellationToken">A cancellation token to cancel the operation.</param>
     /// <returns>A tuple containing the exit code, stdout, and stderr.</returns>
-    public static async Task<(int exitCode, string stdout, string stderr)> RunDotNetAsync(string args, string workingDirectory, CancellationToken cancellationToken)
+    public static async Task<(int exitCode, string stdout, string stderr)> RunDotNetAsync(string args, string workingDirectory, CancellationToken cancellationToken,
+        IReadOnlyDictionary<string, string?>? environment = null)
     {
         var psi = new ProcessStartInfo
         {
@@ -92,6 +115,14 @@ internal static class ScenarioHelpers
             UseShellExecute = false,
             CreateNoWindow = true
         };
+        if (environment is not null)
+        {
+            foreach (var (name, value) in environment)
+            {
+                if (value is null) psi.Environment.Remove(name);
+                else psi.Environment[name] = value;
+            }
+        }
 
         using var process = new Process { StartInfo = psi };
         if (!process.Start())

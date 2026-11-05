@@ -21,7 +21,14 @@ public class ConsolidatedPackageToolTests
     {
         _logger = NullLogger<DotNetCliTools>.Instance;
         _concurrencyManager = new ConcurrencyManager();
-        _tools = new DotNetCliTools(_logger, _concurrencyManager, new ProcessSessionManager());
+        _tools = new DotNetCliTools(_logger, _concurrencyManager, new ProcessSessionManager())
+        {
+            CommandExecutorOverride = (arguments, cancellationToken, _) =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return Task.FromResult($"Command: dotnet {arguments}\nRecorded command (not executed).\nExit Code: 0");
+            }
+        };
     }
 
     #region Add Action Tests

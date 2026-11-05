@@ -83,10 +83,7 @@ public static class DotNetCommandExecutor
 
         if (requiresCancellation)
         {
-            // Shared MSBuild workers are not owned by this process tree.
-            psi.Environment["MSBUILDDISABLENODEREUSE"] = "1";
-            psi.Environment["MSBUILDNOINPROCNODE"] = "0";
-            psi.Environment["DOTNET_CLI_USE_MSBUILDNOINPROCNODE"] = "0";
+            ConfigureOwnedProcess(psi);
         }
 
         if (!string.IsNullOrWhiteSpace(normalizedWorkingDirectory))
@@ -380,6 +377,7 @@ public static class DotNetCommandExecutor
             psi.WorkingDirectory = normalizedWorkingDirectory;
         }
 
+        ConfigureOwnedProcess(psi);
         var process = new Process { StartInfo = psi };
 
         try
@@ -396,5 +394,16 @@ public static class DotNetCommandExecutor
             process.Dispose();
             throw new InvalidOperationException($"dotnet command could not be started: {ex.Message}", ex);
         }
+
+    }
+
+    internal static void ConfigureOwnedProcess(ProcessStartInfo startInfo)
+    {
+        // Shared MSBuild servers cannot be terminated safely with an owned process tree.
+        startInfo.Environment["DOTNET_CLI_USE_MSBUILD_SERVER"] = "false";
+        startInfo.Environment["MSBUILDUSESERVER"] = "0";
+        startInfo.Environment["MSBUILDDISABLENODEREUSE"] = "1";
+        startInfo.Environment["MSBUILDNOINPROCNODE"] = "0";
+        startInfo.Environment["DOTNET_CLI_USE_MSBUILDNOINPROCNODE"] = "0";
     }
 }

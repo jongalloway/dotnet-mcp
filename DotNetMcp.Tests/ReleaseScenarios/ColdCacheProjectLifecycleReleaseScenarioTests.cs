@@ -56,7 +56,7 @@ public class ColdCacheProjectLifecycleReleaseScenarioTests
                     ["project"] = projectPath,
                     ["packageId"] = "Humanizer",
                     ["version"] = "2.14.1",
-                    ["source"] = "https://api.nuget.org/v3/index.json"
+                    ["source"] = ScenarioHelpers.PublicPackageSource
                 },
                 cancellationToken);
 

@@ -6,6 +6,20 @@ namespace DotNetMcp.Tests.Scenarios;
 
 public class ScenarioHelpersTests
 {
+    [Theory]
+    [InlineData(null, "https://api.nuget.org/v3/index.json")]
+    [InlineData("https://packages.example.test/v3/index.json", "https://packages.example.test/v3/index.json")]
+    public void PublicPackageSource_PreservesDefaultAndExplicitFeed(string? source, string expected) =>
+        Assert.Equal(expected, ScenarioHelpers.ResolvePublicPackageSource(source));
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("relative-feed")]
+    [InlineData("file:///C:/feed")]
+    public void PublicPackageSource_RejectsInvalidOverrideWithoutFallback(string source) =>
+        Assert.Throws<InvalidOperationException>(() => ScenarioHelpers.ResolvePublicPackageSource(source));
+
     [Fact]
     public void AssertBuildSuccess_AcceptsStructuredSuccessWithoutExitCodeText()
     {

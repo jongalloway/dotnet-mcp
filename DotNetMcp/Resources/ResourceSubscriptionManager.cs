@@ -51,8 +51,8 @@ public class ResourceSubscriptionManager
                 notification.Method == NotificationMethods.SubscriptionsAcknowledgedNotification &&
                 notification.Params?["_meta"]?[MetaKeys.SubscriptionId] is { } id)
             {
-                var subscriptionId = id.Deserialize<RequestId>(McpJsonUtilities.DefaultOptions);
-                var acknowledged = notification.Params.Deserialize<SubscriptionsAcknowledgedNotificationParams>(McpJsonUtilities.DefaultOptions);
+                var subscriptionId = id.Deserialize(ServerJson.McpTypeInfo<RequestId>());
+                var acknowledged = notification.Params.Deserialize(ServerJson.McpTypeInfo<SubscriptionsAcknowledgedNotificationParams>());
                 if (acknowledged?.Notifications.ResourceSubscriptions is { Count: > 0 } uris)
                 {
                     _nativeSubscriptions[subscriptionId] = uris.ToHashSet(StringComparer.Ordinal);
@@ -146,7 +146,7 @@ public class ResourceSubscriptionManager
                     Uri = uri,
                     Meta = new JsonObject
                     {
-                        [MetaKeys.SubscriptionId] = JsonSerializer.SerializeToNode(subscription.Key, McpJsonUtilities.DefaultOptions)
+                        [MetaKeys.SubscriptionId] = JsonSerializer.SerializeToNode(subscription.Key, ServerJson.McpTypeInfo<RequestId>())
                     }
                 });
         }

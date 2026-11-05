@@ -245,24 +245,12 @@ public class CachedResourceManager<T> : IDisposable where T : notnull
     public string GetJsonResponse(CachedEntry<T> entry, object additionalData, DateTimeOffset now)
     {
         ThrowIfDisposed();
-        var response = new
-        {
-            data = additionalData,
-            cache = new
-            {
-                timestamp = entry.CachedAt.ToString("O"),
-                cacheAgeSeconds = entry.CacheAgeSeconds(now),
-                cacheDurationSeconds = (int)entry.CacheDuration.TotalSeconds,
-                metrics = new
-                {
-                    hits = _metrics.Hits,
-                    misses = _metrics.Misses,
-                    hitRatio = _metrics.HitRatio
-                }
-            }
-        };
+        var response = new CachedResourceResponse(additionalData, new ResourceCacheMetadata(
+            entry.CachedAt.ToString("O"), entry.CacheAgeSeconds(now),
+            (int)entry.CacheDuration.TotalSeconds,
+            new CacheSnapshot(_metrics.Hits, _metrics.Misses, _metrics.HitRatio)));
 
-        return JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true });
+        return ServerJson.SerializeResource(response);
     }
 
     private bool _disposed = false;

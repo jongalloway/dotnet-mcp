@@ -10,6 +10,17 @@ using ModelContextProtocol.Extensions.Tasks;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Text.Json;
+
+if (args is ["--native-info"])
+{
+    Console.WriteLine(JsonSerializer.Serialize(new NativePublishInfo(
+        RuntimeFeature.IsDynamicCodeSupported, RuntimeInformation.FrameworkDescription,
+        RuntimeInformation.ProcessArchitecture.ToString()), ServerJsonContext.Default.NativePublishInfo));
+    return;
+}
 
 var builder = Host.CreateApplicationBuilder(args);
 var governanceConfiguration = McpGovernanceConfiguration.Load(builder.Configuration);
@@ -84,7 +95,7 @@ mcpServerBuilder
     .WithMcpApps()
     .WithResources<DotNetResources>()
     .WithResources<McpAppsResources>()
-    .WithPrompts<DotNetPrompts>();
+    .WithPrompts<DotNetPrompts>(ServerJson.McpOptions);
 #pragma warning restore MCPEXP003
 
 if (governanceConfiguration.Enabled)

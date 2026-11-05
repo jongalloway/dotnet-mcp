@@ -61,6 +61,7 @@ internal static class ToolOutputSchemas
             context => context.Services!.GetRequiredService<DotNetCliTools>(),
             new McpServerToolCreateOptions
             {
+                SerializerOptions = ServerJson.McpOptions,
                 OutputSchema = method.Name switch
                 {
                     nameof(DotNetCliTools.DotnetSdk) or nameof(DotNetCliTools.DotnetSdkQuery) => SdkSchema,
@@ -80,7 +81,8 @@ internal static class ToolOutputSchemas
         var branches = new JsonArray();
         foreach (var (type, required) in alternatives)
         {
-            var schema = JsonNode.Parse(AIJsonUtilities.CreateJsonSchema(type).GetRawText())!.AsObject();
+            var schema = JsonNode.Parse(AIJsonUtilities.CreateJsonSchema(
+                type, serializerOptions: ServerJsonContext.Default.Options).GetRawText())!.AsObject();
             schema.Remove("$schema");
             AllowOmittedNulls(schema);
             var properties = schema["properties"]!.AsObject();
@@ -109,10 +111,10 @@ internal static class ToolOutputSchemas
             RebaseReferences(schema, $"#/$defs/{definitionName}");
             FixLockScope(schema);
             definitions[definitionName] = schema;
-            branches.Add(new JsonObject { ["$ref"] = $"#/$defs/{definitionName}" });
+            branches.Add((JsonNode)new JsonObject { ["$ref"] = $"#/$defs/{definitionName}" });
         }
 
-        return JsonSerializer.SerializeToElement(new JsonObject
+        return ToElement(new JsonObject
         {
             ["$schema"] = "https://json-schema.org/draft/2020-12/schema",
             ["type"] = "object",
@@ -137,9 +139,15 @@ internal static class ToolOutputSchemas
             var definition = fallback["$defs"]!["ActionTextResult"]!.DeepClone();
             definition["properties"]!["action"]!["enum"] = new JsonArray(actions.Select(a => (JsonNode?)JsonValue.Create(a)).ToArray());
             root["$defs"]!["ActionTextResult"] = definition;
-            root["anyOf"]!.AsArray().Add(new JsonObject { ["$ref"] = "#/$defs/ActionTextResult" });
+            root["anyOf"]!.AsArray().Add((JsonNode)new JsonObject { ["$ref"] = "#/$defs/ActionTextResult" });
         }
-        return JsonSerializer.SerializeToElement(root);
+        return ToElement(root);
+    }
+
+    private static JsonElement ToElement(JsonNode node)
+    {
+        using var document = JsonDocument.Parse(node.ToJsonString());
+        return document.RootElement.Clone();
     }
 
     private static void FixLockScope(JsonNode node)

@@ -9,7 +9,7 @@ namespace DotNetMcp;
 /// The broad family of LLM a caller is using. Controls which tokenizer approximation
 /// and baseline scale factor are applied during token savings estimation.
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter))]
+[JsonConverter(typeof(JsonStringEnumConverter<ModelFamily>))]
 public enum ModelFamily
 {
     /// <summary>No model specified; uses the universal 4 chars/token fallback.</summary>
@@ -39,7 +39,7 @@ public enum ModelFamily
 /// <summary>
 /// Detected content kind used to pick the right chars-per-token ratio.
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter))]
+[JsonConverter(typeof(JsonStringEnumConverter<ContentKind>))]
 public enum ContentKind
 {
     /// <summary>Plain English prose.</summary>
@@ -174,8 +174,7 @@ public sealed class TokenSavingsAssumptionsProfile
             {
                 using var reader = new StreamReader(stream);
                 var json = reader.ReadToEnd();
-                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var loaded = JsonSerializer.Deserialize<TokenSavingsAssumptionsProfile>(json, options);
+                var loaded = JsonSerializer.Deserialize(json, ServerJsonContext.Default.TokenSavingsAssumptionsProfile);
                 if (loaded is not null)
                     return loaded;
             }

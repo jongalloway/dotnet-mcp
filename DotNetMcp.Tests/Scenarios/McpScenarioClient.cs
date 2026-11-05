@@ -1,5 +1,4 @@
 using DotNetMcp;
-using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
@@ -25,6 +24,8 @@ internal sealed class McpScenarioClient : IAsyncDisposable
     private readonly ILoggerFactory _loggerFactory;
     private readonly ITestOutputHelper? _output;
     private McpClient? _client;
+
+    internal McpClient Client => _client ?? throw new InvalidOperationException("MCP client not initialized.");
 
     private McpScenarioClient(ILoggerFactory loggerFactory, ITestOutputHelper? output)
     {
@@ -61,7 +62,7 @@ internal sealed class McpScenarioClient : IAsyncDisposable
 
     private async Task StartAsync(CancellationToken cancellationToken)
     {
-        var serverPath = GetServerExecutablePath();
+        var serverPath = TestServerCommand.Get();
 
         _output?.WriteLine($"[MCP] Server command: {serverPath.command} {string.Join(" ", serverPath.arguments)}");
 
@@ -69,7 +70,8 @@ internal sealed class McpScenarioClient : IAsyncDisposable
         {
             Command = serverPath.command,
             Arguments = serverPath.arguments,
-            Name = "dotnet-mcp-scenario-test"
+            Name = "dotnet-mcp-scenario-test",
+            StandardErrorLines = line => _output?.WriteLine($"[MCP server] {line}")
         };
 
         var transport = new StdioClientTransport(transportOptions);
@@ -167,46 +169,4 @@ internal sealed class McpScenarioClient : IAsyncDisposable
         _loggerFactory.Dispose();
     }
 
-    private static (string command, string[] arguments) GetServerExecutablePath()
-    {
-        var testBinaryDir = AppContext.BaseDirectory;
-        var trimmedTestBinaryDir = testBinaryDir.TrimEnd(Path.DirectorySeparatorChar);
-        var testBinaryParentDir = Path.GetDirectoryName(trimmedTestBinaryDir);
-        if (string.IsNullOrEmpty(testBinaryParentDir))
-        {
-            throw new InvalidOperationException(
-                $"Unexpected test binary directory structure. Could not determine configuration from base directory: {testBinaryDir}");
-        }
-
-        var configuration = Path.GetFileName(testBinaryParentDir);
-        var targetFramework = Path.GetFileName(trimmedTestBinaryDir);
-
-        var serverBinaryDir = Path.GetFullPath(
-            Path.Join(testBinaryDir, "..", "..", "..", "..", "DotNetMcp", "bin", configuration, targetFramework));
-
-        if (!Directory.Exists(serverBinaryDir))
-        {
-            throw new DirectoryNotFoundException(
-                $"Server binary directory not found at: {serverBinaryDir}. Make sure DotNetMcp project is built before running scenario tests.");
-        }
-
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            var exePath = Path.Join(serverBinaryDir, "DotNetMcp.exe");
-            if (!File.Exists(exePath))
-            {
-                throw new FileNotFoundException($"Server executable not found at: {exePath}");
-            }
-
-            return (exePath, Array.Empty<string>());
-        }
-
-        var dllPath = Path.Join(serverBinaryDir, "DotNetMcp.dll");
-        if (!File.Exists(dllPath))
-        {
-            throw new FileNotFoundException($"Server assembly not found at: {dllPath}");
-        }
-
-        return ("dotnet", new[] { dllPath });
-    }
 }

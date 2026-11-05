@@ -54,7 +54,7 @@ public class EfCoreSqliteMigrationsReleaseScenarioTests
                     ["action"] = "Add",
                     ["project"] = projectPath,
                     ["packageId"] = "Microsoft.EntityFrameworkCore.Sqlite",
-                    ["source"] = "https://api.nuget.org/v3/index.json"
+                    ["source"] = ScenarioHelpers.PublicPackageSource
                 },
                 cancellationToken);
 
@@ -67,7 +67,7 @@ public class EfCoreSqliteMigrationsReleaseScenarioTests
                     ["action"] = "Add",
                     ["project"] = projectPath,
                     ["packageId"] = "Microsoft.EntityFrameworkCore.Design",
-                    ["source"] = "https://api.nuget.org/v3/index.json"
+                    ["source"] = ScenarioHelpers.PublicPackageSource
                 },
                 cancellationToken);
 

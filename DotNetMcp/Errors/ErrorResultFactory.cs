@@ -670,11 +670,8 @@ public static partial class ErrorResultFactory
     /// </summary>
     public static string ToJson(object result)
     {
-        return System.Text.Json.JsonSerializer.Serialize(result, new System.Text.Json.JsonSerializerOptions
-        {
-            WriteIndented = true,
-            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-        });
+        return System.Text.Json.JsonSerializer.Serialize(
+            result, ServerJson.IndentedOptions.GetTypeInfo(result.GetType()));
     }
 
     // Regex to match MSBuild "X Error(s)" / "X Warning(s)" summary lines.

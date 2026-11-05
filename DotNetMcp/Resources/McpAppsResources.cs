@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization.Metadata;
 using ModelContextProtocol.Extensions.Apps;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
@@ -15,6 +16,9 @@ namespace DotNetMcp;
 public sealed class McpAppsResources
 {
 #pragma warning disable MCPEXP003 // Use the experimental SDK Apps constants and resource metadata contract.
+    private static readonly JsonTypeInfo<McpUiResourceMeta> UiMetaTypeInfo =
+        (JsonTypeInfo<McpUiResourceMeta>)McpApps.SerializerOptions.GetTypeInfo(typeof(McpUiResourceMeta));
+
     [McpServerResource(
         UriTemplate = "ui://dotnet-mcp/sdk-dashboard",
         Name = "sdk_dashboard_ui",
@@ -28,7 +32,7 @@ public sealed class McpAppsResources
         Meta = new JsonObject
         {
             ["ui"] = JsonSerializer.SerializeToNode(
-                new McpUiResourceMeta { PrefersBorder = true }, McpApps.SerializerOptions)
+                new McpUiResourceMeta { PrefersBorder = true }, UiMetaTypeInfo)
         }
     };
 
@@ -45,7 +49,7 @@ public sealed class McpAppsResources
         Meta = new JsonObject
         {
             ["ui"] = JsonSerializer.SerializeToNode(
-                new McpUiResourceMeta { PrefersBorder = true }, McpApps.SerializerOptions)
+                new McpUiResourceMeta { PrefersBorder = true }, UiMetaTypeInfo)
         }
     };
 #pragma warning restore MCPEXP003

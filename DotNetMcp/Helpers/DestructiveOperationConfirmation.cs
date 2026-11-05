@@ -46,7 +46,9 @@ internal static class DestructiveOperationConfirmation
         if (context is not null && server.IsMrtrSupported && !tasksRequested)
         {
             // Bind the continuation to the current tool and arguments, not client-echoed state.
-            var arguments = JsonSerializer.Serialize(context.Params.Arguments?.OrderBy(pair => pair.Key, StringComparer.Ordinal));
+            var arguments = JsonSerializer.Serialize(
+                context.Params.Arguments?.OrderBy(pair => pair.Key, StringComparer.Ordinal).ToArray(),
+                ServerJsonContext.Default.KeyValuePairStringJsonElementArray);
             var state = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{context.Params.Name}\n{arguments}\n{message}")));
             if (context.Params.RequestState is null && context.Params.InputResponses is null)
             {

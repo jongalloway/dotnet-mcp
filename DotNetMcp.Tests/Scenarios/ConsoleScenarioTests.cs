@@ -40,7 +40,7 @@ public class ConsoleScenarioTests
                 ["project"] = projectPath,
                 ["packageId"] = "Aspire.Hosting",
                 ["version"] = "13.1.0",
-                ["source"] = "https://api.nuget.org/v3/index.json",
+                ["source"] = ScenarioHelpers.PublicPackageSource,
             },
             cancellationToken);
 

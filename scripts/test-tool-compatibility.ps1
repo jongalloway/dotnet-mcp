@@ -30,6 +30,9 @@ if (-not (Test-Path -LiteralPath $dotnet)) { throw "dotnet host not found: $dotn
 
 $archive = [System.IO.Compression.ZipFile]::OpenRead($PackagePath)
 try {
+    if ($archive.Entries.FullName -match '(^|/)sdk-helper/|DotNetMcp\.SdkHelper') {
+        throw 'The managed tool package must not include the native-only SDK helper.'
+    }
     $nuspec = @($archive.Entries | Where-Object FullName -Like '*.nuspec')
     if ($nuspec.Count -ne 1) { throw 'Expected exactly one package manifest.' }
     $reader = [System.IO.StreamReader]::new($nuspec[0].Open())
@@ -83,7 +86,7 @@ $projectRoot = [System.IO.Directory]::CreateDirectory((Join-Path $work 'projects
 $config = Join-Path $work 'NuGet.Config'
 '<configuration><packageSources><clear /></packageSources></configuration>' | Set-Content -LiteralPath $config
 
-function New-ChildProcess([string] $FilePath, [string[]] $Arguments, [string] $TraceFile = '', [string] $WorkingDirectory = $work) {
+function New-ChildProcess([string] $FilePath, [string[]] $Arguments, [string] $TraceFile = '', [string] $WorkingDirectory = $work, [string] $RawArguments = '') {
     $info = [System.Diagnostics.ProcessStartInfo]::new()
     $info.FileName = $FilePath
     $info.WorkingDirectory = $WorkingDirectory
@@ -91,7 +94,8 @@ function New-ChildProcess([string] $FilePath, [string[]] $Arguments, [string] $T
     $info.RedirectStandardInput = $true
     $info.RedirectStandardOutput = $true
     $info.RedirectStandardError = $true
-    foreach ($argument in $Arguments) { $info.ArgumentList.Add($argument) }
+    if ($RawArguments) { $info.Arguments = $RawArguments }
+    else { foreach ($argument in $Arguments) { $info.ArgumentList.Add($argument) } }
     foreach ($key in $environment.Keys) { $info.Environment[$key] = $environment[$key] }
     foreach ($key in @('DOTNET_ROLL_FORWARD', 'DOTNET_ROLL_FORWARD_TO_PRERELEASE', 'DOTNET_ADDITIONAL_DEPS',
             'DOTNET_SHARED_STORE', 'DOTNET_STARTUP_HOOKS', 'MSBuildSDKsPath', 'DOTNET_HOST_TRACEFILE', 'COREHOST_TRACEFILE')) {
@@ -166,9 +170,12 @@ if ($runtimeList -notmatch [regex]::Escape("Microsoft.NETCore.App $ExpectedRunti
     throw "Expected runtime is not installed in the isolated root: $ExpectedRuntimeVersion"
 }
 $projectFramework = 'net' + $ProjectSdkVersion.Split('.')[0] + '.0'
+$scriptSupportsGlobalJsonBypass = [int]$toolSdks[0].Name.Split('.')[0] -ge 11
 $results = @()
-foreach ($invocation in @('tool', 'dnx')) {
+foreach ($invocation in @('tool', 'dnx', 'dnx-script')) {
     $trace = Join-Path $OutputDirectory "$invocation-host.txt"
+    $startupDirectory = $work
+    $rawArguments = ''
     if ($invocation -eq 'tool') {
         $toolPath = Join-Path $OutputDirectory 'tools'
         $installOutput = Invoke-Checked @('tool', 'install', "$packageId@$version", '--tool-path', $toolPath,
@@ -177,11 +184,41 @@ foreach ($invocation in @('tool', 'dnx')) {
         $command = Join-Path $toolPath $(if ($IsWindows) { 'dotnet-mcp.exe' } else { 'dotnet-mcp' })
         $arguments = @()
     }
-    else {
+    elseif ($invocation -eq 'dnx') {
         $command = $dotnet
         $arguments = @('dnx', "$packageId@$version", '--yes', '--configfile', $config, '--add-source', $feed)
     }
-    $process = New-ChildProcess $command $arguments $trace
+    else {
+        if ($scriptSupportsGlobalJsonBypass) {
+            $startupDirectory = [IO.Directory]::CreateDirectory((Join-Path $OutputDirectory 'dnx-script-work')).FullName
+            $scriptGlobalJson = Join-Path $startupDirectory 'global.json'
+            @{ sdk = @{ version = '99.0.100'; rollForward = 'disable' } } |
+                ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $scriptGlobalJson
+            $probe = New-ChildProcess $dotnet @('dnx', '--help') -WorkingDirectory $startupDirectory
+            try {
+                $probeOut = $probe.StandardOutput.ReadToEndAsync()
+                $probeError = $probe.StandardError.ReadToEndAsync()
+                if (-not $probe.WaitForExit($TimeoutSeconds * 1000)) { throw 'SDK selection probe timed out.' }
+                if ($probe.ExitCode -eq 0) { throw 'dotnet dnx unexpectedly bypassed the missing SDK in global.json.' }
+                ($probeOut.GetAwaiter().GetResult() + $probeError.GetAwaiter().GetResult()) |
+                    Set-Content -LiteralPath (Join-Path $OutputDirectory 'dnx-script-sdk-selection.txt')
+            }
+            finally {
+                if (-not $probe.HasExited) { $probe.Kill($true); $probe.WaitForExit() }
+                $probe.Dispose()
+            }
+        }
+        $script = Join-Path $DotnetRoot $(if ($IsWindows) { 'dnx.cmd' } else { 'dnx' })
+        if (-not (Test-Path -LiteralPath $script -PathType Leaf)) { throw "dnx script not found: $script" }
+        $arguments = @("$packageId@$version", '--yes', '--configfile', $config, '--add-source', $feed)
+        if ($IsWindows) {
+            $command = $env:ComSpec
+            $rawArguments = '/d /s /c ""{0}" "{1}@{2}" --yes --configfile "{3}" --add-source "{4}""' -f $script, $packageId, $version, $config, $feed
+            $arguments = @()
+        }
+        else { $command = $script }
+    }
+    $process = New-ChildProcess $command $arguments $trace -WorkingDirectory $startupDirectory -RawArguments $rawArguments
     $stderr = $process.StandardError.ReadToEndAsync()
     try {
         $null = Invoke-Rpc $process 1 'initialize' @{
@@ -193,6 +230,11 @@ foreach ($invocation in @('tool', 'dnx')) {
         $tools = Invoke-Rpc $process 2 'tools/list' @{}
         foreach ($name in @('dotnet_sdk', 'dotnet_project')) {
             if ($name -notin $tools.tools.name) { throw "Missing MCP tool: $name" }
+        }
+        if ($invocation -eq 'dnx-script' -and $scriptSupportsGlobalJsonBypass) {
+            # Startup proved the script bypasses the missing SDK. Child project commands still use global.json.
+            @{ sdk = @{ version = $toolSdks[0].Name; rollForward = 'disable'; allowPrerelease = $true } } |
+                ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $scriptGlobalJson
         }
         $templates = Invoke-Tool $process 3 'dotnet_sdk' @{ action = 'ListTemplates' }
         if ($templates -notmatch 'console') { throw "Console template was not discovered: $templates" }
@@ -225,6 +267,7 @@ foreach ($invocation in @('tool', 'dnx')) {
         invocation = $invocation; framework = $ExpectedFramework; runtime = $ExpectedRuntimeVersion
         projectFramework = $projectFramework; projectSdk = $selectedProjectSdk; toolSdk = $selectedToolSdk
         allowRollForward = $false; passed = $true
+        bypassedMissingGlobalSdk = ($invocation -eq 'dnx-script' -and $scriptSupportsGlobalJsonBypass)
     }
 }
 @{
