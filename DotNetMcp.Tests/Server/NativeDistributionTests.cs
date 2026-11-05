@@ -120,6 +120,34 @@ public sealed class NativeDistributionTests
     }
 
     [NativeFact]
+    public async Task NativeSdkHelper_OversizedResponseFailsWithoutWaitingForTimeout()
+    {
+        var directory = Directory.CreateDirectory(Path.Join(Path.GetTempPath(), $"dotnet-mcp-native-large-response-{Guid.NewGuid():N}"));
+        try
+        {
+            var project = Path.Join(directory.FullName, "Large.proj");
+            var payload = new string('x', SdkHelperProtocol.MaximumResponseBytes + 4 * 1024 * 1024);
+            await File.WriteAllTextAsync(project, $"""
+                <Project>
+                  <ItemGroup><NativeProbe Include="probe"><Payload>{payload}</Payload></NativeProbe></ItemGroup>
+                </Project>
+                """, TestContext.Current.CancellationToken);
+
+            await using var native = await ConnectAsync(TestServerCommand.Get());
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+            deadline.CancelAfter(TimeSpan.FromSeconds(60));
+            var result = await native.CallToolAsync("dotnet_project",
+                new Dictionary<string, object?> { ["action"] = "ListItems", ["project"] = project, ["itemType"] = "NativeProbe" },
+                cancellationToken: deadline.Token);
+
+            Assert.True(result.IsError);
+            Assert.Contains($"SDK helper message exceeded its {SdkHelperProtocol.MaximumResponseBytes}-byte limit.",
+                JsonSerializer.Serialize(result, McpJsonUtilities.DefaultOptions));
+        }
+        finally { directory.Delete(recursive: true); }
+    }
+
+    [NativeFact]
     public async Task NativeTemplateAndFrameworkResources_PreserveManagedMetadata()
     {
         await using var native = await ConnectAsync(TestServerCommand.Get());

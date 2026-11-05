@@ -32,4 +32,62 @@ public sealed class SdkHelperProtocolTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             SdkHelperProtocol.ReadMessageAsync(stream, 1, cancellation.Token));
     }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task WaitForProcessAndStreams_PropagatesEitherReaderFailureBeforeExit(bool failStdout)
+    {
+        using var stream = new MemoryStream([1, 2]);
+        var failedReader = SdkHelperProtocol.ReadMessageAsync(stream, 1, TestContext.Current.CancellationToken);
+        var processExit = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var otherReader = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var completion = SdkHelperProtocol.WaitForProcessAndStreamsAsync(
+            processExit.Task, failStdout ? failedReader : otherReader.Task, failStdout ? otherReader.Task : failedReader);
+        await Assert.ThrowsAsync<InvalidDataException>(() => completion.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
+        Assert.False(processExit.Task.IsCompleted);
+    }
+
+    [Fact]
+    public async Task WaitForProcessAndStreams_ObservesFailureAfterAnotherReaderCompletes()
+    {
+        var processExit = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var stderr = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var completion = SdkHelperProtocol.WaitForProcessAndStreamsAsync(processExit.Task, Task.CompletedTask, stderr.Task);
+        var failure = new InvalidDataException("stderr exceeded its limit");
+        stderr.SetException(failure);
+
+        var actual = await Assert.ThrowsAsync<InvalidDataException>(
+            () => completion.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
+        Assert.Same(failure, actual);
+        Assert.False(processExit.Task.IsCompleted);
+    }
+
+    [Fact]
+    public async Task WaitForProcessAndStreams_PreservesCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var processExit = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var stderr = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            SdkHelperProtocol.WaitForProcessAndStreamsAsync(
+                processExit.Task, Task.FromCanceled(cancellation.Token), stderr.Task));
+        Assert.False(processExit.Task.IsCompleted);
+    }
+
+    [Fact]
+    public async Task WaitForProcessAndStreams_WaitsForAllSuccessfulOperations()
+    {
+        var processExit = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var stdout = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var stderr = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var completion = SdkHelperProtocol.WaitForProcessAndStreamsAsync(processExit.Task, stdout.Task, stderr.Task);
+        stdout.SetResult();
+        processExit.SetResult();
+        Assert.False(completion.IsCompleted);
+        stderr.SetResult();
+        await completion.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+    }
 }

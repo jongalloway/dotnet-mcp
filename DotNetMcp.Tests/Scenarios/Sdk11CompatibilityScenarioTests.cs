@@ -108,14 +108,13 @@ public sealed class Sdk11CompatibilityScenarioTests(ITestOutputHelper output)
         }
         finally
         {
-            if (ownedWorker is not null)
+            using (ownedWorker)
             {
-                if (!ownedWorker.HasExited)
+                if (ownedWorker is not null && !ownedWorker.HasExited)
                 {
                     ownedWorker.Kill(entireProcessTree: true);
                     await ownedWorker.WaitForExitAsync(CancellationToken.None);
                 }
-                ownedWorker.Dispose();
             }
             if (await client.Client.GetTaskAsync(taskId, TestContext.Current.CancellationToken) is WorkingTaskResult or InputRequiredTaskResult)
                 await client.Client.CancelTaskAsync(taskId, TestContext.Current.CancellationToken);

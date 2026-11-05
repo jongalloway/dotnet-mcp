@@ -40,7 +40,8 @@ internal static class SdkHelperClient
                 SdkHelperProtocol.MaximumRequestBytes, cancellation.Token);
             await process.StandardInput.BaseStream.WriteAsync(input, cancellation.Token);
             process.StandardInput.Close();
-            await process.WaitForExitAsync(cancellation.Token);
+            await SdkHelperProtocol.WaitForProcessAndStreamsAsync(
+                process.WaitForExitAsync(cancellation.Token), stdout, stderr);
             var output = await stdout;
             var errors = Encoding.UTF8.GetString(await stderr);
             if (process.ExitCode != 0)

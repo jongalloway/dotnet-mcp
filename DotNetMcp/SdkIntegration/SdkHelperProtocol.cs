@@ -18,6 +18,17 @@ internal static class SdkHelperProtocol
         }
         return message.ToArray();
     }
+
+    internal static async Task WaitForProcessAndStreamsAsync(Task processExit, Task stdout, Task stderr)
+    {
+        var pending = new List<Task> { processExit, stdout, stderr };
+        while (pending.Count > 0)
+        {
+            var completed = await Task.WhenAny(pending);
+            await completed;
+            pending.Remove(completed);
+        }
+    }
 }
 
 internal enum SdkHelperOperation
