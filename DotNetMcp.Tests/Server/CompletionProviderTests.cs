@@ -18,6 +18,20 @@ public class CompletionProviderTests
 {
     #region Framework Completions
 
+    [Theory]
+    [InlineData("2026-11-09", false)]
+    [InlineData("2026-11-10", true)]
+    [InlineData("2026-11-11", true)]
+    public async Task FrameworkCompletions_TrackGaButRetainEolCandidates(string date, bool includesNet11)
+    {
+        var result = (await CompletionProvider.GetCompletionsAsync(
+            "framework", "", TestContext.Current.CancellationToken, DateOnly.Parse(date))).ToList();
+        Assert.Equal(includesNet11, result.Contains("net11.0"));
+        Assert.Contains("net8.0", result);
+        Assert.Contains("net6.0", result);
+        Assert.Equal(result.Count, result.Distinct().Count());
+    }
+
     [Fact]
     public async Task GetCompletionsAsync_Framework_EmptyPrefix_ReturnsAllModernFrameworks()
     {

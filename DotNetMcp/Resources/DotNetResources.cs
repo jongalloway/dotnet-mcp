@@ -139,19 +139,21 @@ public sealed class DotNetResources
         return int.TryParse(firstSegment, out major);
     }
 
-    internal static List<string> GetSupportedModernFrameworksForResources(IEnumerable<SdkInfo> installedSdks)
+    internal static List<string> GetSupportedModernFrameworksForResources(IEnumerable<SdkInfo> installedSdks, DateOnly? asOf = null)
     {
-        var supportedModernFrameworks = FrameworkHelper.GetSupportedModernFrameworks().ToList();
-
-        // Only surface preview TFMs when the corresponding SDK major version is installed.
-        // This avoids suggesting frameworks users can't actually target.
-        if (installedSdks.Any(sdk => TryGetSdkMajorVersion(sdk.Version, out var major) && major == 11))
-        {
-            supportedModernFrameworks.Insert(0, DotNetSdkConstants.TargetFrameworks.Net110);
-        }
-
-        return supportedModernFrameworks;
+        var hasNet11Sdk = installedSdks.Any(sdk => TryGetSdkMajorVersion(sdk.Version, out var major) && major == 11);
+        return FrameworkHelper.GetModernFrameworks(asOf ?? FrameworkHelper.EvaluationDate, includePreview: hasNet11Sdk).ToList();
     }
+
+    internal static FrameworkResourceData DescribeFrameworks(IEnumerable<SdkInfo> installedSdks, DateOnly asOf)
+        => new(
+            GetSupportedModernFrameworksForResources(installedSdks, asOf)
+                .Select(fw => ResourceFrameworkInfo.Describe(fw, asOf)).ToArray(),
+            FrameworkHelper.GetSupportedNetCoreFrameworks()
+                .Select(fw => ResourceFrameworkInfo.Describe(fw, asOf)).ToArray(),
+            FrameworkHelper.GetSupportedNetStandardFrameworks()
+                .Select(fw => ResourceFrameworkInfo.Describe(fw, asOf)).ToArray(),
+            FrameworkHelper.GetLatestRecommendedFramework(asOf), FrameworkHelper.GetLatestLtsFramework(asOf));
 
     public DotNetResources(ILogger<DotNetResources> logger)
     {
@@ -276,7 +278,7 @@ public sealed class DotNetResources
     [McpServerResource(
         UriTemplate = "dotnet://frameworks",
         Name = "Framework Information",
-        Title = "Information about supported .NET frameworks (TFMs) including LTS status",
+        Title = "Information about known .NET frameworks (TFMs), release types, and support status",
         MimeType = "application/json")]
     [McpMeta("category", "framework")]
     [McpMeta("dataFormat", "json")]
@@ -287,24 +289,7 @@ public sealed class DotNetResources
         try
         {
             var sdkEntry = await _sdkCacheManager.GetOrLoadAsync(() => LoadSdksAsync(_logger));
-            var supportedModernFrameworks = GetSupportedModernFrameworksForResources(sdkEntry.Data);
-
-            var modernFrameworks = supportedModernFrameworks
-                .Select(fw => new ResourceFrameworkInfo(fw, FrameworkHelper.GetFrameworkDescription(fw),
-                    FrameworkHelper.GetFrameworkVersion(fw), IsLts: FrameworkHelper.IsLtsFramework(fw),
-                    IsModernNet: true)).ToArray();
-
-            var netCoreFrameworks = FrameworkHelper.GetSupportedNetCoreFrameworks()
-                .Select(fw => new ResourceFrameworkInfo(fw, FrameworkHelper.GetFrameworkDescription(fw),
-                    FrameworkHelper.GetFrameworkVersion(fw), IsLts: FrameworkHelper.IsLtsFramework(fw),
-                    IsNetCore: true)).ToArray();
-
-            var netStandardFrameworks = FrameworkHelper.GetSupportedNetStandardFrameworks()
-                .Select(fw => new ResourceFrameworkInfo(fw, FrameworkHelper.GetFrameworkDescription(fw),
-                    FrameworkHelper.GetFrameworkVersion(fw), IsNetStandard: true)).ToArray();
-
-            var response = new FrameworkResourceData(modernFrameworks, netCoreFrameworks, netStandardFrameworks,
-                FrameworkHelper.GetLatestRecommendedFramework(), FrameworkHelper.GetLatestLtsFramework());
+            var response = DescribeFrameworks(sdkEntry.Data, FrameworkHelper.EvaluationDate);
 
             return ServerJson.SerializeResource(response);
         }

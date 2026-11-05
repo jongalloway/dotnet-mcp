@@ -51,7 +51,7 @@ See [SDK compatibility](sdk-v1.1-compatibility.md) for confirmation, deprecated 
 
 The server and tests target both frameworks. Hosting follows the same split: 10.0.14 on .NET 10 and 11.0.0-rc.3.26522.148 on .NET 11. The .NET 11 dependency graph uses NuGet 8.0.0-rc.2448; the direct .NET 10 NuGet.Frameworks reference remains 7.9.0. `NuGet.Config` adds Microsoft's public `dotnet-tools` feed for the RC3 NuGet dependencies that are not yet available on NuGet.org. The packed tool includes its dependencies, so consumer installs do not need that feed.
 
-Both builds expose the same tool surface. Framework recommendations remain .NET 10 LTS. The server runtime does not determine the SDK used for project CLI commands: a project-local `global.json` can select .NET 10 while the server runs on .NET 11.
+Both builds expose the same tool surface. Project/template defaults remain .NET 10 LTS, independently of the latest supported GA recommendation: framework metadata recommends .NET 11 STS starting at its GA date, while the latest LTS remains .NET 10. The server runtime does not determine the SDK used for project CLI commands: a project-local `global.json` can select .NET 10 while the server runs on .NET 11.
 
 Provides programmatic access to the .NET template system:
 
@@ -217,24 +217,31 @@ await TemplateEngineHelper.ClearCacheAsync();
 
 ### FrameworkHelper
 
-Located in `DotNetMcp/FrameworkHelper.cs`
+Located in `DotNetMcp/SdkIntegration/FrameworkHelper.cs`
 
 Provides framework validation and information:
 
 **Methods:**
 
 - `IsValidFramework(framework)` - Validate a TFM
-- `GetFrameworkDescription(framework)` - Get friendly name (e.g., ".NET 8.0 (LTS)")
-- `IsLtsFramework(framework)` - Check if framework is Long-Term Support
+- `GetFrameworkDescription(framework)` - Get friendly name with date-aware release/support markers
+- `GetFrameworkLifecycle(framework)` - Recorded LTS/STS type, Preview/Supported/EOL status, GA date, and inclusive support end date; null when unknown/not applicable
+- `IsLtsFramework(framework)` - Historical LTS classification, including EOL LTS releases
 - `IsModernNet(framework)` - Check if .NET 5.0+
 - `IsNetCore(framework)` - Check if .NET Core
 - `IsNetFramework(framework)` - Check if .NET Framework
 - `IsNetStandard(framework)` - Check if .NET Standard
-- `GetLatestRecommendedFramework()` - Get latest recommended version
-- `GetLatestLtsFramework()` - Get latest LTS version
-- `GetSupportedModernFrameworks()` - List modern .NET versions
-- `GetSupportedNetCoreFrameworks()` - List .NET Core versions
+- `GetLatestRecommendedFramework()` - Latest recorded supported GA modern .NET version
+- `GetLatestLtsFramework()` - Latest recorded supported GA modern .NET LTS version
+- `GetSupportedModernFrameworks()` - Known modern .NET versions, retaining EOL releases and excluding previews
+- `GetSupportedNetCoreFrameworks()` - Known .NET Core versions, including EOL releases
 - `GetSupportedNetStandardFrameworks()` - List .NET Standard versions
+
+Lifecycle dates come from the [Microsoft support policy](https://dotnet.microsoft.com/en-us/platform/support/policy/dotnet-core) and [.NET 11 release notes](https://github.com/dotnet/core/blob/main/release-notes/11.0/README.md). Evaluation uses the UTC calendar date: a release is supported on its published end-of-support date and EOL on the following day. .NET 11 becomes GA/STS on November 10, 2026; .NET 8 and 9 become EOL on November 11. Both .NET 10 and 11 have a recorded support end date of November 14, 2028.
+
+Resource and SDK tool lists share these lifecycle decisions. Before GA, .NET 11 is SDK-gated; after GA it appears without requiring an installed SDK 11. Catalog membership is not a guarantee of current Microsoft support or installed targeting capability. .NET Standard and OS-dependent .NET Framework support are not assigned invented lifecycle dates. Recommendation helpers fail explicitly if no recorded supported release remains, requiring a catalog update. Project validation warns about known EOL TFMs, including historical LTS versions.
+
+See [framework lifecycle JSON fields](machine-readable-contract.md#framework-lifecycle-metadata) for the resource/tool contract.
 
 **Usage Example:**
 

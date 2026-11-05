@@ -33,6 +33,10 @@ public sealed partial class DotNetCliTools
     [McpMeta("commonlyUsed", true)]
     [McpMeta("tags", JsonValue = """["capabilities","version","discovery","orchestration","metadata"]""")]
     public async partial Task<CallToolResult> DotnetServerCapabilities(McpServer? server = null, RequestContext<CallToolRequestParams>? context = null)
+        => await DotnetServerCapabilitiesCoreAsync(server, context);
+
+    internal async Task<CallToolResult> DotnetServerCapabilitiesCoreAsync(
+        McpServer? server = null, RequestContext<CallToolRequestParams>? context = null, DateOnly? asOf = null)
     {
         // Get the assembly version
         var assembly = typeof(DotNetCliTools).Assembly;
@@ -45,6 +49,7 @@ public sealed partial class DotNetCliTools
         if (StructuredContentHelper.IsFailure(sdksOutput))
             return StructuredContentHelper.ApplicationError(sdksOutput);
         var installedSdks = ParseInstalledSdks(sdksOutput);
+        var evaluationDate = asOf ?? FrameworkHelper.EvaluationDate;
 
         // Create the capabilities snapshot
         var capabilities = new ServerCapabilities
@@ -92,8 +97,8 @@ public sealed partial class DotNetCliTools
             SdkVersions = new SdkVersionInfo
             {
                 Installed = installedSdks,
-                Recommended = FrameworkHelper.GetLatestRecommendedFramework(),
-                Lts = FrameworkHelper.GetLatestLtsFramework()
+                Recommended = FrameworkHelper.GetLatestRecommendedFramework(evaluationDate),
+                Lts = FrameworkHelper.GetLatestLtsFramework(evaluationDate)
             }
         };
 
@@ -189,7 +194,7 @@ public sealed partial class DotNetCliTools
         result.AppendLine("  • dotnet://sdk-info - Installed SDKs with versions and paths");
         result.AppendLine("  • dotnet://runtime-info - Installed runtimes with metadata");
         result.AppendLine("  • dotnet://templates - Complete template catalog");
-        result.AppendLine("  • dotnet://frameworks - Framework information with LTS status");
+        result.AppendLine("  • dotnet://frameworks - Framework release types, support status, and end-of-support dates");
         result.AppendLine("  • dotnet://workspace - Workspace solution/project snapshot with TFMs and package counts");
         result.AppendLine();
 

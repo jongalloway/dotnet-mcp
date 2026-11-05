@@ -138,7 +138,10 @@ public static class ProjectAnalysisHelper
     /// <param name="projectPath">Path to the .csproj file</param>
     /// <param name="logger">Optional logger instance</param>
     /// <returns>JSON string containing validation results</returns>
-    public static async Task<string> ValidateProjectAsync(string projectPath, ILogger? logger = null)
+    public static Task<string> ValidateProjectAsync(string projectPath, ILogger? logger = null)
+        => ValidateProjectAsync(projectPath, logger, FrameworkHelper.EvaluationDate);
+
+    internal static async Task<string> ValidateProjectAsync(string projectPath, ILogger? logger, DateOnly asOf)
     {
         return await Task.Run(() =>
         {
@@ -183,9 +186,14 @@ public static class ProjectAnalysisHelper
                         {
                             warnings.Add($"Target framework '{framework}' may not be valid");
                         }
+                        else if (FrameworkHelper.GetFrameworkLifecycle(framework, asOf)?.SupportStatus == "EOL")
+                        {
+                            warnings.Add($"Target framework '{framework}' is out of support (EOL).");
+                            recommendations.Add($"Upgrade '{framework}' to a supported framework. Latest LTS: {FrameworkHelper.GetLatestLtsFramework(asOf)}");
+                        }
                         else if (!FrameworkHelper.IsLtsFramework(framework) && FrameworkHelper.IsModernNet(framework))
                         {
-                            recommendations.Add($"Consider using LTS framework instead of '{framework}'. Latest LTS: {FrameworkHelper.GetLatestLtsFramework()}");
+                            recommendations.Add($"Consider using LTS framework instead of '{framework}'. Latest LTS: {FrameworkHelper.GetLatestLtsFramework(asOf)}");
                         }
                     }
                 }

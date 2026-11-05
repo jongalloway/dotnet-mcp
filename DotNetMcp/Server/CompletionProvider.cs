@@ -22,7 +22,10 @@ internal static class CompletionProvider
     /// <param name="argumentName">The MCP argument name (e.g., "template", "framework").</param>
     /// <param name="prefix">The current input value used to filter results.</param>
     /// <param name="ct">Cancellation token.</param>
-    public static async Task<IEnumerable<string>> GetCompletionsAsync(string argumentName, string prefix, CancellationToken ct)
+    public static Task<IEnumerable<string>> GetCompletionsAsync(string argumentName, string prefix, CancellationToken ct)
+        => GetCompletionsAsync(argumentName, prefix, ct, FrameworkHelper.EvaluationDate);
+
+    internal static async Task<IEnumerable<string>> GetCompletionsAsync(string argumentName, string prefix, CancellationToken ct, DateOnly asOf)
     {
         // Template completions apply prefix filtering before dedup+sort to avoid
         // processing the full (potentially large) template list on every keystroke.
@@ -31,7 +34,7 @@ internal static class CompletionProvider
 
         IEnumerable<string> candidates = argumentName switch
         {
-            "framework" => FrameworkHelper.GetSupportedModernFrameworks(),
+            "framework" => FrameworkHelper.GetModernFrameworks(asOf),
             "configuration" => [DotNetSdkConstants.Configurations.Debug, DotNetSdkConstants.Configurations.Release],
             "runtime" => GetRuntimeCompletions(),
             _ => []

@@ -293,6 +293,37 @@ public class ProjectAnalysisHelperTests
         }
     }
 
+    [Theory]
+    [InlineData("2026-11-10", false)]
+    [InlineData("2026-11-11", true)]
+    public async Task ValidateProjectAsync_HistoricalLtsGetsEolWarningAfterSupportEnds(string date, bool isEol)
+    {
+        var projectFile = CreateTempProject("""
+            <Project>
+              <PropertyGroup>
+                <TargetFramework>net8.0</TargetFramework>
+                <OutputType>Exe</OutputType>
+                <Nullable>enable</Nullable>
+              </PropertyGroup>
+            </Project>
+            """);
+        try
+        {
+            using var json = JsonDocument.Parse(
+                await ProjectAnalysisHelper.ValidateProjectAsync(projectFile, _logger, DateOnly.Parse(date)));
+            Assert.True(json.RootElement.GetProperty("success").GetBoolean());
+            var warnings = json.RootElement.GetProperty("warnings").EnumerateArray().Select(item => item.GetString()).ToArray();
+            Assert.Equal(isEol, warnings.Any(warning => warning?.Contains("out of support (EOL)", StringComparison.Ordinal) == true));
+            var recommendations = json.RootElement.GetProperty("recommendations").EnumerateArray().Select(item => item.GetString()).ToArray();
+            Assert.Equal(isEol, recommendations.Any(recommendation =>
+                recommendation?.Contains("Latest LTS: net10.0", StringComparison.Ordinal) == true));
+        }
+        finally
+        {
+            Directory.Delete(Path.GetDirectoryName(projectFile)!, recursive: true);
+        }
+    }
+
     [Fact]
     public async Task ValidateProjectAsync_WithMalformedProject_ReturnsEvaluationError()
     {
