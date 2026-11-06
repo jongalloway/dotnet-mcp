@@ -126,8 +126,23 @@ function Invoke-Checked([string[]] $Arguments, [string] $WorkingDirectory = $wor
     }
 }
 
-function Invoke-Rpc($Process, [int] $Id, [string] $Method, [hashtable] $Parameters) {
-    $message = @{ jsonrpc = '2.0'; id = $Id; method = $Method; params = $Parameters } | ConvertTo-Json -Depth 20 -Compress
+$script:rpcId = 0
+$script:protocol = '2025-11-25'
+function Invoke-Rpc($Process, [string] $Method, [hashtable] $Parameters) {
+    $id = ++$script:rpcId
+    if ($script:protocol -eq '2026-07-28') {
+        if (-not $Parameters.ContainsKey('_meta')) { $Parameters['_meta'] = @{} }
+        $Parameters['_meta']['io.modelcontextprotocol/protocolVersion'] = $script:protocol
+        $Parameters['_meta']['io.modelcontextprotocol/clientInfo'] = @{ name = 'package-compatibility'; version = '1.0' }
+        if (-not $Parameters['_meta'].ContainsKey('io.modelcontextprotocol/clientCapabilities')) {
+            $Parameters['_meta']['io.modelcontextprotocol/clientCapabilities'] = @{}
+        }
+        if ($Method.StartsWith('tasks/')) {
+            $Parameters['_meta']['io.modelcontextprotocol/clientCapabilities'] = @{ extensions = @{ 'io.modelcontextprotocol/tasks' = @{} } }
+        }
+    }
+    $message = @{ jsonrpc = '2.0'; id = $id; method = $Method; params = $Parameters } | ConvertTo-Json -Depth 20 -Compress
+    Add-Content -LiteralPath $script:transcript ">> $message"
     $Process.StandardInput.WriteLine($message)
     $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
     do {
@@ -136,8 +151,9 @@ function Invoke-Rpc($Process, [int] $Id, [string] $Method, [hashtable] $Paramete
         if (-not $read.Wait($remaining)) { throw "Timed out waiting for $Method" }
         $line = $read.GetAwaiter().GetResult()
         if ($null -eq $line) { throw "Server exited before responding to $Method" }
+        Add-Content -LiteralPath $script:transcript "<< $line"
         $response = $line | ConvertFrom-Json -AsHashtable
-        if ($response.ContainsKey('id') -and $response.id -eq $Id) {
+        if ($response.ContainsKey('id') -and $response.id -eq $id) {
             if ($response.ContainsKey('error')) { throw "$Method failed: $($response.error | ConvertTo-Json -Compress)" }
             return $response.result
         }
@@ -145,13 +161,177 @@ function Invoke-Rpc($Process, [int] $Id, [string] $Method, [hashtable] $Paramete
     } while ($true)
 }
 
-function Invoke-Tool($Process, [int] $Id, [string] $Name, [hashtable] $Arguments) {
-    $result = Invoke-Rpc $Process $Id 'tools/call' @{ name = $Name; arguments = $Arguments }
+function Assert-ToolResult($Result, [bool] $ExpectError = $false, [switch] $TaskResult) {
+    if (-not $Result.ContainsKey('content') -or
+        ($script:protocol -eq '2026-07-28' -and -not $TaskResult -and
+            (-not $Result.ContainsKey('resultType') -or $Result.resultType -ne 'complete'))) {
+        throw "Expected an inline tool result: $($Result | ConvertTo-Json -Depth 20 -Compress)"
+    }
+    $isError = $Result.ContainsKey('isError') -and $Result.isError -eq $true
+    if ($isError -ne $ExpectError) {
+        throw "Unexpected tool error state: $($Result | ConvertTo-Json -Depth 20 -Compress)"
+    }
+}
+
+function Invoke-Tool($Process, [string] $Name, [hashtable] $Arguments) {
+    $result = Invoke-Rpc $Process 'tools/call' @{ name = $Name; arguments = $Arguments }
+    Assert-ToolResult $result
     $text = ($result.content | Where-Object type -EQ 'text' | ForEach-Object text) -join "`n"
     if (($result.ContainsKey('isError') -and $result.isError -eq $true) -or $text -match 'Exit Code: [1-9]|^Error:') {
         throw "${Name} failed: $text"
     }
     return $text
+}
+
+function Wait-Task($Process, [string] $TaskId) {
+    $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+    do {
+        $task = Invoke-Rpc $Process 'tasks/get' @{ taskId = $TaskId }
+        if ($task.status -ne 'working') { return $task }
+        $interval = if ($task.ContainsKey('pollIntervalMs')) { [Math]::Max(100, $task.pollIntervalMs) } else { 100 }
+        Start-Sleep -Milliseconds $interval
+    } while ([DateTime]::UtcNow -lt $deadline)
+    throw "Task $TaskId did not finish."
+}
+
+function Start-Task($Process, [string] $Name, [hashtable] $Arguments) {
+    $created = Invoke-Rpc $Process 'tools/call' @{
+        name = $Name; arguments = $Arguments
+        _meta = @{ 'io.modelcontextprotocol/clientCapabilities' = @{ extensions = @{ 'io.modelcontextprotocol/tasks' = @{} } } }
+    }
+    if ($created.resultType -ne 'task' -or [string]::IsNullOrWhiteSpace($created.taskId)) {
+        throw "Expected a created task: $($created | ConvertTo-Json -Depth 20 -Compress)"
+    }
+    return $created.taskId
+}
+
+function Assert-Apps($Process, $Tools, $Capabilities) {
+    if (-not $Capabilities.extensions.ContainsKey('io.modelcontextprotocol/ui')) { throw 'Apps extension is missing.' }
+    $resources = Invoke-Rpc $Process 'resources/list' @{}
+    foreach ($dashboard in @(
+        @{ tool = 'dotnet_sdk'; uri = 'ui://dotnet-mcp/sdk-dashboard' },
+        @{ tool = 'dotnet_server_metrics'; uri = 'ui://dotnet-mcp/server-metrics' }
+    )) {
+        $tool = @($Tools | Where-Object name -EQ $dashboard.tool)
+        if ($tool.Count -ne 1 -or $tool[0]._meta.ui.resourceUri -ne $dashboard.uri -or
+            $tool[0]._meta['ui/resourceUri'] -ne $dashboard.uri) { throw "Invalid Apps linkage: $($dashboard.tool)" }
+        $resource = @($resources.resources | Where-Object uri -EQ $dashboard.uri)
+        if ($resource.Count -ne 1 -or $resource[0].mimeType -ne 'text/html;profile=mcp-app' -or
+            $resource[0]._meta.ui.prefersBorder -ne $true) { throw "Invalid Apps discovery: $($dashboard.uri)" }
+        $read = Invoke-Rpc $Process 'resources/read' @{ uri = $dashboard.uri }
+        if ($read.contents.Count -ne 1 -or $read.contents[0].uri -ne $dashboard.uri -or
+            $read.contents[0].mimeType -ne $resource[0].mimeType -or
+            $read.contents[0].text -notmatch '^<!DOCTYPE html>' -or
+            $read.contents[0]._meta.ui.prefersBorder -ne $true) { throw "Invalid Apps resource: $($dashboard.uri)" }
+    }
+}
+
+function Assert-Queries($Process, $Tools, [string] $Project) {
+    foreach ($query in @(
+        @{ name = 'dotnet_sdk_query'; actions = @('Version', 'Info', 'ListSdks', 'ListRuntimes', 'FrameworkInfo', 'CacheMetrics'); excluded = 'ClearTemplateCache' },
+        @{ name = 'dotnet_project_query'; actions = @('Logs'); excluded = 'Stop' },
+        @{ name = 'dotnet_server_metrics_query'; actions = @('Get', 'TokenSavingsGet'); excluded = 'Reset' }
+    )) {
+        $tool = @($Tools | Where-Object name -EQ $query.name)
+        if ($tool.Count -ne 1) { throw "Missing query tool: $($query.name)" }
+        $tool = $tool[0]
+        if ($tool.annotations.readOnlyHint -ne $true -or $tool.annotations.destructiveHint -ne $false -or
+            $tool.annotations.idempotentHint -ne $true -or $tool.annotations.openWorldHint -ne $false -or
+            $tool._meta.ContainsKey('ui') -or $tool._meta.ContainsKey('ui/resourceUri') -or
+            (Compare-Object @($tool.inputSchema.properties.action.enum) $query.actions)) {
+            throw "Invalid query discovery: $($query.name)"
+        }
+        foreach ($action in @($query.excluded, 'NotAnAction')) {
+            $arguments = @{ action = $action }
+            if ($query.name -eq 'dotnet_project_query') { $arguments.sessionId = 'not-started' }
+            $rejected = Invoke-Rpc $Process 'tools/call' @{ name = $query.name; arguments = $arguments }
+            Assert-ToolResult $rejected -ExpectError $true
+        }
+        if ($query.name -ne 'dotnet_project_query') {
+            foreach ($action in $query.actions) {
+                $arguments = @{ action = $action }
+                if ($action -eq 'FrameworkInfo') { $arguments.framework = $ExpectedFramework }
+                $null = Invoke-Tool $Process $query.name $arguments
+            }
+        }
+    }
+    $sessionId = $null
+    try {
+        $run = Invoke-Tool $Process 'dotnet_project' @{
+            action = 'Run'; project = $Project; noBuild = $true; startMode = 'Background'; workingDirectory = $projectRoot
+        }
+        if ($run -notmatch 'Session ID: ([^\r\n]+)') { throw "Background session missing: $run" }
+        $sessionId = $Matches[1].Trim()
+        $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+        do {
+            $logs = Invoke-Tool $Process 'dotnet_project_query' @{ action = 'Logs'; sessionId = $sessionId; tailLines = 10 }
+            if ($logs -match 'compatibility-ready') { return }
+            Start-Sleep -Milliseconds 100
+        } while ([DateTime]::UtcNow -lt $deadline)
+        throw "Background query did not retrieve application output: $logs"
+    }
+    finally {
+        if ($sessionId) { $null = Invoke-Tool $Process 'dotnet_project' @{ action = 'Stop'; sessionId = $sessionId } }
+    }
+}
+
+function Assert-Tasks($Process, [string] $ProjectDirectory, [string] $ApplicationDll) {
+    foreach ($expectError in @($false, $true)) {
+        $name = if ($expectError) { 'dotnet_project_query' } else { 'dotnet_server_capabilities' }
+        $arguments = if ($expectError) { @{ action = 'Logs'; sessionId = 'not-started' } } else { @{} }
+        $taskId = Start-Task $Process $name $arguments
+        $completed = Wait-Task $Process $taskId
+        if ($completed.status -ne 'completed') { throw "Task failed: $($completed | ConvertTo-Json -Depth 20 -Compress)" }
+        Assert-ToolResult $completed.result -ExpectError $expectError -TaskResult
+        if (-not $expectError -and $completed.result.structuredContent.supports.asyncTasks -ne $true) {
+            throw 'Opted-in task did not report asyncTasks.'
+        }
+        $inline = Invoke-Rpc $Process 'tools/call' @{ name = 'dotnet_server_capabilities'; arguments = @{} }
+        Assert-ToolResult $inline
+        if ($inline.structuredContent.supports.asyncTasks -ne $false) { throw 'Tasks opt-in leaked into an ordinary call.' }
+    }
+
+    $marker = Join-Path $ProjectDirectory 'task-worker.pid'
+    $project = Join-Path $ProjectDirectory 'cancellable.csproj'
+    $command = [System.Security.SecurityElement]::Escape("`"$dotnet`" `"$ApplicationDll`" `"$marker`"")
+    "<Project><Target Name=`"Build`"><Exec Command=`"$command`" /></Target></Project>" | Set-Content -LiteralPath $project
+    $taskId = Start-Task $Process 'dotnet_project' @{
+        action = 'Build'; project = $project; workingDirectory = $projectRoot; noRestore = $true
+    }
+    $worker = $null
+    $taskCancelled = $false
+    try {
+        $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+        while (-not (Test-Path -LiteralPath $marker) -or [string]::IsNullOrWhiteSpace((Get-Content -LiteralPath $marker -Raw))) {
+            if ([DateTime]::UtcNow -ge $deadline) { throw 'Task worker did not start.' }
+            $working = Invoke-Rpc $Process 'tasks/get' @{ taskId = $taskId }
+            if ($working.status -ne 'working') {
+                throw "Task stopped before starting its worker: $($working | ConvertTo-Json -Depth 20 -Compress)"
+            }
+            $interval = if ($working.ContainsKey('pollIntervalMs')) { [Math]::Max(100, $working.pollIntervalMs) } else { 100 }
+            Start-Sleep -Milliseconds $interval
+        }
+        $worker = [System.Diagnostics.Process]::GetProcessById([int](Get-Content -LiteralPath $marker -Raw))
+        if ($worker.HasExited) { throw 'Task worker exited before cancellation.' }
+        $working = Invoke-Rpc $Process 'tasks/get' @{ taskId = $taskId }
+        if ($working.status -ne 'working') { throw "Expected working task, got $($working.status)." }
+        $null = Invoke-Rpc $Process 'tasks/cancel' @{ taskId = $taskId }
+        $cancelled = Wait-Task $Process $taskId
+        if ($cancelled.status -ne 'cancelled') { throw "Expected cancelled task, got $($cancelled.status)." }
+        $taskCancelled = $true
+        if (-not $worker.WaitForExit($TimeoutSeconds * 1000)) { throw 'Task cancellation left the CLI worker running.' }
+    }
+    finally {
+        try {
+            if (-not $taskCancelled) { $null = Invoke-Rpc $Process 'tasks/cancel' @{ taskId = $taskId } }
+        }
+        finally {
+            if ($null -ne $worker) {
+                if (-not $worker.HasExited) { $worker.Kill($true); $worker.WaitForExit() }
+                $worker.Dispose()
+            }
+        }
+    }
 }
 
 $sdkList = Invoke-Checked @('--list-sdks')
@@ -173,7 +353,6 @@ $projectFramework = 'net' + $ProjectSdkVersion.Split('.')[0] + '.0'
 $scriptSupportsGlobalJsonBypass = [int]$toolSdks[0].Name.Split('.')[0] -ge 11
 $results = @()
 foreach ($invocation in @('tool', 'dnx', 'dnx-script')) {
-    $trace = Join-Path $OutputDirectory "$invocation-host.txt"
     $startupDirectory = $work
     $rawArguments = ''
     if ($invocation -eq 'tool') {
@@ -218,60 +397,102 @@ foreach ($invocation in @('tool', 'dnx', 'dnx-script')) {
         }
         else { $command = $script }
     }
-    $process = New-ChildProcess $command $arguments $trace -WorkingDirectory $startupDirectory -RawArguments $rawArguments
-    $stderr = $process.StandardError.ReadToEndAsync()
-    try {
-        $null = Invoke-Rpc $process 1 'initialize' @{
-            protocolVersion = '2025-11-25'
-            capabilities = @{}
-            clientInfo = @{ name = 'package-compatibility'; version = '1.0' }
-        }
-        $process.StandardInput.WriteLine('{"jsonrpc":"2.0","method":"notifications/initialized"}')
-        $tools = Invoke-Rpc $process 2 'tools/list' @{}
-        foreach ($name in @('dotnet_sdk', 'dotnet_project')) {
-            if ($name -notin $tools.tools.name) { throw "Missing MCP tool: $name" }
-        }
+    foreach ($protocol in @('2025-11-25', '2026-07-28')) {
+        $script:protocol = $protocol
+        $trace = Join-Path $OutputDirectory "$invocation-$protocol-host.txt"
+        $script:transcript = Join-Path $OutputDirectory "$invocation-$protocol-rpc.txt"
         if ($invocation -eq 'dnx-script' -and $scriptSupportsGlobalJsonBypass) {
-            # Startup proved the script bypasses the missing SDK. Child project commands still use global.json.
-            @{ sdk = @{ version = $toolSdks[0].Name; rollForward = 'disable'; allowPrerelease = $true } } |
+            @{ sdk = @{ version = '99.0.100'; rollForward = 'disable' } } |
                 ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $scriptGlobalJson
         }
-        $templates = Invoke-Tool $process 3 'dotnet_sdk' @{ action = 'ListTemplates' }
-        if ($templates -notmatch 'console') { throw "Console template was not discovered: $templates" }
-        $projectDir = Join-Path $projectRoot "sample-$invocation"
-        $null = Invoke-Tool $process 4 'dotnet_project' @{
-            action = 'New'; template = 'console'; name = 'CompatibilitySample'
-            output = $projectDir; framework = $projectFramework; workingDirectory = $projectRoot
-        }
-        $project = Join-Path $projectDir 'CompatibilitySample.csproj'
-        $analysis = Invoke-Tool $process 5 'dotnet_project' @{ action = 'Analyze'; projectPath = $project }
-        if ($analysis -notmatch [regex]::Escape($projectFramework)) { throw "Missing framework in project analysis: $analysis" }
-        $build = Invoke-Tool $process 6 'dotnet_project' @{ action = 'Build'; project = $project; workingDirectory = $projectRoot }
-        if ($build -notmatch '"success"\s*:\s*true') { throw "Project build did not report success: $build" }
-    }
-    finally {
+        $process = New-ChildProcess $command $arguments $trace -WorkingDirectory $startupDirectory -RawArguments $rawArguments
+        $stderr = $process.StandardError.ReadToEndAsync()
         try {
-            $process.StandardInput.Close()
-            if (-not $process.WaitForExit(10000)) { $process.Kill($true); $process.WaitForExit() }
-            $stderr.GetAwaiter().GetResult() | Set-Content -LiteralPath (Join-Path $OutputDirectory "$invocation-stderr.txt")
+            if ($protocol -eq '2025-11-25') {
+                $discovery = Invoke-Rpc $process 'initialize' @{
+                    protocolVersion = $protocol
+                    capabilities = @{}
+                    clientInfo = @{ name = 'package-compatibility'; version = '1.0' }
+                }
+                if ($discovery.protocolVersion -ne $protocol) { throw "Protocol negotiation failed: $($discovery.protocolVersion)" }
+                $process.StandardInput.WriteLine('{"jsonrpc":"2.0","method":"notifications/initialized"}')
+            }
+            else {
+                $discovery = Invoke-Rpc $process 'server/discover' @{}
+                if ($protocol -notin $discovery.supportedVersions) { throw 'Current protocol is not supported.' }
+                if (-not $discovery.capabilities.extensions.ContainsKey('io.modelcontextprotocol/tasks')) { throw 'Tasks extension is missing.' }
+            }
+            $tools = Invoke-Rpc $process 'tools/list' @{}
+            foreach ($name in @('dotnet_sdk', 'dotnet_project', 'dotnet_package', 'dotnet_solution', 'dotnet_ef',
+                'dotnet_tool', 'dotnet_workload', 'dotnet_dev_certs', 'dotnet_help', 'dotnet_server_capabilities')) {
+                if ($name -notin $tools.tools.name) { throw "Missing MCP tool: $name" }
+            }
+            if ($invocation -eq 'dnx-script' -and $scriptSupportsGlobalJsonBypass) {
+                # Startup proved the script bypasses the missing SDK. Child project commands still use global.json.
+                @{ sdk = @{ version = $toolSdks[0].Name; rollForward = 'disable'; allowPrerelease = $true } } |
+                    ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $scriptGlobalJson
+            }
+            $snapshot = Invoke-Rpc $process 'tools/call' @{ name = 'dotnet_server_capabilities'; arguments = @{} }
+            Assert-ToolResult $snapshot
+            if ($snapshot.structuredContent.protocolVersion -ne $protocol -or
+                $snapshot.structuredContent.supports.asyncTasks -ne $false) { throw 'Incorrect ordinary request capabilities.' }
+            if ($snapshot.structuredContent.serverVersion.Split('+')[0] -ne $version.Split('+')[0]) {
+                throw "Server version does not match package version $version."
+            }
+            Assert-Apps $process $tools.tools $discovery.capabilities
+            $templates = Invoke-Tool $process 'dotnet_sdk' @{ action = 'ListTemplates' }
+            if ($templates -notmatch 'console') { throw "Console template was not discovered: $templates" }
+            $projectDir = Join-Path $projectRoot "sample-$invocation-$protocol"
+            $null = Invoke-Tool $process 'dotnet_project' @{
+                action = 'New'; template = 'console'; name = 'CompatibilitySample'
+                output = $projectDir; framework = $projectFramework; workingDirectory = $projectRoot
+            }
+            $project = Join-Path $projectDir 'CompatibilitySample.csproj'
+            @'
+using System;
+using System.IO;
+using System.Threading;
+Console.WriteLine("compatibility-ready");
+if (args.Length != 0) File.WriteAllText(args[0], Environment.ProcessId.ToString());
+Thread.Sleep(TimeSpan.FromMinutes(2));
+'@ | Set-Content -LiteralPath (Join-Path $projectDir 'Program.cs')
+            $analysis = Invoke-Tool $process 'dotnet_project' @{ action = 'Analyze'; projectPath = $project }
+            if ($analysis -notmatch [regex]::Escape($projectFramework)) { throw "Missing framework in project analysis: $analysis" }
+            $build = Invoke-Tool $process 'dotnet_project' @{ action = 'Build'; project = $project; workingDirectory = $projectRoot }
+            if ($build -notmatch '"success"\s*:\s*true') { throw "Project build did not report success: $build" }
+            Assert-Queries $process $tools.tools $project
+            if ($protocol -eq '2026-07-28') {
+                Assert-Tasks $process $projectDir (Join-Path $projectDir "bin/Debug/$projectFramework/CompatibilitySample.dll")
+            }
         }
-        finally { $process.Dispose() }
-    }
-    $hostTrace = Get-Content -LiteralPath $trace -Raw
-    $assetPattern = 'tools[/\\]' + [regex]::Escape($ExpectedFramework) + '[/\\]any[/\\]DotNetMcp.dll'
-    if ($hostTrace -notmatch $assetPattern) { throw "Host did not select $ExpectedFramework assets; see $trace" }
-    $runtimePattern = [regex]::Escape([System.IO.Path]::Join(
-        $DotnetRoot, 'shared', 'Microsoft.NETCore.App', $ExpectedRuntimeVersion, 'System.Private.CoreLib.dll'))
-    if ($hostTrace -notmatch $runtimePattern) { throw "Host did not load expected runtime; see $trace" }
-    $results += @{
-        invocation = $invocation; framework = $ExpectedFramework; runtime = $ExpectedRuntimeVersion
-        projectFramework = $projectFramework; projectSdk = $selectedProjectSdk; toolSdk = $selectedToolSdk
-        allowRollForward = $false; passed = $true
-        bypassedMissingGlobalSdk = ($invocation -eq 'dnx-script' -and $scriptSupportsGlobalJsonBypass)
+        finally {
+            try {
+                $process.StandardInput.Close()
+                if (-not $process.WaitForExit(10000)) { $process.Kill($true); $process.WaitForExit() }
+                $stderr.GetAwaiter().GetResult() | Set-Content -LiteralPath (Join-Path $OutputDirectory "$invocation-$protocol-stderr.txt")
+            }
+            finally { $process.Dispose() }
+        }
+        $hostTrace = Get-Content -LiteralPath $trace -Raw
+        $assetPattern = 'tools[/\\]' + [regex]::Escape($ExpectedFramework) + '[/\\]any[/\\]DotNetMcp.dll'
+        if ($hostTrace -notmatch $assetPattern) { throw "Host did not select $ExpectedFramework assets; see $trace" }
+        $runtimePattern = [regex]::Escape([System.IO.Path]::Join(
+            $DotnetRoot, 'shared', 'Microsoft.NETCore.App', $ExpectedRuntimeVersion, 'System.Private.CoreLib.dll'))
+        if ($hostTrace -notmatch $runtimePattern) { throw "Host did not load expected runtime; see $trace" }
+        $results += @{
+            invocation = $invocation; framework = $ExpectedFramework; runtime = $ExpectedRuntimeVersion
+            serverVersion = $snapshot.structuredContent.serverVersion
+            protocol = $protocol; features = @('inline', 'apps', 'queries', 'project-build')
+            tasks = $(if ($protocol -eq '2026-07-28') { 'passed' } else { 'not-applicable-legacy-inline' })
+            projectFramework = $projectFramework; projectSdk = $selectedProjectSdk; toolSdk = $selectedToolSdk
+            allowRollForward = $false; passed = $true
+            bypassedMissingGlobalSdk = ($invocation -eq 'dnx-script' -and $scriptSupportsGlobalJsonBypass)
+        }
     }
 }
 @{
     package = [System.IO.Path]::GetFileName($PackagePath)
+    version = $version
     sha256 = (Get-FileHash -LiteralPath $PackagePath -Algorithm SHA256).Hash
     sdkInventory = $sdkList; runtimeInventory = $runtimeList; results = $results
 } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $OutputDirectory 'results.json')

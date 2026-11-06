@@ -24,6 +24,28 @@ Recommended approach: keep the **authoritative release notes in the GitHub Relea
 - This avoids having to commit versioned markdown files just to cut a release.
 - A Git tag is the immutable “what code shipped” pointer; a GitHub Release is the editable “what changed” narrative.
 
+## Release preparation and publication
+
+Preparation and publication are separate gates. [#546](https://github.com/jongalloway/dotnet-mcp/issues/546) prepares compatibility evidence and the curated [Unreleased changelog](../CHANGELOG.md); [#562](https://github.com/jongalloway/dotnet-mcp/issues/562) tracks publication and validation of the published package.
+
+The provisional candidate is **1.2.0-rc.1**, retaining `@1.*` install links. The server is supported as an MCP application, not as a library: an MCP SDK dependency major bump alone does not require a server major bump. Compare supported tool inputs/results and runtime requirements with 1.1.2 before confirming the version. Existing ordinary legacy calls must continue working. Additional structured data, corrected error flags, concise human-readable build output, and client-dependent confirmation are called out in the changelog; byte-for-byte CLI text is not a structured result contract. An intentional incompatible supported-contract change requires an explicit major-version decision and corresponding installation-link migration, not an unexplained minor release.
+
+For preparation, pack a local candidate with `-p:MinVerVersionOverride=1.2.0-rc.1` if necessary; do not hardcode a project version or create a release tag just to test. Record the source SHA and whether local changes were included: an informational version containing a SHA does not establish a clean source tree. Run the release workflow against the exact committed candidate ref, preserve job outcomes and package SHA-256/provenance, and distinguish source tests from packaged execution.
+
+The publisher must confirm that the approved changes are on `main`, verify the exact tag commit, and publish via the existing tag-triggered workflows. Create a GitHub **prerelease**, not a stable/latest release, using curated notes:
+
+```powershell
+gh release create v1.2.0-rc.1 --verify-tag --prerelease --latest=false --notes-file C:\release-notes\candidate.md
+```
+
+This command assumes the annotated tag already exists remotely; pushing that tag triggers NuGet publication independently of whether a GitHub Release is still a draft. The PowerShell helper does not currently set the GitHub prerelease flag, so do not use its `-CreateGitHubRelease` option for a candidate without separately ensuring the correct designation.
+
+After publication, install the **exact published version** in isolated consumer environments and verify MCP behavior through the installed tool and both dnx entry points. Confirm registry publication/status explicitly, including any prerelease restrictions. Local-feed package tests alone do not validate the public artifact. Retain the published package hash, source commit, workflow URLs, and SDK/runtime identities.
+
+Use official SDK release metadata to decide when GA execution can run. Replay the preserved RC3 package with `rc3_run_id` on GA without rebuilding it, and identify separately which checks exercise the actual published package. An unavailable GA SDK is a pending gate, not a passing test; fixtures only validate selection policy. Do not claim product-specific Apps rendering or full-catalog governance readiness from wire/safe-subset tests.
+
+### Release note authoring
+
 There are two good workflows:
 
 ### Option A: Generate, then edit (fastest)

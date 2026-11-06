@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- MCP Apps SDK and server-metrics dashboards with modern and legacy UI linkage metadata.
+- Read-only `dotnet_sdk_query`, `dotnet_project_query`, and `dotnet_server_metrics_query` tools, keeping mutation and project evaluation on the existing domain tools.
+- Workflow prompts, a `dotnet://workspace` resource, tool invocation metrics, and workflow-level token-savings estimates.
+- Structured build/test diagnostics, concurrency lock metadata, typed action results, and output schemas with JSON text fallback for older clients.
+- Dual-targeted `net10.0` / `net11.0` tool packages and isolated Windows/Linux packaged-tool compatibility gates for installed tools, `dotnet dnx`, and the `dnx` launcher.
+- Opt-in Windows x64 NativeAOT publishing with a managed SDK helper and dedicated identity/parity/scenario validation.
+- .NET 11 SDK support for solution filters, Run environment variables, framework-specific formatting, prerelease template installation, and `DOTNET_TEST_RUNNER` selection.
+- Date-aware framework lifecycle metadata, including platform-qualified TFMs and .NET 11 GA transitions; project defaults remain .NET 10 LTS.
+
 ### Changed
 
 - Migrate to MCP SDK 2.x and protocol 2026-07-28, initially adopting stable 2.0.0; current hosting, Tasks, and Apps packages are 2.3.0. Preserve legacy stdio inline calls.
@@ -17,6 +28,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Report negotiated, request-dependent capabilities and honor per-request MCP logging thresholds. Preserve application error annotations separately from SDK-selected wire errors.
 - Update governance from the migration's 4.0.0 package to 5.0.0, retaining opt-in enforcement and fail-closed controls. The existing full-catalog startup blocker remains: the scanner rejects the certificate tool's `password` field.
 - Align SDK integration and compatibility documentation with the current package versions; clarify request-scoped Tasks, Logging, Sampling, and Elicitation availability and capability-error factory annotations.
+- Advertise explicit tool safety annotations and restrict query-tool action schemas to their read-only subsets.
+- Return concise text for successful builds alongside structured diagnostics. Clients should use structured results rather than parsing the human-readable success message.
+- Add confirmation for database deletion, certificate cleanup, and user-secret removal/clear when the client supports elicitation. EF database deletion still independently requires `force=true`; clients without elicitation retain existing unprompted behavior.
+- Select .NET 11 GA/servicing SDKs from official release metadata when available while preserving the exact RC3 regression lane and no-rebuild GA checks of retained RC3 packages.
+
+### Fixed
+
+- Preserve application failures as `isError` results across structured tool actions without converting failed list operations into successful empty collections.
+- Propagate cancellation to owned CLI process trees and pending client input without terminating shared build servers.
+- Improve template discovery fallback, project/solution metadata analysis, and compiler diagnostic reporting.
+
+### Known limitations
+
+- Full-catalog governance-enabled startup remains blocked by the upstream scanner's rejection of the certificate `password` schema field. Safe-subset policy tests do not establish full-catalog startup success; no scanning or fail-closed controls are bypassed.
+- The new Tasks extension is not wire-compatible with the old experimental Tasks implementation, which was disabled in 1.1.2. Legacy ordinary tool calls remain inline.
+- Automated MCP Apps wire checks do not certify rendering or permission UX in every client. Actual .NET 11 GA execution must be verified separately once a GA SDK is available.
 
 ## [1.1.2] - 2026-03-17
 

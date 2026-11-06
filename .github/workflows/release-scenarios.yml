@@ -86,6 +86,17 @@ jobs:
         id: validate_server_json
         run: pwsh -File scripts/validate-server-json.ps1
 
+      - name: Run MCP release compatibility tests
+        id: mcp_compatibility
+        shell: pwsh
+        run: |
+          dotnet test --solution DotNetMcp.slnx --configuration Release --framework '${{ matrix.framework }}' --no-build --no-restore -- `
+            --filter-class '*Sdk20CompatibilityTests' --filter-class '*McpConformanceTests' `
+            --filter-class '*McpAppsMetaWireFormatTest' --filter-class '*OutputSchemaTests' `
+            --filter-class '*ToolAnnotationTests' --filter-class '*ServerCapabilitiesTests' 2>&1 |
+            Tee-Object artifacts/release-results/mcp-compatibility.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Run Scenario + Release Scenario Tests
         id: release_scenarios
         shell: pwsh
@@ -129,3 +140,5 @@ jobs:
           '@
 
           $summary | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "MCP compatibility: ${{ steps.mcp_compatibility.outcome }}" |
+            Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8

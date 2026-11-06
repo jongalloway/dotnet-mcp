@@ -94,6 +94,29 @@ These scenarios pin the actual .NET 11 SDK in isolated fixtures and cover:
 
 The packaged-tool compatibility script separately compares installed tools, `dotnet dnx`, and the actual `dnx` launcher script. On .NET 11, it proves that the launcher can initialize the MCP server from a directory whose `global.json` requests a missing SDK, while `dotnet dnx` honors that pin and fails. Project CLI commands still honor their own SDK selection; launcher bypass does not bypass project SDK requirements.
 
+Each invocation runs fresh **2025-11-25** and **2026-07-28** sessions. Legacy sessions use `initialize`; current sessions use `server/discover` and explicit per-request protocol/client metadata. The package probes check:
+
+- Ordinary inline calls, negotiated capabilities, existing domain-tool discovery, template/project analysis, and a real build.
+- Apps extension discovery, SDK/metrics dashboard linkage in modern and legacy metadata, and readable HTML resources with the expected MIME type and resource metadata.
+- All SDK and metrics query actions, restricted read-only query annotations/schemas, rejected invalid/mutating actions, and project-log queries against an owned running application. Background sessions are stopped in cleanup.
+- Current-protocol Tasks creation and polling, completed application errors, request-local opt-in, and cancellation of an observed CLI worker process. Legacy Tasks are explicitly recorded as not applicable; ordinary legacy calls remain inline.
+
+Run the harness with an already-built package and an isolated SDK root containing exactly one SDK for the selected server major:
+
+```powershell
+pwsh -File scripts/test-tool-compatibility.ps1 `
+    -PackagePath C:\packages\Community.Mcp.DotNet.1.2.0-rc.1.nupkg `
+    -DotnetRoot C:\isolated-dotnet `
+    -ExpectedFramework net11.0 `
+    -ProjectSdkVersion 11.0.100-rc.3.26522.148 `
+    -ExpectedRuntimeVersion 11.0.0-rc.3.26522.148 `
+    -OutputDirectory C:\results\new-compatibility-run
+```
+
+The output directory must be new. `results.json` is written only after all six invocation/protocol combinations pass and identifies the package version/hash, SDK/runtime inventory, and feature outcomes. Per-session RPC transcripts, stderr and host traces remain available even on failure. These fixture transcripts contain test-generated paths and payloads; do not use this harness to capture real secrets.
+
+The manual release workflow also runs `Sdk20CompatibilityTests`, `McpConformanceTests`, `McpAppsMetaWireFormatTest`, `OutputSchemaTests`, `ToolAnnotationTests`, and `ServerCapabilitiesTests` explicitly for each source SDK/framework/OS lane. This retains deeper confirmation/input-required, governance and contract checks that are not duplicated in the package smoke harness. See [release preparation and publication](releasing.md#release-preparation-and-publication).
+
 Run all tests (recommended):
 
 ```bash
