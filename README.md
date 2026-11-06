@@ -187,7 +187,9 @@ The MCP server uses official .NET SDK APIs and CLI commands, ensuring:
     - Agent Governance Toolkit repository: https://github.com/microsoft/agent-governance-toolkit
     - Agent Governance Toolkit for .NET: https://github.com/microsoft/agent-governance-toolkit/tree/main/agent-governance-dotnet
     - Announcement: https://devblogs.microsoft.com/dotnet/announcing-agent-governance-toolkit-mcp-extensions-for-dotnet/
-  - Startup scanning, policy-based tool authorization, and response sanitization can be enabled with:
+  - Configuration for startup scanning, policy-based tool authorization, and response sanitization uses the following shape:
+
+> **Governance startup limitation:** Setting `McpGovernance:Enabled` to `true` with the full tool catalog currently **fails startup** because the toolkit scanner rejects the existing `dotnet_dev_certs.password` input property. The example below is not a working full-catalog workaround, and an allow policy does not bypass startup scanning. See the [startup restriction and operating guidance](doc/mcp-governance.md#sdk-compatibility-and-startup-restriction). Leaving governance disabled permits ordinary server use but provides no governance enforcement.
 
 ```json
 "McpGovernance": {
