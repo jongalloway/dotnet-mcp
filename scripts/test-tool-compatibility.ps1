@@ -454,7 +454,7 @@ using System.IO;
 using System.Threading;
 Console.WriteLine("compatibility-ready");
 if (args.Length != 0) File.WriteAllText(args[0], Environment.ProcessId.ToString());
-Thread.Sleep(TimeSpan.FromMinutes(2));
+Thread.Sleep(Timeout.Infinite);
 '@ | Set-Content -LiteralPath (Join-Path $projectDir 'Program.cs')
             $analysis = Invoke-Tool $process 'dotnet_project' @{ action = 'Analyze'; projectPath = $project }
             if ($analysis -notmatch [regex]::Escape($projectFramework)) { throw "Missing framework in project analysis: $analysis" }
