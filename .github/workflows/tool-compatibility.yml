@@ -173,6 +173,10 @@ jobs:
           ./scripts/test-tool-compatibility.ps1 -PackagePath $packages[0].FullName -DotnetRoot $root `
             -ExpectedFramework "net$runtimeMajor.0" -ProjectSdkVersion $sdk[0] `
             -ExpectedRuntimeVersion $runtime[0] -OutputDirectory (Join-Path $PWD 'artifacts/compatibility-results')
+          $results = Get-Content artifacts/compatibility-results/results.json -Raw | ConvertFrom-Json
+          if ($results.sha256 -ne $provenance.sha256 -or $results.results.Count -ne 6) {
+            throw 'Expected six invocation/protocol results for the preserved package.'
+          }
           Copy-Item artifacts/package/provenance.json artifacts/compatibility-results/provenance.json
           @(
             "## Packaged compatibility: ${{ matrix.os }} / $env:CASE"
@@ -180,6 +184,10 @@ jobs:
             "Package SHA-256: $($provenance.sha256)"
             "RC3 build: $($provenance.run) / $($provenance.commit)"
           ) | Out-File $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          foreach ($result in $results.results) {
+            "- $($result.invocation) / $($result.protocol): passed $($result.features -join ', '); Tasks: $($result.tasks)" |
+              Out-File $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          }
       - name: Preserve selection evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # pin@v7
