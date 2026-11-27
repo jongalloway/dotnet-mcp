@@ -8,14 +8,14 @@ This project is an **MCP (Model Context Protocol) server** that integrates with 
 
 ## Key Technologies
 
-- **.NET 10.0 and .NET 11.0 RC3 or GA**: Dual-targeted server and tests; `global.json` specifies an RC3 SDK minimum with `latestPatch` roll-forward within 11.0.1xx. Shared CI setup automatically installs GA when published; exact-RC3 regression/package lanes remain pinned.
+- **.NET 10.0 and .NET 11.0 GA**: Dual-targeted server and tests; `global.json` specifies a GA SDK minimum with `latestPatch` roll-forward within 11.0.1xx. Shared CI setup installs the latest stable SDK in that feature band.
 - **Model Context Protocol SDK**: Version 2.0.0, with matching `ModelContextProtocol.Extensions.Tasks`
 - **Stdio Transport**: Communication via standard input/output
 - **Microsoft.Extensions.Hosting**: For application lifecycle management
-- **Microsoft.TemplateEngine.\***: v10.0.403 for `net10.0`, v11.0.100-rc.3.26522.148 for `net11.0`; keep dependency groups target-specific
+- **Microsoft.TemplateEngine.\***: v11.0.100 for both targets; keep dependency groups target-specific
 - **Microsoft.Build.\***: MSBuild integration for framework validation (v18.9.6)
 
-`NuGet.Config` adds the public `dotnet-tools` feed for RC3's NuGet 8 dependencies. Packaged tools include those dependencies and do not require the feed at installation. Both targets expose the same MCP tools, and project defaults remain .NET 10 LTS. `RollForward=Minor` does not permit backward or cross-major runtime selection. Verify generated runtimeconfigs and packaged tool execution, not just project builds.
+`NuGet.Config` adds the public `dotnet-tools` feed for TemplateEngine's prerelease NuGet 8 dependencies. Packaged tools include those dependencies and do not require the feed at installation. Both targets expose the same MCP tools, and project defaults remain .NET 10 LTS. `RollForward=Minor` does not permit backward or cross-major runtime selection. Verify generated runtimeconfigs and packaged tool execution, not just project builds.
 
 ## Architecture
 
@@ -104,7 +104,7 @@ After making code changes:
 
 When running tests:
 
-- Run this repository's tests with `dotnet test --solution DotNetMcp.slnx`. The pinned .NET 11 RC3 SDK has a `--project` discovery regression; solution discovery runs both target frameworks without changing test selectors.
+- Run this repository's tests with `dotnet test --solution DotNetMcp.slnx`. Solution discovery runs both target frameworks without changing test selectors.
 - For other projects, MTP supports `--project ...`; do not pass a `.csproj` as a positional argument.
 - Use Microsoft Testing Platform filters after `--` (for example `--filter-class ...`).
 

@@ -1,8 +1,8 @@
 name: Setup supported .NET SDKs
-description: Install .NET 10 and the RC3 baseline or automatically selected .NET 11 GA SDK.
+description: Install .NET 10 and the selected .NET 11 GA SDK.
 inputs:
   lane:
-    description: current automatically adopts GA; rc3 preserves the exact baseline.
+    description: The current GA SDK lane.
     default: current
   cache:
     description: Enable setup-dotnet NuGet caching.
@@ -15,7 +15,7 @@ outputs:
     description: Exact selected build SDK.
     value: ${{ steps.resolve.outputs.sdk-version }}
   phase:
-    description: rc3 or ga.
+    description: ga.
     value: ${{ steps.resolve.outputs.phase }}
 runs:
   using: composite
