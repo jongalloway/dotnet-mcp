@@ -46,10 +46,10 @@ See [SDK compatibility](sdk-v1.1-compatibility.md) for confirmation, deprecated 
 
 ### Template Engine
 
-- **Microsoft.TemplateEngine.Abstractions** (v10.0.403 on `net10.0`; v11.0.100-rc.3.26522.148 on `net11.0`)
+- **Microsoft.TemplateEngine.Abstractions** (v11.0.100 on both `net10.0` and `net11.0`)
 - **Microsoft.TemplateEngine.Edge** (same target-specific versions)
 
-The server and tests target both frameworks. Hosting follows the same split: 10.0.14 on .NET 10 and 11.0.0-rc.3.26522.148 on .NET 11. The .NET 11 dependency graph uses NuGet 8.0.0-rc.2448; the direct .NET 10 NuGet.Frameworks reference remains 7.9.0. `NuGet.Config` adds Microsoft's public `dotnet-tools` feed for the RC3 NuGet dependencies that are not yet available on NuGet.org. The packed tool includes its dependencies, so consumer installs do not need that feed.
+The server and tests target both frameworks. Hosting uses 11.0.0 on both targets, and both dependency graphs use the explicit NuGet.Frameworks 8.0.0 reference required by TemplateEngine 11.0.100. `NuGet.Config` adds Microsoft's public `dotnet-tools` feed for SDK 11 RC3 NuGet dependencies that are not yet available on NuGet.org. The packed tool includes its dependencies, so consumer installs do not need that feed.
 
 Both builds expose the same tool surface. Project/template defaults remain .NET 10 LTS, independently of the latest supported GA recommendation: framework metadata recommends .NET 11 STS starting at its GA date, while the latest LTS remains .NET 10. The server runtime does not determine the SDK used for project CLI commands: a project-local `global.json` can select .NET 10 while the server runs on .NET 11.
 

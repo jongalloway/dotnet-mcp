@@ -1200,11 +1200,11 @@ Key files to start with:
 ## Technology Stack
 
 - **Protocol**: [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)
-- **SDK**: [MCP SDK for .NET](https://github.com/modelcontextprotocol/csharp-sdk) v2.3.0, with matching Tasks and Apps extensions
-- **Runtime**: .NET 10.0 and .NET 11.0 RC3 (dual-targeted tool)
+- **SDK**: [MCP SDK for .NET](https://github.com/modelcontextprotocol/csharp-sdk) v2.4.0, with matching Tasks and Apps extensions
+- **Runtime**: .NET 10.0 and .NET 11.0 (dual-targeted tool)
 - **Transport**: stdio (standard input/output)
 - **NuGet Packages**:
-  - `Microsoft.TemplateEngine.Abstractions` & `Edge` (v10.0.403 for .NET 10; v11.0.100-rc.3.26522.148 for .NET 11) - Template metadata
+  - `Microsoft.TemplateEngine.Abstractions` & `Edge` (v11.0.100 for .NET 10 and .NET 11) - Template metadata
   - `Microsoft.Build.Utilities.Core` & `Microsoft.Build` (v18.9.6) - Project validation
 
 ## Documentation
