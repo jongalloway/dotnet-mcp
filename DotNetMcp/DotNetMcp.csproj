@@ -70,8 +70,6 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AgentGovernance.Extensions.ModelContextProtocol" Version="5.0.0" />
-    <PackageReference Include="Microsoft.Build" Version="18.9.6" Condition="'$(PublishAot)' != 'true'" />
-    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="18.12.2" Condition="'$(PublishAot)' != 'true'" />
     <PackageReference Include="ModelContextProtocol" Version="2.4.0" />
     <PackageReference Include="ModelContextProtocol.Extensions.Apps" Version="2.4.0" />
     <PackageReference Include="ModelContextProtocol.Extensions.Tasks" Version="2.4.0" />
@@ -82,6 +80,8 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="Microsoft.Build" Version="18.9.6" Condition="'$(PublishAot)' != 'true'" />
+    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="18.9.6" Condition="'$(PublishAot)' != 'true'" />
     <!-- MSBuild's framework property functions require a newer assembly than TemplateEngine brings in. -->
     <PackageReference Include="NuGet.Frameworks" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="11.0.0" />
@@ -90,6 +90,8 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net11.0'">
+    <PackageReference Include="Microsoft.Build" Version="18.12.2" Condition="'$(PublishAot)' != 'true'" />
+    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="18.12.2" Condition="'$(PublishAot)' != 'true'" />
     <PackageReference Include="NuGet.Frameworks" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="11.0.0" />
     <PackageReference Include="Microsoft.TemplateEngine.Abstractions" Version="11.0.100" />
