@@ -48,7 +48,7 @@ try {
         if ($options.tfm -ne $tfm -or $options.rollForward -ne 'Minor') {
             throw "Unexpected runtime contract for ${tfm}: $($options | ConvertTo-Json -Compress)"
         }
-        $expectedFloor = if ($tfm -eq 'net10.0') { '10.0.0' } else { '11.0.0-rc.3.26522.148' }
+        $expectedFloor = if ($tfm -eq 'net10.0') { '10.0.0' } else { '11.0.0' }
         if ($options.framework.version -ne $expectedFloor) { throw "Unexpected runtime floor for $tfm" }
         if ($null -eq $archive.GetEntry("tools/$tfm/any/DotnetToolSettings.xml")) {
             throw "Package is missing $tfm tool settings."
@@ -74,14 +74,14 @@ $environment = @{
 $work = [System.IO.Directory]::CreateDirectory((Join-Path $OutputDirectory 'work')).FullName
 $feed = [System.IO.Directory]::CreateDirectory((Join-Path $OutputDirectory 'feed')).FullName
 Copy-Item -LiteralPath $PackagePath -Destination $feed
-# Consumer tests deliberately override the checkout's RC3 SDK pin and package sources.
+# Consumer tests deliberately override the checkout's SDK pin and package sources.
 $toolMajor = $ExpectedFramework.Substring(3).Split('.')[0]
 $toolSdks = @(Get-ChildItem (Join-Path $DotnetRoot 'sdk') -Directory | Where-Object Name -Like "$toolMajor.*")
 if ($toolSdks.Count -ne 1) { throw "Expected one .NET $toolMajor SDK in the isolated root." }
-@{ sdk = @{ version = $toolSdks[0].Name; rollForward = 'disable'; allowPrerelease = $true } } |
+@{ sdk = @{ version = $toolSdks[0].Name; rollForward = 'disable'; allowPrerelease = $false } } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $work 'global.json')
 $projectRoot = [System.IO.Directory]::CreateDirectory((Join-Path $work 'projects')).FullName
-@{ sdk = @{ version = $ProjectSdkVersion; rollForward = 'disable'; allowPrerelease = $true } } |
+@{ sdk = @{ version = $ProjectSdkVersion; rollForward = 'disable'; allowPrerelease = $false } } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $projectRoot 'global.json')
 $config = Join-Path $work 'NuGet.Config'
 '<configuration><packageSources><clear /></packageSources></configuration>' | Set-Content -LiteralPath $config

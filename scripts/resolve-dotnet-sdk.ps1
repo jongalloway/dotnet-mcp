@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [string] $GlobalJsonPath = (Join-Path $PSScriptRoot '../global.json'),
-    [ValidateSet('current', 'rc3')]
+    [ValidateSet('current')]
     [string] $Lane = 'current',
     [object] $ReleaseMetadata,
     [string] $GitHubOutputPath
@@ -11,13 +11,13 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 $baseline = (Get-Content -LiteralPath $GlobalJsonPath -Raw | ConvertFrom-Json).sdk.version
-if ($baseline -notmatch '^(\d+)\.(\d+)\.(\d{3})-rc\.3\.[\d.]+$') {
-    throw "Expected a fully qualified RC3 SDK baseline, got '$baseline'."
+if ($baseline -notmatch '^(\d+)\.(\d+)\.(\d{3})$') {
+    throw "Expected a stable SDK baseline, got '$baseline'."
 }
 $major = $Matches[1]
 $minor = $Matches[2]
 $featureBand = [int] [Math]::Floor([int] $Matches[3] / 100)
-$minimum = [version] ($baseline.Split('-')[0])
+$minimum = [version] $baseline
 
 if ($null -eq $ReleaseMetadata) {
     $ReleaseMetadata = Invoke-RestMethod "https://raw.githubusercontent.com/dotnet/core/main/release-notes/$major.$minor/releases.json"
@@ -39,7 +39,7 @@ $versions = @(
         }
     }
 )
-if ($baseline -notin $versions) { throw "Release metadata is missing the RC3 baseline $baseline." }
+if ($baseline -notin $versions) { throw "Release metadata is missing the SDK baseline $baseline." }
 $stable = @($versions | Where-Object {
     $_ -notmatch '-' -and
     ([version] $_).Major -eq [int] $major -and
@@ -47,19 +47,17 @@ $stable = @($versions | Where-Object {
     [int] [Math]::Floor(([version] $_).Build / 100) -eq $featureBand -and
     ([version] $_) -ge $minimum
 } | Sort-Object { [version] $_ } -Descending -Unique)
-$gaAvailable = $stable.Count -gt 0
-$selected = if ($Lane -eq 'current' -and $gaAvailable) { $stable[0] } else { $baseline }
-$environments = @('net10', 'rc3', 'side-by-side-net10', 'side-by-side-net11')
-if ($gaAvailable) { $environments += @('ga', 'ga-side-by-side-net10', 'ga-side-by-side-net11') }
+$selected = $stable[0]
+$environments = @('net10', 'ga', 'ga-side-by-side-net10', 'ga-side-by-side-net11')
 $result = [ordered]@{
     'baseline-sdk' = $baseline
     'sdk-version' = $selected
-    'ga-sdk' = $(if ($gaAvailable) { $stable[0] } else { '' })
-    'phase' = $(if ($selected -eq $baseline) { 'rc3' } else { 'ga' })
-    'lanes' = (ConvertTo-Json -InputObject @($(if ($gaAvailable) { 'current'; 'rc3' } else { 'current' })) -Compress)
+    'ga-sdk' = $selected
+    'phase' = 'ga'
+    'lanes' = '["current"]'
     'compatibility-environments' = (ConvertTo-Json -InputObject $environments -Compress)
 }
-Write-Host "SDK lane ${Lane}: $selected (RC3 minimum: $baseline; GA available: $gaAvailable)"
+Write-Host "SDK lane ${Lane}: $selected (GA minimum: $baseline)"
 if ($GitHubOutputPath) {
     foreach ($entry in $result.GetEnumerator()) {
         "$($entry.Key)=$($entry.Value)" | Out-File -LiteralPath $GitHubOutputPath -Append -Encoding utf8

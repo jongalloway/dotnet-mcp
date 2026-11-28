@@ -21,22 +21,19 @@ function Assert-Rejected($Metadata) {
     if (-not $rejected) { throw 'Invalid release metadata was accepted.' }
 }
 
-$rc3 = & $resolver -ReleaseMetadata (New-Metadata @($baseline))
-Assert-Equal $rc3.'sdk-version' $baseline
-Assert-Equal $rc3.lanes '["current"]'
-Assert-Equal $rc3.phase 'rc3'
-Assert-Equal (@($rc3.'compatibility-environments' | ConvertFrom-Json).Count) 4
+$initial = & $resolver -ReleaseMetadata (New-Metadata @($baseline))
+Assert-Equal $initial.'sdk-version' $baseline
+Assert-Equal $initial.lanes '["current"]'
+Assert-Equal $initial.phase 'ga'
+Assert-Equal $initial.'compatibility-environments' '["net10","ga","ga-side-by-side-net10","ga-side-by-side-net11"]'
 
 $metadata = New-Metadata @($baseline, '11.0.100', '11.0.109', '11.0.110', '11.0.200', '12.0.100', '11.0.199-preview.1')
 $ga = & $resolver -ReleaseMetadata $metadata
 Assert-Equal $ga.'sdk-version' '11.0.110'
 Assert-Equal $ga.phase 'ga'
-Assert-Equal $ga.lanes '["current","rc3"]'
-Assert-Equal (@($ga.'compatibility-environments' | ConvertFrom-Json).Count) 7
-$exact = & $resolver -ReleaseMetadata $metadata -Lane rc3
-Assert-Equal $exact.'sdk-version' $baseline
-Assert-Equal $exact.'ga-sdk' '11.0.110'
-$preview = & $resolver -ReleaseMetadata (New-Metadata @($baseline, '11.0.100-rc.4.12345.1', '11.0.200'))
+Assert-Equal $ga.lanes '["current"]'
+Assert-Equal $ga.'ga-sdk' '11.0.110'
+$preview = & $resolver -ReleaseMetadata (New-Metadata @($baseline, '11.0.199-preview.1', '11.0.200'))
 Assert-Equal $preview.'sdk-version' $baseline
 $singleSdk = & $resolver -ReleaseMetadata @{
     'channel-version' = '11.0'
@@ -48,5 +45,5 @@ Assert-Rejected @{ 'channel-version' = '12.0'; releases = @(@{ sdk = @{ version 
 Assert-Rejected @{ 'channel-version' = '11.0'; releases = @() }
 Assert-Rejected @{ 'channel-version' = '11.0'; releases = @(@{}) }
 Assert-Rejected (New-Metadata @($baseline, 'not-a-version'))
-Assert-Rejected (New-Metadata @('11.0.100'))
+Assert-Rejected (New-Metadata @('11.0.100-rc.3.26522.148'))
 Write-Host 'SDK selection fixtures passed.'
