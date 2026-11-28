@@ -42,7 +42,7 @@ This command assumes the annotated tag already exists remotely; pushing that tag
 
 After publication, install the **exact published version** in isolated consumer environments and verify MCP behavior through the installed tool and both dnx entry points. Confirm registry publication/status explicitly, including any prerelease restrictions. Local-feed package tests alone do not validate the public artifact. Retain the published package hash, source commit, workflow URLs, and SDK/runtime identities.
 
-Use official SDK release metadata to decide when GA execution can run. Replay the preserved RC3 package with `rc3_run_id` on GA without rebuilding it, and identify separately which checks exercise the actual published package. An unavailable GA SDK is a pending gate, not a passing test; fixtures only validate selection policy. Do not claim product-specific Apps rendering or full-catalog governance readiness from wire/safe-subset tests.
+Identify separately which checks exercise the actual published package. SDK selection fixtures only validate selection policy, not package execution. Do not claim product-specific Apps rendering or full-catalog governance readiness from wire/safe-subset tests.
 
 ### Release note authoring
 
@@ -87,12 +87,12 @@ If you do want a long-running, in-repo history, use [CHANGELOG.md](../CHANGELOG.
 
 Optional but recommended:
 
-- `dotnet build "$PWD/DotNetMcp/DotNetMcp.csproj"` (uses the RC3 minimum or compatible installed GA SDK and builds both targets)
+- `dotnet build "$PWD/DotNetMcp/DotNetMcp.csproj"` (uses the GA minimum or compatible installed servicing SDK and builds both targets)
 - `dotnet test --solution DotNetMcp.slnx`
 
 Before tagging, run `release-scenarios.yml` with `os=all` against the intended source ref and confirm its SHA and every job outcome. It covers both target frameworks, Windows/Linux source scenarios, and the packaged-tool matrix without publishing. See [Testing](testing.md#release-gate-scenario-tests-manual--workflow_dispatch) for commands and evidence artifacts.
 
-Build and publish setup automatically adopts the stable .NET 11.0.1xx SDK once official release metadata announces it; until then it uses the exact RC3 baseline. Exact-RC3 regression lanes remain, and the packaged compatibility artifact is always built with RC3. Retain `rc3-tool-package` (including provenance and hash) before its 90-day expiry to verify that same package on GA later with `rc3_run_id`. GA runtime roll-forward requires GA to be installed; it does not install runtimes automatically. Do not treat pre-GA fixture checks as proof of GA execution.
+Build and publish setup selects the latest stable .NET 11.0.1xx SDK from official release metadata. The packaged compatibility workflow builds one GA package and tests it across .NET 10 and .NET 11 environments, preserving its provenance and hash. Runtime roll-forward requires a compatible runtime to be installed; it does not install runtimes automatically.
 
 ### 2) Create an annotated tag
 

@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Advertise explicit tool safety annotations and restrict query-tool action schemas to their read-only subsets.
 - Return concise text for successful builds alongside structured diagnostics. Clients should use structured results rather than parsing the human-readable success message.
 - Add confirmation for database deletion, certificate cleanup, and user-secret removal/clear when the client supports elicitation. EF database deletion still independently requires `force=true`; clients without elicitation retain existing unprompted behavior.
-- Select .NET 11 GA/servicing SDKs from official release metadata when available while preserving the exact RC3 regression lane and no-rebuild GA checks of retained RC3 packages.
+- Select .NET 11 GA/servicing SDKs from official release metadata and test a GA-built package across .NET 10 and .NET 11 environments.
 
 ### Fixed
 

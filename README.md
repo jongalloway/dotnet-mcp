@@ -18,7 +18,7 @@ Click to install in your preferred environment:
 [![VS Code Insiders - Install .NET MCP](https://img.shields.io/badge/VS_Code_Insiders-Install_.NET_MCP-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=dotnet-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22dnx%22%2C%22args%22%3A%5B%22Community.Mcp.DotNet%401.%2A%22%2C%22--yes%22%5D%7D&quality=insiders)
 [![Visual Studio - Install .NET MCP](https://img.shields.io/badge/Visual_Studio-Install_.NET_MCP-5C2D91?style=flat-square&logo=visualstudio&logoColor=white)](https://vs-open.link/mcp-install?%7B%22name%22%3A%22Community.Mcp.DotNet%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22dnx%22%2C%22args%22%3A%5B%22Community.Mcp.DotNet%401.%2A%22%2C%22--yes%22%5D%7D)
 
-> **Note**: Quick install requires the .NET 10 or .NET 11 SDK. Source builds require .NET 11 RC3 or a compatible GA SDK in the 11.0.1xx feature band.
+> **Note**: Quick install requires the .NET 10 or .NET 11 SDK. Source builds require a .NET 11 GA SDK in the 11.0.1xx feature band.
 
 ## What is This?
 
@@ -249,24 +249,23 @@ Use `dotnet_server_capabilities` to discover the negotiated protocol and feature
 
 ### Requirements
 
-- **For package installation**: .NET 10 SDK or .NET 11 SDK (RC3 or later)
-- **For source builds**: .NET SDK `11.0.100-rc.3.26522.148` or a GA/servicing SDK in the 11.0.1xx feature band; `global.json` selects the latest installed compatible patch. Install the .NET 10 SDK alongside it to run both test targets.
+- **For package installation**: .NET 10 SDK or .NET 11 GA SDK
+- **For source builds**: .NET SDK `11.0.100` or a servicing SDK in the 11.0.1xx feature band; `global.json` selects the latest installed compatible patch. Install the .NET 10 SDK alongside it to run both test targets.
 - Visual Studio Code, Visual Studio 2022 (v17.13+), or Claude Desktop
 
 ### Runtime and SDK compatibility
 
-One package contains `net10.0` and `net11.0` builds with the same MCP tool surface. .NET 10-only machines remain supported. The .NET 11 build uses RC3 Template Engine and Hosting packages; this does not add new .NET 11-only tools or change the default .NET 10 LTS project recommendation.
+One package contains `net10.0` and `net11.0` builds with the same MCP tool surface. .NET 10-only machines remain supported. Both builds use GA Template Engine and Hosting packages; this does not add new .NET 11-only tools or change the default .NET 10 LTS project recommendation.
 
 | Environment | Fresh installation with the selected SDK | Project support |
 | --- | --- | --- |
 | .NET 10 only | .NET 10 tool assets and runtime | .NET 10 projects |
-| .NET 11 RC3 only | .NET 11 tool assets and RC3 runtime | .NET 11 projects |
-| .NET 10 and 11 RC3 side by side, .NET 11 SDK selected | .NET 11 tool assets and runtime | .NET 10 projects with a project-local .NET 10 SDK pin, and .NET 11 projects |
-| .NET 11 GA only | Intended to use the unchanged RC3-built .NET 11 assets | GA-only execution is pending verification |
+| .NET 11 GA only | .NET 11 tool assets and runtime | .NET 11 projects |
+| .NET 10 and 11 GA side by side, .NET 11 SDK selected | .NET 11 tool assets and runtime | .NET 10 projects with a project-local .NET 10 SDK pin, and .NET 11 projects |
 
 Tool asset selection follows the SDK used to install or launch the tool, not simply the highest runtime installed. A `global.json` can select an older SDK. Installing .NET 11 later does not retarget an existing .NET 10 tool installation; reinstall or update it using the desired SDK. For an explicit tool installation target, `dotnet tool install` also supports `--framework net11.0`.
 
-Both `dnx` and a tool-path install were exercised against the same package on isolated .NET 10, RC3, and side-by-side installations. Neither required `--allow-roll-forward`. For a specific package version, use:
+CI exercises both `dnx` and a tool-path install against the same GA-built package on isolated .NET 10, .NET 11 GA, and side-by-side installations. Neither requires `--allow-roll-forward`. For a specific package version, use:
 
 ```text
 dnx Community.Mcp.DotNet@<exact-version> --yes
@@ -275,7 +274,7 @@ dotnet tool install Community.Mcp.DotNet@<exact-version> --tool-path ./tools
 
 Replace `<exact-version>` with the desired published version. An exact prerelease version does not require `--prerelease`; floating prerelease selection does. Point MCP clients at the installed `dotnet-mcp` executable when using a tool-path install.
 
-The package explicitly uses `RollForward=Minor`, keeping runtime resolution within the target major version. The RC3-built package's .NET 11 runtime floor is `11.0.0-rc.3.26522.148`. RC3-to-GA is a same-major runtime transition, not a reason to require `Major` roll-forward. A compatible runtime must already be installed; roll-forward does not download one. CI automatically installs the GA SDK when published and verifies an unchanged RC3-built package on GA, while retaining exact-RC3 coverage. **GA execution is pending until GA is available.** A .NET 11-only build cannot run backward on .NET 10; the separate .NET 10 assets provide that support.
+The package explicitly uses `RollForward=Minor`, keeping runtime resolution within the target major version. Its .NET 11 runtime floor is `11.0.0`. A compatible runtime must already be installed; roll-forward does not download one. A .NET 11-only build cannot run backward on .NET 10; the separate .NET 10 assets provide that support.
 
 The server runtime and the SDK used for project commands are separate choices. Future SDK-specific CLI features should be checked against the selected project's SDK; only features using .NET 11-only in-process APIs need the .NET 11 server build.
 
@@ -1114,7 +1113,7 @@ await callTool("dotnet_project", {
 });
 ```
 
-The SDK's MTP template post-actions can update the applicable `global.json` to select `Microsoft.Testing.Platform`, even with `--no-restore`; inspect that change before running other test projects. The pinned RC3 templates reject these MTP options with an explicit `net10.0` target despite advertising it in help, so the examples opt in to `net11.0`. Ordinary project creation keeps the server's .NET 10 LTS default.
+The SDK's MTP template post-actions can update the applicable `global.json` to select `Microsoft.Testing.Platform`, even with `--no-restore`; inspect that change before running other test projects. The examples opt in to `net11.0`. Ordinary project creation keeps the server's .NET 10 LTS default.
 
 #### dotnet_dev_certs - Developer Certificates and Secrets
 
@@ -1146,7 +1145,7 @@ await callTool("dotnet_dev_certs", {
 
 For development or contributing:
 
-Install the RC3 baseline SDK from `global.json` or a GA/servicing SDK in the 11.0.1xx feature band. The `latestPatch` SDK policy automatically selects the latest compatible installed SDK without crossing feature bands or major versions; CI installs the selected release automatically. The repository's `NuGet.Config` adds Microsoft's public `dotnet-tools` feed because Template Engine RC3 depends on NuGet `8.0.0-rc.2448` packages that are not yet on NuGet.org. Retain your normal NuGet.org source for the other dependencies; this extra feed is needed to build, not to install the tool's bundled dependencies. The tool still requires a compatible .NET runtime.
+Install the GA baseline SDK from `global.json` or a servicing SDK in the 11.0.1xx feature band. The `latestPatch` SDK policy automatically selects the latest compatible installed SDK without crossing feature bands or major versions; CI installs the selected release automatically. The repository's `NuGet.Config` adds Microsoft's public `dotnet-tools` feed for Template Engine's prerelease NuGet 8 dependencies. Retain your normal NuGet.org source for the other dependencies; this extra feed is needed to build, not to install the tool's bundled dependencies. The tool still requires a compatible .NET runtime.
 
 ```bash
 git clone https://github.com/jongalloway/dotnet-mcp.git
@@ -1160,7 +1159,7 @@ dotnet build "$PWD/DotNetMcp/DotNetMcp.csproj"
 dotnet run --framework net11.0 --project DotNetMcp/DotNetMcp.csproj
 ```
 
-Choose `--framework net10.0` instead to run the .NET 10 build. `dotnet run` requires an explicit framework for this multi-targeted project. Package consumers do not need the RC3 build SDK to run the .NET 10 assets.
+Choose `--framework net10.0` instead to run the .NET 10 build. `dotnet run` requires an explicit framework for this multi-targeted project. Package consumers do not need the .NET 11 build SDK to run the .NET 10 assets.
 
 The server communicates via stdio transport and is designed to be invoked by MCP clients.
 
@@ -1200,11 +1199,11 @@ Key files to start with:
 ## Technology Stack
 
 - **Protocol**: [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)
-- **SDK**: [MCP SDK for .NET](https://github.com/modelcontextprotocol/csharp-sdk) v2.3.0, with matching Tasks and Apps extensions
-- **Runtime**: .NET 10.0 and .NET 11.0 RC3 (dual-targeted tool)
+- **SDK**: [MCP SDK for .NET](https://github.com/modelcontextprotocol/csharp-sdk) v2.4.0, with matching Tasks and Apps extensions
+- **Runtime**: .NET 10.0 and .NET 11.0 (dual-targeted tool)
 - **Transport**: stdio (standard input/output)
 - **NuGet Packages**:
-  - `Microsoft.TemplateEngine.Abstractions` & `Edge` (v10.0.403 for .NET 10; v11.0.100-rc.3.26522.148 for .NET 11) - Template metadata
+  - `Microsoft.TemplateEngine.Abstractions` & `Edge` (v11.0.100 for .NET 10 and .NET 11) - Template metadata
   - `Microsoft.Build.Utilities.Core` & `Microsoft.Build` (v18.9.6) - Project validation
 
 ## Documentation
@@ -1295,7 +1294,7 @@ See [.github/copilot-instructions.md](.github/copilot-instructions.md) for devel
 ### "dnx not found"
 
 - **Cause**: .NET 10 SDK not installed
-- **Solution**: Install the [.NET 10 or .NET 11 SDK](https://dotnet.microsoft.com/download). Source-based manual configuration additionally requires an SDK compatible with the RC3 minimum in `global.json` and an explicit `--framework`.
+- **Solution**: Install the [.NET 10 or .NET 11 SDK](https://dotnet.microsoft.com/download). Source-based manual configuration additionally requires an SDK compatible with the GA minimum in `global.json` and an explicit `--framework`.
 
 ### "No templates found"
 

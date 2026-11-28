@@ -117,7 +117,7 @@ Use the existing tools rather than constructing a new CLI escape hatch:
 
 These opt-ins depend on the active CLI SDK, not the server runtime. Filter creation requires an existing parent; relative parent paths are relative to the output directory. Default solution creation remains `.sln`, and filter paths are never auto-selected.
 
-Test Auto mode honors `DOTNET_TEST_RUNNER` on SDK 11+ before `global.json`. SDK MTP template post-actions can update `global.json` even with `--no-restore`; inspect the change. The pinned RC3 templates require the explicit .NET 11 target shown above for these options despite advertising .NET 10 in help. Do not pass file-based `.cs` apps into XML property/item editors. Dedicated test policy options, file-app editing, device-aware Watch, and NuGet source publication-age settings are not exposed by this increment.
+Test Auto mode honors `DOTNET_TEST_RUNNER` on SDK 11+ before `global.json`. SDK MTP template post-actions can update `global.json` even with `--no-restore`; inspect the change. Do not pass file-based `.cs` apps into XML property/item editors. Dedicated test policy options, file-app editing, device-aware Watch, and NuGet source publication-age settings are not exposed by this increment.
 
 ### 1. Creating a New Console Application
 
